@@ -710,6 +710,52 @@ def _tool_invoke_tracy(address: str, city: str = "", state: str = "", zip_code: 
                             "role": "Relative"
                         })
 
+        # Fallback: instant lookup si queue no devolvió contactos
+        if not contacts:
+            logger.info("Tracy queue sin contactos — intentando instant lookup como fallback...")
+            try:
+                lookup_payload = {
+                    "address": address, "city": city, "state": state, "find_owner": True
+                }
+                if zip_code:
+                    lookup_payload["zip"] = zip_code
+                lookup_resp = http_requests.post(
+                    "https://tracerfy.com/v1/api/trace/lookup/",
+                    headers={"Authorization": f"Bearer {TRACERFY_API_KEY}", "Content-Type": "application/json"},
+                    json=lookup_payload,
+                    timeout=30
+                )
+                lookup_data = lookup_resp.json()
+                logger.info(f"Tracy instant lookup response: {json.dumps(lookup_data, ensure_ascii=False)[:500]}")
+                if isinstance(lookup_data, dict) and lookup_data.get("first_name"):
+                    owner_name = f"{lookup_data.get('first_name', '')} {lookup_data.get('last_name', '')}".strip()
+                    phones = [lookup_data.get(k) for k in [
+                        "primary_phone", "mobile_1", "mobile_2", "mobile_3",
+                        "mobile_4", "mobile_5", "landline_1", "landline_2", "landline_3"
+                    ] if lookup_data.get(k)]
+                    emails = [lookup_data.get(k) for k in [
+                        "email_1", "email_2", "email_3", "email_4", "email_5"
+                    ] if lookup_data.get(k)]
+                    if owner_name:
+                        contacts.append({
+                            "name": owner_name,
+                            "phone": phones[0] if phones else None,
+                            "phone_type": lookup_data.get("primary_phone_type", ""),
+                            "extra_phones": phones[1:],
+                            "email": emails[0] if emails else None,
+                            "extra_emails": emails[1:],
+                            "address": full_address,
+                            "mail_address": lookup_data.get("mail_address", ""),
+                            "mail_city": lookup_data.get("mail_city", ""),
+                            "mail_state": lookup_data.get("mail_state", ""),
+                            "mail_zip": lookup_data.get("mail_zip", ""),
+                            "tracerfy_id": lookup_data.get("id"),
+                            "role": "Owner",
+                        })
+                        logger.info(f"Tracy instant lookup encontró: {owner_name}")
+            except Exception as e:
+                logger.warning(f"Tracy instant lookup error: {e}")
+
         def _to_e164_int(phone_str):
             if not phone_str: return None
             digits = "".join(c for c in str(phone_str) if c.isdigit())

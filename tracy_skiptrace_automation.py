@@ -522,6 +522,11 @@ def run_skip_trace(
                            "Tracerfy completó el rastreo sin resultados en ambos métodos.")
         result["tracy_results"]["status"] = "completed"
         result["tracy_results"]["notes"]  = resultado_str
+        # Limpiar CSV antes de salir
+        try:
+            Path(csv_path).unlink(missing_ok=True)
+        except Exception:
+            pass
         return result
 
     # ── PASO 7: Escribir contactos en Contacts ────────────────────
