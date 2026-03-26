@@ -913,6 +913,17 @@ def write_cola_mensajes(entry: str):
 def build_system_prompt() -> str:
     base = CLAUDE_MD.read_text(encoding="utf-8") if CLAUDE_MD.exists() else ""
 
+    # Protocolo de seguridad
+    protocolo = ""
+    if PROTOCOLO_SEG.exists():
+        protocolo = f"\n\n---\n## PROTOCOLO DE SEGURIDAD ACTIVO\n{PROTOCOLO_SEG.read_text(encoding='utf-8')}"
+
+    # Cola de mensajes inter-agente
+    cola = read_cola_mensajes()
+    cola_section = ""
+    if cola and cola.strip():
+        cola_section = f"\n\n---\n## COLA DE MENSAJES INTER-AGENTE (cola_mensajes.md)\n{cola}"
+
     memoria_alex = ""
     if MEMORIA_ALEX.exists():
         memoria_alex = f"\n\n---\n## MEMORIA OPERACIONAL (memoria_ALex.md)\n{MEMORIA_ALEX.read_text(encoding='utf-8')}"
