@@ -25,12 +25,23 @@ Contactos de propietarios, compradores, vendedores y relacionados.
 | Campo | Tipo | Notas |
 |-------|------|-------|
 | `Full Name` | singleLineText (PK) | Nombre completo |
-| `Phone` | phoneNumber | |
-| `Email` | email | |
-| `Owner Address` | multilineText | Dirección del propietario |
+| `Phone1` | number | E.164 sin + (ej: 18594757302) — primary_phone de Tracerfy |
+| `Phone1 Type` | singleLineText | primary_phone_type (Mobile, Landline) |
+| `Phone2` | number | E.164 — mobile_1 de Tracerfy |
+| `Phone3` | number | E.164 — mobile_2 de Tracerfy |
+| `Phone4` | number | E.164 — landline_1 de Tracerfy |
+| `Email1` | email | email_1 de Tracerfy |
+| `Email2` | email | email_2 de Tracerfy |
+| `Email3` | email | email_3 de Tracerfy |
+| `Owner Address` | multilineText | Dirección de la propiedad rastreada |
+| `Mail Address` | singleLineText | mail_address de Tracerfy |
+| `Mail City` | singleLineText | mail_city de Tracerfy |
+| `Mail State` | singleLineText | mail_state de Tracerfy |
+| `Mail Zip` | singleLineText | mail_zip de Tracerfy |
+| `Tracerfy ID` | number | id del registro en Tracerfy (deduplicación) |
 | `Category` | singleSelect | Seller, Cash Buyer, Contractor, Client, Supplier, Lead, Partner |
 | `Owner Type` | singleSelect | Individual, Joint, LLC, Trust, Agent, Corporation, Probate |
-| `Lead Source` | singleLineText | |
+| `Lead Source` | singleSelect | ATTOM + Tracerfy, Direct Find, Court Record, Deal Driven, Website Form, Skip Trace - Tracy |
 | `Stage` | singleSelect | New, Dead, To Be Contacted, Analized, Contacted, Offer Sent, Under Contract, Deal Done, Closing, Review This Deal |
 | `Listing Agent Name` | singleLineText | |
 | `Listing Agent Phone` | phoneNumber | |
