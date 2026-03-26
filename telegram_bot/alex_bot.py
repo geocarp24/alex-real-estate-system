@@ -501,20 +501,71 @@ def _tool_invoke_fact_checker(property_data: str, scout_json: str, matematico_js
 
 def _tool_invoke_tracy(address: str, city: str = "", state: str = "", zip_code: str = "") -> str:
     """
-    Full Tracy implementation: CSV → Tracerfy API → poll → extract → write Airtable.
+    Full Tracy implementation: check dup → Tracy log (pending) → CSV → Tracerfy → poll → update Tracy → write Contacts.
     """
     if not http_requests:
         return json.dumps({"tracy_results": {"status": "failed", "errors": ["librería 'requests' no instalada"]}})
 
-    full_address = f"{address}, {city}, {state} {zip_code}".strip(", ")
+    full_address = ", ".join(filter(None, [address, city, state, zip_code]))
     logger.info(f"Tracy skip tracing: {full_address}")
+    tracy_table_id = TABLE_IDS["Tracy"]
+    now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z") if True else ""
+
+    # import timezone locally if not available
+    try:
+        from datetime import timezone as tz
+        now_iso = datetime.now(tz.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    except Exception:
+        now_iso = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
     try:
-        # Build CSV content
+        at_headers = {
+            "Authorization": f"Bearer {AIRTABLE_TOKEN}",
+            "Content-Type": "application/json",
+        }
+
+        # ── PASO 0: Verificar duplicados ──────────────────────────
+        formula = f"AND(LOWER({{address}})=LOWER('{address}'),{{status}}='success')"
+        dup_resp = http_requests.get(
+            f"{AIRTABLE_BASE_URL}/{tracy_table_id}",
+            headers=at_headers,
+            params={"filterByFormula": formula, "maxRecords": 1},
+            timeout=20
+        ).json()
+        dup_records = dup_resp.get("records", [])
+        if dup_records:
+            prev = dup_records[0].get("fields", {})
+            return json.dumps({
+                "tracy_results": {
+                    "status": "duplicate",
+                    "property_address": full_address,
+                    "tracy_record_id": dup_records[0].get("id"),
+                    "notes": f"Ya rastreada el {prev.get('fecha_rastreo','?')}. Resultado previo: {prev.get('resultado','?')}",
+                    "errors": [], "contacts_found": [], "total_contacts_found": 0, "total_written_to_airtable": 0,
+                }
+            }, ensure_ascii=False)
+
+        # ── PASO 1: Crear registro pending en Tracy ───────────────
+        tracy_fields = {
+            "address": address, "fecha_rastreo": now_iso,
+            "status": "pending", "notas": "Rastreo iniciado por ALEX (Telegram)",
+        }
+        if city:     tracy_fields["city"]  = city
+        if state:    tracy_fields["state"] = state
+        if zip_code: tracy_fields["zip"]   = zip_code
+
+        tracy_create = http_requests.post(
+            f"{AIRTABLE_BASE_URL}/{tracy_table_id}",
+            headers=at_headers, json={"fields": tracy_fields}, timeout=20
+        ).json()
+        tracy_record_id = tracy_create.get("id")
+        if not tracy_record_id:
+            logger.warning(f"Tracy: no se pudo crear registro pending: {tracy_create}")
+
+        # ── PASO 2+3: CSV + POST to Tracerfy ─────────────────────
         csv_content = "address,city,state,zip\n"
         csv_content += f'"{address}","{city}","{state}","{zip_code}"'
 
-        # POST to Tracerfy
         tracerfy_headers = {"Authorization": f"Bearer {TRACERFY_API_KEY}"}
         files = {"csv_file": ("tracy_input.csv", csv_content.encode("utf-8"), "text/csv")}
         data  = {"address_column": "address", "city_column": "city", "state_column": "state"}
@@ -529,11 +580,19 @@ def _tool_invoke_tracy(address: str, city: str = "", state: str = "", zip_code: 
         trace_data = resp.json()
 
         if "queue_id" not in trace_data:
+            error_msg = f"Tracerfy response sin queue_id: {trace_data}"
+            if tracy_record_id:
+                http_requests.patch(
+                    f"{AIRTABLE_BASE_URL}/{tracy_table_id}/{tracy_record_id}",
+                    headers=at_headers,
+                    json={"fields": {"status": "error", "resultado": error_msg}},
+                    timeout=20
+                )
             return json.dumps({
                 "tracy_results": {
-                    "status": "failed",
-                    "property_address": full_address,
-                    "errors": [f"Tracerfy response: {trace_data}"]
+                    "status": "failed", "property_address": full_address,
+                    "tracy_record_id": tracy_record_id,
+                    "errors": [error_msg]
                 }
             })
 
