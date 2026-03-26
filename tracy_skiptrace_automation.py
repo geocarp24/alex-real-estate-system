@@ -267,25 +267,58 @@ def extract_contacts(result_data: dict, property_address: str) -> list[dict]:
 # ─────────────────────────────────────────────
 # PASO 7 — Escribir contactos en Contacts
 # ─────────────────────────────────────────────
+def _to_e164_int(phone_str: str) -> int | None:
+    """Convierte string de teléfono a entero E.164 (sin +). Asume US (+1)."""
+    if not phone_str:
+        return None
+    digits = "".join(c for c in str(phone_str) if c.isdigit())
+    if not digits:
+        return None
+    if len(digits) == 10:
+        digits = "1" + digits   # agregar código de país US
+    elif len(digits) == 11 and digits.startswith("1"):
+        pass  # ya tiene código de país
+    else:
+        return None
+    return int(digits)
+
+
 def write_contact_to_airtable(contact: dict, property_address: str) -> dict:
     fields = {
         "Full Name":   contact["name"],
         "Category":    "Lead",
         "Stage":       "To Be Contacted",
         "Lead Source": "Skip Trace - Tracy",
+        "Owner Address": property_address,
     }
-    if contact.get("phone"):  fields["Phone"] = contact["phone"]
-    if contact.get("email"):  fields["Email"] = contact["email"]
-    if contact.get("address"): fields["Owner Address"] = contact["address"]
 
-    notes = [f"Traced from property: {property_address}."]
-    if contact.get("extra_phones"):
-        notes.append(f"Additional phones: {', '.join(contact['extra_phones'])}.")
-    if contact.get("extra_emails"):
-        notes.append(f"Additional emails: {', '.join(contact['extra_emails'])}.")
-    if contact["role"] == "Relative":
-        notes.append("Role: Relative of property owner.")
-    fields["Negotiation notes"] = " ".join(notes)
+    # Teléfonos — formato E.164 como entero
+    phones = [contact.get("phone")] + contact.get("extra_phones", [])
+    phone_keys = ["Phone1", "Phone2", "Phone3", "Phone4"]
+    for key, ph in zip(phone_keys, phones):
+        val = _to_e164_int(ph)
+        if val:
+            fields[key] = val
+
+    if contact.get("phone_type"):
+        fields["Phone1 Type"] = contact["phone_type"]
+
+    # Emails
+    emails = [contact.get("email")] + contact.get("extra_emails", [])
+    email_keys = ["Email1", "Email2", "Email3"]
+    for key, em in zip(email_keys, emails):
+        if em:
+            fields[key] = em
+
+    # Dirección postal
+    if contact.get("mail_address"): fields["Mail Address"] = contact["mail_address"]
+    if contact.get("mail_city"):    fields["Mail City"]    = contact["mail_city"]
+    if contact.get("mail_state"):   fields["Mail State"]   = contact["mail_state"]
+    if contact.get("mail_zip"):     fields["Mail Zip"]     = contact["mail_zip"]
+
+    # ID de Tracerfy para deduplicación
+    if contact.get("tracerfy_id"):
+        fields["Tracerfy ID"] = int(contact["tracerfy_id"])
 
     try:
         resp = requests.post(
