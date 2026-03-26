@@ -22,6 +22,9 @@ AIRTABLE_TRACY    = "tbl6CJm4kYspOuTDB"   # tabla de log de rastreos
 AIRTABLE_CONTACTS = "tblacvw0Ss770x8l5"   # tabla de contactos
 
 TRACERFY_BASE     = "https://tracerfy.com/v1/api"
+# Endpoints confirmados:
+#   POST /trace/         → enviar CSV, devuelve queue_id
+#   GET  /queue/{id}     → resultados (sin trailing slash), devuelve [] o array de contactos
 AIRTABLE_BASE_URL = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}"
 ALERT_SCRIPT      = str(Path(__file__).parent / "agents" / "alerta_telegram.sh")
 
