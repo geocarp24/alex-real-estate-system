@@ -169,9 +169,16 @@ def poll_queue(queue_id: int, max_attempts: int = 10, wait_seconds: int = 15) ->
                 timeout=30
             )
             data = resp.json()
+            # El endpoint devuelve un array con los resultados cuando está listo
+            # [] = sin resultados (dirección inválida o no encontrada)
+            # [{...}] = contactos encontrados
+            if isinstance(data, list):
+                print(f"[TRACY] Queue completado — {len(data)} registro(s) encontrado(s)")
+                return {"status": "completed", "records": data}
+            # Si devuelve objeto con status
             status = data.get("status", "")
             print(f"[TRACY] Queue status: {status}")
-            if status != "pending":
+            if status not in ("pending", "processing"):
                 return data
         except Exception as e:
             print(f"[TRACY] Error en polling: {e}")
