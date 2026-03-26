@@ -2,7 +2,7 @@ name: Deploy to Hostinger via FTP
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - 'hostinger/**'
 
