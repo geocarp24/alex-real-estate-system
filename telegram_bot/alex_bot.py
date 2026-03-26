@@ -1536,6 +1536,8 @@ async def main():
     app.add_handler(CommandHandler("guardar",     cmd_guardar))
     app.add_handler(CommandHandler("historial",   cmd_historial))
     app.add_handler(CommandHandler("capacidades", cmd_capacidades))
+    app.add_handler(CommandHandler("permitir",    cmd_permitir))
+    app.add_handler(CommandHandler("bloquear",    cmd_bloquear))
 
     # Mensajes
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
