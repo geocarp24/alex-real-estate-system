@@ -133,9 +133,14 @@ def send_to_tracerfy(csv_path: str) -> dict:
     with open(csv_path, "rb") as f:
         files = {"csv_file": ("tracy_trace_input.csv", f, "text/csv")}
         data  = {
-            "address_column": "address",
-            "city_column":    "city",
-            "state_column":   "state",
+            "address_column":      "address",
+            "city_column":         "city",
+            "state_column":        "state",
+            "first_name_column":   "first_name",
+            "last_name_column":    "last_name",
+            "mail_address_column": "mail_address",
+            "mail_city_column":    "mail_city",
+            "mail_state_column":   "mail_state",
         }
         resp = requests.post(
             f"{TRACERFY_BASE}/trace/",
