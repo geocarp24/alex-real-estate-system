@@ -615,11 +615,19 @@ def _tool_invoke_tracy(address: str, city: str = "", state: str = "", zip_code: 
                 break
 
         if not result_data:
+            if tracy_record_id:
+                http_requests.patch(
+                    f"{AIRTABLE_BASE_URL}/{tracy_table_id}/{tracy_record_id}",
+                    headers=at_headers,
+                    json={"fields": {"status": "error", "resultado": "Timeout — 10 intentos sin respuesta"}},
+                    timeout=20
+                )
             return json.dumps({
                 "tracy_results": {
                     "status": "timeout",
                     "queue_id": queue_id,
                     "property_address": full_address,
+                    "tracy_record_id": tracy_record_id,
                     "errors": ["Tracerfy timeout after 2.5 minutes"]
                 }
             })
