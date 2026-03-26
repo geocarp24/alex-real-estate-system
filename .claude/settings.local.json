@@ -23,6 +23,7 @@
       "Bash(curl*https://api.airtable.com*)",
       "Bash(curl*https://tracerfy.com*)",
       "Bash(curl*https://api.telegram.org*)",
+      "Bash(curl*https://pinnaclegroupwi.com*)",
       "Bash(python*tracy_skiptrace_automation.py*)",
       "Bash(bash*alerta_telegram.sh*)",
       "Bash(sleep*)",
