@@ -117,6 +117,7 @@ function tracerfyUpload(string $csvPath): array {
         CURLOPT_POSTFIELDS     => [
             'csv_file'             => $file,
             'address_column'       => 'address',
+            'city_column'          => 'city',
             'state_column'         => 'state',
             'first_name_column'    => 'first_name',
             'last_name_column'     => 'last_name',
@@ -182,7 +183,9 @@ logMsg('════════════════════════
 logMsg('EL POLLING started');
 
 // ── STEP 1: Fetch one qualifying Lead ─────────────────────────
-$formula = "AND({Stage}='Review this Deal',{Skip Trace Done}=FALSE())";
+// Only process WI leads — Tracerfy coverage is Wisconsin-based
+// IL and other out-of-market states fail with "No valid rows" error
+$formula = "AND({Stage}='Review this Deal',{Skip Trace Done}=FALSE(),{Estate}='WI')";
 $listData = atList(TABLE_LEADS, [
     'filterByFormula'    => $formula,
     'maxRecords'         => 1,
