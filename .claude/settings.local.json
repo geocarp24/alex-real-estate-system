@@ -1,4 +1,19 @@
 {
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"c:/Users/Admin/OneDrive/Documents/Claude for real estate\" && git add -A && git diff --cached --quiet || git commit -m \"auto: save $(date +\"%Y-%m-%d %H:%M:%S\")\" && git push 2>/dev/null || true",
+            "async": true,
+            "statusMessage": "Guardando versión en GitHub..."
+          }
+        ]
+      }
+    ]
+  },
   "permissions": {
     "allow": [
       "Bash(dir \"C:\\\\Users\\\\Admin\\\\OneDrive\\\\Documents\\\\Claude for real estate\" /s /b 2>/dev/null | head -50)",
