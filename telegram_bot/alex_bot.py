@@ -771,6 +771,17 @@ def _tool_invoke_tracy(address: str, city: str = "", state: str = "", zip_code: 
                 json={"fields": {"status": "success", "resultado": resultado_str, "notas": notas_str}},
                 timeout=20
             )
+            # ── WEBHOOK: Notificar a el_chismoso.php ─────────────
+            try:
+                wh = http_requests.post(
+                    "https://pinnaclegroupwi.com/Tools/el_chismoso.php",
+                    headers={"X-Chismoso-Token": "pinnacle2026", "Content-Type": "application/json"},
+                    json={"record_id": tracy_record_id},
+                    timeout=15
+                )
+                logger.info(f"[CHISMOSO] {wh.status_code} — {wh.text[:200]}")
+            except Exception as e:
+                logger.warning(f"[CHISMOSO] Webhook error: {e}")
 
         return json.dumps({
             "tracy_results": {
