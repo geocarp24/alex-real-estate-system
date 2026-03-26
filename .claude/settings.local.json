@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir \"C:\\\\Users\\\\Admin\\\\OneDrive\\\\Documents\\\\Claude for real estate\" /s /b 2>/dev/null | head -50)",
+      "WebSearch",
+      "Bash(node --version && npm --version)",
+      "Bash(claude mcp:*)",
+      "Bash(curl -s \"https://api.airtable.com/v0/meta/bases/appfQbDA750Oihy9J/tables\" -H \"Authorization: Bearer pat4Oo9eMISxSZuwG.9b6d7eaffda79ccbca39cdd30ebf0218cd9e42a4097e96e9c004eb45350c7aad\")",
+      "Bash(node -e \"const d=require\\(''''fs''''\\).readFileSync\\(''''/dev/stdin'''',''''utf8''''\\); const j=JSON.parse\\(d\\); const t=j.tables.find\\(t=>t.id===''''tblacvw0Ss770x8l5''''\\); if\\(t\\){console.log\\(''''Table:'''',t.name\\); t.fields.forEach\\(f=>console.log\\('''' -'''',f.name,''''\\('''',f.type,''''\\)''''\\)\\)} else {console.log\\(''''Table not found''''\\); j.tables.forEach\\(t=>console.log\\(t.id, t.name\\)\\)}\")"
+    ]
+  }
+}
