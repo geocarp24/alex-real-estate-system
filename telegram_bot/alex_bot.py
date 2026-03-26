@@ -724,16 +724,34 @@ def _tool_invoke_tracy(address: str, city: str = "", state: str = "", zip_code: 
             })
 
         written = sum(1 for r in airtable_results if r["airtable_status"] == "written")
+        summary_names = ", ".join(
+            f"{r['name']} ({r.get('phone') or 'sin tel'})"
+            for r in airtable_results if r["airtable_status"] == "written"
+        )
+        resultado_str = f"{written} contacto(s): {summary_names}" if written else "Sin contactos escritos"
+        notas_str = f"Owner + {sum(1 for c in airtable_results if c.get('role')=='Relative')} relative(s). Escritos en Contacts."
+
+        # ── PASO 5: Actualizar Tracy con resultado ────────────────
+        if tracy_record_id:
+            http_requests.patch(
+                f"{AIRTABLE_BASE_URL}/{tracy_table_id}/{tracy_record_id}",
+                headers=at_headers,
+                json={"fields": {"status": "success", "resultado": resultado_str, "notas": notas_str}},
+                timeout=20
+            )
+
         return json.dumps({
             "tracy_results": {
-                "property_address":        full_address,
-                "trace_date":              datetime.now().strftime("%Y-%m-%d"),
-                "queue_id":                queue_id,
-                "status":                  "completed",
-                "contacts_found":          airtable_results,
-                "total_contacts_found":    len(airtable_results),
+                "property_address":          full_address,
+                "trace_date":                datetime.now().strftime("%Y-%m-%d"),
+                "queue_id":                  queue_id,
+                "tracy_record_id":           tracy_record_id,
+                "status":                    "completed",
+                "contacts_found":            airtable_results,
+                "total_contacts_found":      len(airtable_results),
                 "total_written_to_airtable": written,
-                "errors":                  []
+                "errors":                    [],
+                "notes":                     notas_str,
             }
         }, ensure_ascii=False)
 
