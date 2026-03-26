@@ -79,13 +79,16 @@ def get_all_leads(max_records: int = 100, stage_filter: str = None) -> list[dict
                 continue
 
             zip_raw = fields.get("Zip Code", "")
-            zip_str = str(int(zip_raw)) if zip_raw else ""
+            try:
+                zip_str = str(int(zip_raw)) if zip_raw else ""
+            except (ValueError, TypeError):
+                zip_str = str(zip_raw).strip() if zip_raw else ""
 
             records.append({
                 "record_id": record["id"],
                 "address":   address,
                 "city":      fields.get("City", ""),
-                "state":     fields.get("Estate", ""),
+                "state":     fields.get("State", ""),
                 "zip":       zip_str,
                 "stage":     stage,
             })

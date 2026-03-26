@@ -563,8 +563,8 @@ def _tool_invoke_tracy(address: str, city: str = "", state: str = "", zip_code: 
             logger.warning(f"Tracy: no se pudo crear registro pending: {tracy_create}")
 
         # ── PASO 2+3: CSV + POST to Tracerfy ─────────────────────
-        csv_content = "address,city,state,zip,first_name,last_name,mail_address,mail_city,mail_state\n"
-        csv_content += f'"{address}","{city}","{state}","{zip_code}","","","{address}","{city}","{state}"'
+        csv_content = "address,city,state,zip,first_name,last_name,mail_address,mail_city,mail_state,mail_zip\n"
+        csv_content += f'"{address}","{city}","{state}","{zip_code}","","","","","",""'
 
         tracerfy_headers = {"Authorization": f"Bearer {TRACERFY_API_KEY}"}
         files = {"csv_file": ("tracy_input.csv", csv_content.encode("utf-8"), "text/csv")}
@@ -572,11 +572,14 @@ def _tool_invoke_tracy(address: str, city: str = "", state: str = "", zip_code: 
             "address_column":      "address",
             "city_column":         "city",
             "state_column":        "state",
+            "zip_column":          "zip",
             "first_name_column":   "first_name",
             "last_name_column":    "last_name",
             "mail_address_column": "mail_address",
             "mail_city_column":    "mail_city",
             "mail_state_column":   "mail_state",
+            "mailing_zip_column":  "mail_zip",
+            "trace_type":          "advanced",
         }
 
         resp = http_requests.post(
@@ -621,6 +624,10 @@ def _tool_invoke_tracy(address: str, city: str = "", state: str = "", zip_code: 
             # El endpoint devuelve array cuando está listo
             if isinstance(poll_data, list):
                 logger.info(f"Tracy poll attempt {attempt+1}: completed — {len(poll_data)} record(s)")
+                for i, rec in enumerate(poll_data):
+                    keys = list(rec.keys()) if isinstance(rec, dict) else str(type(rec))
+                    logger.info(f"Tracy record {i} keys: {keys}")
+                    logger.info(f"Tracy record {i} preview: {json.dumps(rec, ensure_ascii=False)[:500]}")
                 result_data = {"status": "completed", "records": poll_data}
                 break
             logger.info(f"Tracy poll attempt {attempt+1}: status={poll_data.get('status')}")
