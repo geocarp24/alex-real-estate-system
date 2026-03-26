@@ -235,10 +235,16 @@ def extract_contacts(result_data: dict, property_address: str) -> list[dict]:
             contacts.append({
                 "name":         owner_name,
                 "phone":        phones[0] if phones else None,
+                "phone_type":   record.get("primary_phone_type", ""),
                 "extra_phones": phones[1:],
                 "email":        emails[0] if emails else None,
                 "extra_emails": emails[1:],
-                "address":      record.get("mailing_address") or record.get("owner_address") or property_address,
+                "address":      property_address,
+                "mail_address": record.get("mail_address", ""),
+                "mail_city":    record.get("mail_city", ""),
+                "mail_state":   record.get("mail_state", ""),
+                "mail_zip":     record.get("mail_zip", ""),
+                "tracerfy_id":  record.get("id"),
                 "role":         "Owner",
             })
 
