@@ -10,43 +10,39 @@ CHAT_ID="8402370952"
 API_URL="https://api.telegram.org/bot${BOT_TOKEN}/sendMessage"
 
 NIVEL="${1:-INFO}"
-DESCRIPCION="${2:-Sin descripción}"
+DESCRIPCION="${2:-Sin descripcion}"
 SOLUCIONES="${3:-Revisar logs del sistema}"
 TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
 
 # Seleccionar emoji según nivel
 case "$NIVEL" in
-  CRITICO)     EMOJI="🚨" ; BADGE="🔴 CRÍTICO" ;;
-  ADVERTENCIA) EMOJI="⚠️" ; BADGE="🟡 ADVERTENCIA" ;;
-  ATENCION)    EMOJI="🔔" ; BADGE="🟠 ATENCIÓN" ;;
-  INFO)        EMOJI="ℹ️" ; BADGE="🔵 INFO" ;;
-  *)           EMOJI="📢" ; BADGE="$NIVEL" ;;
+  CRITICO)     BADGE="CRITICO" ;;
+  ADVERTENCIA) BADGE="ADVERTENCIA" ;;
+  ATENCION)    BADGE="ATENCION" ;;
+  INFO)        BADGE="INFO" ;;
+  *)           BADGE="$NIVEL" ;;
 esac
 
-# Construir mensaje
-MESSAGE="${EMOJI} *ALERTA ALEX — ${BADGE}*
+# Construir mensaje (sin comillas dobles internas para evitar problemas de escape)
+MESSAGE="ALERTA ALEX - ${BADGE}
 
-📍 *Situación:* ${DESCRIPCION}
+Situacion: ${DESCRIPCION}
 
-🕐 *Detectado:* ${TIMESTAMP}
+Detectado: ${TIMESTAMP}
 
-💡 *Posibles soluciones:*
+Posibles soluciones:
 ${SOLUCIONES}
 
-🔒 _Sistema ALEX — Notificación automática_"
+-- Sistema ALEX (notificacion automatica)"
 
-# Enviar a Telegram
+# Enviar a Telegram usando --data-urlencode para evitar problemas de caracteres
 RESPONSE=$(curl -s -X POST "$API_URL" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"chat_id\": \"${CHAT_ID}\",
-    \"text\": $(echo "$MESSAGE" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))'),
-    \"parse_mode\": \"Markdown\"
-  }")
+  --data-urlencode "chat_id=${CHAT_ID}" \
+  --data-urlencode "text=${MESSAGE}")
 
 # Verificar resultado
 if echo "$RESPONSE" | grep -q '"ok":true'; then
-  echo "ALERTA ENVIADA OK — ${NIVEL}: ${DESCRIPCION}"
+  echo "ALERTA ENVIADA OK - ${NIVEL}: ${DESCRIPCION}"
   exit 0
 else
   echo "ERROR enviando alerta: $RESPONSE"
