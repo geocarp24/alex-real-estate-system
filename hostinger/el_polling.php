@@ -8,9 +8,8 @@
  *  Flow (ONE lead per execution):
  *   1. Query Leads: Stage='Review this Deal' AND Skip Trace Done=false
  *   2. Create Tracy record (status=pending)
- *   3. Build CSV and upload to Tracerfy (trace_type=advanced)
+ *   3. Build CSV and upload to Tracerfy
  *   4. Poll Tracerfy queue until results arrive
- *   4b. Fallback: instant lookup via /trace/lookup/ if queue returns 0
  *   5. Update Tracy (status=success|error)
  *   6. POST to el_chismoso.php (writes to Contacts)
  *   7. Update Lead: Skip Trace Done=true, Stage='To be Contacted'
@@ -107,7 +106,7 @@ function atPatch(string $tableId, string $recordId, array $fields): array {
     return json_decode($res, true) ?? [];
 }
 
-// ── Upload CSV to Tracerfy (trace_type=advanced) ──────────────
+// ── Upload CSV to Tracerfy ────────────────────────────────────
 function tracerfyUpload(string $csvPath): array {
     $url  = TRACERFY_BASE . '/trace/';
     $file = new CURLFile($csvPath, 'text/csv', 'trace_input.csv');
@@ -118,16 +117,12 @@ function tracerfyUpload(string $csvPath): array {
         CURLOPT_POSTFIELDS     => [
             'csv_file'             => $file,
             'address_column'       => 'address',
-            'city_column'          => 'city',
             'state_column'         => 'state',
-            'zip_column'           => 'zip',
             'first_name_column'    => 'first_name',
             'last_name_column'     => 'last_name',
             'mail_address_column'  => 'mail_address',
             'mail_city_column'     => 'mail_city',
             'mail_state_column'    => 'mail_state',
-            'mailing_zip_column'   => 'mail_zip',
-            'trace_type'           => 'advanced',
         ],
         CURLOPT_HTTPHEADER     => ['Authorization: Bearer ' . TRACERFY_TOKEN],
         CURLOPT_TIMEOUT        => 30,
@@ -135,44 +130,6 @@ function tracerfyUpload(string $csvPath): array {
     $res = curl_exec($ch);
     curl_close($ch);
     return json_decode($res, true) ?? [];
-}
-
-// ── Instant Lookup (synchronous fallback, no queue) ───────────
-function tracerfyLookup(string $address, string $city, string $state, string $zip = ''): ?array {
-    $url     = TRACERFY_BASE . '/trace/lookup/';
-    $payload = [
-        'address'    => $address,
-        'city'       => $city,
-        'state'      => $state,
-        'find_owner' => true,
-    ];
-    if ($zip !== '') {
-        $payload['zip'] = $zip;
-    }
-
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST           => true,
-        CURLOPT_POSTFIELDS     => json_encode($payload),
-        CURLOPT_HTTPHEADER     => [
-            'Authorization: Bearer ' . TRACERFY_TOKEN,
-            'Content-Type: application/json',
-        ],
-        CURLOPT_TIMEOUT        => 30,
-    ]);
-    $raw  = curl_exec($ch);
-    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    logMsg("  Instant lookup response (HTTP {$code}): " . substr((string) $raw, 0, 500));
-
-    if ($code !== 200 || !$raw) return null;
-
-    $data = json_decode($raw, true);
-    if (!is_array($data)) return null;
-
-    return $data;
 }
 
 // ── Poll Tracerfy queue until array response ──────────────────
@@ -197,12 +154,7 @@ function tracerfyPoll(int $queueId): ?array {
         $trimmed = ltrim((string) $raw);
         if ($code === 200 && isset($trimmed[0]) && $trimmed[0] === '[') {
             $data = json_decode($raw, true);
-            logMsg("  Queue {$queueId} complete — " . count($data) . " record(s) found");
-            // Debug: log keys and preview of first record for diagnostics
-            if (!empty($data[0]) && is_array($data[0])) {
-                logMsg("  Record 0 keys: " . implode(', ', array_keys($data[0])));
-                logMsg("  Record 0 preview: " . substr(json_encode($data[0]), 0, 500));
-            }
+            logMsg("  Queue {$queueId} complete — " . count($data) . " contact(s) found");
             return $data;
         }
 
@@ -250,12 +202,9 @@ $lf      = $lead['fields'] ?? [];
 
 $address   = trim($lf['Address']  ?? '');
 $city      = trim($lf['City']     ?? '');
-$state     = trim($lf['State']    ?? '');
+$state     = trim($lf['Estate']   ?? '');
 $zipRaw    = $lf['Zip Code'] ?? '';
-$zip       = '';
-if ($zipRaw !== '' && $zipRaw !== null) {
-    $zip = is_numeric($zipRaw) ? strval((int) $zipRaw) : trim(strval($zipRaw));
-}
+$zip       = $zipRaw ? strval((int) $zipRaw) : '';
 
 if (!$address) {
     logMsg("Lead {$leadId} has no address — skipping.");
@@ -286,12 +235,12 @@ if (!$tracyId) {
 logMsg("Tracy record created: {$tracyId}");
 
 
-// ── STEP 3: Build CSV (with mail_zip column) ──────────────────
+// ── STEP 3: Build CSV ─────────────────────────────────────────
 $csvPath = sys_get_temp_dir() . '/tracy_' . time() . '_' . getmypid() . '.csv';
 $fh      = fopen($csvPath, 'w');
 fputcsv($fh, ['address', 'city', 'state', 'zip', 'first_name', 'last_name',
-               'mail_address', 'mail_city', 'mail_state', 'mail_zip']);
-fputcsv($fh, [$address, $city, $state, $zip, '', '', '', '', '', '']);
+               'mail_address', 'mail_city', 'mail_state']);
+fputcsv($fh, [$address, $city, $state, $zip, '', '', '', '', '']);
 fclose($fh);
 logMsg("CSV built: {$csvPath}");
 
@@ -303,12 +252,21 @@ $uploadResult = tracerfyUpload($csvPath);
 logMsg('Tracerfy upload: ' . json_encode($uploadResult));
 
 if (empty($uploadResult['queue_id'])) {
-    $errMsg = 'No queue_id returned: ' . json_encode($uploadResult);
-    logMsg('ERROR: ' . $errMsg);
+    $errMsg      = 'No queue_id returned: ' . json_encode($uploadResult);
+    $unsupported = strpos($errMsg, 'No valid rows') !== false;
+    logMsg(($unsupported ? 'UNSUPPORTED ADDRESS: ' : 'ERROR: ') . $errMsg);
+
     atPatch(TABLE_TRACY, $tracyId, [
         'status'    => 'error',
         'resultado' => $errMsg,
+        'notas'     => $unsupported
+                       ? 'Address not supported by Tracerfy (likely outside coverage area)'
+                       : 'Unexpected Tracerfy error',
     ]);
+
+    // Mark Done=true to avoid infinite retry.
+    // If unsupported address: keep Stage as-is so user can review manually.
+    // If other error: keep Stage as-is for now.
     atPatch(TABLE_LEADS, $leadId, ['Skip Trace Done' => true]);
     exit(1);
 }
@@ -331,28 +289,14 @@ if ($queueData === null) {
 }
 
 
-// ── STEP 5b: Fallback — instant lookup if queue returned 0 ───
-if (empty($queueData)) {
-    logMsg("Queue returned 0 contacts — trying instant lookup fallback...");
-    $lookupData = tracerfyLookup($address, $city, $state, $zip);
-
-    if ($lookupData && !empty($lookupData['first_name'])) {
-        logMsg("Instant lookup found owner: " . ($lookupData['first_name'] ?? '') . ' ' . ($lookupData['last_name'] ?? ''));
-        $queueData = [$lookupData];
-    } else {
-        logMsg("Instant lookup also returned no results.");
-    }
-}
-
-
 // ── STEP 6: Update Tracy with results ────────────────────────
 if (empty($queueData)) {
-    $resultSummary = 'No contacts found (queue + instant lookup).';
+    $resultSummary = 'No contacts found for this address.';
     logMsg($resultSummary);
     atPatch(TABLE_TRACY, $tracyId, [
         'status'    => 'success',
         'resultado' => $resultSummary,
-        'notas'     => 'Tracerfy completed — no results from queue or instant lookup.',
+        'notas'     => 'Tracerfy completed — no results.',
     ]);
 } else {
     $contact    = $queueData[0];
