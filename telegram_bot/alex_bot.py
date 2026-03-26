@@ -795,6 +795,32 @@ def append_memoria_alex(entry: str):
     MEMORIA_ALEX.write_text(updated, encoding="utf-8")
 
 
+def send_security_alert(level: str, description: str, solutions: str = "Revisar logs del sistema."):
+    """Envía alerta de seguridad al Jefe vía Telegram Bot API directamente."""
+    import subprocess
+    try:
+        subprocess.run(
+            ["bash", str(ALERT_SCRIPT), level, description, solutions],
+            timeout=15, check=False
+        )
+        logger.warning(f"[SECURITY ALERT] {level}: {description}")
+    except Exception as e:
+        logger.error(f"[SECURITY ALERT] No se pudo enviar alerta: {e}")
+
+
+def read_cola_mensajes() -> str:
+    if COLA_MENSAJES.exists():
+        return COLA_MENSAJES.read_text(encoding="utf-8")
+    return ""
+
+
+def write_cola_mensajes(entry: str):
+    """Añade una entrada al canal inter-agente."""
+    existing = read_cola_mensajes()
+    updated = existing + "\n" + entry if existing.strip() else entry
+    COLA_MENSAJES.write_text(updated, encoding="utf-8")
+
+
 # ─────────────────────────────────────────────
 # SYSTEM PROMPT
 # ─────────────────────────────────────────────
