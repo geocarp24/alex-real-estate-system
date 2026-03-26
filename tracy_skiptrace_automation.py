@@ -483,6 +483,18 @@ def run_skip_trace(
 
     update_tracy_record(tracy_record_id, "success", resultado_str, notas_str)
 
+    # ── WEBHOOK: Notificar a el_chismoso.php ─────────────────────
+    try:
+        wh = requests.post(
+            CHISMOSO_URL,
+            headers={"X-Chismoso-Token": CHISMOSO_TOKEN, "Content-Type": "application/json"},
+            json={"record_id": tracy_record_id},
+            timeout=15
+        )
+        print(f"[CHISMOSO] Response: {wh.status_code} — {wh.text[:200]}")
+    except Exception as e:
+        print(f"[CHISMOSO] Error notificando webhook: {e}")
+
     # ── PASO 8: Limpiar CSV ───────────────────────────────────────
     try:
         Path(csv_path).unlink(missing_ok=True)
