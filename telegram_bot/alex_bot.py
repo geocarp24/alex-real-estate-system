@@ -957,7 +957,7 @@ Estás operando a través de Telegram con CAPACIDADES COMPLETAS — exactamente 
 - Sé conciso pero completo. Usa emojis con moderación (✅ ❌ 🏠 💰 📊).
 - IMPORTANTE: Tienes acceso completo a la memoria — úsala para dar continuidad entre sesiones de Telegram y Claude Code.
 """
-    return base + telegram_note + memoria_alex + memoria_telegram
+    return base + protocolo + cola_section + telegram_note + memoria_alex + memoria_telegram
 
 
 # ─────────────────────────────────────────────
