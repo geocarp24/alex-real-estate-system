@@ -568,7 +568,16 @@ def _tool_invoke_tracy(address: str, city: str = "", state: str = "", zip_code: 
 
         tracerfy_headers = {"Authorization": f"Bearer {TRACERFY_API_KEY}"}
         files = {"csv_file": ("tracy_input.csv", csv_content.encode("utf-8"), "text/csv")}
-        data  = {"address_column": "address", "city_column": "city", "state_column": "state"}
+        data  = {
+            "address_column":      "address",
+            "city_column":         "city",
+            "state_column":        "state",
+            "first_name_column":   "first_name",
+            "last_name_column":    "last_name",
+            "mail_address_column": "mail_address",
+            "mail_city_column":    "mail_city",
+            "mail_state_column":   "mail_state",
+        }
 
         resp = http_requests.post(
             "https://tracerfy.com/v1/api/trace/",
