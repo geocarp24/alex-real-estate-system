@@ -164,7 +164,7 @@ def poll_queue(queue_id: int, max_attempts: int = 10, wait_seconds: int = 15) ->
         time.sleep(wait_seconds)
         try:
             resp = requests.get(
-                f"{TRACERFY_BASE}/queue/{queue_id}/",
+                f"{TRACERFY_BASE}/queue/{queue_id}",
                 headers=headers,
                 timeout=30
             )
