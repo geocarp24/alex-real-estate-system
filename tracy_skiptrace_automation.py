@@ -534,7 +534,7 @@ def run_skip_trace(
     for contact in contacts_raw:
         at_result = write_contact_to_airtable(contact, full_address)
         airtable_results.append(at_result)
-        status_icon = "✓" if at_result["airtable_status"] == "written" else "✗"
+        status_icon = "[OK]" if at_result["airtable_status"] == "written" else "[X]"
         print(f"[TRACY] {status_icon} {contact['name']} ({contact['role']})")
 
     written = sum(1 for r in airtable_results if r["airtable_status"] == "written")
