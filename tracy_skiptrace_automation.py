@@ -115,14 +115,15 @@ def create_tracy_record(address: str, city: str, state: str, zip_code: str,
 # ─────────────────────────────────────────────
 def create_csv(address: str, city: str, state: str, zip_code: str,
                first_name: str = "", last_name: str = "",
-               mail_address: str = "", mail_city: str = "", mail_state: str = "") -> str:
+               mail_address: str = "", mail_city: str = "", mail_state: str = "",
+               mail_zip: str = "") -> str:
     csv_path = str(Path(__file__).parent / "tracy_trace_input.csv")
     with open(csv_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(["address", "city", "state", "zip", "first_name", "last_name",
-                         "mail_address", "mail_city", "mail_state"])
+                         "mail_address", "mail_city", "mail_state", "mail_zip"])
         writer.writerow([address, city, state, zip_code,
-                         first_name, last_name, mail_address, mail_city, mail_state])
+                         first_name, last_name, mail_address, mail_city, mail_state, mail_zip])
     print(f"[TRACY] CSV creado: {csv_path}")
     return csv_path
 
@@ -138,11 +139,14 @@ def send_to_tracerfy(csv_path: str) -> dict:
             "address_column":      "address",
             "city_column":         "city",
             "state_column":        "state",
+            "zip_column":          "zip",
             "first_name_column":   "first_name",
             "last_name_column":    "last_name",
             "mail_address_column": "mail_address",
             "mail_city_column":    "mail_city",
             "mail_state_column":   "mail_state",
+            "mailing_zip_column":  "mail_zip",
+            "trace_type":          "advanced",
         }
         resp = requests.post(
             f"{TRACERFY_BASE}/trace/",
@@ -154,6 +158,44 @@ def send_to_tracerfy(csv_path: str) -> dict:
     result = resp.json()
     print(f"[TRACY] Tracerfy response: {result}")
     return result
+
+
+# ─────────────────────────────────────────────
+# PASO 3B — Instant Lookup (single address, no queue)
+# ─────────────────────────────────────────────
+def instant_lookup(address: str, city: str, state: str, zip_code: str = "",
+                   find_owner: bool = True) -> dict | None:
+    """
+    Usa el endpoint /trace/lookup/ para búsqueda instantánea (sincrónica).
+    5 créditos por hit, 0 por miss. Rate limit: 500 RPM.
+    Devuelve el JSON de contacto directamente o None si falla.
+    """
+    headers = {
+        "Authorization": f"Bearer {TRACERFY_API_KEY}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "address": address,
+        "city": city,
+        "state": state,
+        "find_owner": find_owner,
+    }
+    if zip_code:
+        payload["zip"] = zip_code
+
+    try:
+        resp = requests.post(
+            f"{TRACERFY_BASE}/trace/lookup/",
+            headers=headers,
+            json=payload,
+            timeout=30,
+        )
+        data = resp.json()
+        print(f"[TRACY] Instant lookup response: {json.dumps(data, indent=2, ensure_ascii=False)[:1000]}")
+        return data
+    except Exception as e:
+        print(f"[TRACY] Instant lookup error: {e}")
+        return None
 
 
 # ─────────────────────────────────────────────
@@ -176,6 +218,11 @@ def poll_queue(queue_id: int, max_attempts: int = 10, wait_seconds: int = 15) ->
             # [{...}] = contactos encontrados
             if isinstance(data, list):
                 print(f"[TRACY] Queue completado — {len(data)} registro(s) encontrado(s)")
+                # Debug: mostrar estructura de la respuesta para diagnóstico
+                for i, rec in enumerate(data):
+                    keys = list(rec.keys()) if isinstance(rec, dict) else str(type(rec))
+                    print(f"[TRACY] Record {i} keys: {keys}")
+                    print(f"[TRACY] Record {i} preview: {json.dumps(rec, indent=2, ensure_ascii=False)[:500]}")
                 return {"status": "completed", "records": data}
             # Si devuelve objeto con status
             status = data.get("status", "")
@@ -217,7 +264,9 @@ def extract_contacts(result_data: dict, property_address: str) -> list[dict]:
     contacts = []
     records = result_data.get("records", result_data.get("results", []))
     if not isinstance(records, list):
+        print(f"[TRACY] extract_contacts: records no es lista — tipo: {type(records)}, valor: {str(records)[:300]}")
         return contacts
+    print(f"[TRACY] extract_contacts: procesando {len(records)} registro(s)")
 
     for record in records:
         # Owner
@@ -459,10 +508,25 @@ def run_skip_trace(
     contacts_raw = extract_contacts(result_data, full_address)
 
     if not contacts_raw:
-        resultado_str = "No se encontraron contactos"
-        update_tracy_record(tracy_record_id, "success", resultado_str, "Tracerfy completó el rastreo sin resultados.")
+        # Fallback: intentar instant lookup si el queue no devolvió contactos
+        print("[TRACY] Queue sin contactos — intentando instant lookup como fallback...")
+        lookup_data = instant_lookup(address, city, state, zip_code)
+        if lookup_data and isinstance(lookup_data, dict) and lookup_data.get("first_name"):
+            contacts_raw = extract_contacts({"records": [lookup_data]}, full_address)
+            if contacts_raw:
+                print(f"[TRACY] Instant lookup encontró {len(contacts_raw)} contacto(s)")
+
+    if not contacts_raw:
+        resultado_str = "No se encontraron contactos (queue + instant lookup)"
+        update_tracy_record(tracy_record_id, "success", resultado_str,
+                           "Tracerfy completó el rastreo sin resultados en ambos métodos.")
         result["tracy_results"]["status"] = "completed"
         result["tracy_results"]["notes"]  = resultado_str
+        # Limpiar CSV antes de salir
+        try:
+            Path(csv_path).unlink(missing_ok=True)
+        except Exception:
+            pass
         return result
 
     # ── PASO 7: Escribir contactos en Contacts ────────────────────

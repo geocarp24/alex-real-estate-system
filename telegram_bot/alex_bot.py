@@ -563,8 +563,8 @@ def _tool_invoke_tracy(address: str, city: str = "", state: str = "", zip_code: 
             logger.warning(f"Tracy: no se pudo crear registro pending: {tracy_create}")
 
         # ── PASO 2+3: CSV + POST to Tracerfy ─────────────────────
-        csv_content = "address,city,state,zip,first_name,last_name,mail_address,mail_city,mail_state\n"
-        csv_content += f'"{address}","{city}","{state}","{zip_code}","","","{address}","{city}","{state}"'
+        csv_content = "address,city,state,zip,first_name,last_name,mail_address,mail_city,mail_state,mail_zip\n"
+        csv_content += f'"{address}","{city}","{state}","{zip_code}","","","","","",""'
 
         tracerfy_headers = {"Authorization": f"Bearer {TRACERFY_API_KEY}"}
         files = {"csv_file": ("tracy_input.csv", csv_content.encode("utf-8"), "text/csv")}
@@ -572,11 +572,14 @@ def _tool_invoke_tracy(address: str, city: str = "", state: str = "", zip_code: 
             "address_column":      "address",
             "city_column":         "city",
             "state_column":        "state",
+            "zip_column":          "zip",
             "first_name_column":   "first_name",
             "last_name_column":    "last_name",
             "mail_address_column": "mail_address",
             "mail_city_column":    "mail_city",
             "mail_state_column":   "mail_state",
+            "mailing_zip_column":  "mail_zip",
+            "trace_type":          "advanced",
         }
 
         resp = http_requests.post(
@@ -621,6 +624,10 @@ def _tool_invoke_tracy(address: str, city: str = "", state: str = "", zip_code: 
             # El endpoint devuelve array cuando está listo
             if isinstance(poll_data, list):
                 logger.info(f"Tracy poll attempt {attempt+1}: completed — {len(poll_data)} record(s)")
+                for i, rec in enumerate(poll_data):
+                    keys = list(rec.keys()) if isinstance(rec, dict) else str(type(rec))
+                    logger.info(f"Tracy record {i} keys: {keys}")
+                    logger.info(f"Tracy record {i} preview: {json.dumps(rec, ensure_ascii=False)[:500]}")
                 result_data = {"status": "completed", "records": poll_data}
                 break
             logger.info(f"Tracy poll attempt {attempt+1}: status={poll_data.get('status')}")
@@ -702,6 +709,52 @@ def _tool_invoke_tracy(address: str, city: str = "", state: str = "", zip_code: 
                             "extra_emails": [],
                             "role": "Relative"
                         })
+
+        # Fallback: instant lookup si queue no devolvió contactos
+        if not contacts:
+            logger.info("Tracy queue sin contactos — intentando instant lookup como fallback...")
+            try:
+                lookup_payload = {
+                    "address": address, "city": city, "state": state, "find_owner": True
+                }
+                if zip_code:
+                    lookup_payload["zip"] = zip_code
+                lookup_resp = http_requests.post(
+                    "https://tracerfy.com/v1/api/trace/lookup/",
+                    headers={"Authorization": f"Bearer {TRACERFY_API_KEY}", "Content-Type": "application/json"},
+                    json=lookup_payload,
+                    timeout=30
+                )
+                lookup_data = lookup_resp.json()
+                logger.info(f"Tracy instant lookup response: {json.dumps(lookup_data, ensure_ascii=False)[:500]}")
+                if isinstance(lookup_data, dict) and lookup_data.get("first_name"):
+                    owner_name = f"{lookup_data.get('first_name', '')} {lookup_data.get('last_name', '')}".strip()
+                    phones = [lookup_data.get(k) for k in [
+                        "primary_phone", "mobile_1", "mobile_2", "mobile_3",
+                        "mobile_4", "mobile_5", "landline_1", "landline_2", "landline_3"
+                    ] if lookup_data.get(k)]
+                    emails = [lookup_data.get(k) for k in [
+                        "email_1", "email_2", "email_3", "email_4", "email_5"
+                    ] if lookup_data.get(k)]
+                    if owner_name:
+                        contacts.append({
+                            "name": owner_name,
+                            "phone": phones[0] if phones else None,
+                            "phone_type": lookup_data.get("primary_phone_type", ""),
+                            "extra_phones": phones[1:],
+                            "email": emails[0] if emails else None,
+                            "extra_emails": emails[1:],
+                            "address": full_address,
+                            "mail_address": lookup_data.get("mail_address", ""),
+                            "mail_city": lookup_data.get("mail_city", ""),
+                            "mail_state": lookup_data.get("mail_state", ""),
+                            "mail_zip": lookup_data.get("mail_zip", ""),
+                            "tracerfy_id": lookup_data.get("id"),
+                            "role": "Owner",
+                        })
+                        logger.info(f"Tracy instant lookup encontró: {owner_name}")
+            except Exception as e:
+                logger.warning(f"Tracy instant lookup error: {e}")
 
         def _to_e164_int(phone_str):
             if not phone_str: return None

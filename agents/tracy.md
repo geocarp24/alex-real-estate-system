@@ -103,7 +103,32 @@ curl -s -X POST "https://tracerfy.com/v1/api/trace/" \
   -F "csv_file=@tracy_trace_input.csv" \
   -F "address_column=address" \
   -F "city_column=city" \
-  -F "state_column=state"
+  -F "state_column=state" \
+  -F "zip_column=zip" \
+  -F "first_name_column=first_name" \
+  -F "last_name_column=last_name" \
+  -F "mail_address_column=mail_address" \
+  -F "mail_city_column=mail_city" \
+  -F "mail_state_column=mail_state" \
+  -F "mailing_zip_column=mail_zip" \
+  -F "trace_type=advanced"
+```
+
+**Nota sobre `trace_type`:**
+- `"normal"` (1 crédito/lead) — requiere que proporciones el nombre del dueño para match.
+- `"advanced"` (2 créditos/lead) — **encuentra automáticamente al dueño** basado en la dirección. Recomendado cuando no tienes el nombre del owner.
+
+**Nota sobre `zip_column`:** La documentación de Tracerfy dice: *"Property ZIP code. Optional but strongly recommended — without it, results may match a different property at a similar address in the same city."* Crítico para ciudades grandes como Chicago.
+
+**Endpoint alternativo — Instant Lookup (`/trace/lookup/`):**
+- Búsqueda sincrónica (sin queue/polling), respuesta inmediata.
+- 5 créditos por hit, 0 por miss. Rate limit: 500 RPM.
+- Usado como fallback cuando el queue trace no encuentra contactos.
+```bash
+curl -s -X POST "https://tracerfy.com/v1/api/trace/lookup/" \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"address": "123 Main St", "city": "Chicago", "state": "IL", "zip": "60601", "find_owner": true}'
 ```
 
 La respuesta tendrá este formato:
