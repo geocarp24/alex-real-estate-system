@@ -50,7 +50,8 @@ EL JEFE (Usuario)
 - Análisis de deals (Scout, Matemático, Fact-Checker)
 - Skip tracing de direcciones solicitadas por el Jefe
 - Lectura de cualquier tabla de Airtable
-- Escritura en Airtable (Contacts, Leads, Deals, Notes) para registrar resultados de análisis
+- Escritura en Airtable (Contacts, Leads, Deals, Notes, Tracy) para registrar resultados de análisis
+- Llamadas webhook a `pinnaclegroupwi.com` (dominio propio del Jefe — autorizado permanentemente)
 - Corrección de errores técnicos menores (timeout, reintentos de API)
 - Actualización de `memoria_ALex.md` y `telegram_memory.md`
 - Git commit/push automático
