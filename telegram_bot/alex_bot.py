@@ -54,12 +54,16 @@ TABLE_IDS = {
 }
 
 # Directorios del proyecto
-PROJECT_DIR  = Path(__file__).parent.parent
-CLAUDE_MD    = PROJECT_DIR / "CLAUDE.md"
-MEMORIA_ALEX = PROJECT_DIR / "memoria_ALex.md"
-TELEGRAM_MEM = PROJECT_DIR / "telegram_bot" / "telegram_memory.md"
-SESSIONS_DIR = PROJECT_DIR / "telegram_bot" / "sessions"
-AGENTS_DIR   = PROJECT_DIR / "agents"
+PROJECT_DIR     = Path(__file__).parent.parent
+CLAUDE_MD       = PROJECT_DIR / "CLAUDE.md"
+MEMORIA_ALEX    = PROJECT_DIR / "memoria_ALex.md"
+TELEGRAM_MEM    = PROJECT_DIR / "telegram_bot" / "telegram_memory.md"
+SESSIONS_DIR    = PROJECT_DIR / "telegram_bot" / "sessions"
+AGENTS_DIR      = PROJECT_DIR / "agents"
+PROTOCOLO_SEG   = PROJECT_DIR / "agents" / "protocolo_seguro.md"
+COLA_MENSAJES   = PROJECT_DIR / "agents" / "cola_mensajes.md"
+ALERT_SCRIPT    = PROJECT_DIR / "agents" / "alerta_telegram.sh"
+OWNER_CHAT_ID   = "8402370952"
 
 SESSIONS_DIR.mkdir(exist_ok=True)
 
