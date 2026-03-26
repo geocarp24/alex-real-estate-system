@@ -563,8 +563,8 @@ def _tool_invoke_tracy(address: str, city: str = "", state: str = "", zip_code: 
             logger.warning(f"Tracy: no se pudo crear registro pending: {tracy_create}")
 
         # ── PASO 2+3: CSV + POST to Tracerfy ─────────────────────
-        csv_content = "address,city,state,zip\n"
-        csv_content += f'"{address}","{city}","{state}","{zip_code}"'
+        csv_content = "address,city,state,zip,first_name,last_name,mail_address,mail_city,mail_state\n"
+        csv_content += f'"{address}","{city}","{state}","{zip_code}","","","{address}","{city}","{state}"'
 
         tracerfy_headers = {"Authorization": f"Bearer {TRACERFY_API_KEY}"}
         files = {"csv_file": ("tracy_input.csv", csv_content.encode("utf-8"), "text/csv")}
