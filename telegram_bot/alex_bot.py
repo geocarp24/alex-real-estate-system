@@ -50,6 +50,7 @@ TABLE_IDS = {
     "Leads":            "tblxZz2EWIglOLnEd",
     "Deals":            "tbliaEKxBHKBx7ZK2",
     "Notes & Activity": "tbleOBXJl7sDhwj5w",
+    "Tracy":            "tbl6CJm4kYspOuTDB",
 }
 
 # Directorios del proyecto
