@@ -613,13 +613,18 @@ def _tool_invoke_tracy(address: str, city: str = "", state: str = "", zip_code: 
         for attempt in range(10):
             time.sleep(15)
             poll = http_requests.get(
-                f"https://tracerfy.com/v1/api/queue/{queue_id}/",
+                f"https://tracerfy.com/v1/api/queue/{queue_id}",
                 headers=tracerfy_headers,
                 timeout=30
             )
             poll_data = poll.json()
+            # El endpoint devuelve array cuando está listo
+            if isinstance(poll_data, list):
+                logger.info(f"Tracy poll attempt {attempt+1}: completed — {len(poll_data)} record(s)")
+                result_data = {"status": "completed", "records": poll_data}
+                break
             logger.info(f"Tracy poll attempt {attempt+1}: status={poll_data.get('status')}")
-            if poll_data.get("status") != "pending":
+            if poll_data.get("status") not in ("pending", "processing", None):
                 result_data = poll_data
                 break
 
