@@ -667,13 +667,19 @@ def _tool_invoke_tracy(address: str, city: str = "", state: str = "", zip_code: 
                 ]
                 if owner_name:
                     contacts.append({
-                        "name": owner_name,
-                        "phone": phones[0] if phones else None,
+                        "name":         owner_name,
+                        "phone":        phones[0] if phones else None,
+                        "phone_type":   record.get("primary_phone_type", ""),
                         "extra_phones": phones[1:],
-                        "email": emails[0] if emails else None,
+                        "email":        emails[0] if emails else None,
                         "extra_emails": emails[1:],
-                        "address": record.get("mailing_address") or record.get("owner_address"),
-                        "role": "Owner"
+                        "address":      full_address,
+                        "mail_address": record.get("mail_address", ""),
+                        "mail_city":    record.get("mail_city", ""),
+                        "mail_state":   record.get("mail_state", ""),
+                        "mail_zip":     record.get("mail_zip", ""),
+                        "tracerfy_id":  record.get("id"),
+                        "role":         "Owner",
                     })
 
                 for relative in record.get("relatives", record.get("associated_people", [])):
