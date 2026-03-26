@@ -22,6 +22,8 @@ AIRTABLE_TRACY    = "tbl6CJm4kYspOuTDB"   # tabla de log de rastreos
 AIRTABLE_CONTACTS = "tblacvw0Ss770x8l5"   # tabla de contactos
 
 TRACERFY_BASE     = "https://tracerfy.com/v1/api"
+CHISMOSO_URL      = "https://pinnaclegroupwi.com/Tools/el_chismoso.php"
+CHISMOSO_TOKEN    = "pinnacle2026"
 # Endpoints confirmados:
 #   POST /trace/         → enviar CSV, devuelve queue_id
 #   GET  /queue/{id}     → resultados (sin trailing slash), devuelve [] o array de contactos
