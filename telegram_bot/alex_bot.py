@@ -697,30 +697,42 @@ def _tool_invoke_tracy(address: str, city: str = "", state: str = "", zip_code: 
                             "role": "Relative"
                         })
 
+        def _to_e164_int(phone_str):
+            if not phone_str: return None
+            digits = "".join(c for c in str(phone_str) if c.isdigit())
+            if not digits: return None
+            if len(digits) == 10:   digits = "1" + digits
+            elif len(digits) == 11 and digits.startswith("1"): pass
+            else: return None
+            return int(digits)
+
         # Write to Airtable
         airtable_results = []
         for contact in contacts:
             fields = {
-                "Full Name":   contact["name"],
-                "Category":    "Lead",
-                "Stage":       "To Be Contacted",
-                "Lead Source": "Skip Trace - Tracy"
+                "Full Name":    contact["name"],
+                "Category":     "Lead",
+                "Stage":        "To Be Contacted",
+                "Lead Source":  "Skip Trace - Tracy",
+                "Owner Address": full_address,
             }
-            if contact.get("phone"):
-                fields["Phone"] = contact["phone"]
-            if contact.get("email"):
-                fields["Email"] = contact["email"]
-            if contact.get("address"):
-                fields["Owner Address"] = contact["address"]
-
-            notes = [f"Traced from property: {full_address}."]
-            if contact.get("extra_phones"):
-                notes.append(f"Additional phones: {', '.join(contact['extra_phones'])}.")
-            if contact.get("extra_emails"):
-                notes.append(f"Additional emails: {', '.join(contact['extra_emails'])}.")
-            if contact["role"] == "Relative":
-                notes.append("Role: Relative of property owner.")
-            fields["Negotiation notes"] = " ".join(notes)
+            # Teléfonos E.164 como entero
+            all_phones = [contact.get("phone")] + contact.get("extra_phones", [])
+            for key, ph in zip(["Phone1","Phone2","Phone3","Phone4"], all_phones):
+                val = _to_e164_int(ph)
+                if val: fields[key] = val
+            if contact.get("phone_type"):
+                fields["Phone1 Type"] = contact["phone_type"]
+            # Emails
+            all_emails = [contact.get("email")] + contact.get("extra_emails", [])
+            for key, em in zip(["Email1","Email2","Email3"], all_emails):
+                if em: fields[key] = em
+            # Dirección postal
+            if contact.get("mail_address"): fields["Mail Address"] = contact["mail_address"]
+            if contact.get("mail_city"):    fields["Mail City"]    = contact["mail_city"]
+            if contact.get("mail_state"):   fields["Mail State"]   = contact["mail_state"]
+            if contact.get("mail_zip"):     fields["Mail Zip"]     = contact["mail_zip"]
+            if contact.get("tracerfy_id"):  fields["Tracerfy ID"]  = int(contact["tracerfy_id"])
 
             at_result = _tool_airtable_create("Contacts", fields)
             try:
