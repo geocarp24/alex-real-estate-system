@@ -14,7 +14,6 @@ DESCRIPCION="${2:-Sin descripcion}"
 SOLUCIONES="${3:-Revisar logs del sistema}"
 TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
 
-# Seleccionar emoji según nivel
 case "$NIVEL" in
   CRITICO)     BADGE="CRITICO" ;;
   ADVERTENCIA) BADGE="ADVERTENCIA" ;;
@@ -23,7 +22,6 @@ case "$NIVEL" in
   *)           BADGE="$NIVEL" ;;
 esac
 
-# Construir mensaje (sin comillas dobles internas para evitar problemas de escape)
 MESSAGE="ALERTA ALEX - ${BADGE}
 
 Situacion: ${DESCRIPCION}
@@ -33,14 +31,16 @@ Detectado: ${TIMESTAMP}
 Posibles soluciones:
 ${SOLUCIONES}
 
+-- Responde al bot:
+/permitir - Autorizar esta accion y continuar
+/bloquear - Denegar y detener la operacion
+
 -- Sistema ALEX (notificacion automatica)"
 
-# Enviar a Telegram usando --data-urlencode para evitar problemas de caracteres
 RESPONSE=$(curl -s -X POST "$API_URL" \
   --data-urlencode "chat_id=${CHAT_ID}" \
   --data-urlencode "text=${MESSAGE}")
 
-# Verificar resultado
 if echo "$RESPONSE" | grep -q '"ok":true'; then
   echo "ALERTA ENVIADA OK - ${NIVEL}: ${DESCRIPCION}"
   exit 0
