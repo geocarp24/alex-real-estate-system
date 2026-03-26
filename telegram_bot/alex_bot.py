@@ -1300,6 +1300,30 @@ async def cmd_reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
     save_history(user_id, [])
 
 
+async def cmd_permitir(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Autoriza la última acción bloqueada por el sistema de seguridad."""
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    log_entry = f"\n### {timestamp} — ACCION AUTORIZADA POR EL JEFE\nEl Jefe respondio /permitir desde Telegram. Accion previa bloqueada fue autorizada."
+    append_telegram_memory(log_entry)
+    await update.message.reply_text(
+        "✅ *Accion autorizada.* Registrado en memoria.\n\n"
+        "Si la operacion quedó pausada, vuelve a solicitarla y se ejecutará sin alarma.",
+        parse_mode="Markdown"
+    )
+
+
+async def cmd_bloquear(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Bloquea y registra la última acción alertada."""
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    log_entry = f"\n### {timestamp} — ACCION BLOQUEADA POR EL JEFE\nEl Jefe respondio /bloquear desde Telegram. Accion denegada permanentemente."
+    append_telegram_memory(log_entry)
+    await update.message.reply_text(
+        "🚫 *Accion bloqueada y registrada.* El sistema no ejecutará esa operación.\n\n"
+        "Si fue una falsa alarma, usa /permitir y agrega el dominio al protocolo de seguridad.",
+        parse_mode="Markdown"
+    )
+
+
 async def cmd_memoria(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mem = read_telegram_memory()
     if mem:
