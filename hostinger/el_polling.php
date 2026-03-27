@@ -316,7 +316,7 @@ if (empty($queueData)) {
     $resultSummary = 'No contacts found for this address.';
     logMsg($resultSummary);
     atPatch(TABLE_TRACY, $tracyId, [
-        'status'    => 'success',
+        'status'    => 'no_results',
         'resultado' => $resultSummary,
         'notas'     => 'Tracerfy completed — no results.',
     ]);
