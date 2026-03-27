@@ -154,6 +154,7 @@ function tracerfyPoll(int $queueId): ?array {
         curl_close($ch);
 
         $trimmed = ltrim((string) $raw);
+        logMsg("  Queue {$queueId} raw (HTTP {$code}): " . substr($raw, 0, 400));
         if ($code === 200 && isset($trimmed[0]) && $trimmed[0] === '[') {
             $data = json_decode($raw, true);
             logMsg("  Queue {$queueId} complete — " . count($data) . " contact(s) found");
