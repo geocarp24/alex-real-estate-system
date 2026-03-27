@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Budget Builder — Geo Carpentry LLC</title>
+<style>
+:root {
+  --navy:#1B3A6B; --navy-d:#122847; --navy-l:#2A5298;
+  --orange:#FF6B00; --orange-l:#FF8C33;
+  --white:#fff; --gray-50:#F8FAFC; --gray-100:#F1F5F9;
+  --gray-200:#E2E8F0; --gray-300:#CBD5E1; --gray-400:#94A3B8;
+  --gray-500:#64748B; --gray-700:#334155; --gray-900:#0F172A;
+  --green:#16A34A; --red:#DC2626; --blue:#2563EB;
+  --shadow:0 1px 3px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.08);
+  --shadow-lg:0 10px 25px rgba(0,0,0,.15);
+  --r:8px; --r-lg:12px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--gray-50);color:var(--gray-900);min-height:100vh}
+input,textarea,select,button{font-family:inherit}
+button{cursor:pointer;border:none;outline:none}
+
+/* ── SCREENS ── */
+.screen{display:none;min-height:100vh}
+.screen.active{display:flex;flex-direction:column}
+
+/* ── LOGIN ── */
+#loginScreen{background:var(--navy);align-items:center;justify-content:center}
+.login-card{background:var(--white);border-radius:var(--r-lg);padding:48px 40px;width:100%;max-width:400px;text-align:center;box-shadow:var(--shadow-lg)}
+.login-card img{height:70px;margin-bottom:24px}
+.login-card h1{font-size:22px;font-weight:700;color:var(--navy);margin-bottom:4px}
+.login-card p{color:var(--gray-500);font-size:14px;margin-bottom:28px}
+.login-card input{width:100%;padding:12px 16px;border:2px solid var(--gray-200);border-radius:var(--r);font-size:16px;letter-spacing:4px;text-align:center;margin-bottom:16px;transition:.2s}
+.login-card input:focus{outline:none;border-color:var(--navy)}
+.login-card .err{color:var(--red);font-size:13px;margin-bottom:12px;min-height:18px}
+.btn-primary{background:var(--orange);color:var(--white);padding:12px 24px;border-radius:var(--r);font-size:15px;font-weight:600;width:100%;transition:.2s}
+.btn-primary:hover{background:var(--orange-l)}
+
+/* ── HEADER ── */
+.app-header{background:var(--navy);color:var(--white);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.app-header img{height:36px}
+.header-right{display:flex;align-items:center;gap:12px}
+.header-right span{font-size:13px;color:rgba(255,255,255,.7)}
+.btn-logout{background:rgba(255,255,255,.15);color:var(--white);padding:6px 14px;border-radius:var(--r);font-size:13px;transition:.2s}
+.btn-logout:hover{background:rgba(255,255,255,.25)}
+
+/* ── DASHBOARD ── */
+#dashScreen{background:var(--gray-50)}
+.dash-body{padding:32px 24px;max-width:1100px;margin:0 auto;flex:1}
+.dash-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px}
+.dash-top h2{font-size:26px;font-weight:700;color:var(--navy)}
+.btn-new{background:var(--orange);color:var(--white);padding:10px 22px;border-radius:var(--r);font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;transition:.2s}
+.btn-new:hover{background:var(--orange-l)}
+.budgets-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+.budget-card{background:var(--white);border-radius:var(--r-lg);padding:22px;box-shadow:var(--shadow);border:1px solid var(--gray-200);transition:.2s;cursor:pointer}
+.budget-card:hover{box-shadow:var(--shadow-lg);border-color:var(--navy)}
+.bc-quote{font-size:12px;font-weight:700;color:var(--orange);letter-spacing:.5px;margin-bottom:8px}
+.bc-name{font-size:17px;font-weight:700;color:var(--navy);margin-bottom:4px}
+.bc-client{font-size:13px;color:var(--gray-500);margin-bottom:12px}
+.bc-total{font-size:22px;font-weight:800;color:var(--gray-900)}
+.bc-date{font-size:12px;color:var(--gray-400);margin-top:4px}
+.bc-actions{display:flex;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--gray-100)}
+.bc-btn{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;transition:.2s}
+.bc-btn.open{background:var(--navy);color:var(--white)}
+.bc-btn.open:hover{background:var(--navy-l)}
+.bc-btn.dup{background:var(--gray-100);color:var(--gray-700)}
+.bc-btn.dup:hover{background:var(--gray-200)}
+.bc-btn.del{background:#FEE2E2;color:var(--red)}
+.bc-btn.del:hover{background:#FECACA}
+.empty-state{text-align:center;padding:80px 20px;color:var(--gray-500)}
+.empty-state .icon{font-size:56px;margin-bottom:16px}
+.empty-state h3{font-size:20px;font-weight:600;color:var(--gray-700);margin-bottom:8px}
+
+/* ── EDITOR ── */
+#editorScreen{background:var(--gray-50)}
+.editor-toolbar{background:var(--white);border-bottom:1px solid var(--gray-200);padding:12px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.toolbar-left{display:flex;align-items:center;gap:12px;flex:1}
+.btn-back{background:var(--gray-100);color:var(--gray-700);padding:8px 14px;border-radius:var(--r);font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;transition:.2s}
+.btn-back:hover{background:var(--gray-200)}
+.toolbar-quote{font-size:15px;font-weight:700;color:var(--navy)}
+.toolbar-status{font-size:12px;color:var(--green);font-weight:600}
+.toolbar-right{display:flex;gap:10px;flex-wrap:wrap}
+.btn-action{padding:8px 18px;border-radius:var(--r);font-size:13px;font-weight:600;transition:.2s;display:flex;align-items:center;gap:6px}
+.btn-save{background:var(--navy);color:var(--white)}
+.btn-save:hover{background:var(--navy-d)}
+.btn-export{background:var(--orange);color:var(--white)}
+.btn-export:hover{background:var(--orange-l)}
+.btn-guide{background:var(--gray-100);color:var(--gray-700)}
+.btn-guide:hover{background:var(--gray-200)}
+.btn-analyze{background:var(--blue);color:var(--white)}
+.btn-analyze:hover{background:#1D4ED8}
+
+.editor-body{padding:24px;max-width:1300px;margin:0 auto;flex:1}
+
+/* Project info */
+.project-info{background:var(--white);border-radius:var(--r-lg);padding:20px 24px;margin-bottom:20px;box-shadow:var(--shadow);border:1px solid var(--gray-200)}
+.pi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.pi-field label{font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px}
+.pi-field input,.pi-field textarea{width:100%;border:1px solid var(--gray-200);border-radius:6px;padding:8px 12px;font-size:14px;color:var(--gray-900);transition:.2s;background:var(--gray-50)}
+.pi-field input:focus,.pi-field textarea:focus{outline:none;border-color:var(--navy);background:var(--white)}
+.pi-field textarea{resize:vertical;min-height:60px}
+
+/* Summary bar */
+.summary-bar{background:var(--navy);border-radius:var(--r-lg);padding:16px 24px;margin-bottom:20px;display:flex;gap:0;align-items:center;box-shadow:var(--shadow-lg)}
+.sum-item{flex:1;text-align:center;padding:0 12px;border-right:1px solid rgba(255,255,255,.15)}
+.sum-item:last-child{border-right:none}
+.sum-label{font-size:11px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.sum-val{font-size:18px;font-weight:700;color:var(--white)}
+.sum-val.total{font-size:22px;color:var(--orange)}
+
+/* Contingency */
+.cont-row{display:flex;align-items:center;gap:8px}
+.cont-row input{width:60px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:var(--white);border-radius:4px;padding:4px 8px;font-size:14px;text-align:center}
+.cont-row input:focus{outline:none;border-color:var(--orange)}
+.cont-row span{color:rgba(255,255,255,.6);font-size:12px}
+
+/* Divisions table */
+.divisions-wrap{background:var(--white);border-radius:var(--r-lg);box-shadow:var(--shadow);border:1px solid var(--gray-200);overflow:hidden;margin-bottom:20px}
+.div-table-header{display:grid;grid-template-columns:60px 1fr 160px 130px 130px 110px 80px 40px;gap:0;background:var(--navy);color:var(--white);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.div-table-header>div{padding:10px 12px}
+.division-row{display:grid;grid-template-columns:60px 1fr 160px 130px 130px 110px 80px 40px;gap:0;border-bottom:1px solid var(--gray-100);align-items:start;transition:.15s}
+.division-row:last-child{border-bottom:none}
+.division-row:hover{background:var(--gray-50)}
+.div-cell{padding:10px 12px;font-size:13px}
+.div-num{font-weight:700;color:var(--gray-400);padding-top:14px}
+.div-name-input{width:100%;border:none;background:transparent;font-size:13px;font-weight:600;color:var(--navy);padding:4px 0;outline:none}
+.div-name-input:focus{border-bottom:2px solid var(--navy)}
+.div-scope{width:100%;border:none;background:transparent;font-size:12px;color:var(--gray-500);resize:none;outline:none;min-height:40px;line-height:1.5;margin-top:4px}
+.div-scope:focus{background:var(--gray-50);border-radius:4px;padding:4px}
+.div-money{position:relative}
+.div-money::before{content:'$';position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--gray-400);font-size:13px;pointer-events:none}
+.div-money input{width:100%;border:1px solid var(--gray-200);border-radius:6px;padding:8px 8px 8px 22px;font-size:13px;font-weight:600;outline:none;transition:.2s}
+.div-money input:focus{border-color:var(--navy)}
+.div-money.mat input{color:var(--blue)}
+.div-money.lab input{color:var(--green)}
+.div-total{font-weight:700;color:var(--gray-900);padding-top:12px}
+.div-pct{font-size:11px;color:var(--gray-400);margin-top:2px}
+.div-del{padding-top:10px}
+.btn-del-row{background:none;color:var(--gray-300);font-size:18px;padding:4px 8px;border-radius:4px;transition:.2s}
+.btn-del-row:hover{background:#FEE2E2;color:var(--red)}
+
+/* Add division */
+.add-div-bar{padding:16px 24px;display:flex;gap:10px;align-items:flex-end;border-top:2px dashed var(--gray-200)}
+.add-div-bar input,.add-div-bar textarea{border:1px solid var(--gray-200);border-radius:6px;padding:8px 12px;font-size:13px;outline:none;transition:.2s}
+.add-div-bar input:focus,.add-div-bar textarea:focus{border-color:var(--navy)}
+.add-div-bar .ad-name{flex:2}
+.add-div-bar .ad-mat,.add-div-bar .ad-lab{width:120px}
+.btn-add-div{background:var(--navy);color:var(--white);padding:8px 18px;border-radius:var(--r);font-size:13px;font-weight:600;white-space:nowrap;transition:.2s}
+.btn-add-div:hover{background:var(--navy-d)}
+
+/* PDF upload area */
+.pdf-zone{border:2px dashed var(--gray-300);border-radius:var(--r-lg);padding:28px;text-align:center;margin-bottom:20px;cursor:pointer;transition:.2s;background:var(--white)}
+.pdf-zone:hover,.pdf-zone.drag{border-color:var(--navy);background:#EEF2FF}
+.pdf-zone .pz-icon{font-size:36px;margin-bottom:8px}
+.pdf-zone h3{font-size:15px;font-weight:600;color:var(--navy)}
+.pdf-zone p{font-size:13px;color:var(--gray-500);margin-top:4px}
+#pdfInput{display:none}
+.analyze-status{background:var(--blue);color:var(--white);border-radius:var(--r);padding:12px 18px;margin-bottom:20px;display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;display:none}
+.spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:var(--white);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* WI Price Guide Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--white);border-radius:var(--r-lg);width:90%;max-width:760px;max-height:85vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow-lg)}
+.modal-header{background:var(--navy);color:var(--white);padding:18px 24px;display:flex;justify-content:space-between;align-items:center}
+.modal-header h2{font-size:18px;font-weight:700}
+.modal-header p{font-size:12px;color:rgba(255,255,255,.7);margin-top:2px}
+.btn-close-modal{background:none;color:var(--white);font-size:22px;padding:0 4px;opacity:.7;transition:.2s}
+.btn-close-modal:hover{opacity:1}
+.modal-body{overflow-y:auto;padding:0}
+.guide-table{width:100%;border-collapse:collapse}
+.guide-table th{background:var(--gray-100);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gray-500);padding:10px 16px;text-align:left;border-bottom:2px solid var(--gray-200)}
+.guide-table td{padding:12px 16px;border-bottom:1px solid var(--gray-100);font-size:13px;vertical-align:top}
+.guide-table tr:hover td{background:var(--gray-50)}
+.guide-div{font-weight:700;color:var(--navy)}
+.guide-range{font-weight:600;color:var(--gray-900)}
+.guide-note{color:var(--gray-500);font-size:12px;margin-top:2px}
+.guide-tip{background:#FFF7ED;color:#92400E;border-radius:4px;padding:2px 6px;font-size:11px;font-weight:600;white-space:nowrap}
+
+/* Notification */
+.notif{position:fixed;bottom:24px;right:24px;background:var(--navy);color:var(--white);padding:12px 20px;border-radius:var(--r);font-size:14px;font-weight:600;box-shadow:var(--shadow-lg);transform:translateY(80px);opacity:0;transition:.3s;z-index:2000;display:flex;align-items:center;gap:8px}
+.notif.show{transform:translateY(0);opacity:1}
+.notif.success{background:var(--green)}
+.notif.error{background:var(--red)}
+
+/* Validation */
+.div-money input.invalid{border-color:var(--red)!important;background:#FFF5F5}
+
+/* ── PRINT / PDF EXPORT ── */
+@media print{
+  body{background:#fff}
+  .no-print{display:none!important}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 1 — LOGIN
+══════════════════════════════════════════ -->
+<div id="loginScreen" class="screen active">
+  <div class="login-card">
+    <img src="logo.png" alt="Geo Carpentry LLC">
+    <h1>Budget Builder</h1>
+    <p>Geo Carpentry LLC — Internal Tool</p>
+    <input type="password" id="pinInput" placeholder="Enter password" maxlength="30" autocomplete="off">
+    <div class="err" id="loginErr"></div>
+    <button class="btn-primary" onclick="doLogin()">Sign In</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 2 — DASHBOARD
+══════════════════════════════════════════ -->
+<div id="dashScreen" class="screen">
+  <header class="app-header no-print">
+    <img src="logo.png" alt="Geo Carpentry LLC">
+    <div class="header-right">
+      <span>Budget Builder</span>
+      <button class="btn-logout" onclick="logout()">Sign Out</button>
+    </div>
+  </header>
+  <div class="dash-body">
+    <div class="dash-top">
+      <h2>Saved Budgets</h2>
+      <button class="btn-new" onclick="newBudget()">
+        <span style="font-size:18px">+</span> New Budget
+      </button>
+    </div>
+    <div class="budgets-grid" id="budgetsList"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 3 — EDITOR
+══════════════════════════════════════════ -->
+<div id="editorScreen" class="screen">
+  <!-- Toolbar -->
+  <div class="editor-toolbar no-print">
+    <div class="toolbar-left">
+      <button class="btn-back" onclick="goToDash()">← Dashboard</button>
+      <span class="toolbar-quote" id="toolbarQuote"></span>
+      <span class="toolbar-status" id="saveStatus"></span>
+    </div>
+    <div class="toolbar-right">
+      <button class="btn-action btn-guide" onclick="openGuide()">📋 WI Price Guide</button>
+      <button class="btn-action btn-analyze" onclick="triggerPdfUpload()">📄 Analyze PDF Plan</button>
+      <button class="btn-action btn-save" onclick="saveBudget()">💾 Save</button>
+      <button class="btn-action btn-export" onclick="exportPDF()">📥 Export PDF</button>
+    </div>
+  </div>
+  <input type="file" id="pdfInput" accept=".pdf,image/*" onchange="handlePdfFile(event)">
+
+  <div class="editor-body">
+    <!-- Analyze status -->
+    <div class="analyze-status" id="analyzeStatus">
+      <div class="spinner"></div>
+      <span>Analyzing your plan with AI... this may take up to 60 seconds.</span>
+    </div>
+
+    <!-- Project Info -->
+    <div class="project-info">
+      <div class="pi-grid">
+        <div class="pi-field">
+          <label>Quote #</label>
+          <input type="text" id="fQuoteNum" readonly style="font-weight:700;color:var(--orange);background:transparent;border-color:transparent">
+        </div>
+        <div class="pi-field">
+          <label>Date</label>
+          <input type="text" id="fDate">
+        </div>
+        <div class="pi-field">
+          <label>Project Name</label>
+          <input type="text" id="fProject" placeholder="e.g. Kitchen Remodel">
+        </div>
+        <div class="pi-field">
+          <label>Client Name</label>
+          <input type="text" id="fClient" placeholder="Client full name">
+        </div>
+        <div class="pi-field">
+          <label>Location</label>
+          <input type="text" id="fLocation" placeholder="City, WI">
+        </div>
+        <div class="pi-field" style="grid-column:span 2">
+          <label>Project Description / Scope Summary</label>
+          <textarea id="fDesc" placeholder="Brief description of project scope..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary Bar -->
+    <div class="summary-bar">
+      <div class="sum-item">
+        <div class="sum-label">Materials</div>
+        <div class="sum-val" id="sumMat">$0</div>
+      </div>
+      <div class="sum-item">
+        <div class="sum-label">Labor</div>
+        <div class="sum-val" id="sumLab">$0</div>
+      </div>
+      <div class="sum-item">
+        <div class="sum-label">Subtotal</div>
+        <div class="sum-val" id="sumSub">$0</div>
+      </div>
+      <div class="sum-item">
+        <div class="sum-label">Contingency</div>
+        <div class="cont-row">
+          <input type="number" id="contPct" value="5" min="0" max="30" oninput="recalc()">
+          <span>%</span>
+          <div class="sum-val" id="sumCont" style="margin-left:4px">$0</div>
+        </div>
+      </div>
+      <div class="sum-item">
+        <div class="sum-label">Grand Total</div>
+        <div class="sum-val total" id="sumGrand">$0</div>
+      </div>
+    </div>
+
+    <!-- Divisions Table -->
+    <div class="divisions-wrap">
+      <div class="div-table-header">
+        <div>#</div>
+        <div>Division / Scope</div>
+        <div>Scope Items</div>
+        <div>Materials ($)</div>
+        <div>Labor ($)</div>
+        <div>Division Total</div>
+        <div>% of Total</div>
+        <div></div>
+      </div>
+      <div id="divisionsBody"></div>
+
+      <!-- Add Division -->
+      <div class="add-div-bar no-print">
+        <input class="ad-name" type="text" id="adName" placeholder="Division name">
+        <input class="ad-mat" type="number" id="adMat" placeholder="Materials $" min="0">
+        <input class="ad-lab" type="number" id="adLab" placeholder="Labor $" min="0">
+        <button class="btn-add-div" onclick="addDivision()">+ Add Division</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     WI PRICE GUIDE MODAL
+══════════════════════════════════════════ -->
+<div class="modal-overlay" id="guideModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h2>📋 Wisconsin Construction Price Guide — 2026</h2>
+        <p>Typical cost ranges for residential construction in NE Wisconsin. Use as reference only — actual costs vary by project scope and subcontractors.</p>
+      </div>
+      <button class="btn-close-modal" onclick="closeGuide()">✕</button>
+    </div>
+    <div class="modal-body">
+      <table class="guide-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Division</th>
+            <th>Typical Range</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody id="guideBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Notification -->
+<div class="notif" id="notif"></div>
+
+<!-- ══════════════════════════════════════════
+     PRINT TEMPLATE (hidden, shown on print)
+══════════════════════════════════════════ -->
+<div id="printTemplate" style="display:none"></div>
+
+<script>
+// ════════════════════════════════════════
+//  CONFIG
+// ════════════════════════════════════════
+const APP_PASSWORD = 'geocarpentry2026';
+const APP_TOKEN    = 'geocarpentry2026';
+const STORAGE_KEY  = 'geo-budgets-v4';
+const QUOTE_KEY    = 'geo-quote-seq';
+const API_URL      = 'api/analyze.php';
+
+const COMPANY = {
+  name:    'Geo Carpentry LLC',
+  address: '735 E Walnut St, Suite #3, Green Bay, WI 54301',
+  phone:   '(920) 367-1272',
+  email:   'admin@geocarpentry.com',
+  web:     'www.geocarpentry.com',
+  lic:     'Licensed & Insured in Wisconsin • 15+ Years of Experience',
+};
+
+// ════════════════════════════════════════
+//  DEFAULT DIVISIONS
+// ════════════════════════════════════════
+const DEFAULT_DIVS = [
+  {num:'01',name:'Site Work & Excavation',       items:'Site clearing and grading\nExcavation for foundation\nSoil hauling and disposal',                                mat:12000,lab:10000},
+  {num:'02',name:'Concrete & Foundation',         items:'Footings and foundation walls\nConcrete flatwork and slabs\nWaterproofing and drainage',                       mat:30000,lab:28000},
+  {num:'03',name:'Framing — Rough Carpentry',     items:'Floor, wall and roof framing\nEngineered lumber and beams\nSheathing and blocking',                            mat:48000,lab:52000},
+  {num:'04',name:'Roofing',                       items:'Roof decking and underlayment\nArchitectural shingles installation\nFlashing, ridge cap and vents',            mat:28000,lab:22000},
+  {num:'05',name:'Windows & Exterior Doors',      items:'Supply and install windows\nExterior entry and patio doors\nFlashing and weatherstripping',                    mat:42000,lab:8000},
+  {num:'06',name:'Exterior Finishes & Siding',    items:'LP SmartSide or vinyl siding\nSoffit, fascia and gutters\nExterior trim and caulking',                        mat:32000,lab:18000},
+  {num:'07',name:'Insulation',                    items:'Batt insulation walls and ceilings\nSpray foam rim joists and details\nAttic insulation (blown-in)',           mat:10000,lab:6500},
+  {num:'08',name:'Drywall',                       items:'Hang, tape and finish drywall\nTexture and corner bead\nSound insulation interior walls',                     mat:14000,lab:18000},
+  {num:'09',name:'Interior Carpentry & Millwork', items:'Interior doors and trim\nStair railings and balusters\nCrown molding and built-ins',                          mat:22000,lab:18000},
+  {num:'10',name:'Cabinets & Countertops',        items:'Kitchen and bath cabinetry\nCountertops (quartz or granite)\nHardware and pulls',                             mat:48000,lab:9000},
+  {num:'11',name:'Flooring',                      items:'Hardwood or LVP flooring\nTile in bathrooms and entry\nCarpet in bedrooms',                                   mat:18000,lab:9000},
+  {num:'12',name:'Plumbing',                      items:'Rough-in plumbing supply and drain\nFixtures: sinks, tubs, showers, toilets\nWater heater and connections',   mat:18000,lab:24000},
+  {num:'13',name:'HVAC',                          items:'Furnace and A/C system\nDuctwork and vents\nThermostats and controls',                                        mat:16000,lab:20000},
+  {num:'14',name:'Electrical',                    items:'Service panel and rough wiring\nOutlets, switches and fixtures\nSmoke detectors and exterior lighting',        mat:14000,lab:22000},
+  {num:'15',name:'Painting',                      items:'Prime and paint all interior walls\nPrime and paint trim and doors\nExterior touch-up and caulk paint',       mat:10000,lab:20000},
+  {num:'16',name:'Concrete Flatwork',             items:'Driveway and approach\nSidewalk and patio\nGarage floor finish',                                              mat:14000,lab:10000},
+  {num:'17',name:'Permits & General Conditions',  items:'Building permit and inspections\nPorta-potty, dumpster, temp power\nProject management and supervision',     mat:4000, lab:9500},
+];
+
+// ════════════════════════════════════════
+//  WI PRICE GUIDE DATA
+// ════════════════════════════════════════
+const WI_GUIDE = [
+  {num:'01',div:'Site Work & Excavation',       low:'$8K',   high:'$30K',  note:'Varies widely by lot conditions and access. Add $5K+ for rock removal.', tip:'Per lot'},
+  {num:'02',div:'Concrete & Foundation',        low:'$25K',  high:'$65K',  note:'Full basement adds $20-35K. Crawlspace less. Concrete: $150-180/CY WI avg.', tip:'Full bsmt'},
+  {num:'03',div:'Framing — Rough Carpentry',    low:'$35K',  high:'$90K',  note:'Lumber $800-1,200/MBF. Labor $8-15/SF depending on complexity. Complex rooflines add cost.', tip:'Per SF basis'},
+  {num:'04',div:'Roofing',                      low:'$12K',  high:'$45K',  note:'Architectural shingles $150-200/square installed. Metal roof 2-3x more. Pitch adds cost.', tip:'Per square'},
+  {num:'05',div:'Windows & Exterior Doors',     low:'$18K',  high:'$60K',  note:'Andersen or Pella mid-grade $400-800/window installed. Entry doors $1,500-4,000 each.', tip:'Per unit'},
+  {num:'06',div:'Exterior Finishes & Siding',   low:'$15K',  high:'$45K',  note:'LP SmartSide $6-9/SF installed. Vinyl $4-6/SF. Fiber cement $8-12/SF.', tip:'Per SF'},
+  {num:'07',div:'Insulation',                   low:'$6K',   high:'$18K',  note:'Batt R-21 walls, R-49 attic typical WI code. Spray foam $1-2/BF.', tip:'WI code min'},
+  {num:'08',div:'Drywall',                      low:'$10K',  high:'$30K',  note:'$1.50-3.00/SF for supply, hang, tape, finish. Larger homes more efficient per SF.', tip:'Per SF'},
+  {num:'09',div:'Interior Carpentry & Millwork',low:'$12K',  high:'$40K',  note:'$200-600/door installed (interior). Trim $3-6/LF. More detail = more cost.', tip:'Per LF/unit'},
+  {num:'10',div:'Cabinets & Countertops',       low:'$20K',  high:'$80K+', note:'Semi-custom cabinets $200-500/LF. Quartz countertops $60-100/SF installed.', tip:'Kitchen focus'},
+  {num:'11',div:'Flooring',                     low:'$10K',  high:'$35K',  note:'LVP $4-7/SF. Hardwood $8-14/SF. Tile $8-15/SF. Carpet $3-6/SF. All installed.', tip:'Per SF'},
+  {num:'12',div:'Plumbing',                     low:'$15K',  high:'$40K',  note:'Rough-in $3,000-5,000/fixture. Budget $2,500-4,000 per bathroom. Water heater $1,500-2,500.', tip:'Per fixture'},
+  {num:'13',div:'HVAC',                         low:'$12K',  high:'$28K',  note:'Forced air system $6,000-10,000 equip. Ductwork $4,000-8,000. Add $4-6K for A/C.', tip:'Per system'},
+  {num:'14',div:'Electrical',                   low:'$12K',  high:'$30K',  note:'200-amp service $3,000-5,000. Wiring $3-5/SF. EV charger $800-1,200 extra.', tip:'Per circuit/SF'},
+  {num:'15',div:'Painting',                     low:'$6K',   high:'$20K',  note:'Interior $2-4/SF for walls. Trim adds 30-50%. Ceilings extra. Premium paint adds cost.', tip:'Per SF'},
+  {num:'16',div:'Concrete Flatwork',            low:'$6K',   high:'$25K',  note:'Driveway $8-12/SF. Sidewalk $8-10/SF. Standard concrete $150-180/CY in WI.', tip:'Per SF'},
+  {num:'17',div:'Permits & General Conditions', low:'$4K',   high:'$15K',  note:'Permit fees vary by municipality (0.5-1.5% of project cost). GC overhead 10-15%.', tip:'% of total'},
+];
+
+// ════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════
+let currentBudget = null;
+let budgets       = [];
+
+// ════════════════════════════════════════
+//  UTILS
+// ════════════════════════════════════════
+function uid(){ return Math.random().toString(36).slice(2,10) }
+function fmt(n){ return '$' + Math.round(n||0).toLocaleString('en-US') }
+function parseMoney(s){ return parseInt(String(s).replace(/[^0-9.-]/g,''))||0 }
+function today(){
+  const d=new Date(); return d.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+}
+function nextQuote(){
+  const yr = new Date().getFullYear();
+  const seq = (parseInt(localStorage.getItem(QUOTE_KEY)||'0') + 1);
+  localStorage.setItem(QUOTE_KEY, seq);
+  return `GC-${yr}-${String(seq).padStart(4,'0')}`;
+}
+function showNotif(msg, type='success'){
+  const el=document.getElementById('notif');
+  el.textContent=msg; el.className='notif show ' + type;
+  setTimeout(()=>{el.className='notif'},3000);
+}
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ════════════════════════════════════════
+//  AUTH
+// ════════════════════════════════════════
+function doLogin(){
+  const val = document.getElementById('pinInput').value.trim();
+  if(val === APP_PASSWORD){
+    localStorage.setItem('gc-auth','1');
+    showScreen('dashScreen');
+    loadDash();
+  } else {
+    document.getElementById('loginErr').textContent = 'Incorrect password. Try again.';
+    document.getElementById('pinInput').value='';
+  }
+}
+function logout(){
+  localStorage.removeItem('gc-auth');
+  showScreen('loginScreen');
+  document.getElementById('pinInput').value='';
+}
+document.getElementById('pinInput').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+
+// ════════════════════════════════════════
+//  STORAGE
+// ════════════════════════════════════════
+function saveBudgets(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(budgets)) }
+function loadBudgets(){
+  try{ budgets = JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]') }
+  catch(e){ budgets=[] }
+}
+
+// ════════════════════════════════════════
+//  DASHBOARD
+// ════════════════════════════════════════
+function loadDash(){
+  loadBudgets();
+  const el = document.getElementById('budgetsList');
+  if(!budgets.length){
+    el.innerHTML=`<div class="empty-state" style="grid-column:1/-1">
+      <div class="icon">📋</div>
+      <h3>No budgets yet</h3>
+      <p>Click "New Budget" to create your first construction estimate.</p>
+    </div>`;
+    return;
+  }
+  el.innerHTML = budgets.slice().reverse().map(b=>`
+    <div class="budget-card">
+      <div class="bc-quote">${b.quoteNum||'Draft'}</div>
+      <div class="bc-name">${b.projectName||'Untitled Project'}</div>
+      <div class="bc-client">${b.client||'No client'} • ${b.location||''}</div>
+      <div class="bc-total">${fmt(b.total)}</div>
+      <div class="bc-date">Saved: ${b.date||'—'}</div>
+      <div class="bc-actions">
+        <button class="bc-btn open" onclick="openBudget('${b.id}')">Open</button>
+        <button class="bc-btn dup" onclick="dupBudget('${b.id}')">Duplicate</button>
+        <button class="bc-btn del" onclick="delBudget('${b.id}')">Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ════════════════════════════════════════
+//  BUDGET CRUD
+// ════════════════════════════════════════
+function newBudget(){
+  currentBudget = {
+    id:          uid(),
+    quoteNum:    nextQuote(),
+    date:        today(),
+    projectName: '',
+    client:      '',
+    location:    'Green Bay, WI',
+    description: '',
+    contingency: 5,
+    divisions:   DEFAULT_DIVS.map(d=>({...d, id:uid()})),
+  };
+  renderEditor();
+  showScreen('editorScreen');
+}
+
+function openBudget(id){
+  loadBudgets();
+  const entry = budgets.find(b=>b.id===id);
+  if(!entry){ showNotif('Budget not found','error'); return; }
+  currentBudget = entry.data;
+  renderEditor();
+  showScreen('editorScreen');
+}
+
+function dupBudget(id){
+  loadBudgets();
+  const entry = budgets.find(b=>b.id===id);
+  if(!entry) return;
+  const copy = JSON.parse(JSON.stringify(entry.data));
+  copy.id       = uid();
+  copy.quoteNum = nextQuote();
+  copy.date     = today();
+  saveCurrentBudget(copy);
+  loadDash();
+  showNotif('Budget duplicated!');
+}
+
+function delBudget(id){
+  if(!confirm('Delete this budget? This cannot be undone.')) return;
+  loadBudgets();
+  budgets = budgets.filter(b=>b.id!==id);
+  saveBudgets();
+  loadDash();
+  showNotif('Budget deleted','error');
+}
+
+function goToDash(){
+  showScreen('dashScreen');
+  loadDash();
+}
+
+function saveBudget(){
+  collectFormData();
+  saveCurrentBudget(currentBudget);
+  document.getElementById('saveStatus').textContent = '✓ Saved';
+  setTimeout(()=>{document.getElementById('saveStatus').textContent=''},2500);
+}
+
+function saveCurrentBudget(budget){
+  loadBudgets();
+  const grand = calcGrand(budget);
+  const idx = budgets.findIndex(b=>b.id===budget.id);
+  const entry = {
+    id: budget.id,
+    quoteNum:    budget.quoteNum,
+    projectName: budget.projectName||'Untitled',
+    client:      budget.client||'',
+    location:    budget.location||'',
+    date:        today(),
+    total:       grand,
+    data:        budget,
+  };
+  if(idx>=0) budgets[idx]=entry; else budgets.push(entry);
+  saveBudgets();
+}
+
+function calcGrand(b){
+  let mat=0,lab=0;
+  (b.divisions||[]).forEach(d=>{mat+=parseMoney(d.mat);lab+=parseMoney(d.lab)});
+  const sub=mat+lab;
+  return sub + Math.round(sub*(b.contingency||5)/100);
+}
+
+function collectFormData(){
+  if(!currentBudget) return;
+  currentBudget.projectName  = document.getElementById('fProject').value;
+  currentBudget.client       = document.getElementById('fClient').value;
+  currentBudget.location     = document.getElementById('fLocation').value;
+  currentBudget.description  = document.getElementById('fDesc').value;
+  currentBudget.date         = document.getElementById('fDate').value;
+  currentBudget.contingency  = parseFloat(document.getElementById('contPct').value)||5;
+  // divisions are collected live
+}
+
+// ════════════════════════════════════════
+//  EDITOR RENDER
+// ════════════════════════════════════════
+function renderEditor(){
+  if(!currentBudget) return;
+  document.getElementById('fQuoteNum').value  = currentBudget.quoteNum||'';
+  document.getElementById('fDate').value      = currentBudget.date||today();
+  document.getElementById('fProject').value   = currentBudget.projectName||'';
+  document.getElementById('fClient').value    = currentBudget.client||'';
+  document.getElementById('fLocation').value  = currentBudget.location||'Green Bay, WI';
+  document.getElementById('fDesc').value      = currentBudget.description||'';
+  document.getElementById('contPct').value    = currentBudget.contingency??5;
+  document.getElementById('toolbarQuote').textContent = currentBudget.quoteNum||'Draft';
+  document.getElementById('saveStatus').textContent = '';
+  renderDivisions();
+  recalc();
+}
+
+function renderDivisions(){
+  const body = document.getElementById('divisionsBody');
+  body.innerHTML = (currentBudget.divisions||[]).map(d=>`
+    <div class="division-row" data-id="${d.id}">
+      <div class="div-cell div-num">${d.num}</div>
+      <div class="div-cell" style="padding-top:8px">
+        <input class="div-name-input" type="text" value="${esc(d.name)}"
+          oninput="updateDiv('${d.id}','name',this.value)" placeholder="Division name">
+        <textarea class="div-scope" oninput="updateDiv('${d.id}','items',this.value);autoResize(this)"
+          placeholder="Scope items (one per line)">${esc(d.items||'')}</textarea>
+      </div>
+      <div class="div-cell" style="padding-top:10px">
+        <!-- spacer for scope column alignment -->
+      </div>
+      <div class="div-cell div-money mat">
+        <input type="text" value="${fmtInput(d.mat)}"
+          oninput="updateDiv('${d.id}','mat',this.value);recalc()"
+          onblur="this.value=fmtInput(parseMoney(this.value))" placeholder="0">
+      </div>
+      <div class="div-cell div-money lab">
+        <input type="text" value="${fmtInput(d.lab)}"
+          oninput="updateDiv('${d.id}','lab',this.value);recalc()"
+          onblur="this.value=fmtInput(parseMoney(this.value))" placeholder="0">
+      </div>
+      <div class="div-cell div-total" id="dt-${d.id}"></div>
+      <div class="div-cell div-pct" id="dp-${d.id}" style="padding-top:12px"></div>
+      <div class="div-cell div-del">
+        <button class="btn-del-row" onclick="deleteDivision('${d.id}')" title="Remove">×</button>
+      </div>
+    </div>
+  `).join('');
+
+  // Fix grid: column 3 should be merged with col 2 (scope in same cell)
+  // Re-render with correct 8-col layout
+  body.innerHTML = (currentBudget.divisions||[]).map(d=>`
+    <div class="division-row" data-id="${d.id}" style="display:grid;grid-template-columns:60px 2fr 130px 130px 110px 80px 40px;gap:0;align-items:start">
+      <div class="div-cell div-num">${d.num}</div>
+      <div class="div-cell" style="padding-top:8px">
+        <input class="div-name-input" type="text" value="${esc(d.name)}"
+          oninput="updateDiv('${d.id}','name',this.value)" placeholder="Division name">
+        <textarea class="div-scope" oninput="updateDiv('${d.id}','items',this.value);autoResize(this)"
+          placeholder="Scope items...">${esc(d.items||'')}</textarea>
+      </div>
+      <div class="div-cell div-money mat" style="padding-top:10px">
+        <input type="text" value="${fmtInput(d.mat)}"
+          oninput="updateDiv('${d.id}','mat',this.value);recalc()"
+          onblur="this.value=fmtInput(parseMoney(this.value))" placeholder="0">
+      </div>
+      <div class="div-cell div-money lab" style="padding-top:10px">
+        <input type="text" value="${fmtInput(d.lab)}"
+          oninput="updateDiv('${d.id}','lab',this.value);recalc()"
+          onblur="this.value=fmtInput(parseMoney(this.value))" placeholder="0">
+      </div>
+      <div class="div-cell" id="dt-${d.id}" style="padding-top:14px;font-weight:700"></div>
+      <div class="div-cell" id="dp-${d.id}" style="padding-top:16px;font-size:11px;color:var(--gray-400)"></div>
+      <div class="div-cell div-del">
+        <button class="btn-del-row" onclick="deleteDivision('${d.id}')" title="Remove">×</button>
+      </div>
+    </div>
+  `).join('');
+
+  // Fix header to match
+  document.querySelector('.div-table-header').style.gridTemplateColumns='60px 2fr 130px 130px 110px 80px 40px';
+  document.querySelector('.div-table-header').innerHTML=`
+    <div>#</div><div>Division / Scope Items</div>
+    <div>Materials</div><div>Labor</div>
+    <div>Div. Total</div><div>% Total</div><div></div>`;
+
+  setTimeout(()=>document.querySelectorAll('.div-scope').forEach(t=>autoResize(t)),10);
+}
+
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') }
+function fmtInput(n){ return n ? Math.round(n).toLocaleString('en-US') : '' }
+function autoResize(t){ t.style.height='auto'; t.style.height=t.scrollHeight+'px' }
+
+function updateDiv(id, field, val){
+  const d = currentBudget.divisions.find(x=>x.id===id);
+  if(!d) return;
+  d[field] = field==='mat'||field==='lab' ? parseMoney(val) : val;
+}
+
+function deleteDivision(id){
+  if(!confirm('Remove this division?')) return;
+  currentBudget.divisions = currentBudget.divisions.filter(d=>d.id!==id);
+  renderDivisions();
+  recalc();
+}
+
+function addDivision(){
+  const name = document.getElementById('adName').value.trim();
+  if(!name){ showNotif('Enter a division name','error'); return; }
+  const mat  = parseMoney(document.getElementById('adMat').value)||0;
+  const lab  = parseMoney(document.getElementById('adLab').value)||0;
+  const nextNum = String((currentBudget.divisions.length||0)+1).padStart(2,'0');
+  currentBudget.divisions.push({id:uid(), num:nextNum, name, items:'', mat, lab});
+  document.getElementById('adName').value='';
+  document.getElementById('adMat').value='';
+  document.getElementById('adLab').value='';
+  renderDivisions();
+  recalc();
+}
+
+// ════════════════════════════════════════
+//  RECALC
+// ════════════════════════════════════════
+function recalc(){
+  let mat=0, lab=0;
+  (currentBudget?.divisions||[]).forEach(d=>{
+    const m=parseMoney(d.mat), l=parseMoney(d.lab);
+    mat+=m; lab+=l;
+    const dtEl = document.getElementById('dt-'+d.id);
+    if(dtEl) dtEl.textContent = fmt(m+l);
+  });
+  const sub   = mat+lab;
+  const pct   = parseFloat(document.getElementById('contPct')?.value)||5;
+  const cont  = Math.round(sub*pct/100);
+  const grand = sub+cont;
+  if(currentBudget) currentBudget.contingency=pct;
+
+  document.getElementById('sumMat').textContent   = fmt(mat);
+  document.getElementById('sumLab').textContent   = fmt(lab);
+  document.getElementById('sumSub').textContent   = fmt(sub);
+  document.getElementById('sumCont').textContent  = fmt(cont);
+  document.getElementById('sumGrand').textContent = fmt(grand);
+
+  (currentBudget?.divisions||[]).forEach(d=>{
+    const el = document.getElementById('dp-'+d.id);
+    if(el && grand>0){
+      const p = (((parseMoney(d.mat)+parseMoney(d.lab))/grand)*100).toFixed(1);
+      el.textContent = p + '%';
+    }
+  });
+}
+
+// ════════════════════════════════════════
+//  PDF ANALYSIS
+// ════════════════════════════════════════
+function triggerPdfUpload(){ document.getElementById('pdfInput').click() }
+
+async function handlePdfFile(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  e.target.value='';
+
+  const status = document.getElementById('analyzeStatus');
+  status.style.display='flex';
+
+  try {
+    const b64 = await fileToBase64(file);
+    const mediaType = file.type || 'application/pdf';
+
+    const resp = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type':   'application/json',
+        'X-Budget-Token': APP_TOKEN,
+      },
+      body: JSON.stringify({ pdf_base64: b64, media_type: mediaType }),
+    });
+
+    const data = await resp.json();
+    if(data.error){ throw new Error(data.error) }
+
+    // Apply AI results to current budget
+    if(data.projectName) currentBudget.projectName = data.projectName;
+    if(data.client)      currentBudget.client = data.client;
+    if(data.location)    currentBudget.location = data.location;
+
+    if(data.divisions?.length){
+      currentBudget.divisions = data.divisions.map(d=>({
+        ...d, id:uid(),
+        mat: parseInt(d.mat)||0,
+        lab: parseInt(d.lab)||0,
+      }));
+    }
+
+    renderEditor();
+    showNotif(`✓ AI analysis complete — ${data.divisions?.length||0} divisions loaded`);
+  } catch(err){
+    console.error(err);
+    showNotif('Analysis failed: ' + err.message, 'error');
+  } finally {
+    status.style.display='none';
+  }
+}
+
+function fileToBase64(file){
+  return new Promise((res,rej)=>{
+    const r = new FileReader();
+    r.onload = ()=> res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+// ════════════════════════════════════════
+//  WI PRICE GUIDE
+// ════════════════════════════════════════
+function openGuide(){
+  const body = document.getElementById('guideBody');
+  body.innerHTML = WI_GUIDE.map(g=>`
+    <tr>
+      <td style="font-weight:700;color:var(--gray-400);font-size:12px">${g.num}</td>
+      <td><div class="guide-div">${g.div}</div></td>
+      <td><span class="guide-range">${g.low} — ${g.high}</span><br><span class="guide-tip">${g.tip}</span></td>
+      <td><div class="guide-note">${g.note}</div></td>
+    </tr>
+  `).join('');
+  document.getElementById('guideModal').classList.add('open');
+}
+function closeGuide(){ document.getElementById('guideModal').classList.remove('open') }
+document.getElementById('guideModal').addEventListener('click',e=>{
+  if(e.target===document.getElementById('guideModal')) closeGuide();
+});
+
+// ════════════════════════════════════════
+//  PDF EXPORT
+// ════════════════════════════════════════
+function exportPDF(){
+  collectFormData();
+  const b = currentBudget;
+  let mat=0,lab=0;
+  (b.divisions||[]).forEach(d=>{mat+=parseMoney(d.mat);lab+=parseMoney(d.lab)});
+  const sub   = mat+lab;
+  const cont  = Math.round(sub*(b.contingency||5)/100);
+  const grand = sub+cont;
+
+  const rows = (b.divisions||[]).map(d=>{
+    const t = parseMoney(d.mat)+parseMoney(d.lab);
+    const p = grand>0 ? ((t/grand)*100).toFixed(1)+'%' : '—';
+    const items = (d.items||'').split('\n').filter(Boolean).map(i=>`<li>${i}</li>`).join('');
+    return `
+      <tr>
+        <td style="font-weight:700;color:#1B3A6B;white-space:nowrap">${d.num}</td>
+        <td>
+          <strong>${d.name}</strong>
+          ${items?`<ul style="margin:4px 0 0 16px;color:#64748B;font-size:11px">${items}</ul>`:''}
+        </td>
+        <td style="text-align:right;color:#2563EB;font-weight:600">${fmt(parseMoney(d.mat))}</td>
+        <td style="text-align:right;color:#16A34A;font-weight:600">${fmt(parseMoney(d.lab))}</td>
+        <td style="text-align:right;font-weight:700">${fmt(t)}</td>
+        <td style="text-align:right;color:#94A3B8;font-size:11px">${p}</td>
+      </tr>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>${b.quoteNum} — ${b.projectName||'Budget'}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#0F172A;padding:32px;font-size:13px}
+  .header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:20px;border-bottom:3px solid #1B3A6B;margin-bottom:24px}
+  .logo{height:56px}
+  .co-info{text-align:right;font-size:12px;color:#64748B;line-height:1.6}
+  .co-name{font-size:18px;font-weight:800;color:#1B3A6B;margin-bottom:4px}
+  .quote-meta{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;background:#F8FAFC;border-radius:8px;padding:16px}
+  .meta-block label{font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:3px}
+  .meta-block span{font-size:14px;font-weight:600;color:#0F172A}
+  .quote-num{font-size:22px;font-weight:800;color:#FF6B00}
+  table{width:100%;border-collapse:collapse;margin-bottom:20px}
+  th{background:#1B3A6B;color:#fff;padding:8px 10px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+  th:not(:first-child):not(:nth-child(2)){text-align:right}
+  td{padding:9px 10px;border-bottom:1px solid #F1F5F9;vertical-align:top}
+  tr:hover td{background:#F8FAFC}
+  .totals{width:360px;margin-left:auto;border:1px solid #E2E8F0;border-radius:8px;overflow:hidden}
+  .tot-row{display:flex;justify-content:space-between;padding:10px 16px;border-bottom:1px solid #F1F5F9;font-size:13px}
+  .tot-row:last-child{border-bottom:none;background:#1B3A6B;color:#fff;font-size:16px;font-weight:800}
+  .tot-row.cont{background:#FFF7ED;color:#92400E}
+  .tot-val{font-weight:700}
+  .footer{margin-top:40px;padding-top:20px;border-top:1px solid #E2E8F0;display:flex;justify-content:space-between;align-items:flex-end}
+  .sig-line{text-align:center}
+  .sig-line .line{border-top:1px solid #334155;margin-bottom:6px;width:220px}
+  .sig-label{font-size:11px;color:#64748B}
+  .terms{font-size:11px;color:#94A3B8;max-width:400px;line-height:1.5}
+  @media print{body{padding:20px}button{display:none}}
+</style>
+</head><body>
+  <div class="header">
+    <img src="logo.png" class="logo" alt="Geo Carpentry LLC">
+    <div class="co-info">
+      <div class="co-name">Geo Carpentry LLC</div>
+      <div>${COMPANY.address}</div>
+      <div>${COMPANY.phone} • ${COMPANY.email}</div>
+      <div>${COMPANY.web}</div>
+      <div style="margin-top:4px;font-size:11px;color:#94A3B8">${COMPANY.lic}</div>
+    </div>
+  </div>
+
+  <div class="quote-meta">
+    <div class="meta-block">
+      <label>Quote Number</label>
+      <span class="quote-num">${b.quoteNum||'DRAFT'}</span>
+    </div>
+    <div class="meta-block">
+      <label>Date</label>
+      <span>${b.date||today()}</span>
+    </div>
+    <div class="meta-block">
+      <label>Client</label>
+      <span>${b.client||'—'}</span>
+    </div>
+    <div class="meta-block">
+      <label>Project</label>
+      <span>${b.projectName||'—'}</span>
+    </div>
+    <div class="meta-block" style="grid-column:span 2">
+      <label>Location</label>
+      <span>${b.location||'—'}</span>
+    </div>
+    ${b.description?`<div class="meta-block" style="grid-column:span 2"><label>Scope Summary</label><span style="font-weight:400;color:#64748B">${b.description}</span></div>`:''}
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:40px">#</th>
+        <th>Division / Scope of Work</th>
+        <th style="width:110px">Materials</th>
+        <th style="width:110px">Labor</th>
+        <th style="width:110px">Total</th>
+        <th style="width:60px">%</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>
+
+  <div class="totals">
+    <div class="tot-row"><span>Materials Subtotal</span><span class="tot-val" style="color:#2563EB">${fmt(mat)}</span></div>
+    <div class="tot-row"><span>Labor Subtotal</span><span class="tot-val" style="color:#16A34A">${fmt(lab)}</span></div>
+    <div class="tot-row"><span>Project Subtotal</span><span class="tot-val">${fmt(sub)}</span></div>
+    <div class="tot-row cont"><span>Contingency (${b.contingency||5}%)</span><span class="tot-val">${fmt(cont)}</span></div>
+    <div class="tot-row"><span>GRAND TOTAL</span><span class="tot-val" style="color:#FF8C33">${fmt(grand)}</span></div>
+  </div>
+
+  <div class="footer">
+    <div class="terms">
+      <strong>Terms & Conditions:</strong> This estimate is valid for 30 days from the date above.
+      Final pricing subject to site conditions and material availability.
+      A deposit of 30% is required to begin work. Payment terms: Net 15.
+      All work performed per Wisconsin building codes and regulations.
+    </div>
+    <div style="display:flex;gap:40px">
+      <div class="sig-line">
+        <div class="line"></div>
+        <div class="sig-label">Contractor Signature / Date</div>
+      </div>
+      <div class="sig-line">
+        <div class="line"></div>
+        <div class="sig-label">Client Acceptance / Date</div>
+      </div>
+    </div>
+  </div>
+
+  <script>window.onload=()=>window.print()<\/script>
+</body></html>`;
+
+  const win = window.open('','_blank');
+  win.document.write(html);
+  win.document.close();
+}
+
+// ════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════
+window.addEventListener('load', ()=>{
+  if(localStorage.getItem('gc-auth')==='1'){
+    loadDash();
+    showScreen('dashScreen');
+  } else {
+    showScreen('loginScreen');
+  }
+});
+</script>
+</body>
+</html>
