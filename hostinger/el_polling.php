@@ -119,6 +119,7 @@ function tracerfyUpload(string $csvPath): array {
             'address_column'       => 'address',
             'city_column'          => 'city',
             'state_column'         => 'state',
+            'zip_column'           => 'zip',
             'first_name_column'    => 'first_name',
             'last_name_column'     => 'last_name',
             'mail_address_column'  => 'mail_address',
