@@ -3,1025 +3,695 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Budget Builder — Geo Carpentry LLC</title>
+<title>Geo Carpentry — Budget Builder</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
-:root {
-  --navy:#1B3A6B; --navy-d:#122847; --navy-l:#2A5298;
-  --orange:#FF6B00; --orange-l:#FF8C33;
-  --white:#fff; --gray-50:#F8FAFC; --gray-100:#F1F5F9;
-  --gray-200:#E2E8F0; --gray-300:#CBD5E1; --gray-400:#94A3B8;
-  --gray-500:#64748B; --gray-700:#334155; --gray-900:#0F172A;
-  --green:#16A34A; --red:#DC2626; --blue:#2563EB;
-  --shadow:0 1px 3px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.08);
-  --shadow-lg:0 10px 25px rgba(0,0,0,.15);
-  --r:8px; --r-lg:12px;
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--gray-50);color:var(--gray-900);min-height:100vh}
-input,textarea,select,button{font-family:inherit}
-button{cursor:pointer;border:none;outline:none}
-
-/* ── SCREENS ── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f2f5;color:#1a1a2e}
 .screen{display:none;min-height:100vh}
-.screen.active{display:flex;flex-direction:column}
-
-/* ── LOGIN ── */
-#loginScreen{background:var(--navy);align-items:center;justify-content:center}
-.login-card{background:var(--white);border-radius:var(--r-lg);padding:48px 40px;width:100%;max-width:400px;text-align:center;box-shadow:var(--shadow-lg)}
-.login-card img{height:70px;margin-bottom:24px}
-.login-card h1{font-size:22px;font-weight:700;color:var(--navy);margin-bottom:4px}
-.login-card p{color:var(--gray-500);font-size:14px;margin-bottom:28px}
-.login-card input{width:100%;padding:12px 16px;border:2px solid var(--gray-200);border-radius:var(--r);font-size:16px;letter-spacing:4px;text-align:center;margin-bottom:16px;transition:.2s}
-.login-card input:focus{outline:none;border-color:var(--navy)}
-.login-card .err{color:var(--red);font-size:13px;margin-bottom:12px;min-height:18px}
-.btn-primary{background:var(--orange);color:var(--white);padding:12px 24px;border-radius:var(--r);font-size:15px;font-weight:600;width:100%;transition:.2s}
-.btn-primary:hover{background:var(--orange-l)}
-
-/* ── HEADER ── */
-.app-header{background:var(--navy);color:var(--white);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.3)}
-.app-header img{height:36px}
-.header-right{display:flex;align-items:center;gap:12px}
-.header-right span{font-size:13px;color:rgba(255,255,255,.7)}
-.btn-logout{background:rgba(255,255,255,.15);color:var(--white);padding:6px 14px;border-radius:var(--r);font-size:13px;transition:.2s}
-.btn-logout:hover{background:rgba(255,255,255,.25)}
-
-/* ── DASHBOARD ── */
-#dashScreen{background:var(--gray-50)}
-.dash-body{padding:32px 24px;max-width:1100px;margin:0 auto;flex:1}
-.dash-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px}
-.dash-top h2{font-size:26px;font-weight:700;color:var(--navy)}
-.btn-new{background:var(--orange);color:var(--white);padding:10px 22px;border-radius:var(--r);font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;transition:.2s}
-.btn-new:hover{background:var(--orange-l)}
-.budgets-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
-.budget-card{background:var(--white);border-radius:var(--r-lg);padding:22px;box-shadow:var(--shadow);border:1px solid var(--gray-200);transition:.2s;cursor:pointer}
-.budget-card:hover{box-shadow:var(--shadow-lg);border-color:var(--navy)}
-.bc-quote{font-size:12px;font-weight:700;color:var(--orange);letter-spacing:.5px;margin-bottom:8px}
-.bc-name{font-size:17px;font-weight:700;color:var(--navy);margin-bottom:4px}
-.bc-client{font-size:13px;color:var(--gray-500);margin-bottom:12px}
-.bc-total{font-size:22px;font-weight:800;color:var(--gray-900)}
-.bc-date{font-size:12px;color:var(--gray-400);margin-top:4px}
-.bc-actions{display:flex;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--gray-100)}
-.bc-btn{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;transition:.2s}
-.bc-btn.open{background:var(--navy);color:var(--white)}
-.bc-btn.open:hover{background:var(--navy-l)}
-.bc-btn.dup{background:var(--gray-100);color:var(--gray-700)}
-.bc-btn.dup:hover{background:var(--gray-200)}
-.bc-btn.del{background:#FEE2E2;color:var(--red)}
-.bc-btn.del:hover{background:#FECACA}
-.empty-state{text-align:center;padding:80px 20px;color:var(--gray-500)}
-.empty-state .icon{font-size:56px;margin-bottom:16px}
-.empty-state h3{font-size:20px;font-weight:600;color:var(--gray-700);margin-bottom:8px}
-
-/* ── EDITOR ── */
-#editorScreen{background:var(--gray-50)}
-.editor-toolbar{background:var(--white);border-bottom:1px solid var(--gray-200);padding:12px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.toolbar-left{display:flex;align-items:center;gap:12px;flex:1}
-.btn-back{background:var(--gray-100);color:var(--gray-700);padding:8px 14px;border-radius:var(--r);font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;transition:.2s}
-.btn-back:hover{background:var(--gray-200)}
-.toolbar-quote{font-size:15px;font-weight:700;color:var(--navy)}
-.toolbar-status{font-size:12px;color:var(--green);font-weight:600}
-.toolbar-right{display:flex;gap:10px;flex-wrap:wrap}
-.btn-action{padding:8px 18px;border-radius:var(--r);font-size:13px;font-weight:600;transition:.2s;display:flex;align-items:center;gap:6px}
-.btn-save{background:var(--navy);color:var(--white)}
-.btn-save:hover{background:var(--navy-d)}
-.btn-export{background:var(--orange);color:var(--white)}
-.btn-export:hover{background:var(--orange-l)}
-.btn-guide{background:var(--gray-100);color:var(--gray-700)}
-.btn-guide:hover{background:var(--gray-200)}
-.btn-analyze{background:var(--blue);color:var(--white)}
-.btn-analyze:hover{background:#1D4ED8}
-
-.editor-body{padding:24px;max-width:1300px;margin:0 auto;flex:1}
-
+.screen.active{display:block}
+/* LOGIN */
+#loginScreen{background:#1B3A6B;display:flex;align-items:center;justify-content:center}
+#loginScreen.active{display:flex}
+.login-card{background:#fff;border-radius:16px;padding:48px 40px;box-shadow:0 20px 60px rgba(0,0,0,.3);width:100%;max-width:400px;text-align:center}
+.login-card img{height:70px;margin-bottom:16px}
+.login-card h1{font-size:1.6rem;color:#1B3A6B;margin-bottom:4px}
+.login-card p{color:#666;margin-bottom:28px;font-size:.9rem}
+.login-card input{width:100%;padding:12px 16px;border:2px solid #e0e0e0;border-radius:8px;font-size:1rem;margin-bottom:12px;outline:none}
+.login-card input:focus{border-color:#1B3A6B}
+.btn-orange{background:#FF6B00;color:#fff;border:none;padding:12px 24px;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;width:100%;transition:background .2s}
+.btn-orange:hover{background:#e05e00}
+.login-error{color:#e53e3e;font-size:.85rem;margin-top:8px}
+/* TOPNAV */
+.topnav{background:#1B3A6B;color:#fff;padding:0 24px;display:flex;align-items:center;gap:12px;height:56px;position:sticky;top:0;z-index:100}
+.topnav img{height:34px}
+.nav-title{font-weight:700;font-size:1rem;flex:1}
+.nav-sub{font-size:.75rem;opacity:.65}
+.btn-nav{background:rgba(255,255,255,.15);color:#fff;border:none;padding:7px 14px;border-radius:6px;font-size:.82rem;cursor:pointer;transition:background .2s;font-weight:600;white-space:nowrap}
+.btn-nav:hover{background:rgba(255,255,255,.28)}
+.btn-nav.accent{background:#FF6B00}
+.btn-nav.accent:hover{background:#e05e00}
+/* DASHBOARD */
+.dash-hero{background:#fff;padding:24px 32px;border-bottom:1px solid #e0e0e0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.dash-hero h2{font-size:1.3rem;color:#1B3A6B}
+.dash-hero p{color:#666;font-size:.88rem;margin-top:2px}
+.dash-body{padding:28px 32px;max-width:1150px;margin:0 auto}
+.budget-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+.new-card{background:#f8f9ff;border:2px dashed #c0c8e0;border-radius:12px;padding:40px 24px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:#1B3A6B;transition:all .2s;font-weight:700;gap:8px;font-size:.95rem}
+.new-card:hover{background:#eef1ff;border-color:#1B3A6B}
+.new-card .plus{font-size:2rem;line-height:1}
+.bcard{background:#fff;border-radius:12px;padding:20px 22px;box-shadow:0 2px 8px rgba(0,0,0,.08);border-left:4px solid #1B3A6B;transition:box-shadow .2s,transform .1s}
+.bcard:hover{box-shadow:0 6px 20px rgba(0,0,0,.12);transform:translateY(-2px)}
+.bcard .qnum{font-size:.75rem;color:#FF6B00;font-weight:700;letter-spacing:.5px}
+.bcard .pname{font-size:1.05rem;font-weight:700;color:#1B3A6B;margin:3px 0;cursor:pointer}
+.bcard .pname:hover{text-decoration:underline}
+.bcard .cname{font-size:.83rem;color:#666}
+.bcard .cfoot{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:10px;border-top:1px solid #f0f0f0}
+.bcard .gtot{font-size:1.15rem;font-weight:700;color:#1B3A6B}
+.bcard .cdate{font-size:.73rem;color:#aaa}
+.bcard-actions{display:flex;gap:7px;margin-top:10px}
+.btn-sm{padding:4px 10px;font-size:.78rem;border-radius:5px;border:1px solid #e0e0e0;background:#fff;cursor:pointer;color:#555;transition:all .15s}
+.btn-sm:hover{background:#f5f5f5}
+.btn-sm.danger:hover{background:#fff5f5;border-color:#e53e3e;color:#e53e3e}
+/* EDITOR */
+.editor-wrap{padding:22px 28px;max-width:1350px;margin:0 auto}
+.card{background:#fff;border-radius:12px;padding:20px 24px;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:18px}
+/* AI bar */
+.ai-bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.ai-bar label{font-size:.82rem;color:#666;font-weight:700}
+.file-btn{background:#1B3A6B;color:#fff;border:none;padding:8px 16px;border-radius:7px;font-size:.82rem;font-weight:700;cursor:pointer;transition:background .2s}
+.file-btn:hover{background:#152d55}
+.ai-status{font-size:.82rem;color:#666;flex:1}
+.ai-status.loading{color:#FF6B00}
+.ai-status.ok{color:#38a169}
+.ai-status.err{color:#e53e3e}
+/* Header fields */
+.hdr-grid{display:grid;grid-template-columns:2fr 1.5fr 1.5fr auto;gap:12px;align-items:end}
+.hdr-grid .fld label,.info-grid .fld label{display:block;font-size:.72rem;color:#999;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.hdr-grid .fld input,.info-grid .fld input,.info-grid .fld select{width:100%;padding:8px 10px;border:1px solid #e0e0e0;border-radius:6px;font-size:.9rem;outline:none;transition:border-color .15s}
+.hdr-grid .fld input:focus,.info-grid .fld input:focus,.info-grid .fld select:focus{border-color:#1B3A6B}
+.qnum-badge{background:#1B3A6B;color:#fff;padding:8px 14px;border-radius:6px;font-size:.88rem;font-weight:700;white-space:nowrap;align-self:center}
 /* Project info */
-.project-info{background:var(--white);border-radius:var(--r-lg);padding:20px 24px;margin-bottom:20px;box-shadow:var(--shadow);border:1px solid var(--gray-200)}
-.pi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
-.pi-field label{font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px}
-.pi-field input,.pi-field textarea{width:100%;border:1px solid var(--gray-200);border-radius:6px;padding:8px 12px;font-size:14px;color:var(--gray-900);transition:.2s;background:var(--gray-50)}
-.pi-field input:focus,.pi-field textarea:focus{outline:none;border-color:var(--navy);background:var(--white)}
-.pi-field textarea{resize:vertical;min-height:60px}
-
-/* Summary bar */
-.summary-bar{background:var(--navy);border-radius:var(--r-lg);padding:16px 24px;margin-bottom:20px;display:flex;gap:0;align-items:center;box-shadow:var(--shadow-lg)}
-.sum-item{flex:1;text-align:center;padding:0 12px;border-right:1px solid rgba(255,255,255,.15)}
-.sum-item:last-child{border-right:none}
-.sum-label{font-size:11px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
-.sum-val{font-size:18px;font-weight:700;color:var(--white)}
-.sum-val.total{font-size:22px;color:var(--orange)}
-
-/* Contingency */
-.cont-row{display:flex;align-items:center;gap:8px}
-.cont-row input{width:60px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:var(--white);border-radius:4px;padding:4px 8px;font-size:14px;text-align:center}
-.cont-row input:focus{outline:none;border-color:var(--orange)}
-.cont-row span{color:rgba(255,255,255,.6);font-size:12px}
-
-/* Divisions table */
-.divisions-wrap{background:var(--white);border-radius:var(--r-lg);box-shadow:var(--shadow);border:1px solid var(--gray-200);overflow:hidden;margin-bottom:20px}
-.div-table-header{display:grid;grid-template-columns:60px 1fr 160px 130px 130px 110px 80px 40px;gap:0;background:var(--navy);color:var(--white);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
-.div-table-header>div{padding:10px 12px}
-.division-row{display:grid;grid-template-columns:60px 1fr 160px 130px 130px 110px 80px 40px;gap:0;border-bottom:1px solid var(--gray-100);align-items:start;transition:.15s}
-.division-row:last-child{border-bottom:none}
-.division-row:hover{background:var(--gray-50)}
-.div-cell{padding:10px 12px;font-size:13px}
-.div-num{font-weight:700;color:var(--gray-400);padding-top:14px}
-.div-name-input{width:100%;border:none;background:transparent;font-size:13px;font-weight:600;color:var(--navy);padding:4px 0;outline:none}
-.div-name-input:focus{border-bottom:2px solid var(--navy)}
-.div-scope{width:100%;border:none;background:transparent;font-size:12px;color:var(--gray-500);resize:none;outline:none;min-height:40px;line-height:1.5;margin-top:4px}
-.div-scope:focus{background:var(--gray-50);border-radius:4px;padding:4px}
-.div-money{position:relative}
-.div-money::before{content:'$';position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--gray-400);font-size:13px;pointer-events:none}
-.div-money input{width:100%;border:1px solid var(--gray-200);border-radius:6px;padding:8px 8px 8px 22px;font-size:13px;font-weight:600;outline:none;transition:.2s}
-.div-money input:focus{border-color:var(--navy)}
-.div-money.mat input{color:var(--blue)}
-.div-money.lab input{color:var(--green)}
-.div-total{font-weight:700;color:var(--gray-900);padding-top:12px}
-.div-pct{font-size:11px;color:var(--gray-400);margin-top:2px}
-.div-del{padding-top:10px}
-.btn-del-row{background:none;color:var(--gray-300);font-size:18px;padding:4px 8px;border-radius:4px;transition:.2s}
-.btn-del-row:hover{background:#FEE2E2;color:var(--red)}
-
-/* Add division */
-.add-div-bar{padding:16px 24px;display:flex;gap:10px;align-items:flex-end;border-top:2px dashed var(--gray-200)}
-.add-div-bar input,.add-div-bar textarea{border:1px solid var(--gray-200);border-radius:6px;padding:8px 12px;font-size:13px;outline:none;transition:.2s}
-.add-div-bar input:focus,.add-div-bar textarea:focus{border-color:var(--navy)}
-.add-div-bar .ad-name{flex:2}
-.add-div-bar .ad-mat,.add-div-bar .ad-lab{width:120px}
-.btn-add-div{background:var(--navy);color:var(--white);padding:8px 18px;border-radius:var(--r);font-size:13px;font-weight:600;white-space:nowrap;transition:.2s}
-.btn-add-div:hover{background:var(--navy-d)}
-
-/* PDF upload area */
-.pdf-zone{border:2px dashed var(--gray-300);border-radius:var(--r-lg);padding:28px;text-align:center;margin-bottom:20px;cursor:pointer;transition:.2s;background:var(--white)}
-.pdf-zone:hover,.pdf-zone.drag{border-color:var(--navy);background:#EEF2FF}
-.pdf-zone .pz-icon{font-size:36px;margin-bottom:8px}
-.pdf-zone h3{font-size:15px;font-weight:600;color:var(--navy)}
-.pdf-zone p{font-size:13px;color:var(--gray-500);margin-top:4px}
-#pdfInput{display:none}
-.analyze-status{background:var(--blue);color:var(--white);border-radius:var(--r);padding:12px 18px;margin-bottom:20px;display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;display:none}
-.spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:var(--white);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-/* WI Price Guide Modal */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center}
-.modal-overlay.open{display:flex}
-.modal{background:var(--white);border-radius:var(--r-lg);width:90%;max-width:760px;max-height:85vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow-lg)}
-.modal-header{background:var(--navy);color:var(--white);padding:18px 24px;display:flex;justify-content:space-between;align-items:center}
-.modal-header h2{font-size:18px;font-weight:700}
-.modal-header p{font-size:12px;color:rgba(255,255,255,.7);margin-top:2px}
-.btn-close-modal{background:none;color:var(--white);font-size:22px;padding:0 4px;opacity:.7;transition:.2s}
-.btn-close-modal:hover{opacity:1}
-.modal-body{overflow-y:auto;padding:0}
-.guide-table{width:100%;border-collapse:collapse}
-.guide-table th{background:var(--gray-100);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gray-500);padding:10px 16px;text-align:left;border-bottom:2px solid var(--gray-200)}
-.guide-table td{padding:12px 16px;border-bottom:1px solid var(--gray-100);font-size:13px;vertical-align:top}
-.guide-table tr:hover td{background:var(--gray-50)}
-.guide-div{font-weight:700;color:var(--navy)}
-.guide-range{font-weight:600;color:var(--gray-900)}
-.guide-note{color:var(--gray-500);font-size:12px;margin-top:2px}
-.guide-tip{background:#FFF7ED;color:#92400E;border-radius:4px;padding:2px 6px;font-size:11px;font-weight:600;white-space:nowrap}
-
-/* Notification */
-.notif{position:fixed;bottom:24px;right:24px;background:var(--navy);color:var(--white);padding:12px 20px;border-radius:var(--r);font-size:14px;font-weight:600;box-shadow:var(--shadow-lg);transform:translateY(80px);opacity:0;transition:.3s;z-index:2000;display:flex;align-items:center;gap:8px}
-.notif.show{transform:translateY(0);opacity:1}
-.notif.success{background:var(--green)}
-.notif.error{background:var(--red)}
-
-/* Validation */
-.div-money input.invalid{border-color:var(--red)!important;background:#FFF5F5}
-
-/* ── PRINT / PDF EXPORT ── */
-@media print{
-  body{background:#fff}
-  .no-print{display:none!important}
+.info-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px 16px}
+/* Division card */
+.div-card{background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:14px;overflow:hidden}
+.div-hdr{background:#f8f9fb;padding:12px 18px;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;border-bottom:1px solid #eee}
+.div-hdr:hover{background:#f0f2f8}
+.div-num{background:#1B3A6B;color:#fff;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:4px;flex-shrink:0}
+.div-name{font-size:.9rem;font-weight:700;color:#1B3A6B;flex:1}
+.div-totals-hdr{font-size:.8rem;color:#555;display:flex;gap:16px;flex-shrink:0}
+.div-totals-hdr b{color:#1B3A6B}
+.toggle-ico{font-size:.7rem;color:#888;flex-shrink:0;transition:transform .2s}
+.div-card.collapsed .toggle-ico{transform:rotate(-90deg)}
+.div-card.collapsed .div-body{display:none}
+.div-body{padding:0 18px 14px}
+/* Takeoff table */
+.tbl-wrap{overflow-x:auto;margin-top:12px}
+.tbl{width:100%;border-collapse:collapse;font-size:.84rem}
+.tbl th{background:#f2f4f8;color:#666;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:7px 8px;text-align:left;border-bottom:2px solid #e8e8e8;white-space:nowrap}
+.tbl th.r,.tbl td.r{text-align:right}
+.tbl td{padding:5px 7px;border-bottom:1px solid #f5f5f5;vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:#fafbff}
+.tbl input,.tbl select{border:1px solid transparent;background:transparent;padding:4px 5px;border-radius:4px;font-size:.84rem;outline:none;width:100%}
+.tbl input:focus,.tbl select:focus{border-color:#1B3A6B;background:#fff}
+.c-desc{min-width:200px}
+.c-qty{width:68px}
+.c-unit{width:76px}
+.c-price{width:88px}
+.c-tot{width:96px;font-weight:600;color:#1B3A6B}
+.c-del{width:32px}
+.btn-del{width:26px;height:26px;border-radius:4px;border:none;background:transparent;color:#ccc;cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center}
+.btn-del:hover{background:#fff0f0;color:#e53e3e}
+.tbl-footer{display:flex;align-items:center;justify-content:space-between;padding:8px 0 2px;flex-wrap:wrap;gap:8px}
+.btn-add{background:none;border:1px dashed #c0c8e0;color:#1B3A6B;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:700;transition:all .15s}
+.btn-add:hover{background:#f0f4ff;border-color:#1B3A6B}
+.div-subs{font-size:.8rem;color:#555;display:flex;gap:16px}
+.div-subs b{color:#1B3A6B}
+/* Summary */
+.summary-card{background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:40px;overflow:hidden}
+.sum-hdr{background:#1B3A6B;color:#fff;padding:14px 24px;font-weight:700;font-size:.9rem;text-transform:uppercase;letter-spacing:.5px}
+.sum-body{padding:20px 24px}
+.sum-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f8f8f8}
+.sum-row:last-child{border:none}
+.sum-row.sep{border-top:2px solid #e8e8e8;margin-top:6px;padding-top:10px}
+.sum-row.grand{background:#1B3A6B;color:#fff;margin:0 -24px -20px;padding:14px 24px;border-radius:0 0 12px 12px}
+.sum-label{font-size:.92rem;color:#555}
+.sum-label.b{font-weight:700;color:#1B3A6B;font-size:.98rem}
+.sum-row.grand .sum-label,.sum-row.grand .sum-val{color:#fff;font-size:1.1rem;font-weight:700}
+.sum-val{font-size:.95rem;font-weight:600;color:#1B3A6B}
+.pct-grp{display:flex;align-items:center;gap:6px}
+.pct-grp input{width:56px;padding:4px 7px;border:1px solid #e0e0e0;border-radius:5px;font-size:.88rem;text-align:right;outline:none}
+.pct-grp input:focus{border-color:#1B3A6B}
+.pct-grp span{font-size:.82rem;color:#888}
+/* Price Guide Modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:14px;padding:28px 32px;max-width:720px;width:95%;max-height:88vh;overflow-y:auto}
+.modal h2{color:#1B3A6B;margin-bottom:18px;font-size:1.2rem}
+.modal-close{float:right;background:#f0f0f0;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-weight:700;font-size:.85rem}
+.pg-section h3{font-size:.8rem;color:#FF6B00;font-weight:700;margin:16px 0 6px;text-transform:uppercase;letter-spacing:.4px}
+.pg-tbl{width:100%;border-collapse:collapse;font-size:.82rem}
+.pg-tbl th{background:#f5f5f5;padding:5px 8px;text-align:left;color:#666;font-size:.72rem;text-transform:uppercase}
+.pg-tbl td{padding:4px 8px;border-bottom:1px solid #f5f5f5}
+.pg-tbl td:nth-child(3),.pg-tbl td:nth-child(4),.pg-tbl td:nth-child(5){text-align:right}
+/* Toast */
+.toast{position:fixed;bottom:22px;right:22px;background:#1B3A6B;color:#fff;padding:11px 18px;border-radius:8px;font-size:.88rem;z-index:9999;transform:translateY(120px);transition:transform .3s;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+.toast.show{transform:translateY(0)}
+@media(max-width:768px){
+  .editor-wrap,.dash-body{padding:14px}
+  .hdr-grid{grid-template-columns:1fr 1fr}
+  .info-grid{grid-template-columns:repeat(2,1fr)}
+  .tbl{font-size:.78rem}
 }
 </style>
 </head>
 <body>
 
-<!-- ══════════════════════════════════════════
-     SCREEN 1 — LOGIN
-══════════════════════════════════════════ -->
-<div id="loginScreen" class="screen active">
+<!-- LOGIN -->
+<div id="loginScreen" class="screen">
   <div class="login-card">
-    <img src="logo.png" alt="Geo Carpentry LLC">
+    <img src="logo.png" alt="Geo Carpentry">
     <h1>Budget Builder</h1>
     <p>Geo Carpentry LLC — Internal Tool</p>
-    <input type="password" id="pinInput" placeholder="Enter password" maxlength="30" autocomplete="off">
-    <div class="err" id="loginErr"></div>
-    <button class="btn-primary" onclick="doLogin()">Sign In</button>
+    <form id="loginForm">
+      <input type="password" id="loginPw" placeholder="Enter password" autocomplete="current-password">
+      <button type="submit" class="btn-orange">Sign In</button>
+      <div class="login-error" id="loginErr"></div>
+    </form>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════
-     SCREEN 2 — DASHBOARD
-══════════════════════════════════════════ -->
-<div id="dashScreen" class="screen">
-  <header class="app-header no-print">
-    <img src="logo.png" alt="Geo Carpentry LLC">
-    <div class="header-right">
-      <span>Budget Builder</span>
-      <button class="btn-logout" onclick="logout()">Sign Out</button>
-    </div>
-  </header>
+<!-- DASHBOARD -->
+<div id="dashboardScreen" class="screen">
+  <nav class="topnav">
+    <img src="logo.png" alt="Geo Carpentry">
+    <div><div class="nav-title">Budget Builder</div><div class="nav-sub">Geo Carpentry LLC</div></div>
+    <button class="btn-nav" onclick="document.getElementById('priceModal').classList.add('open')">WI Price Guide</button>
+    <button class="btn-nav accent" onclick="createNewBudget()">+ New Budget</button>
+  </nav>
+  <div class="dash-hero">
+    <div><h2>My Budgets</h2><p>Click any budget to open the editor</p></div>
+  </div>
   <div class="dash-body">
-    <div class="dash-top">
-      <h2>Saved Budgets</h2>
-      <button class="btn-new" onclick="newBudget()">
-        <span style="font-size:18px">+</span> New Budget
-      </button>
-    </div>
-    <div class="budgets-grid" id="budgetsList"></div>
+    <div class="budget-grid" id="budgetGrid"></div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════
-     SCREEN 3 — EDITOR
-══════════════════════════════════════════ -->
+<!-- EDITOR -->
 <div id="editorScreen" class="screen">
-  <!-- Toolbar -->
-  <div class="editor-toolbar no-print">
-    <div class="toolbar-left">
-      <button class="btn-back" onclick="goToDash()">← Dashboard</button>
-      <span class="toolbar-quote" id="toolbarQuote"></span>
-      <span class="toolbar-status" id="saveStatus"></span>
-    </div>
-    <div class="toolbar-right">
-      <button class="btn-action btn-guide" onclick="openGuide()">📋 WI Price Guide</button>
-      <button class="btn-action btn-analyze" onclick="triggerPdfUpload()">📄 Analyze PDF Plan</button>
-      <button class="btn-action btn-save" onclick="saveBudget()">💾 Save</button>
-      <button class="btn-action btn-export" onclick="exportPDF()">📥 Export PDF</button>
-    </div>
-  </div>
-  <input type="file" id="pdfInput" accept=".pdf,image/*" onchange="handlePdfFile(event)">
+  <nav class="topnav">
+    <img src="logo.png" alt="Geo Carpentry">
+    <div><div class="nav-title" id="editorTitle">Budget</div><div class="nav-sub" id="editorSub"></div></div>
+    <button class="btn-nav" onclick="goBack()">← Budgets</button>
+    <button class="btn-nav" onclick="document.getElementById('priceModal').classList.add('open')">Price Guide</button>
+    <button class="btn-nav accent" id="pdfBtn">Export PDF</button>
+  </nav>
 
-  <div class="editor-body">
-    <!-- Analyze status -->
-    <div class="analyze-status" id="analyzeStatus">
-      <div class="spinner"></div>
-      <span>Analyzing your plan with AI... this may take up to 60 seconds.</span>
-    </div>
+  <div class="editor-wrap">
 
-    <!-- Project Info -->
-    <div class="project-info">
-      <div class="pi-grid">
-        <div class="pi-field">
-          <label>Quote #</label>
-          <input type="text" id="fQuoteNum" readonly style="font-weight:700;color:var(--orange);background:transparent;border-color:transparent">
-        </div>
-        <div class="pi-field">
-          <label>Date</label>
-          <input type="text" id="fDate">
-        </div>
-        <div class="pi-field">
-          <label>Project Name</label>
-          <input type="text" id="fProject" placeholder="e.g. Kitchen Remodel">
-        </div>
-        <div class="pi-field">
-          <label>Client Name</label>
-          <input type="text" id="fClient" placeholder="Client full name">
-        </div>
-        <div class="pi-field">
-          <label>Location</label>
-          <input type="text" id="fLocation" placeholder="City, WI">
-        </div>
-        <div class="pi-field" style="grid-column:span 2">
-          <label>Project Description / Scope Summary</label>
-          <textarea id="fDesc" placeholder="Brief description of project scope..."></textarea>
-        </div>
+    <!-- AI Bar -->
+    <div class="card">
+      <div class="ai-bar">
+        <label>AI Plan Analysis:</label>
+        <input type="file" id="pdfInput" accept="application/pdf" style="display:none">
+        <button class="file-btn" onclick="document.getElementById('pdfInput').click()">Choose PDF Plan</button>
+        <button class="file-btn" id="analyzeBtn" style="background:#FF6B00">Analyze with AI</button>
+        <span class="ai-status" id="aiStatus">Upload a PDF architectural plan to auto-fill the takeoff with real quantities</span>
+        <span id="pdfName" style="font-size:.8rem;color:#888"></span>
       </div>
     </div>
 
-    <!-- Summary Bar -->
-    <div class="summary-bar">
-      <div class="sum-item">
-        <div class="sum-label">Materials</div>
-        <div class="sum-val" id="sumMat">$0</div>
+    <!-- Project Header -->
+    <div class="card">
+      <div class="hdr-grid">
+        <div class="fld"><label>Project Name</label><input type="text" id="fName" placeholder="e.g. Johnson Residence"></div>
+        <div class="fld"><label>Client</label><input type="text" id="fClient" placeholder="Client name"></div>
+        <div class="fld"><label>Location</label><input type="text" id="fLocation" placeholder="City, WI"></div>
+        <div class="qnum-badge" id="qnumBadge"></div>
       </div>
-      <div class="sum-item">
-        <div class="sum-label">Labor</div>
-        <div class="sum-val" id="sumLab">$0</div>
+    </div>
+
+    <!-- Project Specs -->
+    <div class="card">
+      <div style="font-size:.8rem;font-weight:700;color:#1B3A6B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px">Project Specifications</div>
+      <div class="info-grid">
+        <div class="fld"><label>Heated SF</label><input type="number" id="pi_totalSF" placeholder="0"></div>
+        <div class="fld"><label>Garage SF</label><input type="number" id="pi_garageSF" placeholder="0"></div>
+        <div class="fld"><label>Basement SF</label><input type="number" id="pi_basementSF" placeholder="0"></div>
+        <div class="fld"><label>Stories</label><input type="number" id="pi_stories" placeholder="1" min="1"></div>
+        <div class="fld"><label>Bedrooms</label><input type="number" id="pi_bedrooms" placeholder="0"></div>
+        <div class="fld"><label>Full Baths</label><input type="number" id="pi_fullBaths" placeholder="0"></div>
+        <div class="fld"><label>Half Baths</label><input type="number" id="pi_halfBaths" placeholder="0"></div>
+        <div class="fld"><label>Garage Spaces</label><input type="number" id="pi_garageSpaces" placeholder="0"></div>
+        <div class="fld"><label>Roof Pitch</label><input type="text" id="pi_roofPitch" placeholder="e.g. 6:12"></div>
+        <div class="fld"><label>Foundation Type</label><input type="text" id="pi_foundationType" placeholder="e.g. Poured concrete"></div>
+        <div class="fld"><label>Electrical Outlets</label><input type="number" id="pi_electricalOutlets" placeholder="0"></div>
       </div>
-      <div class="sum-item">
-        <div class="sum-label">Subtotal</div>
-        <div class="sum-val" id="sumSub">$0</div>
-      </div>
-      <div class="sum-item">
-        <div class="sum-label">Contingency</div>
-        <div class="cont-row">
-          <input type="number" id="contPct" value="5" min="0" max="30" oninput="recalc()">
-          <span>%</span>
-          <div class="sum-val" id="sumCont" style="margin-left:4px">$0</div>
+    </div>
+
+    <!-- Divisions -->
+    <div id="divisionsContainer"></div>
+
+    <!-- Summary -->
+    <div class="summary-card">
+      <div class="sum-hdr">Estimate Summary</div>
+      <div class="sum-body">
+        <div class="sum-row"><span class="sum-label">Total Materials</span><span class="sum-val" id="sMat">$0</span></div>
+        <div class="sum-row"><span class="sum-label">Total Labor</span><span class="sum-val" id="sLab">$0</span></div>
+        <div class="sum-row sep">
+          <span class="sum-label b">Subtotal</span>
+          <span class="sum-val" id="sSub">$0</span>
+        </div>
+        <div class="sum-row">
+          <span class="sum-label">Overhead
+            <span class="pct-grp" style="display:inline-flex;margin-left:8px">
+              <input type="number" id="fOverhead" value="15" min="0" max="100"> <span>%</span>
+            </span>
+          </span>
+          <span class="sum-val" id="sOverhead">$0</span>
+        </div>
+        <div class="sum-row">
+          <span class="sum-label">Profit / Margin
+            <span class="pct-grp" style="display:inline-flex;margin-left:8px">
+              <input type="number" id="fProfit" value="10" min="0" max="100"> <span>%</span>
+            </span>
+          </span>
+          <span class="sum-val" id="sProfit">$0</span>
+        </div>
+        <div class="sum-row grand">
+          <span class="sum-label">GRAND TOTAL</span>
+          <span class="sum-val" id="sGrand">$0</span>
         </div>
       </div>
-      <div class="sum-item">
-        <div class="sum-label">Grand Total</div>
-        <div class="sum-val total" id="sumGrand">$0</div>
-      </div>
     </div>
 
-    <!-- Divisions Table -->
-    <div class="divisions-wrap">
-      <div class="div-table-header">
-        <div>#</div>
-        <div>Division / Scope</div>
-        <div>Scope Items</div>
-        <div>Materials ($)</div>
-        <div>Labor ($)</div>
-        <div>Division Total</div>
-        <div>% of Total</div>
-        <div></div>
-      </div>
-      <div id="divisionsBody"></div>
-
-      <!-- Add Division -->
-      <div class="add-div-bar no-print">
-        <input class="ad-name" type="text" id="adName" placeholder="Division name">
-        <input class="ad-mat" type="number" id="adMat" placeholder="Materials $" min="0">
-        <input class="ad-lab" type="number" id="adLab" placeholder="Labor $" min="0">
-        <button class="btn-add-div" onclick="addDivision()">+ Add Division</button>
-      </div>
-    </div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════
-     WI PRICE GUIDE MODAL
-══════════════════════════════════════════ -->
-<div class="modal-overlay" id="guideModal">
+<!-- PRICE GUIDE MODAL -->
+<div class="modal-bg" id="priceModal">
   <div class="modal">
-    <div class="modal-header">
-      <div>
-        <h2>📋 Wisconsin Construction Price Guide — 2026</h2>
-        <p>Typical cost ranges for residential construction in NE Wisconsin. Use as reference only — actual costs vary by project scope and subcontractors.</p>
-      </div>
-      <button class="btn-close-modal" onclick="closeGuide()">✕</button>
+    <button class="modal-close" onclick="document.getElementById('priceModal').classList.remove('open')">✕ Close</button>
+    <h2>Wisconsin 2026 — Unit Price Reference</h2>
+    <div class="pg-section"><h3>Concrete &amp; Foundation</h3>
+      <table class="pg-tbl"><tr><th>Item</th><th>Unit</th><th>Mat</th><th>Lab</th><th>Total</th></tr>
+        <tr><td>Ready-mix concrete</td><td>CY</td><td>$175</td><td>$125</td><td>$300</td></tr>
+        <tr><td>Perimeter footings 16"x8"</td><td>LF</td><td>$14</td><td>$9</td><td>$23</td></tr>
+        <tr><td>Foundation wall 8" poured</td><td>SF</td><td>$18</td><td>$14</td><td>$32</td></tr>
+        <tr><td>4" slab on grade</td><td>SF</td><td>$5.00</td><td>$4.50</td><td>$9.50</td></tr>
+        <tr><td>Anchor bolts</td><td>EA</td><td>$3</td><td>$4</td><td>$7</td></tr>
+      </table>
     </div>
-    <div class="modal-body">
-      <table class="guide-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Division</th>
-            <th>Typical Range</th>
-            <th>Notes</th>
-          </tr>
-        </thead>
-        <tbody id="guideBody"></tbody>
+    <div class="pg-section"><h3>Framing &amp; Lumber</h3>
+      <table class="pg-tbl"><tr><th>Item</th><th>Unit</th><th>Mat</th><th>Lab</th><th>Total</th></tr>
+        <tr><td>2x6 wall framing (avg SF)</td><td>SF</td><td>$12</td><td>$8</td><td>$20</td></tr>
+        <tr><td>2x6 stud 8'</td><td>EA</td><td>$7.50</td><td>—</td><td>—</td></tr>
+        <tr><td>LVL beam</td><td>LF</td><td>$28</td><td>$18</td><td>$46</td></tr>
+        <tr><td>OSB sheathing 4x8</td><td>EA</td><td>$28</td><td>—</td><td>—</td></tr>
+        <tr><td>Plywood 3/4" 4x8</td><td>EA</td><td>$55</td><td>—</td><td>—</td></tr>
+        <tr><td>Roof trusses (engineered)</td><td>LF</td><td>$22</td><td>$8</td><td>$30</td></tr>
+        <tr><td>Floor joist pkg (per SF)</td><td>SF</td><td>$8</td><td>$6</td><td>$14</td></tr>
+      </table>
+    </div>
+    <div class="pg-section"><h3>Roofing</h3>
+      <table class="pg-tbl"><tr><th>Item</th><th>Unit</th><th>Mat</th><th>Lab</th><th>Total</th></tr>
+        <tr><td>Asphalt shingles 30yr arch</td><td>SQ</td><td>$145</td><td>$95</td><td>$240</td></tr>
+        <tr><td>Ice &amp; water shield</td><td>SQ</td><td>$85</td><td>$25</td><td>$110</td></tr>
+        <tr><td>Synthetic felt underlayment</td><td>SQ</td><td>$18</td><td>$12</td><td>$30</td></tr>
+        <tr><td>Ridge cap</td><td>LF</td><td>$4</td><td>$3</td><td>$7</td></tr>
+        <tr><td>Metal drip edge</td><td>LF</td><td>$2.50</td><td>$1.50</td><td>$4</td></tr>
+      </table>
+    </div>
+    <div class="pg-section"><h3>Windows &amp; Doors</h3>
+      <table class="pg-tbl"><tr><th>Item</th><th>Unit</th><th>Mat</th><th>Lab</th><th>Total</th></tr>
+        <tr><td>Double-hung vinyl window</td><td>EA</td><td>$380</td><td>$130</td><td>$510</td></tr>
+        <tr><td>Picture window (large)</td><td>EA</td><td>$650</td><td>$180</td><td>$830</td></tr>
+        <tr><td>Ext. entry door (fiberglass)</td><td>EA</td><td>$550</td><td>$200</td><td>$750</td></tr>
+        <tr><td>Overhead garage door</td><td>EA</td><td>$1,200</td><td>$350</td><td>$1,550</td></tr>
+        <tr><td>Int. hollow-core door</td><td>EA</td><td>$120</td><td>$75</td><td>$195</td></tr>
+      </table>
+    </div>
+    <div class="pg-section"><h3>Insulation</h3>
+      <table class="pg-tbl"><tr><th>Item</th><th>Unit</th><th>Mat</th><th>Lab</th><th>Total</th></tr>
+        <tr><td>R-21 batts (2x6 wall)</td><td>SF</td><td>$0.95</td><td>$0.65</td><td>$1.60</td></tr>
+        <tr><td>R-38 blown (attic)</td><td>SF</td><td>$1.20</td><td>$0.80</td><td>$2.00</td></tr>
+        <tr><td>Rigid foam 2" (R-10)</td><td>SF</td><td>$1.10</td><td>$0.50</td><td>$1.60</td></tr>
+        <tr><td>Spray foam closed-cell</td><td>SF</td><td>$2.50</td><td>$1.50</td><td>$4.00</td></tr>
+      </table>
+    </div>
+    <div class="pg-section"><h3>Drywall</h3>
+      <table class="pg-tbl"><tr><th>Item</th><th>Unit</th><th>Mat</th><th>Lab</th><th>Total</th></tr>
+        <tr><td>1/2" drywall hang</td><td>SF</td><td>$0.60</td><td>$1.40</td><td>$2.00</td></tr>
+        <tr><td>5/8" Type-X fire</td><td>SF</td><td>$0.75</td><td>$1.40</td><td>$2.15</td></tr>
+        <tr><td>Tape, mud &amp; finish</td><td>SF</td><td>$0.20</td><td>$1.30</td><td>$1.50</td></tr>
+        <tr><td>Corner bead metal</td><td>LF</td><td>$0.60</td><td>$0.80</td><td>$1.40</td></tr>
+      </table>
+    </div>
+    <div class="pg-section"><h3>Flooring</h3>
+      <table class="pg-tbl"><tr><th>Item</th><th>Unit</th><th>Mat</th><th>Lab</th><th>Total</th></tr>
+        <tr><td>LVP (luxury vinyl plank)</td><td>SF</td><td>$3.50</td><td>$2.50</td><td>$6.00</td></tr>
+        <tr><td>Hardwood 3/4" oak</td><td>SF</td><td>$7.50</td><td>$5.00</td><td>$12.50</td></tr>
+        <tr><td>Ceramic tile</td><td>SF</td><td>$4.50</td><td>$6.00</td><td>$10.50</td></tr>
+        <tr><td>Carpet</td><td>SY</td><td>$28</td><td>$8</td><td>$36</td></tr>
+      </table>
+    </div>
+    <div class="pg-section"><h3>Plumbing</h3>
+      <table class="pg-tbl"><tr><th>Item</th><th>Unit</th><th>Mat</th><th>Lab</th><th>Total</th></tr>
+        <tr><td>Rough-in per fixture</td><td>EA</td><td>$350</td><td>$600</td><td>$950</td></tr>
+        <tr><td>Water heater 50gal gas</td><td>EA</td><td>$850</td><td>$400</td><td>$1,250</td></tr>
+        <tr><td>Toilet standard</td><td>EA</td><td>$280</td><td>$200</td><td>$480</td></tr>
+        <tr><td>Tub/shower combo</td><td>EA</td><td>$650</td><td>$350</td><td>$1,000</td></tr>
+        <tr><td>Kitchen sink + faucet</td><td>EA</td><td>$450</td><td>$250</td><td>$700</td></tr>
+      </table>
+    </div>
+    <div class="pg-section"><h3>HVAC</h3>
+      <table class="pg-tbl"><tr><th>Item</th><th>Unit</th><th>Mat</th><th>Lab</th><th>Total</th></tr>
+        <tr><td>Forced air furnace 100k BTU</td><td>EA</td><td>$2,200</td><td>$1,800</td><td>$4,000</td></tr>
+        <tr><td>Central A/C 3 ton</td><td>EA</td><td>$2,500</td><td>$1,500</td><td>$4,000</td></tr>
+        <tr><td>Ductwork per SF of home</td><td>SF</td><td>$4.50</td><td>$3.50</td><td>$8.00</td></tr>
+        <tr><td>Bath exhaust fan</td><td>EA</td><td>$75</td><td>$120</td><td>$195</td></tr>
+      </table>
+    </div>
+    <div class="pg-section"><h3>Electrical</h3>
+      <table class="pg-tbl"><tr><th>Item</th><th>Unit</th><th>Mat</th><th>Lab</th><th>Total</th></tr>
+        <tr><td>Service panel 200A</td><td>EA</td><td>$1,200</td><td>$1,500</td><td>$2,700</td></tr>
+        <tr><td>Outlet / switch rough-in</td><td>EA</td><td>$18</td><td>$45</td><td>$63</td></tr>
+        <tr><td>Recessed light LED</td><td>EA</td><td>$35</td><td>$65</td><td>$100</td></tr>
+        <tr><td>GFCI outlet</td><td>EA</td><td>$22</td><td>$55</td><td>$77</td></tr>
+      </table>
+    </div>
+    <div class="pg-section"><h3>Cabinets &amp; Countertops</h3>
+      <table class="pg-tbl"><tr><th>Item</th><th>Unit</th><th>Mat</th><th>Lab</th><th>Total</th></tr>
+        <tr><td>Kitchen cabinets semi-custom</td><td>LF</td><td>$380</td><td>$85</td><td>$465</td></tr>
+        <tr><td>Bathroom vanity cabinet</td><td>EA</td><td>$550</td><td>$150</td><td>$700</td></tr>
+        <tr><td>Granite / quartz countertop</td><td>SF</td><td>$75</td><td>$30</td><td>$105</td></tr>
+        <tr><td>Laminate countertop</td><td>LF</td><td>$35</td><td>$20</td><td>$55</td></tr>
+      </table>
+    </div>
+    <div class="pg-section"><h3>Painting</h3>
+      <table class="pg-tbl"><tr><th>Item</th><th>Unit</th><th>Mat</th><th>Lab</th><th>Total</th></tr>
+        <tr><td>Interior walls &amp; ceiling</td><td>SF</td><td>$0.45</td><td>$1.20</td><td>$1.65</td></tr>
+        <tr><td>Interior trim &amp; doors</td><td>LF</td><td>$0.80</td><td>$2.00</td><td>$2.80</td></tr>
+        <tr><td>Exterior siding</td><td>SF</td><td>$0.60</td><td>$1.80</td><td>$2.40</td></tr>
+      </table>
+    </div>
+    <div class="pg-section"><h3>Flatwork</h3>
+      <table class="pg-tbl"><tr><th>Item</th><th>Unit</th><th>Mat</th><th>Lab</th><th>Total</th></tr>
+        <tr><td>Driveway 4" concrete</td><td>SF</td><td>$5.50</td><td>$4.00</td><td>$9.50</td></tr>
+        <tr><td>Sidewalk / patio 4"</td><td>SF</td><td>$5.00</td><td>$3.50</td><td>$8.50</td></tr>
+        <tr><td>Gravel base 4"</td><td>SF</td><td>$1.50</td><td>$0.75</td><td>$2.25</td></tr>
+      </table>
+    </div>
+    <div class="pg-section"><h3>Labor Rates — WI 2026</h3>
+      <table class="pg-tbl"><tr><th>Trade</th><th>Low</th><th>High</th></tr>
+        <tr><td>General Laborer</td><td>$28/hr</td><td>$35/hr</td></tr>
+        <tr><td>Framing Carpenter</td><td>$42/hr</td><td>$52/hr</td></tr>
+        <tr><td>Finish Carpenter</td><td>$48/hr</td><td>$60/hr</td></tr>
+        <tr><td>Concrete / Masonry</td><td>$42/hr</td><td>$50/hr</td></tr>
+        <tr><td>Roofer</td><td>$45/hr</td><td>$58/hr</td></tr>
+        <tr><td>Plumber</td><td>$80/hr</td><td>$100/hr</td></tr>
+        <tr><td>Electrician</td><td>$75/hr</td><td>$95/hr</td></tr>
+        <tr><td>HVAC Tech</td><td>$75/hr</td><td>$90/hr</td></tr>
+        <tr><td>Drywall</td><td>$45/hr</td><td>$55/hr</td></tr>
+        <tr><td>Painter</td><td>$38/hr</td><td>$48/hr</td></tr>
       </table>
     </div>
   </div>
 </div>
 
-<!-- Notification -->
-<div class="notif" id="notif"></div>
-
-<!-- ══════════════════════════════════════════
-     PRINT TEMPLATE (hidden, shown on print)
-══════════════════════════════════════════ -->
-<div id="printTemplate" style="display:none"></div>
+<div class="toast" id="toast"></div>
 
 <script>
-// ════════════════════════════════════════
-//  CONFIG
-// ════════════════════════════════════════
-const APP_PASSWORD = 'geocarpentry2026';
-const APP_TOKEN    = 'geocarpentry2026';
-const STORAGE_KEY  = 'geo-budgets-v4';
-const QUOTE_KEY    = 'geo-quote-seq';
-const API_URL      = 'api/analyze.php';
-
-const COMPANY = {
-  name:    'Geo Carpentry LLC',
-  address: '735 E Walnut St, Suite #3, Green Bay, WI 54301',
-  phone:   '(920) 367-1272',
-  email:   'admin@geocarpentry.com',
-  web:     'www.geocarpentry.com',
-  lic:     'Licensed & Insured in Wisconsin • 15+ Years of Experience',
-};
-
-// ════════════════════════════════════════
-//  DEFAULT DIVISIONS
-// ════════════════════════════════════════
-const DEFAULT_DIVS = [
-  {num:'01',name:'Site Work & Excavation',       items:'Site clearing and grading\nExcavation for foundation\nSoil hauling and disposal',                                mat:12000,lab:10000},
-  {num:'02',name:'Concrete & Foundation',         items:'Footings and foundation walls\nConcrete flatwork and slabs\nWaterproofing and drainage',                       mat:30000,lab:28000},
-  {num:'03',name:'Framing — Rough Carpentry',     items:'Floor, wall and roof framing\nEngineered lumber and beams\nSheathing and blocking',                            mat:48000,lab:52000},
-  {num:'04',name:'Roofing',                       items:'Roof decking and underlayment\nArchitectural shingles installation\nFlashing, ridge cap and vents',            mat:28000,lab:22000},
-  {num:'05',name:'Windows & Exterior Doors',      items:'Supply and install windows\nExterior entry and patio doors\nFlashing and weatherstripping',                    mat:42000,lab:8000},
-  {num:'06',name:'Exterior Finishes & Siding',    items:'LP SmartSide or vinyl siding\nSoffit, fascia and gutters\nExterior trim and caulking',                        mat:32000,lab:18000},
-  {num:'07',name:'Insulation',                    items:'Batt insulation walls and ceilings\nSpray foam rim joists and details\nAttic insulation (blown-in)',           mat:10000,lab:6500},
-  {num:'08',name:'Drywall',                       items:'Hang, tape and finish drywall\nTexture and corner bead\nSound insulation interior walls',                     mat:14000,lab:18000},
-  {num:'09',name:'Interior Carpentry & Millwork', items:'Interior doors and trim\nStair railings and balusters\nCrown molding and built-ins',                          mat:22000,lab:18000},
-  {num:'10',name:'Cabinets & Countertops',        items:'Kitchen and bath cabinetry\nCountertops (quartz or granite)\nHardware and pulls',                             mat:48000,lab:9000},
-  {num:'11',name:'Flooring',                      items:'Hardwood or LVP flooring\nTile in bathrooms and entry\nCarpet in bedrooms',                                   mat:18000,lab:9000},
-  {num:'12',name:'Plumbing',                      items:'Rough-in plumbing supply and drain\nFixtures: sinks, tubs, showers, toilets\nWater heater and connections',   mat:18000,lab:24000},
-  {num:'13',name:'HVAC',                          items:'Furnace and A/C system\nDuctwork and vents\nThermostats and controls',                                        mat:16000,lab:20000},
-  {num:'14',name:'Electrical',                    items:'Service panel and rough wiring\nOutlets, switches and fixtures\nSmoke detectors and exterior lighting',        mat:14000,lab:22000},
-  {num:'15',name:'Painting',                      items:'Prime and paint all interior walls\nPrime and paint trim and doors\nExterior touch-up and caulk paint',       mat:10000,lab:20000},
-  {num:'16',name:'Concrete Flatwork',             items:'Driveway and approach\nSidewalk and patio\nGarage floor finish',                                              mat:14000,lab:10000},
-  {num:'17',name:'Permits & General Conditions',  items:'Building permit and inspections\nPorta-potty, dumpster, temp power\nProject management and supervision',     mat:4000, lab:9500},
+const APP_PW='geocarpentry2026',APP_TOK='geocarpentry2026',API_URL='api/analyze.php';
+const SKEY='geo-budgets-v5',QKEY='geo-quote-seq';
+const UNITS=['SF','LF','CY','SY','EA','HR','BDL','BAG','TON','GAL','ROLL','SQ','LB','LS'];
+const DEFAULT_DIVS=[
+  {num:'01',name:'General Conditions & Permits'},
+  {num:'02',name:'Site Work & Excavation'},
+  {num:'03',name:'Concrete & Foundation'},
+  {num:'04',name:'Framing & Lumber'},
+  {num:'05',name:'Roofing'},
+  {num:'06',name:'Exterior – Windows, Doors & Siding'},
+  {num:'07',name:'Insulation'},
+  {num:'08',name:'Drywall'},
+  {num:'09',name:'Interior Millwork & Trim'},
+  {num:'10',name:'Cabinets & Countertops'},
+  {num:'11',name:'Flooring'},
+  {num:'12',name:'Plumbing'},
+  {num:'13',name:'HVAC'},
+  {num:'14',name:'Electrical'},
+  {num:'15',name:'Painting & Finishes'},
+  {num:'16',name:'Flatwork & Concrete Finishing'},
+  {num:'17',name:'Cleanup & Miscellaneous'},
 ];
 
-// ════════════════════════════════════════
-//  WI PRICE GUIDE DATA
-// ════════════════════════════════════════
-const WI_GUIDE = [
-  {num:'01',div:'Site Work & Excavation',       low:'$8K',   high:'$30K',  note:'Varies widely by lot conditions and access. Add $5K+ for rock removal.', tip:'Per lot'},
-  {num:'02',div:'Concrete & Foundation',        low:'$25K',  high:'$65K',  note:'Full basement adds $20-35K. Crawlspace less. Concrete: $150-180/CY WI avg.', tip:'Full bsmt'},
-  {num:'03',div:'Framing — Rough Carpentry',    low:'$35K',  high:'$90K',  note:'Lumber $800-1,200/MBF. Labor $8-15/SF depending on complexity. Complex rooflines add cost.', tip:'Per SF basis'},
-  {num:'04',div:'Roofing',                      low:'$12K',  high:'$45K',  note:'Architectural shingles $150-200/square installed. Metal roof 2-3x more. Pitch adds cost.', tip:'Per square'},
-  {num:'05',div:'Windows & Exterior Doors',     low:'$18K',  high:'$60K',  note:'Andersen or Pella mid-grade $400-800/window installed. Entry doors $1,500-4,000 each.', tip:'Per unit'},
-  {num:'06',div:'Exterior Finishes & Siding',   low:'$15K',  high:'$45K',  note:'LP SmartSide $6-9/SF installed. Vinyl $4-6/SF. Fiber cement $8-12/SF.', tip:'Per SF'},
-  {num:'07',div:'Insulation',                   low:'$6K',   high:'$18K',  note:'Batt R-21 walls, R-49 attic typical WI code. Spray foam $1-2/BF.', tip:'WI code min'},
-  {num:'08',div:'Drywall',                      low:'$10K',  high:'$30K',  note:'$1.50-3.00/SF for supply, hang, tape, finish. Larger homes more efficient per SF.', tip:'Per SF'},
-  {num:'09',div:'Interior Carpentry & Millwork',low:'$12K',  high:'$40K',  note:'$200-600/door installed (interior). Trim $3-6/LF. More detail = more cost.', tip:'Per LF/unit'},
-  {num:'10',div:'Cabinets & Countertops',       low:'$20K',  high:'$80K+', note:'Semi-custom cabinets $200-500/LF. Quartz countertops $60-100/SF installed.', tip:'Kitchen focus'},
-  {num:'11',div:'Flooring',                     low:'$10K',  high:'$35K',  note:'LVP $4-7/SF. Hardwood $8-14/SF. Tile $8-15/SF. Carpet $3-6/SF. All installed.', tip:'Per SF'},
-  {num:'12',div:'Plumbing',                     low:'$15K',  high:'$40K',  note:'Rough-in $3,000-5,000/fixture. Budget $2,500-4,000 per bathroom. Water heater $1,500-2,500.', tip:'Per fixture'},
-  {num:'13',div:'HVAC',                         low:'$12K',  high:'$28K',  note:'Forced air system $6,000-10,000 equip. Ductwork $4,000-8,000. Add $4-6K for A/C.', tip:'Per system'},
-  {num:'14',div:'Electrical',                   low:'$12K',  high:'$30K',  note:'200-amp service $3,000-5,000. Wiring $3-5/SF. EV charger $800-1,200 extra.', tip:'Per circuit/SF'},
-  {num:'15',div:'Painting',                     low:'$6K',   high:'$20K',  note:'Interior $2-4/SF for walls. Trim adds 30-50%. Ceilings extra. Premium paint adds cost.', tip:'Per SF'},
-  {num:'16',div:'Concrete Flatwork',            low:'$6K',   high:'$25K',  note:'Driveway $8-12/SF. Sidewalk $8-10/SF. Standard concrete $150-180/CY in WI.', tip:'Per SF'},
-  {num:'17',div:'Permits & General Conditions', low:'$4K',   high:'$15K',  note:'Permit fees vary by municipality (0.5-1.5% of project cost). GC overhead 10-15%.', tip:'% of total'},
-];
+let budgets=[],cur=null;
+const $=id=>document.getElementById(id);
+const uuid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
+const fmt=n=>'$'+Math.round(n).toLocaleString();
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function loadB(){try{return JSON.parse(localStorage.getItem(SKEY))||[];}catch{return[];}}
+function save(){localStorage.setItem(SKEY,JSON.stringify(budgets));}
+function nextQ(){const s=(parseInt(localStorage.getItem(QKEY)||'0')+1);localStorage.setItem(QKEY,s);return 'GC-2026-'+String(s).padStart(4,'0');}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$(id).classList.add('active');}
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
 
-// ════════════════════════════════════════
-//  STATE
-// ════════════════════════════════════════
-let currentBudget = null;
-let budgets       = [];
-
-// ════════════════════════════════════════
-//  UTILS
-// ════════════════════════════════════════
-function uid(){ return Math.random().toString(36).slice(2,10) }
-function fmt(n){ return '$' + Math.round(n||0).toLocaleString('en-US') }
-function parseMoney(s){ return parseInt(String(s).replace(/[^0-9.-]/g,''))||0 }
-function today(){
-  const d=new Date(); return d.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
-}
-function nextQuote(){
-  const yr = new Date().getFullYear();
-  const seq = (parseInt(localStorage.getItem(QUOTE_KEY)||'0') + 1);
-  localStorage.setItem(QUOTE_KEY, seq);
-  return `GC-${yr}-${String(seq).padStart(4,'0')}`;
-}
-function showNotif(msg, type='success'){
-  const el=document.getElementById('notif');
-  el.textContent=msg; el.className='notif show ' + type;
-  setTimeout(()=>{el.className='notif'},3000);
-}
-function showScreen(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+function calcItem(item){return{matTotal:(item.qty||0)*(item.matUnit||0),labTotal:(item.qty||0)*(item.labUnit||0)};}
+function calcDiv(div){return(div.items||[]).reduce((a,i)=>{const c=calcItem(i);return{matTotal:a.matTotal+c.matTotal,labTotal:a.labTotal+c.labTotal};},{matTotal:0,labTotal:0});}
+function calcBudget(b){
+  const t=(b.divisions||[]).reduce((a,d)=>{const c=calcDiv(d);return{matTotal:a.matTotal+c.matTotal,labTotal:a.labTotal+c.labTotal};},{matTotal:0,labTotal:0});
+  const sub=t.matTotal+t.labTotal,op=b.overhead??15,pp=b.profit??10,ovh=sub*op/100,prf=sub*pp/100;
+  return{...t,subtotal:sub,overhead:ovh,profit:prf,grandTotal:sub+ovh+prf,overheadPct:op,profitPct:pp};
 }
 
-// ════════════════════════════════════════
-//  AUTH
-// ════════════════════════════════════════
-function doLogin(){
-  const val = document.getElementById('pinInput').value.trim();
-  if(val === APP_PASSWORD){
-    localStorage.setItem('gc-auth','1');
-    showScreen('dashScreen');
-    loadDash();
-  } else {
-    document.getElementById('loginErr').textContent = 'Incorrect password. Try again.';
-    document.getElementById('pinInput').value='';
-  }
-}
-function logout(){
-  localStorage.removeItem('gc-auth');
-  showScreen('loginScreen');
-  document.getElementById('pinInput').value='';
-}
-document.getElementById('pinInput').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+$('loginForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  if($('loginPw').value===APP_PW){budgets=loadB();showScreen('dashboardScreen');renderDash();}
+  else $('loginErr').textContent='Incorrect password.';
+});
 
-// ════════════════════════════════════════
-//  STORAGE
-// ════════════════════════════════════════
-function saveBudgets(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(budgets)) }
-function loadBudgets(){
-  try{ budgets = JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]') }
-  catch(e){ budgets=[] }
+function renderDash(){
+  const g=$('budgetGrid');g.innerHTML='';
+  const nc=document.createElement('div');nc.className='new-card';
+  nc.innerHTML='<div class="plus">+</div><div>New Budget</div>';nc.onclick=createNewBudget;g.appendChild(nc);
+  [...budgets].reverse().forEach(b=>{
+    const c=calcBudget(b);const d=document.createElement('div');d.className='bcard';
+    d.innerHTML=`<div class="qnum">${b.quoteNumber||'—'}</div>
+      <div class="pname">${esc(b.projectName||'Untitled')}</div>
+      <div class="cname">${esc(b.client||'No client')}${b.location?' · '+esc(b.location):''}</div>
+      <div class="cfoot"><div class="gtot">${fmt(c.grandTotal)}</div><div class="cdate">${new Date(b.createdAt).toLocaleDateString()}</div></div>
+      <div class="bcard-actions">
+        <button class="btn-sm" onclick="event.stopPropagation();openBudget('${b.id}')">Open</button>
+        <button class="btn-sm" onclick="event.stopPropagation();dupBudget('${b.id}')">Duplicate</button>
+        <button class="btn-sm danger" onclick="event.stopPropagation();delBudget('${b.id}')">Delete</button>
+      </div>`;
+    d.querySelector('.pname').onclick=()=>openBudget(b.id);g.appendChild(d);
+  });
 }
 
-// ════════════════════════════════════════
-//  DASHBOARD
-// ════════════════════════════════════════
-function loadDash(){
-  loadBudgets();
-  const el = document.getElementById('budgetsList');
-  if(!budgets.length){
-    el.innerHTML=`<div class="empty-state" style="grid-column:1/-1">
-      <div class="icon">📋</div>
-      <h3>No budgets yet</h3>
-      <p>Click "New Budget" to create your first construction estimate.</p>
-    </div>`;
-    return;
-  }
-  el.innerHTML = budgets.slice().reverse().map(b=>`
-    <div class="budget-card">
-      <div class="bc-quote">${b.quoteNum||'Draft'}</div>
-      <div class="bc-name">${b.projectName||'Untitled Project'}</div>
-      <div class="bc-client">${b.client||'No client'} • ${b.location||''}</div>
-      <div class="bc-total">${fmt(b.total)}</div>
-      <div class="bc-date">Saved: ${b.date||'—'}</div>
-      <div class="bc-actions">
-        <button class="bc-btn open" onclick="openBudget('${b.id}')">Open</button>
-        <button class="bc-btn dup" onclick="dupBudget('${b.id}')">Duplicate</button>
-        <button class="bc-btn del" onclick="delBudget('${b.id}')">Delete</button>
-      </div>
-    </div>
-  `).join('');
+function createNewBudget(){
+  const b={id:uuid(),quoteNumber:nextQ(),projectName:'New Project',client:'',location:'',createdAt:new Date().toISOString(),overhead:15,profit:10,
+    projectInfo:{totalSF:0,garageSF:0,basementSF:0,stories:0,bedrooms:0,fullBaths:0,halfBaths:0,garageSpaces:0,roofPitch:'',foundationType:'',electricalOutlets:0},
+    divisions:DEFAULT_DIVS.map(d=>({...d,items:[]}))};
+  budgets.push(b);save();openBudget(b.id);
 }
-
-// ════════════════════════════════════════
-//  BUDGET CRUD
-// ════════════════════════════════════════
-function newBudget(){
-  currentBudget = {
-    id:          uid(),
-    quoteNum:    nextQuote(),
-    date:        today(),
-    projectName: '',
-    client:      '',
-    location:    'Green Bay, WI',
-    description: '',
-    contingency: 5,
-    divisions:   DEFAULT_DIVS.map(d=>({...d, id:uid()})),
-  };
-  renderEditor();
-  showScreen('editorScreen');
-}
-
-function openBudget(id){
-  loadBudgets();
-  const entry = budgets.find(b=>b.id===id);
-  if(!entry){ showNotif('Budget not found','error'); return; }
-  currentBudget = entry.data;
-  renderEditor();
-  showScreen('editorScreen');
-}
-
+function openBudget(id){cur=budgets.find(b=>b.id===id);renderEditor();showScreen('editorScreen');}
+function goBack(){cur=null;renderDash();showScreen('dashboardScreen');}
 function dupBudget(id){
-  loadBudgets();
-  const entry = budgets.find(b=>b.id===id);
-  if(!entry) return;
-  const copy = JSON.parse(JSON.stringify(entry.data));
-  copy.id       = uid();
-  copy.quoteNum = nextQuote();
-  copy.date     = today();
-  saveCurrentBudget(copy);
-  loadDash();
-  showNotif('Budget duplicated!');
+  const s=budgets.find(b=>b.id===id);const d=JSON.parse(JSON.stringify(s));
+  d.id=uuid();d.quoteNumber=nextQ();d.createdAt=new Date().toISOString();d.projectName+=' (Copy)';
+  budgets.push(d);save();renderDash();toast('Budget duplicated');
 }
-
 function delBudget(id){
-  if(!confirm('Delete this budget? This cannot be undone.')) return;
-  loadBudgets();
-  budgets = budgets.filter(b=>b.id!==id);
-  saveBudgets();
-  loadDash();
-  showNotif('Budget deleted','error');
+  if(!confirm('Delete this budget?'))return;
+  budgets=budgets.filter(b=>b.id!==id);save();renderDash();toast('Deleted');
 }
 
-function goToDash(){
-  showScreen('dashScreen');
-  loadDash();
-}
-
-function saveBudget(){
-  collectFormData();
-  saveCurrentBudget(currentBudget);
-  document.getElementById('saveStatus').textContent = '✓ Saved';
-  setTimeout(()=>{document.getElementById('saveStatus').textContent=''},2500);
-}
-
-function saveCurrentBudget(budget){
-  loadBudgets();
-  const grand = calcGrand(budget);
-  const idx = budgets.findIndex(b=>b.id===budget.id);
-  const entry = {
-    id: budget.id,
-    quoteNum:    budget.quoteNum,
-    projectName: budget.projectName||'Untitled',
-    client:      budget.client||'',
-    location:    budget.location||'',
-    date:        today(),
-    total:       grand,
-    data:        budget,
-  };
-  if(idx>=0) budgets[idx]=entry; else budgets.push(entry);
-  saveBudgets();
-}
-
-function calcGrand(b){
-  let mat=0,lab=0;
-  (b.divisions||[]).forEach(d=>{mat+=parseMoney(d.mat);lab+=parseMoney(d.lab)});
-  const sub=mat+lab;
-  return sub + Math.round(sub*(b.contingency||5)/100);
-}
-
-function collectFormData(){
-  if(!currentBudget) return;
-  currentBudget.projectName  = document.getElementById('fProject').value;
-  currentBudget.client       = document.getElementById('fClient').value;
-  currentBudget.location     = document.getElementById('fLocation').value;
-  currentBudget.description  = document.getElementById('fDesc').value;
-  currentBudget.date         = document.getElementById('fDate').value;
-  currentBudget.contingency  = parseFloat(document.getElementById('contPct').value)||5;
-  // divisions are collected live
-}
-
-// ════════════════════════════════════════
-//  EDITOR RENDER
-// ════════════════════════════════════════
 function renderEditor(){
-  if(!currentBudget) return;
-  document.getElementById('fQuoteNum').value  = currentBudget.quoteNum||'';
-  document.getElementById('fDate').value      = currentBudget.date||today();
-  document.getElementById('fProject').value   = currentBudget.projectName||'';
-  document.getElementById('fClient').value    = currentBudget.client||'';
-  document.getElementById('fLocation').value  = currentBudget.location||'Green Bay, WI';
-  document.getElementById('fDesc').value      = currentBudget.description||'';
-  document.getElementById('contPct').value    = currentBudget.contingency??5;
-  document.getElementById('toolbarQuote').textContent = currentBudget.quoteNum||'Draft';
-  document.getElementById('saveStatus').textContent = '';
-  renderDivisions();
-  recalc();
+  const b=cur;
+  $('editorTitle').textContent=b.projectName||'Untitled';$('editorSub').textContent=b.quoteNumber;$('qnumBadge').textContent=b.quoteNumber;
+  $('fName').value=b.projectName||'';$('fClient').value=b.client||'';$('fLocation').value=b.location||'';
+  $('fOverhead').value=b.overhead??15;$('fProfit').value=b.profit??10;
+  const pi=b.projectInfo||{};
+  ['totalSF','garageSF','basementSF','stories','bedrooms','fullBaths','halfBaths','garageSpaces','roofPitch','foundationType','electricalOutlets']
+    .forEach(k=>{const el=$('pi_'+k);if(el)el.value=pi[k]||'';});
+  renderDivs();updateSummary();
 }
 
-function renderDivisions(){
-  const body = document.getElementById('divisionsBody');
-  body.innerHTML = (currentBudget.divisions||[]).map(d=>`
-    <div class="division-row" data-id="${d.id}">
-      <div class="div-cell div-num">${d.num}</div>
-      <div class="div-cell" style="padding-top:8px">
-        <input class="div-name-input" type="text" value="${esc(d.name)}"
-          oninput="updateDiv('${d.id}','name',this.value)" placeholder="Division name">
-        <textarea class="div-scope" oninput="updateDiv('${d.id}','items',this.value);autoResize(this)"
-          placeholder="Scope items (one per line)">${esc(d.items||'')}</textarea>
-      </div>
-      <div class="div-cell" style="padding-top:10px">
-        <!-- spacer for scope column alignment -->
-      </div>
-      <div class="div-cell div-money mat">
-        <input type="text" value="${fmtInput(d.mat)}"
-          oninput="updateDiv('${d.id}','mat',this.value);recalc()"
-          onblur="this.value=fmtInput(parseMoney(this.value))" placeholder="0">
-      </div>
-      <div class="div-cell div-money lab">
-        <input type="text" value="${fmtInput(d.lab)}"
-          oninput="updateDiv('${d.id}','lab',this.value);recalc()"
-          onblur="this.value=fmtInput(parseMoney(this.value))" placeholder="0">
-      </div>
-      <div class="div-cell div-total" id="dt-${d.id}"></div>
-      <div class="div-cell div-pct" id="dp-${d.id}" style="padding-top:12px"></div>
-      <div class="div-cell div-del">
-        <button class="btn-del-row" onclick="deleteDivision('${d.id}')" title="Remove">×</button>
-      </div>
-    </div>
-  `).join('');
-
-  // Fix grid: column 3 should be merged with col 2 (scope in same cell)
-  // Re-render with correct 8-col layout
-  body.innerHTML = (currentBudget.divisions||[]).map(d=>`
-    <div class="division-row" data-id="${d.id}" style="display:grid;grid-template-columns:60px 2fr 130px 130px 110px 80px 40px;gap:0;align-items:start">
-      <div class="div-cell div-num">${d.num}</div>
-      <div class="div-cell" style="padding-top:8px">
-        <input class="div-name-input" type="text" value="${esc(d.name)}"
-          oninput="updateDiv('${d.id}','name',this.value)" placeholder="Division name">
-        <textarea class="div-scope" oninput="updateDiv('${d.id}','items',this.value);autoResize(this)"
-          placeholder="Scope items...">${esc(d.items||'')}</textarea>
-      </div>
-      <div class="div-cell div-money mat" style="padding-top:10px">
-        <input type="text" value="${fmtInput(d.mat)}"
-          oninput="updateDiv('${d.id}','mat',this.value);recalc()"
-          onblur="this.value=fmtInput(parseMoney(this.value))" placeholder="0">
-      </div>
-      <div class="div-cell div-money lab" style="padding-top:10px">
-        <input type="text" value="${fmtInput(d.lab)}"
-          oninput="updateDiv('${d.id}','lab',this.value);recalc()"
-          onblur="this.value=fmtInput(parseMoney(this.value))" placeholder="0">
-      </div>
-      <div class="div-cell" id="dt-${d.id}" style="padding-top:14px;font-weight:700"></div>
-      <div class="div-cell" id="dp-${d.id}" style="padding-top:16px;font-size:11px;color:var(--gray-400)"></div>
-      <div class="div-cell div-del">
-        <button class="btn-del-row" onclick="deleteDivision('${d.id}')" title="Remove">×</button>
-      </div>
-    </div>
-  `).join('');
-
-  // Fix header to match
-  document.querySelector('.div-table-header').style.gridTemplateColumns='60px 2fr 130px 130px 110px 80px 40px';
-  document.querySelector('.div-table-header').innerHTML=`
-    <div>#</div><div>Division / Scope Items</div>
-    <div>Materials</div><div>Labor</div>
-    <div>Div. Total</div><div>% Total</div><div></div>`;
-
-  setTimeout(()=>document.querySelectorAll('.div-scope').forEach(t=>autoResize(t)),10);
-}
-
-function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') }
-function fmtInput(n){ return n ? Math.round(n).toLocaleString('en-US') : '' }
-function autoResize(t){ t.style.height='auto'; t.style.height=t.scrollHeight+'px' }
-
-function updateDiv(id, field, val){
-  const d = currentBudget.divisions.find(x=>x.id===id);
-  if(!d) return;
-  d[field] = field==='mat'||field==='lab' ? parseMoney(val) : val;
-}
-
-function deleteDivision(id){
-  if(!confirm('Remove this division?')) return;
-  currentBudget.divisions = currentBudget.divisions.filter(d=>d.id!==id);
-  renderDivisions();
-  recalc();
-}
-
-function addDivision(){
-  const name = document.getElementById('adName').value.trim();
-  if(!name){ showNotif('Enter a division name','error'); return; }
-  const mat  = parseMoney(document.getElementById('adMat').value)||0;
-  const lab  = parseMoney(document.getElementById('adLab').value)||0;
-  const nextNum = String((currentBudget.divisions.length||0)+1).padStart(2,'0');
-  currentBudget.divisions.push({id:uid(), num:nextNum, name, items:'', mat, lab});
-  document.getElementById('adName').value='';
-  document.getElementById('adMat').value='';
-  document.getElementById('adLab').value='';
-  renderDivisions();
-  recalc();
-}
-
-// ════════════════════════════════════════
-//  RECALC
-// ════════════════════════════════════════
-function recalc(){
-  let mat=0, lab=0;
-  (currentBudget?.divisions||[]).forEach(d=>{
-    const m=parseMoney(d.mat), l=parseMoney(d.lab);
-    mat+=m; lab+=l;
-    const dtEl = document.getElementById('dt-'+d.id);
-    if(dtEl) dtEl.textContent = fmt(m+l);
+['fName','fClient','fLocation'].forEach(id=>{
+  $(id).addEventListener('input',e=>{
+    const map={fName:'projectName',fClient:'client',fLocation:'location'};
+    cur[map[id]]=e.target.value;
+    if(id==='fName')$('editorTitle').textContent=e.target.value||'Untitled';
+    save();
   });
-  const sub   = mat+lab;
-  const pct   = parseFloat(document.getElementById('contPct')?.value)||5;
-  const cont  = Math.round(sub*pct/100);
-  const grand = sub+cont;
-  if(currentBudget) currentBudget.contingency=pct;
-
-  document.getElementById('sumMat').textContent   = fmt(mat);
-  document.getElementById('sumLab').textContent   = fmt(lab);
-  document.getElementById('sumSub').textContent   = fmt(sub);
-  document.getElementById('sumCont').textContent  = fmt(cont);
-  document.getElementById('sumGrand').textContent = fmt(grand);
-
-  (currentBudget?.divisions||[]).forEach(d=>{
-    const el = document.getElementById('dp-'+d.id);
-    if(el && grand>0){
-      const p = (((parseMoney(d.mat)+parseMoney(d.lab))/grand)*100).toFixed(1);
-      el.textContent = p + '%';
-    }
+});
+['fOverhead','fProfit'].forEach(id=>{
+  $(id).addEventListener('input',e=>{cur[id==='fOverhead'?'overhead':'profit']=parseFloat(e.target.value)||0;updateSummary();save();});
+});
+['totalSF','garageSF','basementSF','stories','bedrooms','fullBaths','halfBaths','garageSpaces','roofPitch','foundationType','electricalOutlets'].forEach(k=>{
+  const el=$('pi_'+k);if(!el)return;
+  el.addEventListener('input',e=>{
+    if(!cur.projectInfo)cur.projectInfo={};
+    const nums=['totalSF','garageSF','basementSF','stories','bedrooms','fullBaths','halfBaths','garageSpaces','electricalOutlets'];
+    cur.projectInfo[k]=nums.includes(k)?parseInt(e.target.value)||0:e.target.value;save();
   });
-}
-
-// ════════════════════════════════════════
-//  PDF ANALYSIS
-// ════════════════════════════════════════
-function triggerPdfUpload(){ document.getElementById('pdfInput').click() }
-
-async function handlePdfFile(e){
-  const file = e.target.files[0];
-  if(!file) return;
-  e.target.value='';
-
-  const status = document.getElementById('analyzeStatus');
-  status.style.display='flex';
-
-  try {
-    const b64 = await fileToBase64(file);
-    const mediaType = file.type || 'application/pdf';
-
-    const resp = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type':   'application/json',
-        'X-Budget-Token': APP_TOKEN,
-      },
-      body: JSON.stringify({ pdf_base64: b64, media_type: mediaType }),
-    });
-
-    const data = await resp.json();
-    if(data.error){ throw new Error(data.error) }
-
-    // Apply AI results to current budget
-    if(data.projectName) currentBudget.projectName = data.projectName;
-    if(data.client)      currentBudget.client = data.client;
-    if(data.location)    currentBudget.location = data.location;
-
-    if(data.divisions?.length){
-      currentBudget.divisions = data.divisions.map(d=>({
-        ...d, id:uid(),
-        mat: parseInt(d.mat)||0,
-        lab: parseInt(d.lab)||0,
-      }));
-    }
-
-    renderEditor();
-    showNotif(`✓ AI analysis complete — ${data.divisions?.length||0} divisions loaded`);
-  } catch(err){
-    console.error(err);
-    showNotif('Analysis failed: ' + err.message, 'error');
-  } finally {
-    status.style.display='none';
-  }
-}
-
-function fileToBase64(file){
-  return new Promise((res,rej)=>{
-    const r = new FileReader();
-    r.onload = ()=> res(r.result.split(',')[1]);
-    r.onerror = rej;
-    r.readAsDataURL(file);
-  });
-}
-
-// ════════════════════════════════════════
-//  WI PRICE GUIDE
-// ════════════════════════════════════════
-function openGuide(){
-  const body = document.getElementById('guideBody');
-  body.innerHTML = WI_GUIDE.map(g=>`
-    <tr>
-      <td style="font-weight:700;color:var(--gray-400);font-size:12px">${g.num}</td>
-      <td><div class="guide-div">${g.div}</div></td>
-      <td><span class="guide-range">${g.low} — ${g.high}</span><br><span class="guide-tip">${g.tip}</span></td>
-      <td><div class="guide-note">${g.note}</div></td>
-    </tr>
-  `).join('');
-  document.getElementById('guideModal').classList.add('open');
-}
-function closeGuide(){ document.getElementById('guideModal').classList.remove('open') }
-document.getElementById('guideModal').addEventListener('click',e=>{
-  if(e.target===document.getElementById('guideModal')) closeGuide();
 });
 
-// ════════════════════════════════════════
-//  PDF EXPORT
-// ════════════════════════════════════════
-function exportPDF(){
-  collectFormData();
-  const b = currentBudget;
-  let mat=0,lab=0;
-  (b.divisions||[]).forEach(d=>{mat+=parseMoney(d.mat);lab+=parseMoney(d.lab)});
-  const sub   = mat+lab;
-  const cont  = Math.round(sub*(b.contingency||5)/100);
-  const grand = sub+cont;
+function renderDivs(){const c=$('divisionsContainer');c.innerHTML='';cur.divisions.forEach((d,i)=>c.appendChild(buildDivEl(d,i)));}
 
-  const rows = (b.divisions||[]).map(d=>{
-    const t = parseMoney(d.mat)+parseMoney(d.lab);
-    const p = grand>0 ? ((t/grand)*100).toFixed(1)+'%' : '—';
-    const items = (d.items||'').split('\n').filter(Boolean).map(i=>`<li>${i}</li>`).join('');
-    return `
-      <tr>
-        <td style="font-weight:700;color:#1B3A6B;white-space:nowrap">${d.num}</td>
-        <td>
-          <strong>${d.name}</strong>
-          ${items?`<ul style="margin:4px 0 0 16px;color:#64748B;font-size:11px">${items}</ul>`:''}
-        </td>
-        <td style="text-align:right;color:#2563EB;font-weight:600">${fmt(parseMoney(d.mat))}</td>
-        <td style="text-align:right;color:#16A34A;font-weight:600">${fmt(parseMoney(d.lab))}</td>
-        <td style="text-align:right;font-weight:700">${fmt(t)}</td>
-        <td style="text-align:right;color:#94A3B8;font-size:11px">${p}</td>
-      </tr>`;
+function unitOpts(sel){return UNITS.map(u=>`<option value="${u}"${u===sel?' selected':''}>${u}</option>`).join('');}
+
+function buildDivEl(div,di){
+  const t=calcDiv(div);const el=document.createElement('div');el.className='div-card';el.dataset.di=di;
+  const rows=(div.items||[]).map((item,ii)=>{
+    const{matTotal,labTotal}=calcItem(item);
+    return `<tr data-ii="${ii}">
+      <td class="c-desc"><input type="text" value="${esc(item.description)}" data-f="description" placeholder="e.g. 8&quot; poured foundation walls"></td>
+      <td class="c-qty r"><input type="number" value="${item.qty||''}" data-f="qty" placeholder="0" min="0" step="any" style="text-align:right"></td>
+      <td class="c-unit"><select data-f="unit">${unitOpts(item.unit||'SF')}</select></td>
+      <td class="c-price r"><input type="number" value="${item.matUnit||''}" data-f="matUnit" placeholder="0.00" min="0" step="0.01" style="text-align:right"></td>
+      <td class="c-price r"><input type="number" value="${item.labUnit||''}" data-f="labUnit" placeholder="0.00" min="0" step="0.01" style="text-align:right"></td>
+      <td class="c-tot r" data-cm>${matTotal>0?fmt(matTotal):'—'}</td>
+      <td class="c-tot r" data-cl>${labTotal>0?fmt(labTotal):'—'}</td>
+      <td class="c-del"><button class="btn-del" data-act="del">✕</button></td>
+    </tr>`;
   }).join('');
-
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
-<title>${b.quoteNum} — ${b.projectName||'Budget'}</title>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#0F172A;padding:32px;font-size:13px}
-  .header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:20px;border-bottom:3px solid #1B3A6B;margin-bottom:24px}
-  .logo{height:56px}
-  .co-info{text-align:right;font-size:12px;color:#64748B;line-height:1.6}
-  .co-name{font-size:18px;font-weight:800;color:#1B3A6B;margin-bottom:4px}
-  .quote-meta{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;background:#F8FAFC;border-radius:8px;padding:16px}
-  .meta-block label{font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:3px}
-  .meta-block span{font-size:14px;font-weight:600;color:#0F172A}
-  .quote-num{font-size:22px;font-weight:800;color:#FF6B00}
-  table{width:100%;border-collapse:collapse;margin-bottom:20px}
-  th{background:#1B3A6B;color:#fff;padding:8px 10px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
-  th:not(:first-child):not(:nth-child(2)){text-align:right}
-  td{padding:9px 10px;border-bottom:1px solid #F1F5F9;vertical-align:top}
-  tr:hover td{background:#F8FAFC}
-  .totals{width:360px;margin-left:auto;border:1px solid #E2E8F0;border-radius:8px;overflow:hidden}
-  .tot-row{display:flex;justify-content:space-between;padding:10px 16px;border-bottom:1px solid #F1F5F9;font-size:13px}
-  .tot-row:last-child{border-bottom:none;background:#1B3A6B;color:#fff;font-size:16px;font-weight:800}
-  .tot-row.cont{background:#FFF7ED;color:#92400E}
-  .tot-val{font-weight:700}
-  .footer{margin-top:40px;padding-top:20px;border-top:1px solid #E2E8F0;display:flex;justify-content:space-between;align-items:flex-end}
-  .sig-line{text-align:center}
-  .sig-line .line{border-top:1px solid #334155;margin-bottom:6px;width:220px}
-  .sig-label{font-size:11px;color:#64748B}
-  .terms{font-size:11px;color:#94A3B8;max-width:400px;line-height:1.5}
-  @media print{body{padding:20px}button{display:none}}
-</style>
-</head><body>
-  <div class="header">
-    <img src="logo.png" class="logo" alt="Geo Carpentry LLC">
-    <div class="co-info">
-      <div class="co-name">Geo Carpentry LLC</div>
-      <div>${COMPANY.address}</div>
-      <div>${COMPANY.phone} • ${COMPANY.email}</div>
-      <div>${COMPANY.web}</div>
-      <div style="margin-top:4px;font-size:11px;color:#94A3B8">${COMPANY.lic}</div>
+  el.innerHTML=`
+    <div class="div-hdr" data-act="toggle">
+      <span class="toggle-ico">▼</span>
+      <span class="div-num">${div.num}</span>
+      <span class="div-name">${div.name}</span>
+      <span class="div-totals-hdr">Mat: <b>${fmt(t.matTotal)}</b> &nbsp; Lab: <b>${fmt(t.labTotal)}</b></span>
     </div>
-  </div>
-
-  <div class="quote-meta">
-    <div class="meta-block">
-      <label>Quote Number</label>
-      <span class="quote-num">${b.quoteNum||'DRAFT'}</span>
-    </div>
-    <div class="meta-block">
-      <label>Date</label>
-      <span>${b.date||today()}</span>
-    </div>
-    <div class="meta-block">
-      <label>Client</label>
-      <span>${b.client||'—'}</span>
-    </div>
-    <div class="meta-block">
-      <label>Project</label>
-      <span>${b.projectName||'—'}</span>
-    </div>
-    <div class="meta-block" style="grid-column:span 2">
-      <label>Location</label>
-      <span>${b.location||'—'}</span>
-    </div>
-    ${b.description?`<div class="meta-block" style="grid-column:span 2"><label>Scope Summary</label><span style="font-weight:400;color:#64748B">${b.description}</span></div>`:''}
-  </div>
-
-  <table>
-    <thead>
-      <tr>
-        <th style="width:40px">#</th>
-        <th>Division / Scope of Work</th>
-        <th style="width:110px">Materials</th>
-        <th style="width:110px">Labor</th>
-        <th style="width:110px">Total</th>
-        <th style="width:60px">%</th>
-      </tr>
-    </thead>
-    <tbody>${rows}</tbody>
-  </table>
-
-  <div class="totals">
-    <div class="tot-row"><span>Materials Subtotal</span><span class="tot-val" style="color:#2563EB">${fmt(mat)}</span></div>
-    <div class="tot-row"><span>Labor Subtotal</span><span class="tot-val" style="color:#16A34A">${fmt(lab)}</span></div>
-    <div class="tot-row"><span>Project Subtotal</span><span class="tot-val">${fmt(sub)}</span></div>
-    <div class="tot-row cont"><span>Contingency (${b.contingency||5}%)</span><span class="tot-val">${fmt(cont)}</span></div>
-    <div class="tot-row"><span>GRAND TOTAL</span><span class="tot-val" style="color:#FF8C33">${fmt(grand)}</span></div>
-  </div>
-
-  <div class="footer">
-    <div class="terms">
-      <strong>Terms & Conditions:</strong> This estimate is valid for 30 days from the date above.
-      Final pricing subject to site conditions and material availability.
-      A deposit of 30% is required to begin work. Payment terms: Net 15.
-      All work performed per Wisconsin building codes and regulations.
-    </div>
-    <div style="display:flex;gap:40px">
-      <div class="sig-line">
-        <div class="line"></div>
-        <div class="sig-label">Contractor Signature / Date</div>
+    <div class="div-body">
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr>
+          <th class="c-desc">Description</th><th class="c-qty r">Qty</th><th class="c-unit">Unit</th>
+          <th class="c-price r">Mat $/Unit</th><th class="c-price r">Lab $/Unit</th>
+          <th class="c-tot r">Mat Total</th><th class="c-tot r">Lab Total</th><th class="c-del"></th>
+        </tr></thead>
+        <tbody>${rows||'<tr><td colspan="8" style="text-align:center;color:#bbb;padding:14px;font-size:.82rem">No items — click Add Item below</td></tr>'}</tbody>
+      </table></div>
+      <div class="tbl-footer">
+        <button class="btn-add" data-act="add">+ Add Item</button>
+        <div class="div-subs">Mat: <b>${fmt(t.matTotal)}</b> &nbsp; Lab: <b>${fmt(t.labTotal)}</b></div>
       </div>
-      <div class="sig-line">
-        <div class="line"></div>
-        <div class="sig-label">Client Acceptance / Date</div>
-      </div>
-    </div>
-  </div>
-
-  <script>window.onload=()=>window.print()<\/script>
-</body></html>`;
-
-  const win = window.open('','_blank');
-  win.document.write(html);
-  win.document.close();
+    </div>`;
+  return el;
 }
 
-// ════════════════════════════════════════
-//  INIT
-// ════════════════════════════════════════
-window.addEventListener('load', ()=>{
-  if(localStorage.getItem('gc-auth')==='1'){
-    loadDash();
-    showScreen('dashScreen');
-  } else {
-    showScreen('loginScreen');
+$('divisionsContainer').addEventListener('input',e=>{
+  const card=e.target.closest('[data-di]'),row=e.target.closest('tr[data-ii]');if(!card||!row)return;
+  const di=parseInt(card.dataset.di),ii=parseInt(row.dataset.ii),f=e.target.dataset.f;if(!f)return;
+  const item=cur.divisions[di].items[ii];
+  item[f]=['qty','matUnit','labUnit'].includes(f)?parseFloat(e.target.value)||0:e.target.value;
+  const{matTotal,labTotal}=calcItem(item);
+  row.querySelector('[data-cm]').textContent=matTotal>0?fmt(matTotal):'—';
+  row.querySelector('[data-cl]').textContent=labTotal>0?fmt(labTotal):'—';
+  refreshDivTotals(di);updateSummary();save();
+});
+$('divisionsContainer').addEventListener('change',e=>{
+  if(e.target.tagName!=='SELECT')return;
+  const card=e.target.closest('[data-di]'),row=e.target.closest('tr[data-ii]');if(!card||!row)return;
+  cur.divisions[parseInt(card.dataset.di)].items[parseInt(row.dataset.ii)].unit=e.target.value;save();
+});
+$('divisionsContainer').addEventListener('click',e=>{
+  const card=e.target.closest('[data-di]');if(!card)return;
+  const di=parseInt(card.dataset.di);
+  const act=e.target.closest('[data-act]')?.dataset.act;
+  if(act==='toggle')card.classList.toggle('collapsed');
+  if(act==='del'){
+    const ii=parseInt(e.target.closest('tr[data-ii]').dataset.ii);
+    cur.divisions[di].items.splice(ii,1);save();refreshDiv(di);updateSummary();
+  }
+  if(act==='add'){
+    cur.divisions[di].items.push({id:uuid(),description:'',qty:0,unit:'SF',matUnit:0,labUnit:0});
+    save();refreshDiv(di);
   }
 });
+
+function refreshDiv(di){
+  const c=$('divisionsContainer'),old=c.querySelector(`[data-di="${di}"]`);
+  c.replaceChild(buildDivEl(cur.divisions[di],di),old);
+}
+function refreshDivTotals(di){
+  const card=$('divisionsContainer').querySelector(`[data-di="${di}"]`);if(!card)return;
+  const t=calcDiv(cur.divisions[di]);
+  card.querySelector('.div-totals-hdr').innerHTML=`Mat: <b>${fmt(t.matTotal)}</b> &nbsp; Lab: <b>${fmt(t.labTotal)}</b>`;
+  card.querySelector('.div-subs').innerHTML=`Mat: <b>${fmt(t.matTotal)}</b> &nbsp; Lab: <b>${fmt(t.labTotal)}</b>`;
+}
+function updateSummary(){
+  const c=calcBudget(cur);
+  $('sMat').textContent=fmt(c.matTotal);$('sLab').textContent=fmt(c.labTotal);
+  $('sSub').textContent=fmt(c.subtotal);$('sOverhead').textContent=fmt(c.overhead);
+  $('sProfit').textContent=fmt(c.profit);$('sGrand').textContent=fmt(c.grandTotal);
+}
+
+$('pdfInput').addEventListener('change',e=>{const f=e.target.files[0];$('pdfName').textContent=f?f.name:'';});
+
+$('analyzeBtn').addEventListener('click',async()=>{
+  const file=$('pdfInput').files[0];if(!file){alert('Please select a PDF plan first.');return;}
+  const st=$('aiStatus');st.className='ai-status loading';
+  st.textContent='Analyzing with Claude AI — please wait 30-90 seconds...';
+  $('analyzeBtn').disabled=true;
+  try{
+    const b64=await new Promise((ok,err)=>{const r=new FileReader();r.onload=e=>ok(e.target.result);r.onerror=err;r.readAsDataURL(file);});
+    const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json','X-Budget-Token':APP_TOK},body:JSON.stringify({pdf_base64:b64.split(',')[1],media_type:'application/pdf'})});
+    const data=await res.json();
+    if(data.error)throw new Error(data.error+(data.detail?' — '+data.detail:''));
+    const b=cur;
+    if(data.projectName){b.projectName=data.projectName;$('fName').value=data.projectName;$('editorTitle').textContent=data.projectName;}
+    if(data.client){b.client=data.client;$('fClient').value=data.client;}
+    if(data.location){b.location=data.location;$('fLocation').value=data.location;}
+    if(data.projectInfo){b.projectInfo={...b.projectInfo,...data.projectInfo};Object.entries(data.projectInfo).forEach(([k,v])=>{const el=$('pi_'+k);if(el)el.value=v||'';});}
+    if(Array.isArray(data.divisions)){
+      b.divisions.forEach(d=>d.items=[]);
+      data.divisions.forEach(aiD=>{
+        let match=b.divisions.find(d=>d.num===aiD.num);
+        if(!match)match=b.divisions.find(d=>d.name.toLowerCase().split(' ')[0]===(aiD.name||'').toLowerCase().split(' ')[0]);
+        if(!match)match=b.divisions[0];
+        (aiD.items||[]).forEach(it=>match.items.push({id:uuid(),description:it.description||'',qty:parseFloat(it.qty)||0,unit:it.unit||'SF',matUnit:parseFloat(it.matUnit)||0,labUnit:parseFloat(it.labUnit)||0}));
+      });
+    }
+    save();renderDivs();updateSummary();
+    st.className='ai-status ok';st.textContent='Analysis complete! Review all quantities and unit prices before finalizing.';
+  }catch(err){st.className='ai-status err';st.textContent='Error: '+err.message;}
+  finally{$('analyzeBtn').disabled=false;}
+});
+
+$('pdfBtn').addEventListener('click',()=>{
+  const b=cur;const calc=calcBudget(b);
+  const{jsPDF}=window.jspdf;const doc=new jsPDF({unit:'pt',format:'letter'});
+  const NAVY=[27,58,107],W=612,M=36;let y=0;
+  doc.setFillColor(...NAVY);doc.rect(0,0,W,72,'F');
+  doc.setFillColor(255,107,0);doc.rect(0,72,W,4,'F');
+  doc.setTextColor(255,255,255);doc.setFontSize(18);doc.setFont('helvetica','bold');doc.text('GEO CARPENTRY LLC',M,26);
+  doc.setFontSize(9);doc.setFont('helvetica','normal');
+  doc.text('Licensed General Contractor  |  Green Bay, WI',M,42);
+  doc.text('(920) 367-1272  |  admin@geocarpentry.com  |  735 E Walnut St Suite #3  |  geocarpentry.com',M,56);
+  doc.setFillColor(245,247,251);doc.rect(0,76,W,52,'F');
+  doc.setTextColor(...NAVY);doc.setFontSize(13);doc.setFont('helvetica','bold');doc.text(b.projectName||'Untitled Project',M,96);
+  doc.setFontSize(8.5);doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);
+  doc.text('Client: '+(b.client||'—'),M,110);doc.text('Location: '+(b.location||'—'),M+200,110);
+  doc.text('Quote #: '+(b.quoteNumber||'—'),M+420,96);doc.text('Date: '+new Date(b.createdAt).toLocaleDateString(),M+420,110);
+  y=142;
+  const pi=b.projectInfo||{};
+  const specs=[pi.totalSF&&`Heated SF: ${Number(pi.totalSF).toLocaleString()}`,pi.garageSF&&`Garage SF: ${Number(pi.garageSF).toLocaleString()}`,pi.basementSF&&`Basement SF: ${Number(pi.basementSF).toLocaleString()}`,pi.stories&&`Stories: ${pi.stories}`,pi.bedrooms&&`Bedrooms: ${pi.bedrooms}`,pi.fullBaths&&`Full Baths: ${pi.fullBaths}`,pi.halfBaths&&`Half Baths: ${pi.halfBaths}`,pi.garageSpaces&&`Garage: ${pi.garageSpaces}-car`,pi.roofPitch&&`Roof Pitch: ${pi.roofPitch}`,pi.foundationType&&`Foundation: ${pi.foundationType}`,pi.electricalOutlets&&`Outlets: ${pi.electricalOutlets}`].filter(Boolean);
+  if(specs.length){
+    doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(...NAVY);doc.text('PROJECT SPECIFICATIONS',M,y);y+=10;
+    doc.setFont('helvetica','normal');doc.setTextColor(60,60,60);
+    specs.forEach((s,i)=>doc.text(s,M+(i%4)*140,y+Math.floor(i/4)*11));
+    y+=Math.ceil(specs.length/4)*11+10;
+  }
+  b.divisions.forEach(div=>{
+    if(!(div.items||[]).length)return;
+    const dt=calcDiv(div);
+    doc.autoTable({startY:y,
+      head:[[{content:`${div.num} — ${div.name}`,colSpan:7,styles:{fillColor:NAVY,textColor:[255,255,255],fontStyle:'bold',fontSize:8.5}}]],
+      body:[
+        [{content:'Description',styles:{fillColor:[235,240,250],textColor:[60,60,60],fontStyle:'bold',fontSize:7.5}},{content:'Qty',styles:{fillColor:[235,240,250],textColor:[60,60,60],fontStyle:'bold',fontSize:7.5,halign:'right'}},{content:'Unit',styles:{fillColor:[235,240,250],textColor:[60,60,60],fontStyle:'bold',fontSize:7.5}},{content:'Mat $/Unit',styles:{fillColor:[235,240,250],textColor:[60,60,60],fontStyle:'bold',fontSize:7.5,halign:'right'}},{content:'Lab $/Unit',styles:{fillColor:[235,240,250],textColor:[60,60,60],fontStyle:'bold',fontSize:7.5,halign:'right'}},{content:'Mat Total',styles:{fillColor:[235,240,250],textColor:[60,60,60],fontStyle:'bold',fontSize:7.5,halign:'right'}},{content:'Lab Total',styles:{fillColor:[235,240,250],textColor:[60,60,60],fontStyle:'bold',fontSize:7.5,halign:'right'}}],
+        ...(div.items||[]).map(item=>{const{matTotal,labTotal}=calcItem(item);return[item.description||'',{content:item.qty?Number(item.qty).toLocaleString():'—',styles:{halign:'right'}},item.unit||'',{content:item.matUnit?'$'+Number(item.matUnit).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):'—',styles:{halign:'right'}},{content:item.labUnit?'$'+Number(item.labUnit).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):'—',styles:{halign:'right'}},{content:matTotal>0?fmt(matTotal):'—',styles:{halign:'right'}},{content:labTotal>0?fmt(labTotal):'—',styles:{halign:'right'}}];}),
+        [{content:'Division Subtotal',colSpan:5,styles:{fillColor:[224,230,245],fontStyle:'bold',fontSize:8}},{content:fmt(dt.matTotal),styles:{fillColor:[224,230,245],fontStyle:'bold',fontSize:8,halign:'right',textColor:NAVY}},{content:fmt(dt.labTotal),styles:{fillColor:[224,230,245],fontStyle:'bold',fontSize:8,halign:'right',textColor:NAVY}}]
+      ],
+      theme:'plain',styles:{fontSize:8,cellPadding:3.5,lineColor:[215,215,215],lineWidth:0.4},
+      columnStyles:{0:{cellWidth:190},1:{cellWidth:42,halign:'right'},2:{cellWidth:36},3:{cellWidth:62,halign:'right'},4:{cellWidth:62,halign:'right'},5:{cellWidth:68,halign:'right'},6:{cellWidth:68,halign:'right'}},
+      margin:{left:M,right:M}});
+    y=doc.lastAutoTable.finalY+7;
+  });
+  doc.autoTable({startY:y+10,
+    head:[[{content:'ESTIMATE SUMMARY',colSpan:2,styles:{fillColor:NAVY,textColor:[255,255,255],fontStyle:'bold',fontSize:10}}]],
+    body:[['Total Materials',{content:fmt(calc.matTotal),styles:{halign:'right'}}],['Total Labor',{content:fmt(calc.labTotal),styles:{halign:'right'}}],[{content:'Subtotal',styles:{fontStyle:'bold'}},{content:fmt(calc.subtotal),styles:{halign:'right',fontStyle:'bold'}}],[`Overhead (${calc.overheadPct}%)`,{content:fmt(calc.overhead),styles:{halign:'right'}}],[`Profit / Margin (${calc.profitPct}%)`,{content:fmt(calc.profit),styles:{halign:'right'}}],[{content:'GRAND TOTAL',styles:{fillColor:NAVY,textColor:[255,255,255],fontStyle:'bold',fontSize:11}},{content:fmt(calc.grandTotal),styles:{fillColor:NAVY,textColor:[255,255,255],fontStyle:'bold',fontSize:11,halign:'right'}}]],
+    theme:'plain',styles:{fontSize:9.5,cellPadding:5,lineColor:[215,215,215],lineWidth:0.4},
+    columnStyles:{0:{cellWidth:300},1:{cellWidth:150,halign:'right'}},margin:{left:M+80,right:M}});
+  const pages=doc.internal.getNumberOfPages();
+  for(let i=1;i<=pages;i++){doc.setPage(i);doc.setFontSize(7);doc.setTextColor(160,160,160);doc.setFont('helvetica','normal');doc.text('This estimate is valid for 30 days. Prices subject to change based on final plans and material costs.',M,784);doc.text(`Page ${i} of ${pages}  |  Geo Carpentry LLC  |  geocarpentry.com`,W-M,784,{align:'right'});}
+  doc.save(`${b.quoteNumber||'quote'}_${(b.projectName||'project').replace(/\s+/g,'-')}.pdf`);
+});
+
+showScreen('loginScreen');
 </script>
 </body>
 </html>
