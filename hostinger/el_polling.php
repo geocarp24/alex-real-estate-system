@@ -318,15 +318,28 @@ if (empty($queueData)) {
     logMsg("Results: {$resultSummary}");
 
     $tracyUpdate = array_filter([
-        'status'       => 'success',
-        'resultado'    => $resultSummary,
-        'first_name'   => $ownerFirst,
-        'last_name'    => $ownerLast,
-        'mail_address' => trim($contact['mail_address'] ?? ''),
-        'mail_city'    => trim($contact['mail_city']    ?? ''),
-        'mail_state'   => trim($contact['mail_state']   ?? ''),
-        'notas'        => 'Processed by el_polling.php',
-    ], fn($v) => $v !== '' && $v !== null);
+        'status'             => 'success',
+        'resultado'          => $resultSummary,
+        'first_name'         => $ownerFirst,
+        'last_name'          => $ownerLast,
+        'state'              => $state,
+        'mail_address'       => trim($contact['mail_address']       ?? ''),
+        'mail_city'          => trim($contact['mail_city']          ?? ''),
+        'mail_state'         => trim($contact['mail_state']         ?? ''),
+        'mail_zip'           => trim($contact['mail_zip']           ?? ''),
+        'primary_phone'      => trim($contact['primary_phone']      ?? ''),
+        'primary_phone_type' => trim($contact['primary_phone_type'] ?? ''),
+        'mobile_1'           => trim($contact['mobile_1']           ?? ''),
+        'mobile_2'           => trim($contact['mobile_2']           ?? ''),
+        'mobile_3'           => trim($contact['mobile_3']           ?? ''),
+        'landline_1'         => trim($contact['landline_1']         ?? ''),
+        'landline_2'         => trim($contact['landline_2']         ?? ''),
+        'email_1'            => trim($contact['email_1']            ?? ''),
+        'email_2'            => trim($contact['email_2']            ?? ''),
+        'email_3'            => trim($contact['email_3']            ?? ''),
+        'tracerfy_id'        => intval($contact['id']               ?? 0),
+        'notas'              => 'Processed by el_polling.php',
+    ], fn($v) => $v !== '' && $v !== null && $v !== 0);
 
     atPatch(TABLE_TRACY, $tracyId, $tracyUpdate);
 }
