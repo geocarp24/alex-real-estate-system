@@ -320,6 +320,12 @@ if (empty($queueData)) {
         'resultado' => $resultSummary,
         'notas'     => 'Tracerfy completed — no results.',
     ]);
+    // No contacts → skip el_chismoso, just update Stage and exit.
+    atPatch(TABLE_LEADS, $leadId, ['Stage' => 'To be Contacted']);
+    logMsg("No contacts — Stage updated, skipping el_chismoso.");
+    logMsg("EL POLLING done: {$address}");
+    logMsg('══════════════════════════════════════');
+    exit(0);
 } else {
     $contact    = $queueData[0];
     $ownerFirst = trim($contact['first_name'] ?? '');
