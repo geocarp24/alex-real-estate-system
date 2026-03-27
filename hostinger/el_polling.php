@@ -230,6 +230,11 @@ if (!$address) {
 
 logMsg("Lead: {$address}, {$city}, {$state} {$zip}  (ID: {$leadId})");
 
+// Lock lead immediately so the cron never picks it up twice,
+// even if a later step fails.
+atPatch(TABLE_LEADS, $leadId, ['Skip Trace Done' => true]);
+logMsg("Lead {$leadId} locked (Skip Trace Done=true)");
+
 
 // ── STEP 2: Create Tracy record (pending) ─────────────────────
 $tracyFields = array_filter([
@@ -380,10 +385,11 @@ curl_close($ch);
 logMsg("el_chismoso.php ({$chismCode}): " . substr((string) $chismRes, 0, 300));
 
 
-// ── STEP 8: Update Lead ───────────────────────────────────────
+// ── STEP 8: Update Lead Stage ─────────────────────────────────
+// Skip Trace Done was already set at the top to prevent duplicates.
+// Here we only update the Stage.
 $leadUpdate = atPatch(TABLE_LEADS, $leadId, [
-    'Skip Trace Done' => true,
-    'Stage'           => 'To be Contacted',
+    'Stage' => 'To be Contacted',
 ]);
 
 if (!empty($leadUpdate['id'])) {
