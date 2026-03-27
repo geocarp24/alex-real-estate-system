@@ -145,7 +145,6 @@ if (!$contactRecordId) {
 // ── STEP 5: Mark Tracy record as pushed ──────────────────────
 airtablePatch(TABLE_TRACY, $tracyId, [
     'pushed_to_contacts' => true,
-    'contact_record_id'  => $contactRecordId
 ]);
 
 // ── SUCCESS RESPONSE ─────────────────────────────────────────

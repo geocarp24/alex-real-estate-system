@@ -383,7 +383,7 @@ logMsg("el_chismoso.php ({$chismCode}): " . substr((string) $chismRes, 0, 300));
 // ── STEP 8: Update Lead ───────────────────────────────────────
 $leadUpdate = atPatch(TABLE_LEADS, $leadId, [
     'Skip Trace Done' => true,
-    'Stage'           => 'To Be Contacted',
+    'Stage'           => 'To be Contacted',
 ]);
 
 if (!empty($leadUpdate['id'])) {
