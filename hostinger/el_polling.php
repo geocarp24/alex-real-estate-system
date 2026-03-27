@@ -173,6 +173,19 @@ function phoneToInt($phone): ?int {
     return (int) $digits;
 }
 
+// ── Convert phone to E.164 format (e.g. +12625551234) ─────────
+function phoneToE164($phone): string {
+    if (!$phone) return '';
+    // Handle float notation from Tracerfy (e.g., 8594757302.0)
+    $asInt  = (int) floatval($phone);
+    $digits = $asInt > 0
+        ? preg_replace('/[^0-9]/', '', strval($asInt))
+        : preg_replace('/[^0-9]/', '', strval($phone));
+    if (strlen($digits) === 10) return '+1' . $digits;
+    if (strlen($digits) === 11 && $digits[0] === '1') return '+' . $digits;
+    return '';
+}
+
 
 // ═══════════════════════════════════════════════════════════════
 //  MAIN
@@ -327,13 +340,13 @@ if (empty($queueData)) {
         'mail_city'          => trim($contact['mail_city']          ?? ''),
         'mail_state'         => trim($contact['mail_state']         ?? ''),
         'mail_zip'           => trim($contact['mail_zip']           ?? ''),
-        'primary_phone'      => trim($contact['primary_phone']      ?? ''),
+        'primary_phone'      => phoneToE164($contact['primary_phone'] ?? ''),
         'primary_phone_type' => trim($contact['primary_phone_type'] ?? ''),
-        'mobile_1'           => trim($contact['mobile_1']           ?? ''),
-        'mobile_2'           => trim($contact['mobile_2']           ?? ''),
-        'mobile_3'           => trim($contact['mobile_3']           ?? ''),
-        'landline_1'         => trim($contact['landline_1']         ?? ''),
-        'landline_2'         => trim($contact['landline_2']         ?? ''),
+        'mobile_1'           => phoneToE164($contact['mobile_1']    ?? ''),
+        'mobile_2'           => phoneToE164($contact['mobile_2']    ?? ''),
+        'mobile_3'           => phoneToE164($contact['mobile_3']    ?? ''),
+        'landline_1'         => phoneToE164($contact['landline_1']  ?? ''),
+        'landline_2'         => phoneToE164($contact['landline_2']  ?? ''),
         'email_1'            => trim($contact['email_1']            ?? ''),
         'email_2'            => trim($contact['email_2']            ?? ''),
         'email_3'            => trim($contact['email_3']            ?? ''),
