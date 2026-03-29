@@ -587,6 +587,7 @@ function buildDivEl(div,di){
   const rows=(div.items||[]).map((item,ii)=>{
     const{matTotal,labTotal}=calcItem(item);
     return `<tr data-ii="${ii}">
+      <td class="c-use"><button class="btn-use" data-act="pick" title="Pick from My Prices">≡</button></td>
       <td class="c-desc"><input type="text" value="${esc(item.description)}" data-f="description" placeholder="e.g. 8&quot; poured foundation walls"></td>
       <td class="c-qty r"><input type="number" value="${item.qty||''}" data-f="qty" placeholder="0" min="0" step="any" style="text-align:right"></td>
       <td class="c-unit"><select data-f="unit">${unitOpts(item.unit||'SF')}</select></td>
