@@ -423,6 +423,42 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f2f5;color:#1a1a2
   </div>
 </div>
 
+<!-- MY PRICES MODAL -->
+<div class="modal-bg" id="myPricesModal">
+  <div class="modal" style="max-width:760px">
+    <button class="modal-close" onclick="closeMyPrices()">✕ Close</button>
+    <h2>My Price List</h2>
+    <p style="font-size:.85rem;color:#666;margin-bottom:16px">Set your standard unit prices. Click <b>Use</b> on any takeoff row to apply them.</p>
+    <div style="overflow-x:auto">
+      <table class="mp-tbl">
+        <thead><tr>
+          <th class="mp-desc">Description</th>
+          <th class="mp-unit">Unit</th>
+          <th class="mp-price">Mat $/Unit</th>
+          <th class="mp-price">Lab $/Unit</th>
+          <th class="mp-del"></th>
+        </tr></thead>
+        <tbody id="myPricesTbody"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:14px;display:flex;gap:10px;align-items:center">
+      <button class="file-btn" onclick="addMyPriceRow()">+ Add Item</button>
+      <button class="file-btn" style="background:#38a169" onclick="saveMyPrices()">Save My Prices</button>
+      <span id="mpSaveMsg" style="font-size:.82rem;color:#38a169"></span>
+    </div>
+  </div>
+</div>
+
+<!-- PRICE PICKER MODAL -->
+<div class="modal-bg" id="pickerModal">
+  <div class="modal" style="max-width:520px">
+    <button class="modal-close" onclick="document.getElementById('pickerModal').classList.remove('open')">✕</button>
+    <h2>Pick from My Prices</h2>
+    <p style="font-size:.82rem;color:#666;margin-bottom:4px">Click an item to fill the row</p>
+    <div class="picker-list" id="pickerList"></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
