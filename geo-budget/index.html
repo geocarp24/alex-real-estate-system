@@ -549,6 +549,79 @@ function delBudget(id){
   budgets=budgets.filter(b=>b.id!==id);save();renderDash();toast('Deleted');
 }
 
+// ─── MY PRICES ───────────────────────────────────────
+function openMyPrices(){
+  renderMyPricesTbody();
+  $('myPricesModal').classList.add('open');
+}
+function closeMyPrices(){$('myPricesModal').classList.remove('open');}
+
+function renderMyPricesTbody(){
+  const tbody=$('myPricesTbody');tbody.innerHTML='';
+  myPrices.forEach((p,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td class="mp-desc"><input type="text" value="${esc(p.description)}" placeholder="e.g. Framing 2x6 walls" data-pi="${i}" data-pf="description"></td>
+      <td class="mp-unit"><select data-pi="${i}" data-pf="unit">${UNITS.map(u=>`<option value="${u}"${u===p.unit?' selected':''}>${u}</option>`).join('')}</select></td>
+      <td class="mp-price"><input type="number" value="${p.matUnit||''}" placeholder="0.00" step="0.01" min="0" data-pi="${i}" data-pf="matUnit" style="text-align:right"></td>
+      <td class="mp-price"><input type="number" value="${p.labUnit||''}" placeholder="0.00" step="0.01" min="0" data-pi="${i}" data-pf="labUnit" style="text-align:right"></td>
+      <td class="mp-del"><button class="btn-del" onclick="delMyPrice(${i})">✕</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function addMyPriceRow(){
+  myPrices.push({id:uuid(),description:'',unit:'SF',matUnit:0,labUnit:0});
+  renderMyPricesTbody();
+}
+function delMyPrice(i){myPrices.splice(i,1);renderMyPricesTbody();}
+
+$('myPricesTbody')||document.addEventListener('DOMContentLoaded',()=>{});
+document.addEventListener('input',e=>{
+  const pi=e.target.dataset.pi,pf=e.target.dataset.pf;
+  if(pi===undefined||!pf)return;
+  const idx=parseInt(pi);
+  myPrices[idx][pf]=['matUnit','labUnit'].includes(pf)?parseFloat(e.target.value)||0:e.target.value;
+});
+document.addEventListener('change',e=>{
+  const pi=e.target.dataset.pi,pf=e.target.dataset.pf;
+  if(pi===undefined||pf!=='unit')return;
+  myPrices[parseInt(pi)].unit=e.target.value;
+});
+
+function saveMyPrices(){
+  savePrices();
+  const msg=$('mpSaveMsg');msg.textContent='Saved!';setTimeout(()=>msg.textContent='',2000);
+}
+
+// ─── PRICE PICKER ────────────────────────────────────
+function openPicker(di,ii){
+  if(!myPrices.length){alert('No prices in My Price List yet. Add some first.');return;}
+  pickerTarget={di,ii};
+  const list=$('pickerList');list.innerHTML='';
+  myPrices.forEach((p,i)=>{
+    if(!p.description)return;
+    const d=document.createElement('div');d.className='picker-item';
+    d.innerHTML=`<span class="pi-desc">${esc(p.description)}</span><span class="pi-unit">${p.unit}</span><span class="pi-prices">Mat: $${p.matUnit||0} &nbsp; Lab: $${p.labUnit||0}</span>`;
+    d.onclick=()=>applyPrice(p);
+    list.appendChild(d);
+  });
+  $('pickerModal').classList.add('open');
+}
+
+function applyPrice(p){
+  if(!pickerTarget)return;
+  const{di,ii}=pickerTarget;
+  const item=cur.divisions[di].items[ii];
+  if(!item.description)item.description=p.description;
+  item.unit=p.unit;
+  item.matUnit=p.matUnit||0;
+  item.labUnit=p.labUnit||0;
+  save();refreshDiv(di);updateSummary();
+  $('pickerModal').classList.remove('open');
+  pickerTarget=null;
+}
+
 function renderEditor(){
   const b=cur;
   $('editorTitle').textContent=b.projectName||'Untitled';$('editorSub').textContent=b.quoteNumber;$('qnumBadge').textContent=b.quoteNumber;
