@@ -725,6 +725,10 @@ $('divisionsContainer').addEventListener('click',e=>{
     cur.divisions[di].items.push({id:uuid(),description:'',qty:0,unit:'SF',matUnit:0,labUnit:0});
     save();refreshDiv(di);
   }
+  if(act==='pick'){
+    const ii=parseInt(e.target.closest('tr[data-ii]').dataset.ii);
+    openPicker(di,ii);
+  }
 });
 
 function refreshDiv(di){
