@@ -137,6 +137,26 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f2f5;color:#1a1a2
 .pg-tbl th{background:#f5f5f5;padding:5px 8px;text-align:left;color:#666;font-size:.72rem;text-transform:uppercase}
 .pg-tbl td{padding:4px 8px;border-bottom:1px solid #f5f5f5}
 .pg-tbl td:nth-child(3),.pg-tbl td:nth-child(4),.pg-tbl td:nth-child(5){text-align:right}
+/* My Prices */
+.mp-tbl{width:100%;border-collapse:collapse;font-size:.84rem}
+.mp-tbl th{background:#f2f4f8;color:#666;font-size:.72rem;font-weight:700;text-transform:uppercase;padding:7px 8px;text-align:left;border-bottom:2px solid #e8e8e8}
+.mp-tbl td{padding:5px 6px;border-bottom:1px solid #f5f5f5;vertical-align:middle}
+.mp-tbl input,.mp-tbl select{border:1px solid #e0e0e0;background:#fff;padding:4px 6px;border-radius:4px;font-size:.84rem;outline:none;width:100%}
+.mp-tbl input:focus,.mp-tbl select:focus{border-color:#1B3A6B}
+.mp-tbl .mp-desc{min-width:200px}
+.mp-tbl .mp-unit{width:70px}
+.mp-tbl .mp-price{width:80px}
+.mp-tbl .mp-del{width:36px;text-align:center}
+.btn-use{width:26px;height:26px;border-radius:4px;border:none;background:#eef2ff;color:#1B3A6B;cursor:pointer;font-size:.8rem;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.btn-use:hover{background:#1B3A6B;color:#fff}
+.c-use{width:32px}
+/* Picker modal */
+.picker-list{display:flex;flex-direction:column;gap:6px;margin-top:12px;max-height:60vh;overflow-y:auto}
+.picker-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1px solid #e8e8e8;border-radius:8px;cursor:pointer;transition:all .15s;gap:12px}
+.picker-item:hover{background:#f0f4ff;border-color:#1B3A6B}
+.picker-item .pi-desc{font-weight:600;color:#1B3A6B;font-size:.88rem;flex:1}
+.picker-item .pi-prices{font-size:.78rem;color:#666;white-space:nowrap}
+.picker-item .pi-unit{font-size:.75rem;background:#e8ecf5;color:#1B3A6B;padding:2px 6px;border-radius:4px;font-weight:700}
 /* Toast */
 .toast{position:fixed;bottom:22px;right:22px;background:#1B3A6B;color:#fff;padding:11px 18px;border-radius:8px;font-size:.88rem;z-index:9999;transform:translateY(120px);transition:transform .3s;box-shadow:0 4px 16px rgba(0,0,0,.2)}
 .toast.show{transform:translateY(0)}
