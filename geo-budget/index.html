@@ -492,6 +492,8 @@ const fmt=n=>'$'+Math.round(n).toLocaleString();
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 function loadB(){try{return JSON.parse(localStorage.getItem(SKEY))||[];}catch{return[];}}
 function save(){localStorage.setItem(SKEY,JSON.stringify(budgets));}
+function loadPrices(){try{return JSON.parse(localStorage.getItem(PKEY))||[];}catch{return[];}}
+function savePrices(){localStorage.setItem(PKEY,JSON.stringify(myPrices));}
 function nextQ(){const s=(parseInt(localStorage.getItem(QKEY)||'0')+1);localStorage.setItem(QKEY,s);return 'GC-2026-'+String(s).padStart(4,'0');}
 function showScreen(id){document.querySelectorAll('.screen').forEach(s=>{s.classList.remove('active');s.style.display='none';});const el=$(id);el.classList.add('active');el.style.display=id==='loginScreen'?'flex':'block';}
 function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
