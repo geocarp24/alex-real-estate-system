@@ -485,7 +485,7 @@ const DEFAULT_DIVS=[
   {num:'17',name:'Cleanup & Miscellaneous'},
 ];
 
-let budgets=[],cur=null;
+let budgets=[],cur=null,myPrices=[],pickerTarget=null;
 const $=id=>document.getElementById(id);
 const uuid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
 const fmt=n=>'$'+Math.round(n).toLocaleString();
