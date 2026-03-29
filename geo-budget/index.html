@@ -508,7 +508,7 @@ function calcBudget(b){
 
 $('loginForm').addEventListener('submit',e=>{
   e.preventDefault();
-  if($('loginPw').value===APP_PW){budgets=loadB();showScreen('dashboardScreen');renderDash();}
+  if($('loginPw').value===APP_PW){budgets=loadB();myPrices=loadPrices();showScreen('dashboardScreen');renderDash();}
   else $('loginErr').textContent='Incorrect password.';
 });
 
