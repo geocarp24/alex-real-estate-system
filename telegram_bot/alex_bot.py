@@ -403,11 +403,30 @@ def _tool_read_memoria() -> str:
     return "No hay memoria operacional registrada aún."
 
 
+def _git_sync_memory() -> None:
+    """Push memory updates to GitHub so Claude Code on PC stays in sync."""
+    import subprocess
+    try:
+        repo = str(PROJECT_DIR)
+        subprocess.run(["git", "-C", repo, "add", "memoria_ALex.md", "telegram_bot/telegram_memory.md"],
+                       capture_output=True, timeout=15)
+        result = subprocess.run(
+            ["git", "-C", repo, "commit", "-m", f"auto: memory sync {datetime.now().strftime('%Y-%m-%d %H:%M')}"],
+            capture_output=True, timeout=15
+        )
+        if result.returncode == 0:  # only push if there was something to commit
+            subprocess.run(["git", "-C", repo, "push", "origin", "master"],
+                           capture_output=True, timeout=20)
+    except Exception:
+        pass  # sync failures are non-critical
+
+
 def _tool_write_memoria(content: str) -> str:
     try:
         existing = MEMORIA_ALEX.read_text(encoding="utf-8") if MEMORIA_ALEX.exists() else ""
         updated = existing + "\n\n" + content if existing.strip() else content
         MEMORIA_ALEX.write_text(updated, encoding="utf-8")
+        _git_sync_memory()
         return "✅ Memoria operacional actualizada correctamente."
     except Exception as e:
         return f"Error escribiendo memoria: {str(e)}"
