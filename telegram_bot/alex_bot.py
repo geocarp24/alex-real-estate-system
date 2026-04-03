@@ -1440,6 +1440,7 @@ async def cmd_guardar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         saved.append("memoria_ALex.md")
 
     if saved:
+        _git_sync_memory()
         display = summary or deal_notes
         msg = f"✅ Guardado en: {', '.join(saved)}\n\n_{display}_"
         await update.message.reply_text(msg, parse_mode="Markdown")
