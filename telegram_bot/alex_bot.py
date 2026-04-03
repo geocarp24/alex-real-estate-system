@@ -1375,6 +1375,7 @@ async def cmd_reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
         saved.append("memoria_ALex.md")
 
     if saved:
+        _git_sync_memory()
         await update.message.reply_text(f"✅ Memoria guardada en: {', '.join(saved)}\nHistorial limpiado.")
     else:
         await update.message.reply_text("✅ Historial limpiado (sin contenido suficiente para resumir).")
