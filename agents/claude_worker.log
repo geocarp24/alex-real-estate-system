@@ -1,0 +1,10 @@
+2026-04-05 16:20:13,350 [WORKER] INFO — =======================================================
+2026-04-05 16:20:13,351 [WORKER] INFO —   ALEX Claude Worker — Iniciando
+2026-04-05 16:20:13,351 [WORKER] INFO —   Inbox:  /opt/alex-bot/agents/claude_inbox.json
+2026-04-05 16:20:13,351 [WORKER] INFO —   Outbox: /opt/alex-bot/agents/claude_outbox.json
+2026-04-05 16:20:13,351 [WORKER] INFO —   Poll:   cada 2s | Timeout: 300s
+2026-04-05 16:20:13,351 [WORKER] INFO — =======================================================
+2026-04-05 16:20:27,751 [WORKER] INFO — Procesando tarea a76aae00... | Responde solo: PUENTE ACTIVO - El worker de Claude Code está
+2026-04-05 16:20:33,983 [WORKER] INFO — Tarea a76aae00 — OK
+2026-04-05 16:29:42,497 [WORKER] INFO — Procesando tarea 719d7418... | dime que hora es en el servidor
+2026-04-05 16:29:50,835 [WORKER] INFO — Tarea 719d7418 — OK

@@ -1,0 +1,27 @@
+2026-04-05 16:35:17,317 [API] INFO — Worker thread iniciado
+2026-04-05 16:35:17,318 [API] INFO — =======================================================
+2026-04-05 16:35:17,318 [API] INFO —   ALEX Claude API Server — Iniciando
+2026-04-05 16:35:17,319 [API] INFO —   Puerto: 5001
+2026-04-05 16:35:17,319 [API] INFO —   Endpoints: POST /task | GET /task/<id> | GET /health
+2026-04-05 16:35:17,319 [API] INFO —   Auth: X-Alex-Secret requerido
+2026-04-05 16:35:17,319 [API] INFO — =======================================================
+2026-04-05 16:35:17,322 [API] INFO — [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://187.77.215.146:5001
+2026-04-05 16:35:17,322 [API] INFO — [33mPress CTRL+C to quit[0m
+2026-04-05 16:35:24,220 [API] INFO — 127.0.0.1 - - [05/Apr/2026 16:35:24] "GET /health HTTP/1.1" 200 -
+2026-04-05 16:35:40,415 [API] INFO — Nueva tarea encolada: 0bd39de9 | Responde exactamente: API BRIDGE ACTIVO - Puente HTTP Bot↔Cl
+2026-04-05 16:35:40,416 [API] INFO — 127.0.0.1 - - [05/Apr/2026 16:35:40] "[35m[1mPOST /task HTTP/1.1[0m" 202 -
+2026-04-05 16:35:40,416 [API] INFO — Procesando 0bd39de9... | Responde exactamente: API BRIDGE ACTIVO - Puente HTTP Bot↔Cl
+2026-04-05 16:35:46,117 [API] INFO — Tarea 0bd39de9 — OK
+2026-04-05 16:36:03,236 [API] INFO — 127.0.0.1 - - [05/Apr/2026 16:36:03] "GET /task/0bd39de9-6abe-404c-a676-4bd21349e188 HTTP/1.1" 200 -
+2026-04-05 16:37:54,086 [API] INFO — 187.77.215.146 - - [05/Apr/2026 16:37:54] "GET /health HTTP/1.1" 200 -
+2026-04-05 17:01:00,670 [API] INFO — Nueva tarea encolada: 43e8b8e8 | lee memoria_ALex.md y ejecuta la TAREA #1 de Blotato que ALE
+2026-04-05 17:01:00,670 [API] INFO — 127.0.0.1 - - [05/Apr/2026 17:01:00] "[35m[1mPOST /task HTTP/1.1[0m" 202 -
+2026-04-05 17:01:00,670 [API] INFO — Procesando 43e8b8e8... | lee memoria_ALex.md y ejecuta la TAREA #1 de Blotato que ALE
+2026-04-05 17:01:30,878 [API] INFO — Tarea 43e8b8e8 — OK
+2026-04-05 17:23:24,475 [API] INFO — Nueva tarea encolada: 65c01c2e | Jefe, aquí está el diagnóstico real y honesto: --- ## ⚠️ EL 
+2026-04-05 17:23:24,476 [API] INFO — Procesando 65c01c2e... | Jefe, aquí está el diagnóstico real y honesto: --- ## ⚠️ EL 
+2026-04-05 17:23:24,476 [API] INFO — 127.0.0.1 - - [05/Apr/2026 17:23:24] "[35m[1mPOST /task HTTP/1.1[0m" 202 -
+2026-04-05 17:23:47,993 [API] INFO — Tarea 65c01c2e — OK
