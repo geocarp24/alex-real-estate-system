@@ -2066,6 +2066,104 @@ async def cmd_claude(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"📨 Encolado via worker. ID: `{task_id[:8]}...`", parse_mode="Markdown")
 
 
+GITHUB_QUEUE_REPO = "pinnacle-agent-memory"
+GITHUB_QUEUE_FILE = "task_queue.json"
+
+
+def write_task_to_github(task_description: str, chat_id, source: str = "telegram") -> tuple[bool, str]:
+    """
+    Escribe una tarea en task_queue.json en GitHub via bridge.
+    Retorna (éxito, task_id o mensaje de error).
+    """
+    if not http_requests:
+        return False, "requests no disponible"
+
+    # Leer queue actual
+    try:
+        r = http_requests.get(
+            f"{BRIDGE_URL}/github_bridge.php",
+            params={"repo": GITHUB_QUEUE_REPO, "file": GITHUB_QUEUE_FILE},
+            headers={"X-Alex-Secret": ALEX_SECRET},
+            timeout=15
+        )
+        tasks = json.loads(r.text) if r.status_code == 200 else []
+    except Exception:
+        tasks = []
+
+    # Agregar nueva tarea
+    task_id = str(__import__("uuid").uuid4())
+    tasks.append({
+        "task_id":    task_id,
+        "task":       task_description,
+        "chat_id":    str(chat_id),
+        "source":     source,
+        "status":     "pendiente",
+        "created_at": datetime.now().isoformat()
+    })
+
+    # Guardar en GitHub
+    try:
+        ts = datetime.now().strftime("%Y-%m-%d %H:%M")
+        r = http_requests.post(
+            f"{BRIDGE_URL}/github_write.php",
+            json={
+                "repo":    GITHUB_QUEUE_REPO,
+                "file":    GITHUB_QUEUE_FILE,
+                "content": json.dumps(tasks, ensure_ascii=False, indent=2),
+                "message": f"bot: nueva tarea — {ts}"
+            },
+            headers={"X-Alex-Secret": ALEX_SECRET, "Content-Type": "application/json"},
+            timeout=20
+        )
+        if r.status_code == 200 and r.json().get("success"):
+            return True, task_id
+        return False, f"Bridge error {r.status_code}"
+    except Exception as e:
+        return False, str(e)
+
+
+async def cmd_tarea(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Escribe una tarea en GitHub task_queue.json.
+    El GitHub Monitor la detecta y ejecuta automáticamente via Claude Code.
+    Resultado llega a Telegram sin que Jorge abra Claude Code.
+    """
+    user_id = str(update.effective_user.id)
+    if user_id != OWNER_CHAT_ID:
+        await update.message.reply_text("⛔ Solo el Jefe puede usar este comando.")
+        return
+
+    task = " ".join(context.args) if context.args else ""
+    if not task:
+        await update.message.reply_text(
+            "⚠️ Uso: `/tarea <descripción>`\n"
+            "Ejemplo: `/tarea analiza el mercado de Milwaukee WI para Fix & Flip`\n\n"
+            "El Monitor la ejecuta automáticamente y te avisa aquí.",
+            parse_mode="Markdown"
+        )
+        return
+
+    success, result = await asyncio.to_thread(
+        write_task_to_github, task, update.effective_chat.id
+    )
+
+    if success:
+        await update.message.reply_text(
+            f"📋 *Tarea enviada al Monitor GitHub*\n\n"
+            f"_{task[:200]}_\n\n"
+            f"El Monitor la detectará en los próximos 30 segundos y ejecutará Claude Code.\n"
+            f"Te aviso aquí cuando esté lista.\n"
+            f"ID: `{result[:8]}...`",
+            parse_mode="Markdown"
+        )
+    else:
+        await update.message.reply_text(
+            f"⚠️ No se pudo escribir en GitHub: `{result}`\n"
+            f"Usa `/claude {task}` como alternativa.",
+            parse_mode="Markdown"
+        )
+
+
 async def main():
     if not http_requests:
         logger.warning("⚠️  Librería 'requests' no instalada. Airtable y Tracy no funcionarán. Ejecuta: pip install requests")
@@ -2084,6 +2182,7 @@ async def main():
     app.add_handler(CommandHandler("permitir",    cmd_permitir))
     app.add_handler(CommandHandler("bloquear",    cmd_bloquear))
     app.add_handler(CommandHandler("claude",      cmd_claude))
+    app.add_handler(CommandHandler("tarea",       cmd_tarea))
 
     # Mensajes
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
