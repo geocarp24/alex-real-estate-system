@@ -1977,7 +1977,10 @@ async def handle_unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ─────────────────────────────────────────────
 
 async def cmd_claude(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Ejecuta una tarea en Claude Code CLI y devuelve el resultado via Telegram."""
+    """
+    Encola una tarea para Claude Code CLI via claude_worker.
+    El worker la procesa y envía el resultado directamente a Telegram.
+    """
     user_id = str(update.effective_user.id)
     if user_id != OWNER_CHAT_ID:
         await update.message.reply_text("⛔ Solo el Jefe puede usar este comando.")
@@ -1991,40 +1994,30 @@ async def cmd_claude(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    await update.message.reply_text("⏳ Claude Code procesando...", parse_mode="Markdown")
-
-    def run_claude():
-        env = {**os.environ, "ANTHROPIC_API_KEY": os.getenv("ANTHROPIC_KEY", "")}
-        # Inyectar historial compartido como contexto
-        history_context = format_shared_conv_for_context(max_messages=20)
-        full_prompt = f"{history_context}\n\n[Nueva tarea desde Telegram]:\n{task}" if history_context else task
-        result = subprocess.run(
-            ["claude", "--print", full_prompt],
-            capture_output=True, text=True, timeout=180,
-            cwd=str(PROJECT_DIR), env=env
-        )
-        if result.returncode == 0:
-            return result.stdout.strip() or "✅ Tarea completada (sin output de texto)."
-        else:
-            return f"❌ Error (código {result.returncode}):\n{result.stderr.strip()[:500]}"
-
+    # Escribir tarea en el inbox para que claude_worker la procese
+    task_id = str(__import__("uuid").uuid4())
+    inbox_file = PROJECT_DIR / "agents" / "claude_inbox.json"
     try:
-        response = await asyncio.to_thread(run_claude)
-    except subprocess.TimeoutExpired:
-        response = "⏱ Timeout: Claude Code tardó más de 3 minutos. Tarea puede seguir corriendo en el servidor."
-    except FileNotFoundError:
-        response = "❌ Claude Code CLI no encontrado en el servidor."
-    except Exception as e:
-        response = f"❌ Error inesperado: {str(e)}"
+        tasks = json.loads(inbox_file.read_text(encoding="utf-8")) if inbox_file.exists() else []
+    except Exception:
+        tasks = []
 
-    # Guardar en historial compartido
-    if not response.startswith("❌") and not response.startswith("⏱"):
-        append_shared_conv("user", task, "telegram")
-        append_shared_conv("assistant", response, "claude_code")
+    tasks.append({
+        "task_id":    task_id,
+        "prompt":     task,
+        "chat_id":    update.effective_chat.id,
+        "source":     "telegram",
+        "status":     "pending",
+        "created_at": __import__("datetime").datetime.now().isoformat()
+    })
+    inbox_file.write_text(json.dumps(tasks, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    # Telegram tiene límite de 4096 chars por mensaje
-    for i in range(0, len(response), 4000):
-        await update.message.reply_text(response[i:i+4000])
+    await update.message.reply_text(
+        f"📨 Tarea encolada para Claude Code.\n"
+        f"Te notifico aquí cuando esté lista.\n"
+        f"ID: `{task_id[:8]}...`",
+        parse_mode="Markdown"
+    )
 
 
 async def main():
