@@ -1976,10 +1976,50 @@ async def handle_unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # MAIN
 # ─────────────────────────────────────────────
 
+CLAUDE_API_URL    = "http://localhost:5001"
+CLAUDE_API_SECRET = os.getenv("ALEX_SECRET", "pinnacle2024ALEXsecret99")
+
+# Palabras clave que activan auto-delegación a Claude Code
+CLAUDE_CODE_TRIGGERS = [
+    "ejecuta", "corre el script", "bash", "shell", "systemctl",
+    "git commit", "git push", "deploy", "instala", "pip install",
+    "edita el archivo", "modifica el código", "actualiza el bot",
+    "reinicia el servicio", "lee el log", "muestra los logs",
+]
+
+
+def delegate_to_claude_api(prompt: str, chat_id, source: str = "telegram") -> tuple[bool, str]:
+    """
+    Envía una tarea al Claude API Server via HTTP POST.
+    Retorna (éxito, task_id o mensaje de error).
+    """
+    try:
+        r = http_requests.post(
+            f"{CLAUDE_API_URL}/task",
+            json={"prompt": prompt, "chat_id": str(chat_id), "source": source},
+            headers={"X-Alex-Secret": CLAUDE_API_SECRET},
+            timeout=10
+        )
+        if r.status_code == 202:
+            data = r.json()
+            return True, data.get("task_id", "")
+        return False, f"API error {r.status_code}: {r.text[:200]}"
+    except Exception as e:
+        return False, str(e)
+
+
+def should_delegate_to_claude_code(text: str) -> bool:
+    """
+    Auto-detección: devuelve True si el mensaje contiene
+    palabras clave que requieren Claude Code CLI.
+    """
+    text_lower = text.lower()
+    return any(trigger in text_lower for trigger in CLAUDE_CODE_TRIGGERS)
+
+
 async def cmd_claude(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Encola una tarea para Claude Code CLI via claude_worker.
-    El worker la procesa y envía el resultado directamente a Telegram.
+    Envía tarea al Claude API Server (HTTP) — respuesta llega directo a Telegram.
     """
     user_id = str(update.effective_user.id)
     if user_id != OWNER_CHAT_ID:
@@ -1994,30 +2034,36 @@ async def cmd_claude(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # Escribir tarea en el inbox para que claude_worker la procese
-    task_id = str(__import__("uuid").uuid4())
-    inbox_file = PROJECT_DIR / "agents" / "claude_inbox.json"
-    try:
-        tasks = json.loads(inbox_file.read_text(encoding="utf-8")) if inbox_file.exists() else []
-    except Exception:
-        tasks = []
+    success, result = delegate_to_claude_api(task, update.effective_chat.id)
 
-    tasks.append({
-        "task_id":    task_id,
-        "prompt":     task,
-        "chat_id":    update.effective_chat.id,
-        "source":     "telegram",
-        "status":     "pending",
-        "created_at": __import__("datetime").datetime.now().isoformat()
-    })
-    inbox_file.write_text(json.dumps(tasks, ensure_ascii=False, indent=2), encoding="utf-8")
-
-    await update.message.reply_text(
-        f"📨 Tarea encolada para Claude Code.\n"
-        f"Te notifico aquí cuando esté lista.\n"
-        f"ID: `{task_id[:8]}...`",
-        parse_mode="Markdown"
-    )
+    if success:
+        await update.message.reply_text(
+            f"📨 Tarea enviada a Claude Code.\n"
+            f"Te notifico aquí cuando esté lista.\n"
+            f"ID: `{result[:8]}...`",
+            parse_mode="Markdown"
+        )
+    else:
+        await update.message.reply_text(
+            f"⚠️ API no disponible. Reintentando con worker local...\n`{result}`",
+            parse_mode="Markdown"
+        )
+        # Fallback al inbox del worker
+        import uuid as _uuid
+        task_id = str(_uuid.uuid4())
+        inbox_file = PROJECT_DIR / "agents" / "claude_inbox.json"
+        try:
+            tasks = json.loads(inbox_file.read_text(encoding="utf-8")) if inbox_file.exists() else []
+        except Exception:
+            tasks = []
+        tasks.append({
+            "task_id": task_id, "prompt": task,
+            "chat_id": update.effective_chat.id,
+            "source": "telegram", "status": "pending",
+            "created_at": datetime.now().isoformat()
+        })
+        inbox_file.write_text(json.dumps(tasks, ensure_ascii=False, indent=2), encoding="utf-8")
+        await update.message.reply_text(f"📨 Encolado via worker. ID: `{task_id[:8]}...`", parse_mode="Markdown")
 
 
 async def main():
