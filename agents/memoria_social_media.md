@@ -1,6 +1,6 @@
 # MEMORIA — SOCIAL MEDIA AGENT (Pinnacle Holdings)
 
-> Leído al inicio de cada invocación. Actualizar después de cada sesión de contenido.
+> Leído al inicio de cada invocación. Actualizar después de cada sesión.
 > Formato de fecha: YYYY-MM-DD
 
 ---
@@ -12,15 +12,16 @@ Eres invocado por ALEX Orquestador. **Solo aceptas órdenes de ALEX.**
 
 ---
 
-## 📊 ESTADO DE SISTEMAS (2026-04-05)
+## 📊 ESTADO DE SISTEMAS — Auditado 2026-04-05
 
 | Sistema | Estado | Detalle |
 |---------|--------|---------|
-| GitHub memoria (pinnacle-agent-memory) | ✅ Activo | PINNACLE_SOCIAL_MEDIA_AGENT.md sincronizado |
-| Airtable — Ideas de Contenido | ✅ Lista | 12 ideas pendientes de subir |
-| Airtable — Publicaciones | ✅ Lista | Vacía, lista para usar |
-| Make.com escenario ID 4636455 | ⚠️ Creado | Necesita activación (toggle ON) |
-| Make.com webhook | ✅ Activo | hook.us2.make.com/zbvy7391... |
+| Airtable conexión | ✅ OK | Token válido, escritura confirmada |
+| Airtable Ideas de Contenido | ✅ Escribe | Record test creado rec: recCM80pqccFhVLr2 |
+| Airtable Publicaciones | ✅ Lista | Sin registros |
+| Airtable Scripts de Video | ✅ Lista | Sin registros |
+| Make.com webhook | ✅ HTTP 200 | Acepta payloads, responde "Accepted" |
+| Make.com escenario 4636455 | ⚠️ INACTIVO | Toggle OFF — requiere activación manual |
 | Facebook Business | ✅ 100% | Listo para publicar |
 | Instagram @pinnacle.groupwi | ✅ 100% | Listo para publicar |
 | Google Business Profile | ⏳ Verificación | Esperando aprobación video |
@@ -30,42 +31,107 @@ Eres invocado por ALEX Orquestador. **Solo aceptas órdenes de ALEX.**
 
 ---
 
-## 📋 IDEAS GENERADAS (Semanas 1-4)
+## 🔧 PROBLEMAS ENCONTRADOS Y ESTADO (2026-04-05)
 
-| # | Título | Semana | Formato | Status |
-|---|--------|--------|---------|--------|
-| 1 | S1 - Lanzamiento: ¿Quién es Jorge Cruz? | 1 | Post | Nueva |
-| 2 | S1 - Proceso en 5 pasos | 1 | Carrusel | Nueva |
-| 3 | S1 - Reel Presentación Jorge | 1 | Reel | Nueva |
-| 4 | S2 - Cash Buyer vs Realtor | 2 | Post | Nueva |
-| 5 | S2 - Foreclosure: Tienes Opciones | 2 | Post | Nueva |
-| 6 | S2 - Cualquier Condición | 2 | Post | Nueva |
-| 7 | S3 - Herencia: Heredaste una Propiedad | 3 | Carrusel | Nueva |
-| 8 | S3 - Divorcio: Solución para Propiedades | 3 | Post | Nueva |
-| 9 | S3 - Reel Behind the Scenes | 3 | Reel | Nueva |
-| 10 | S4 - Lead Magnet: ¿Cuánto vale tu casa? | 4 | Post | Nueva |
-| 11 | S4 - FAQ Carrusel | 4 | Carrusel | Nueva |
-| 12 | S4 - Urgencia: Comprando en Green Bay AHORA | 4 | Post | Nueva |
+### ✅ Ya arreglados por ALEX:
+- Campo ` Hashtags` tenía espacio inicial → renombrado a `Hashtags`
+- Campo ` Status` tenía espacio inicial → renombrado a `Status`
+- Nombres reales de campos documentados (emoji en Caption EN/ES, etc.)
+- Scripts de Video: ID real es `tbli9BsyIwrhwa3aS` (no el documentado antes)
+- Flujo completo Airtable probado y confirmado
+
+### ⚠️ Requieren fix manual en Airtable UI (Jorge):
+1. **Campo `Formato` en Ideas de Contenido** — opciones actuales: `FB | IG | Ambas` (INCORRECTO)
+   - Ir a: airtable.com → base Pinnacle Social Media → tabla Ideas de Contenido → campo Formato
+   - Cambiar opciones a: `Post | Reel | Carrusel | Story`
+
+2. **Campo `Tipo` en Ideas de Contenido** — typos: `Promo` y `Pesonal`
+   - Ir a: airtable.com → Ideas de Contenido → campo Tipo
+   - Renombrar: `Promo` → `Promocional` y `Pesonal` → `Personal`
+
+3. **Campo `Formato` en Publicaciones** — opciones actuales: `Todo | In progress | Done` (Airtable default)
+   - Ir a: tabla Publicaciones → campo Formato
+   - Cambiar opciones a: `Post | Reel | Carrusel | Story`
+
+### ⚠️ Requiere activación manual en Make.com (Jorge):
+4. **Escenario ID 4636455** está creado pero INACTIVO
+   - Ir a: us2.make.com → "Pinnacle — Social Media Ideas → Airtable"
+   - Click el toggle azul ON en la esquina superior izquierda del escenario
+   - Confirmar activación
 
 ---
 
-## 🔴 TAREAS PENDIENTES
+## 📋 INSTRUCCIONES PASO A PASO — Activar Make.com
 
-### Alta Prioridad:
-- [ ] Subir 12 ideas a Airtable (script disponible en PINNACLE_SOCIAL_MEDIA_AGENT.md sec. 9)
-- [ ] Activar escenario Make ID 4636455 (toggle ON en make.com)
-- [ ] Agregar foto IMG_2725 de Jorge a banners Canva
+1. Abrir `us2.make.com` e iniciar sesión con `fcmultiser@gmail.com`
+2. Ir a **My Scenarios** → buscar "Pinnacle — Social Media Ideas → Airtable" (ID: 4636455)
+3. Abrir el escenario — ver el toggle en la esquina superior izquierda
+4. Si el toggle está gris (OFF) → click para poner en azul (ON)
+5. Hacer click en **"Run once"** para probar
+6. Enviar un webhook de prueba desde Telegram: `"prueba webhook social media"`
+7. Verificar que se crea registro en Airtable Ideas de Contenido
 
-### Media Prioridad:
-- [ ] Crear LinkedIn Company Page
-- [ ] Configurar Blotato + conectar con Make.com
-- [ ] Completar captions detallados Semanas 3 y 4
+**También verificar el mapeo del módulo Airtable dentro del escenario:**
+- Módulo: Airtable (Create a Record)
+- Base: Pinnacle Social Media (`appU9s3kGkVpdrJkw`)
+- Table: Ideas de Contenido (`tblAj0Pkj1jW4p5Ld`)
+- Mapeo de campos (usar los nombres EXACTOS con emojis):
+
+| Campo Make | Campo Airtable |
+|-----------|----------------|
+| `titulo` | `Título de Idea` |
+| `hook` | `Hook` |
+| `caption_en` | `🇺🇸 Caption EN` |
+| `caption_es` | `🇲🇽 Caption ES` |
+| `hashtags` | `Hashtags` |
+| `formato` | `Formato` |
+| `plataforma` | `Plataforma` |
+| `tipo` | `Tipo` |
+| `semana` | `Semana` |
+
+---
+
+## 🧪 CÓMO PROBAR EL FLUJO COMPLETO DESDE TELEGRAM
+
+Cuando el escenario Make esté activo, enviar al bot de Telegram:
+
+> "Genera un post educativo para Facebook sobre foreclosure, semana 2, y guárdalo en Airtable"
+
+El bot invocará `invoke_social_media` con `save_to_airtable=True` y el agente:
+1. Generará el contenido completo
+2. Hará POST a Airtable directo
+3. También enviará al webhook Make.com para automatización
+
+---
+
+## 📋 IDEA RECORDS YA EN AIRTABLE (pendiente limpiar)
+
+| Record ID | Título | Notas |
+|-----------|--------|-------|
+| recCM80pqccFhVLr2 | TEST ALEX — Verificación flujo completo | ELIMINAR — solo diagnóstico |
+
+---
+
+## 📋 IDEAS GENERADAS (Semanas 1-4) — Pendiente subir a Airtable
+
+| # | Título | Semana | Formato | Status |
+|---|--------|--------|---------|--------|
+| 1 | S1 - Lanzamiento: ¿Quién es Jorge Cruz? | 1 | Post | Pendiente |
+| 2 | S1 - Proceso en 5 pasos | 1 | Carrusel | Pendiente |
+| 3 | S1 - Reel Presentación Jorge | 1 | Reel | Pendiente |
+| 4 | S2 - Cash Buyer vs Realtor | 2 | Post | Pendiente |
+| 5 | S2 - Foreclosure: Tienes Opciones | 2 | Post | Pendiente |
+| 6 | S2 - Cualquier Condición | 2 | Post | Pendiente |
+| 7 | S3 - Herencia: Heredaste una Propiedad | 3 | Carrusel | Pendiente |
+| 8 | S3 - Divorcio: Solución para Propiedades | 3 | Post | Pendiente |
+| 9 | S3 - Reel Behind the Scenes | 3 | Reel | Pendiente |
+| 10 | S4 - Lead Magnet: ¿Cuánto vale tu casa? | 4 | Post | Pendiente |
+| 11 | S4 - FAQ Carrusel | 4 | Carrusel | Pendiente |
+| 12 | S4 - Urgencia: Comprando en Green Bay AHORA | 4 | Post | Pendiente |
 
 ---
 
 ## 📝 LECCIONES APRENDIDAS
-
-*(Sin entradas aún — registrar aquí cada vez que un tipo de contenido funcione bien o mal)*
 
 | Fecha | Tipo de post | Plataforma | Resultado | Lección |
 |-------|-------------|-----------|-----------|---------|
@@ -74,4 +140,4 @@ Eres invocado por ALEX Orquestador. **Solo aceptas órdenes de ALEX.**
 ---
 
 *Integrado al sistema ALEX: 2026-04-05*
-*Sub-agente de ALEX Orquestador*
+*Auditado y corregido: 2026-04-05*
