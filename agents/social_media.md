@@ -157,7 +157,7 @@ Guarda en `tblAj0Pkj1jW4p5Ld` con estos campos exactos:
   "Semana":            1,
   "Status":            "Nueva",
   "Visual_Prompt":     "[Prompt completo para El Creativo — ver estructura arriba]",
-  "Blotato_Template_ID": "/base/v2/image-slideshow/5903b592-1255-43b4-b9ac-f8ed7cbf6a5f/v1",  ← SIEMPRE este para Carruseles
+  "Blotato_Template_ID": "/base/v2/tutorial-carousel/2491f97b-1b47-4efa-8b96-8c651fa7b3d5/v1",  ← para Carruseles de listas/pasos
   "Video_Script_EN":   "[Script EN 15s — solo si Reel/Video]",
   "Video_Script_ES":   "[Script ES 15s — solo si Reel/Video]",
   "Branding_Spec":     "Logo: https://pinnaclegroupwi.com/wp-content/uploads/2026/03/logo-pinnacle.png | Colors: #0D3B2E bg / #FFFFFF text / #C9A84C accent | Position: bottom-right watermark"
@@ -169,27 +169,19 @@ Guarda en `tblAj0Pkj1jW4p5Ld` con estos campos exactos:
 ## EJEMPLOS DE VISUAL PROMPTS POR TIPO
 
 ### Carrusel educativo (5 razones, mitos, pasos):
-
-**Template a usar:** `/base/v2/image-slideshow/5903b592-1255-43b4-b9ac-f8ed7cbf6a5f/v1` (slideDuration=2s)
-
-El Visual_Prompt para carruseles debe describir el contenido de cada slide en orden. El Creativo construirá los `inputs.slides[]` a partir de esto:
-
 ```
 TITLE: [Título corto identificable — ej: "5 Mitos Cash Buyers S6"]
-TEMPLATE: image-slideshow (slideDuration=2, fade transition, 4:5)
 
-SLIDES (máx 6 incluyendo hook y CTA):
-Slide 1 — HOOK: "[Hook EN — máx 10 palabras]" / "[Hook ES]"
-Slide 2 — [Punto 1 EN] / [Punto 1 ES — traducción concisa]
-Slide 3 — [Punto 2 EN] / [Punto 2 ES]
-Slide 4 — [Punto 3 EN] / [Punto 3 ES]
-Slide 5 — [Punto 4 y 5 EN — condensados] / [ES]
-Slide 6 — CTA: "📞 (920) 777-9886 | pinnaclegroupwi.com / We Buy Houses — Cash. Fast. Fair."
+Slide 1 (HOOK — va en mainTitle/title del template, con logo Pinnacle): "[Hook EN — máx 50 chars impactantes]" / "[Hook ES]"
+Slide 2: [Punto 1 EN] — [ES translation]
+Slide 3: [Punto 2 EN] — [ES translation]
+Slide 4: [Punto 3 EN] — [ES translation]
+Slide 5: [Punto 4 y 5 EN condensados] — [ES]
+Slide 6 (CTA): "📞 (920) 777-9886 | pinnaclegroupwi.com — We Buy Houses — Cash. Fast. Fair."
 
-BRANDING (para todos los slides):
-Background: Dark green #0D3B2E, professional real estate, clean minimal
-Text color: #FFFFFF white, bold
-Style: Modern, bilingual EN/ES
+BRANDING: Dark green #0D3B2E background, white text #FFFFFF, gold accents #C9A84C
+LOGO: https://pinnaclegroupwi.com/wp-content/uploads/2026/03/logo-pinnacle.png — slide 1 y CTA
+Bilingual EN/ES en todos los slides
 ```
 
 ### Post imagen con texto:
