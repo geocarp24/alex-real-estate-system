@@ -148,6 +148,11 @@ status_result = blotato_get_visual_status(id=visual_id)
 image_urls = status_result.get("imageUrls", [])
 media_url = status_result.get("mediaUrl", "")
 
+# Para tutorial-carousel: el primer imageUrl es un frame en blanco (animación de intro).
+# Saltarse imageUrls[0] — el hook real está en imageUrls[1].
+if len(image_urls) > 1:
+    image_urls = image_urls[1:]   # ← skip el frame en blanco
+
 visual_url = image_urls[0] if image_urls else media_url
 all_urls = "|".join(image_urls) if len(image_urls) > 1 else visual_url
 blotato_visual_id_field = f"{visual_id}|||{all_urls}"
