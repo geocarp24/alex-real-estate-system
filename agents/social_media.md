@@ -157,7 +157,7 @@ Guarda en `tblAj0Pkj1jW4p5Ld` con estos campos exactos:
   "Semana":            1,
   "Status":            "Nueva",
   "Visual_Prompt":     "[Prompt completo para El Creativo — ver estructura arriba]",
-  "Blotato_Template_ID": "[ID del template seleccionado]",
+  "Blotato_Template_ID": "/base/v2/image-slideshow/5903b592-1255-43b4-b9ac-f8ed7cbf6a5f/v1",  ← SIEMPRE este para Carruseles
   "Video_Script_EN":   "[Script EN 15s — solo si Reel/Video]",
   "Video_Script_ES":   "[Script ES 15s — solo si Reel/Video]",
   "Branding_Spec":     "Logo: https://pinnaclegroupwi.com/wp-content/uploads/2026/03/logo-pinnacle.png | Colors: #0D3B2E bg / #FFFFFF text / #C9A84C accent | Position: bottom-right watermark"
@@ -169,18 +169,27 @@ Guarda en `tblAj0Pkj1jW4p5Ld` con estos campos exactos:
 ## EJEMPLOS DE VISUAL PROMPTS POR TIPO
 
 ### Carrusel educativo (5 razones, mitos, pasos):
+
+**Template a usar:** `/base/v2/image-slideshow/5903b592-1255-43b4-b9ac-f8ed7cbf6a5f/v1` (slideDuration=2s)
+
+El Visual_Prompt para carruseles debe describir el contenido de cada slide en orden. El Creativo construirá los `inputs.slides[]` a partir de esto:
+
 ```
-TITLE: [Título corto identificable — ej: "Foreclosure Options WI" o "5 Razones Cash Buyer"]
-5-slide carousel for Pinnacle Holdings Group LLC.
-CRITICAL: Start IMMEDIATELY on Slide 1 with the hook text. NO blank intro. NO empty frames. The very first frame must show the bold headline — zero delay.
-Slide 1 (HOOK — must fill entire first frame, bold, large font): "[Hook EN]" / "[Hook ES below]" — dark green #0D3B2E background, white bold text, gold accent bar
-Slide 2: [Punto 1] — EN headline + ES translation below
-Slide 3: [Punto 2 y 3] — EN headline + ES translation below
-Slide 4: [Punto 4 y 5] — EN headline + ES translation below
-Slide 5 (CTA): "Call Jorge Cruz" — (920) 777-9886 — pinnaclegroupwi.com — "We Buy Houses — Cash. Fast. Fair." / "Compramos Casas — Efectivo. Rápido. Justo."
-BRANDING: Dark green #0D3B2E background, white text, gold #C9A84C accents and dividers.
-LOGO: Place Pinnacle Holdings Group logo (https://pinnaclegroupwi.com/wp-content/uploads/2026/03/logo-pinnacle.png) on every slide, bottom-right corner, small watermark.
-Style: Professional real estate, clean minimalist, modern typography, bilingual.
+TITLE: [Título corto identificable — ej: "5 Mitos Cash Buyers S6"]
+TEMPLATE: image-slideshow (slideDuration=2, fade transition, 4:5)
+
+SLIDES (máx 6 incluyendo hook y CTA):
+Slide 1 — HOOK: "[Hook EN — máx 10 palabras]" / "[Hook ES]"
+Slide 2 — [Punto 1 EN] / [Punto 1 ES — traducción concisa]
+Slide 3 — [Punto 2 EN] / [Punto 2 ES]
+Slide 4 — [Punto 3 EN] / [Punto 3 ES]
+Slide 5 — [Punto 4 y 5 EN — condensados] / [ES]
+Slide 6 — CTA: "📞 (920) 777-9886 | pinnaclegroupwi.com / We Buy Houses — Cash. Fast. Fair."
+
+BRANDING (para todos los slides):
+Background: Dark green #0D3B2E, professional real estate, clean minimal
+Text color: #FFFFFF white, bold
+Style: Modern, bilingual EN/ES
 ```
 
 ### Post imagen con texto:
