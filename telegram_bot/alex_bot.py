@@ -56,9 +56,14 @@ ALEX_SECRET  = os.getenv("ALEX_SECRET",  "")
 GITHUB_REPO  = "alex-real-estate-system"
 
 # Social Media Agent — Airtable base separada
-SM_AIRTABLE_TOKEN   = "patSlNwngu7SJoa52.003c83df8f6e378af5309237e310a36568a037448709d94b10739d032f9e8ef7"
-SM_AIRTABLE_BASE_ID = "appU9s3kGkVpdrJkw"
-SM_MAKE_WEBHOOK     = "https://hook.us2.make.com/zbvy7391qh9n7dlmw1hy8pq9ym69obxk"
+SM_AIRTABLE_TOKEN    = "patSlNwngu7SJoa52.003c83df8f6e378af5309237e310a36568a037448709d94b10739d032f9e8ef7"
+SM_AIRTABLE_BASE_ID  = "appU9s3kGkVpdrJkw"
+SM_AIRTABLE_BASE_URL = f"https://api.airtable.com/v0/{SM_AIRTABLE_BASE_ID}"
+SM_MAKE_WEBHOOK      = "https://hook.us2.make.com/zbvy7391qh9n7dlmw1hy8pq9ym69obxk"
+SM_TABLE_IDS = {
+    "Ideas de Contenido": "tblAj0Pkj1jW4p5Ld",
+    "Publicaciones":      "tblP1CSi35fNgbSwK",
+}
 
 TABLE_IDS = {
     "Contacts":         "tblacvw0Ss770x8l5",
@@ -265,6 +270,71 @@ TOOLS = [
         }
     },
     {
+        "name": "airtable_sm_list",
+        "description": "Lee registros de la base Social Media de Airtable (Pinnacle). Úsalo para ver ideas de contenido, publicaciones programadas o el calendario de social media.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "table": {
+                    "type": "string",
+                    "enum": ["Ideas de Contenido", "Publicaciones"],
+                    "description": "Tabla de Social Media a consultar"
+                },
+                "filter_formula": {
+                    "type": "string",
+                    "description": "Fórmula de filtro Airtable (opcional), e.g.: {Semana}=2 o {Status}='Nueva'"
+                },
+                "max_records": {
+                    "type": "integer",
+                    "description": "Máximo de registros a retornar (default: 20)"
+                }
+            },
+            "required": ["table"]
+        }
+    },
+    {
+        "name": "airtable_sm_create",
+        "description": "Crea un registro en la base Social Media de Airtable. Úsalo para guardar ideas de contenido o publicaciones directamente sin pasar por Make.com.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "table": {
+                    "type": "string",
+                    "enum": ["Ideas de Contenido", "Publicaciones"],
+                    "description": "Tabla donde crear el registro"
+                },
+                "fields": {
+                    "type": "object",
+                    "description": "Campos del registro. Para 'Ideas de Contenido' usar: 'Título de Idea', 'Hook', 'Mensaje Principal', 'CTA', '🇺🇸 Caption EN', '🇲🇽 Caption ES', 'Hashtags', 'Formato' (Post|Reel|Carrusel|Story), 'Plataforma' (FB|IG|AMBAS), 'Tipo' (Educativo|Promocional|Personal), 'Status' (Nueva), 'Semana' (número)"
+                }
+            },
+            "required": ["table", "fields"]
+        }
+    },
+    {
+        "name": "airtable_sm_update",
+        "description": "Actualiza un registro existente en la base Social Media de Airtable por su record_id.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "table": {
+                    "type": "string",
+                    "enum": ["Ideas de Contenido", "Publicaciones"],
+                    "description": "Tabla del registro a actualizar"
+                },
+                "record_id": {
+                    "type": "string",
+                    "description": "ID del registro Airtable (empieza con 'rec')"
+                },
+                "fields": {
+                    "type": "object",
+                    "description": "Campos a actualizar con sus nuevos valores"
+                }
+            },
+            "required": ["table", "record_id", "fields"]
+        }
+    },
+    {
         "name": "read_memoria",
         "description": "Lee la memoria operacional de ALEX (memoria_ALex.md). Contiene deals analizados, zip codes, lecciones aprendidas, flags de riesgo. Úsalo al inicio de cada análisis.",
         "input_schema": {"type": "object", "properties": {}}
@@ -343,9 +413,12 @@ PROGRESS_MESSAGES = {
     "invoke_fact_checker": "🔎 *El Fact-Checker* auditando el deal...",
     "invoke_tracy":        "👤 *Tracy* buscando al propietario en Tracerfy...",
     "invoke_social_media": "📱 *Social Media Agent* generando contenido...",
-    "airtable_list":       "📋 Consultando Airtable...",
-    "airtable_create":     "💾 Guardando registro en Airtable...",
-    "airtable_update":    "✏️ Actualizando registro en Airtable...",
+    "airtable_list":       "📋 Consultando Airtable CRM...",
+    "airtable_create":     "💾 Guardando en Airtable CRM...",
+    "airtable_update":     "✏️ Actualizando Airtable CRM...",
+    "airtable_sm_list":    "📋 Consultando Airtable Social Media...",
+    "airtable_sm_create":  "💾 Guardando en Airtable Social Media...",
+    "airtable_sm_update":  "✏️ Actualizando Airtable Social Media...",
     "read_memoria":       "🧠 Leyendo memoria operacional...",
     "write_memoria":      "💾 Guardando aprendizajes en memoria...",
     "web_fetch":          "🌐 Obteniendo datos de la web...",
@@ -423,6 +496,84 @@ def _tool_airtable_update(table: str, record_id: str, fields: dict) -> str:
         resp = http_requests.patch(
             f"{AIRTABLE_BASE_URL}/{table_id}/{record_id}",
             headers=_airtable_headers(),
+            json={"fields": fields},
+            timeout=30
+        )
+        data = resp.json()
+        if "error" in data:
+            return json.dumps({"error": data["error"], "message": data.get("message", "")})
+        return json.dumps({"status": "updated", "record_id": data.get("id")}, ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+def _sm_airtable_headers() -> dict:
+    return {
+        "Authorization": f"Bearer {SM_AIRTABLE_TOKEN}",
+        "Content-Type": "application/json"
+    }
+
+
+def _tool_airtable_sm_list(table: str, filter_formula: str = None, max_records: int = 20) -> str:
+    if not http_requests:
+        return "Error: librería 'requests' no instalada."
+    table_id = SM_TABLE_IDS.get(table)
+    if not table_id:
+        return json.dumps({"error": f"Tabla '{table}' no encontrada. Tablas SM: {list(SM_TABLE_IDS.keys())}"})
+    params = {"maxRecords": str(max_records)}
+    if filter_formula:
+        params["filterByFormula"] = filter_formula
+    try:
+        resp = http_requests.get(
+            f"{SM_AIRTABLE_BASE_URL}/{table_id}",
+            headers=_sm_airtable_headers(),
+            params=params,
+            timeout=30
+        )
+        data = resp.json()
+        if "error" in data:
+            return json.dumps({"error": data["error"], "message": data.get("message", "")})
+        records = data.get("records", [])
+        return json.dumps({"table": table, "count": len(records), "records": records}, ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+def _tool_airtable_sm_create(table: str, fields: dict) -> str:
+    if not http_requests:
+        return "Error: librería 'requests' no instalada."
+    table_id = SM_TABLE_IDS.get(table)
+    if not table_id:
+        return json.dumps({"error": f"Tabla '{table}' no encontrada."})
+    try:
+        resp = http_requests.post(
+            f"{SM_AIRTABLE_BASE_URL}/{table_id}",
+            headers=_sm_airtable_headers(),
+            json={"fields": fields},
+            timeout=30
+        )
+        data = resp.json()
+        if "error" in data:
+            return json.dumps({"error": data["error"], "message": data.get("message", "")})
+        return json.dumps({
+            "status": "created",
+            "record_id": data.get("id"),
+            "fields": data.get("fields", {})
+        }, ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+def _tool_airtable_sm_update(table: str, record_id: str, fields: dict) -> str:
+    if not http_requests:
+        return "Error: librería 'requests' no instalada."
+    table_id = SM_TABLE_IDS.get(table)
+    if not table_id:
+        return json.dumps({"error": f"Tabla '{table}' no encontrada."})
+    try:
+        resp = http_requests.patch(
+            f"{SM_AIRTABLE_BASE_URL}/{table_id}/{record_id}",
+            headers=_sm_airtable_headers(),
             json={"fields": fields},
             timeout=30
         )
@@ -1054,6 +1205,23 @@ async def _execute_tool(tool_name: str, tool_input: dict) -> str:
         ))
     elif tool_name == "airtable_update":
         return await loop.run_in_executor(None, lambda: _tool_airtable_update(
+            tool_input.get("table", ""),
+            tool_input.get("record_id", ""),
+            tool_input.get("fields", {})
+        ))
+    elif tool_name == "airtable_sm_list":
+        return await loop.run_in_executor(None, lambda: _tool_airtable_sm_list(
+            tool_input.get("table", ""),
+            tool_input.get("filter_formula"),
+            tool_input.get("max_records", 20)
+        ))
+    elif tool_name == "airtable_sm_create":
+        return await loop.run_in_executor(None, lambda: _tool_airtable_sm_create(
+            tool_input.get("table", ""),
+            tool_input.get("fields", {})
+        ))
+    elif tool_name == "airtable_sm_update":
+        return await loop.run_in_executor(None, lambda: _tool_airtable_sm_update(
             tool_input.get("table", ""),
             tool_input.get("record_id", ""),
             tool_input.get("fields", {})

@@ -126,8 +126,12 @@
 
 ## 🔴 PENDIENTES PRIORITARIOS (próxima sesión)
 
-1. **[JORGE] Revisar escenario Make 4636455** — webhook acepta pero NO escribe en Airtable. Ir a Make.com → escenario 4636455 → historial de ejecuciones → ver el error del módulo Airtable
-2. **Analizar primer deal real** — todas las tablas de Airtable RE siguen vacías
-3. **Subir 12 ideas SM a Airtable** — directamente via API, sin depender de Make (mientras se resuelve el bug)
-4. **Geo Carpentry Budget Builder** — deploy pendiente, base de precios WI
-5. **Website Geo Carpentry Fase 1** — migración a Durable, ya estamos en Abril
+1. **Subir 12 ideas SM a Airtable** — Jorge le pidió a ALEX via Telegram que las genere y guarde (en proceso)
+2. **Geo Carpentry Budget Builder** — deploy pendiente, base de precios WI
+3. **Website Geo Carpentry Fase 1** — migración a Durable, pendiente
+
+## ✅ ESTADO ACTUALIZADO — 2026-04-05
+
+- **Make.com escenario 4636455** — ✅ Funcionando correctamente, módulos mapeados bien
+- **Airtable RE (Leads)** — ✅ Hay leads activos siendo trabajados por Jorge
+- **ALEX escribe directo en Airtable SM** — ✅ Tools `airtable_sm_list/create/update` operativas sin depender de Make
