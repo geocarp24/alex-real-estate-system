@@ -100,7 +100,7 @@
 | Airtable Social Media | ✅ Activo | Base `appU9s3kGkVpdrJkw` — 12 ideas pendientes |
 | el_polling.php | ✅ Activo | Cron cada 5min en Hostinger |
 | el_chismoso.php | ✅ Activo | Webhook Tracy→Contacts |
-| Make.com escenario SM | ⚠️ Creado | ID 4636455 — necesita activación manual |
+| Make.com escenario SM | ✅ Activo | ID 4636455 — activado 2026-04-05 |
 
 ---
 
@@ -117,9 +117,7 @@
 ## 🔴 PENDIENTES PRIORITARIOS (próxima sesión)
 
 1. **Analizar primer deal real** — todas las tablas de Airtable RE siguen vacías
-2. **[JORGE — 5 min]** Activar Make escenario ID 4636455 — toggle ON en us2.make.com
-3. **[JORGE — 5 min]** Fix campos Airtable: `Formato` (→ Post/Reel/Carrusel/Story) y `Tipo` (→ Educativo/Promocional/Personal)
-4. **[JORGE]** Eliminar record test de Airtable: `recCM80pqccFhVLr2`
-5. **Subir 12 ideas SM a Airtable** — ALEX puede hacerlo desde Telegram con `save_to_airtable=True`
+2. **Subir 12 ideas SM a Airtable** — ALEX puede hacerlo desde Telegram con `save_to_airtable=True`
+3. **[JORGE]** Eliminar records de prueba de Airtable: `recCM80pqccFhVLr2` y `rec94zvEmcfE9gVMl`
 6. **Geo Carpentry Budget Builder** — deploy pendiente, base de precios WI
 7. **Website Geo Carpentry Fase 1** — migración a Durable, ya estamos en Abril
