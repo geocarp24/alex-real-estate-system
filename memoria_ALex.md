@@ -135,3 +135,20 @@
 - **Make.com escenario 4636455** — ✅ Funcionando correctamente, módulos mapeados bien
 - **Airtable RE (Leads)** — ✅ Hay leads activos siendo trabajados por Jorge
 - **ALEX escribe directo en Airtable SM** — ✅ Tools `airtable_sm_list/create/update` operativas sin depender de Make
+
+
+## 2026 — Credenciales del Sistema (CONFIDENCIAL)
+
+### GitHub Token (Full Access)
+- Variable: GITHUB_TOKEN
+- Guardado en .env del sistema
+- Nota: NO imprimir en outputs
+
+### Blotato API Key
+- Variable: BLOTATO_API_KEY  
+- Key: blt_2Jz5IZHqjY6WzhfTWkDVskRANpeibfXkyDTvUB+mn8k=
+- Nota: NO imprimir en outputs
+
+### Acción pendiente:
+- Agregar BLOTATO_API_KEY al .env del VPS
+- Configurar Make.com con Blotato para publicación automática SM
