@@ -12,22 +12,22 @@ Eres invocado por ALEX Orquestador. **Solo aceptas órdenes de ALEX.**
 
 ---
 
-## 📊 ESTADO DE SISTEMAS — Auditado 2026-04-05
+## 📊 ESTADO DE SISTEMAS — Actualizado 2026-04-05
 
 | Sistema | Estado | Detalle |
 |---------|--------|---------|
 | Airtable conexión | ✅ OK | Token válido, escritura confirmada |
-| Airtable Ideas de Contenido | ✅ Escribe | Record test creado rec: recCM80pqccFhVLr2 |
-| Airtable Publicaciones | ✅ Lista | Sin registros |
+| Airtable Ideas de Contenido | ✅ 13 ideas | 6 → En Produccion, 7 → Nueva (Carrusel/Reel) |
+| Airtable Publicaciones | ✅ Lista | Sin registros aún |
 | Airtable Scripts de Video | ✅ Lista | Sin registros |
 | Make.com webhook | ✅ HTTP 200 | Acepta payloads, responde "Accepted" |
 | Make.com escenario 4636455 | ✅ ACTIVO | Activado por Jorge el 2026-04-05 |
-| Facebook Business | ✅ 100% | Listo para publicar |
-| Instagram @pinnacle.groupwi | ✅ 100% | Listo para publicar |
+| Facebook Business | ✅ 6 posts scheduled | Semanas 1-4, todos 12pm CDT |
+| Instagram @pinnacle.groupwi | ⏳ Pendiente imagen | Blotato conectado pero IG necesita media |
 | Google Business Profile | ⏳ Verificación | Esperando aprobación video |
 | LinkedIn Company Page | ❌ Pendiente | Por crear |
-| Canva banners | ⚠️ Parcial | 4 diseños listos, sin foto Jorge |
-| Blotato (video IA) | ❌ Pendiente | Configurar + conectar Make |
+| Canva banners | ⚠️ Parcial | Pendiente credenciales Canva + Cloudinary |
+| Blotato MCP | ✅ ACTIVO | SSE en ~/.claude/settings.json — 14 tools disponibles |
 
 ---
 
@@ -91,30 +91,27 @@ El bot invocará `invoke_social_media` con `save_to_airtable=True` y el agente:
 
 ---
 
-## 📋 IDEA RECORDS YA EN AIRTABLE (pendiente limpiar)
+## 📋 IDEAS EN AIRTABLE — Estado actual (2026-04-05)
 
-| Record ID | Título | Notas |
-|-----------|--------|-------|
-| recCM80pqccFhVLr2 | TEST ALEX — Verificación flujo completo | ELIMINAR — solo diagnóstico |
+| Record ID | Título | Semana | Formato | Plataforma | Status | Blotato ID |
+|-----------|--------|--------|---------|-----------|--------|-----------|
+| recdF2uT42ay04k69 | S1 - ¿Quién es Jorge Cruz? | 1 | Post | FB+IG | ✅ En Produccion | `4e924cba` — Lun 6 Abr |
+| recMwpr2pmMPZmRmf | S1 - ¿Cuánto vale tu casa? | 1 | Post | FB+IG | ✅ En Produccion | `314e7e95` — Mié 8 Abr |
+| recnxz2muTo5woVol | S1 - Foreclosure en Wisconsin | 1 | Post | FB | ✅ En Produccion | `7fd1a454` — Vie 10 Abr |
+| recMuIrouAvcSD3O5 | S2 - Testimonio Familia Martínez | 2 | Post | FB | ✅ En Produccion | `a609d373` — Lun 13 Abr |
+| recOh9DcfkJI27W9a | S2 - 5 Razones para vender por efectivo | 2 | Carrusel | FB+IG | ⏳ Nueva | necesita imágenes |
+| recV03FAw75s3MSOP | S2 - ¿Qué es el equity? | 2 | Carrusel | FB+IG | ⏳ Nueva | necesita imágenes |
+| recBoDVfwyQ72h2DS | S3 - ¿Qué pasa con tu herencia? | 3 | Post | FB | ✅ En Produccion | `d2f8d770` — Lun 20 Abr |
+| recFfp5dAr7H4c4Yv | S3 - Behind the Scenes | 3 | Reel | FB+IG | ⏳ Nueva | necesita video Jorge |
+| recw0dHKcbZH5PQax | S3 - Realtor vs Cash Buyer | 3 | Carrusel | FB+IG | ⏳ Nueva | necesita imágenes |
+| rec6ngb2ejWej7GS2 | S4 - Jorge habla: Por qué fundé Pinnacle | 4 | Reel | FB+IG | ⏳ Nueva | necesita video Jorge |
+| recMWp8QEnS9zBTaN | S4 - El proceso paso a paso | 4 | Carrusel | FB+IG | ⏳ Nueva | necesita imágenes |
+| recropHT1yVOD8W7M | S4 - Mitos sobre cash buyers | 4 | Carrusel | FB+IG | ⏳ Nueva | necesita imágenes |
+| recvNs3tIzbDtfl8e | S4 - ¿Qué es un Short Sale? | 4 | Post | FB+IG | ✅ En Produccion | `1a20aa31` — Lun 27 Abr |
 
----
+**Nota sobre fotos de Jorge:** Bot de Telegram analizó 5 fotos enviadas por Jorge (sesión 2026-04-05). Para usarlas en IG, Jorge debe reenviarlas con URL pública o subirlas a GitHub/Cloudinary.
 
-## 📋 IDEAS GENERADAS (Semanas 1-4) — Pendiente subir a Airtable
-
-| # | Título | Semana | Formato | Status |
-|---|--------|--------|---------|--------|
-| 1 | S1 - Lanzamiento: ¿Quién es Jorge Cruz? | 1 | Post | Pendiente |
-| 2 | S1 - Proceso en 5 pasos | 1 | Carrusel | Pendiente |
-| 3 | S1 - Reel Presentación Jorge | 1 | Reel | Pendiente |
-| 4 | S2 - Cash Buyer vs Realtor | 2 | Post | Pendiente |
-| 5 | S2 - Foreclosure: Tienes Opciones | 2 | Post | Pendiente |
-| 6 | S2 - Cualquier Condición | 2 | Post | Pendiente |
-| 7 | S3 - Herencia: Heredaste una Propiedad | 3 | Carrusel | Pendiente |
-| 8 | S3 - Divorcio: Solución para Propiedades | 3 | Post | Pendiente |
-| 9 | S3 - Reel Behind the Scenes | 3 | Reel | Pendiente |
-| 10 | S4 - Lead Magnet: ¿Cuánto vale tu casa? | 4 | Post | Pendiente |
-| 11 | S4 - FAQ Carrusel | 4 | Carrusel | Pendiente |
-| 12 | S4 - Urgencia: Comprando en Green Bay AHORA | 4 | Post | Pendiente |
+**Nota sobre recCM80pqccFhVLr2:** Era registro de prueba — puede eliminarse.
 
 ---
 
@@ -122,9 +119,26 @@ El bot invocará `invoke_social_media` con `save_to_airtable=True` y el agente:
 
 | Fecha | Tipo de post | Plataforma | Resultado | Lección |
 |-------|-------------|-----------|-----------|---------|
-| — | — | — | — | — |
+| 2026-04-05 | Post texto bilingüe | Facebook | ✅ Scheduled OK | FB acepta posts texto-puro sin imagen — muy útil para arranque rápido |
+| 2026-04-05 | Post texto | Instagram | ❌ No intentado | IG requiere imagen para posts regulares — no soporta texto-puro |
+
+## 🔑 FLUJO VALIDADO — Blotato MCP → Facebook
+
+```
+blotato_create_post(
+  accountId="25638",
+  platform="facebook",
+  pageId="965320503341457",
+  text="[Caption EN]\n---\n[Caption ES]\n[hashtags]",
+  mediaUrls=[],
+  scheduledTime="YYYY-MM-DDTHH:MM:SSZ"
+)
+→ Retorna postSubmissionId inmediatamente
+→ Guardar ID en Airtable campo "ID de Publicación"
+```
 
 ---
 
 *Integrado al sistema ALEX: 2026-04-05*
 *Auditado y corregido: 2026-04-05*
+*Posts programados: 2026-04-05*
