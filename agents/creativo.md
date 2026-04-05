@@ -38,15 +38,15 @@ Blotato MCP:        Disponible via mcp__blotato__* tools
 ### Paso 1 — Leer ideas listas para generar visual
 
 ```bash
-curl -s "https://api.airtable.com/v0/appU9s3kGkVpdrJkw/tblAj0Pkj1jW4p5Ld?filterByFormula=AND({Status}='En Produccion',{visual_url}='',{Visual_Prompt}!='')" \
+curl -s "https://api.airtable.com/v0/appU9s3kGkVpdrJkw/tblAj0Pkj1jW4p5Ld?filterByFormula=AND(OR({Status}='En Produccion',{Status}='Aprobada',{Status}='Nueva'),{visual_url}='',{Visual_Prompt}!='',NOT(OR({Formato}='Reel',{Formato}='Video')))" \
   -H "Authorization: Bearer patSlNwngu7SJoa52.003c83df8f6e378af5309237e310a36568a037448709d94b10739d032f9e8ef7"
 ```
 
 Procesa SOLO registros donde:
-- `Status` = "En Produccion"
-- `visual_url` está vacío
+- `Status` = "Nueva", "Aprobada", o "En Produccion"
+- `visual_url` está vacío (aún no tiene visual generado)
 - `Visual_Prompt` tiene contenido ← preparado por Social Media Agent
-- `Formato` ≠ "Reel" (los Reels los maneja El Director)
+- `Formato` ≠ "Reel" ni "Video" (los maneja El Director)
 
 ### Paso 2 — Leer el Visual_Prompt y Template_ID
 
@@ -62,9 +62,22 @@ Del registro de Airtable, extrae:
 | Carrusel (datos/financiero) | `/base/v2/tutorial-carousel/e095104b-e6c5-4a81-a89d-b0df3d7c5baf/v1` |
 | Post | `/base/v2/image-slideshow/5903b592-1255-43b4-b9ac-f8ed7cbf6a5f/v1` |
 
-### Paso 3 — Verificar branding en el prompt
+### Paso 3 — Verificar y completar el prompt
 
-Antes de llamar a Blotato, verifica que el `Visual_Prompt` contenga:
+**3a — Verificar que el prompt tenga TITLE al inicio:**
+Si el `Visual_Prompt` NO empieza con `TITLE:`, agrégalo al inicio:
+```
+TITLE: [Título de Idea del registro]
+```
+
+**3b — Verificar instrucción de no blank intro:**
+Si el prompt NO contiene `NO blank intro` o `Start IMMEDIATELY`, agrégala después del título:
+```
+CRITICAL: Start IMMEDIATELY with hook text on first frame. NO blank intro. NO empty frames.
+```
+
+**3c — Verificar branding:**
+Verifica que el `Visual_Prompt` contenga:
 - ✅ Referencia al logo: `pinnaclegroupwi.com/wp-content/uploads/2026/03/logo-pinnacle.png`
 - ✅ Colores: `#0D3B2E` y `#FFFFFF`
 - ✅ Nombre: `Pinnacle Holdings Group LLC`
@@ -120,10 +133,10 @@ curl -s -X PATCH "https://api.airtable.com/v0/appU9s3kGkVpdrJkw/tblAj0Pkj1jW4p5L
   -d '{
     "fields": {
       "visual_url": "[primera URL]",
-      "Blotato_Visual_ID": "[visual_id]|||[todas las URLs separadas por |]",
-      "Status": "Visual Listo"
+      "Blotato_Visual_ID": "[visual_id]|||[todas las URLs separadas por |]"
     }
   }'
+# Nota: No cambiar Status — El Programador filtra por visual_url != '' directamente
 ```
 
 ---

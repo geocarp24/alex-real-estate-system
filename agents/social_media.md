@@ -95,7 +95,14 @@ Horario:    Mejor día y hora en CST para publicar
 El Visual Prompt debe ser una instrucción completa y precisa para Blotato. Estructura obligatoria:
 
 ```
+TITLE: [Título corto e identificable del creativo — ej: "Foreclosure Options WI Sem5" o "Jorge Story Behind Scenes"]
+
+[INICIO — CRÍTICO]
+Start IMMEDIATELY with the hook/headline on the first frame. NO blank intro. NO black or empty frames at the beginning.
+First frame must show bold headline text from frame zero — this is the first thing the audience sees.
+
 [CONTENIDO]
+Slide/Scene 1 (HOOK): "[Hook EN — frase impactante, máx 8 palabras, bold, large font]" / "[Hook ES below]"
 Describe el contenido slide por slide (para carruseles) o la imagen (para posts).
 Siempre en inglés para mejores resultados con Blotato IA.
 
@@ -163,8 +170,10 @@ Guarda en `tblAj0Pkj1jW4p5Ld` con estos campos exactos:
 
 ### Carrusel educativo (5 razones, mitos, pasos):
 ```
+TITLE: [Título corto identificable — ej: "Foreclosure Options WI" o "5 Razones Cash Buyer"]
 5-slide carousel for Pinnacle Holdings Group LLC.
-Slide 1 (Title): "[Título impactante]" — subtitle: "[subtítulo]"
+CRITICAL: Start IMMEDIATELY on Slide 1 with the hook text. NO blank intro. NO empty frames. The very first frame must show the bold headline — zero delay.
+Slide 1 (HOOK — must fill entire first frame, bold, large font): "[Hook EN]" / "[Hook ES below]" — dark green #0D3B2E background, white bold text, gold accent bar
 Slide 2: [Punto 1] — EN headline + ES translation below
 Slide 3: [Punto 2 y 3] — EN headline + ES translation below
 Slide 4: [Punto 4 y 5] — EN headline + ES translation below
@@ -176,9 +185,11 @@ Style: Professional real estate, clean minimalist, modern typography, bilingual.
 
 ### Post imagen con texto:
 ```
+TITLE: [Título corto identificable — ej: "Jorge Cruz Intro" o "Cash vs Realtor"]
 Single image post for Pinnacle Holdings Group LLC.
-Main headline: "[Frase impactante EN]"
-Subheadline: "[Frase ES]"
+CRITICAL: The HOOK/headline must appear immediately — no blank intro, no empty space at the top.
+Main headline (large, bold, top of image): "[Hook EN — frase impactante]"
+Subheadline: "[Hook ES]"
 Body text: [2-3 puntos clave EN + ES]
 CTA: (920) 777-9886 | pinnaclegroupwi.com
 BRANDING: Dark green #0D3B2E background, white text, gold accents.
@@ -188,8 +199,10 @@ Style: Bold, impactful, professional real estate.
 
 ### Video/Reel AI Story:
 ```
+TITLE: [Título corto identificable — ej: "Behind the Scenes Pinnacle" o "Proceso de Venta"]
 15-second video for Pinnacle Holdings Group LLC. 3 scenes.
-Scene 1 (4s): [Descripción visual] — text overlay: "[Hook EN]" / "[Hook ES]"
+CRITICAL: Scene 1 must start IMMEDIATELY with the hook text on screen — no black frames, no blank intro.
+Scene 1 (4s): [Descripción visual] — text overlay BOLD LARGE: "[Hook EN]" / "[Hook ES]" — must fill screen from frame 0
 Scene 2 (8s): [Descripción visual] — [Puntos clave con text overlays]
 Scene 3 (3s): Call to action — Jorge Cruz — (920) 777-9886 — pinnaclegroupwi.com
 LOGO: Pinnacle Holdings Group logo watermark on all scenes, bottom-right.
@@ -201,14 +214,21 @@ Style: Professional, trustworthy, authentic real estate.
 
 ### Video/Reel AI Selfie (Jorge habla):
 ```
-15-second personal talking video for Jorge Cruz, founder of Pinnacle Holdings Group LLC.
-Reference photo: [URL foto Jorge de GitHub si disponible]
+TITLE: [Título corto identificable — ej: "Jorge Habla — Foreclosure" o "Jorge Personal — Historia"]
+15-second personal talking head video. The speaker is Jorge Cruz, founder of Pinnacle Holdings Group LLC.
+CHARACTER CONSISTENCY — CRITICAL: Jorge Cruz must appear as the same person in every frame. Use these reference photos to build his appearance:
+  Photo 1: https://raw.githubusercontent.com/geocarp24/pinnacle-agent-memory/main/IMG_2706.jpeg
+  Photo 2: https://raw.githubusercontent.com/geocarp24/pinnacle-agent-memory/main/IMG_2723.jpeg
+  Photo 3: https://raw.githubusercontent.com/geocarp24/pinnacle-agent-memory/main/IMG_2724.jpeg
+Jorge's appearance: Hispanic male, professional attire, confident and trustworthy expression.
+Do NOT use a generic avatar or a different person — Jorge Cruz is the face of this brand.
+CRITICAL: Video must start IMMEDIATELY showing Jorge speaking — no blank or black intro frames.
 Script: "[Script EN 40 palabras]"
-Tone: Authentic, personal, trustworthy — not corporate
+Tone: Authentic, personal, direct — not corporate
 Background: Dark green gradient #0D3B2E
 Lower third text: "Jorge Cruz | Pinnacle Holdings Group LLC | (920) 777-9886"
 LOGO: Pinnacle Holdings Group logo (https://pinnaclegroupwi.com/wp-content/uploads/2026/03/logo-pinnacle.png) top-right corner, small.
-Subtitle: Spanish translation of script as subtitles
+Subtitle: Spanish translation of script as subtitles throughout video
 ```
 
 ---

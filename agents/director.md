@@ -45,14 +45,14 @@ Fotos de Jorge disponibles en GitHub:
 ### Paso 1 — Leer Reels pendientes de Airtable
 
 ```bash
-curl -s "https://api.airtable.com/v0/appU9s3kGkVpdrJkw/tblAj0Pkj1jW4p5Ld?filterByFormula=AND(OR({Formato}='Reel',{Formato}='Video'),{Status}='En Produccion',{visual_url}='',{Video_Script_EN}!='')" \
+curl -s "https://api.airtable.com/v0/appU9s3kGkVpdrJkw/tblAj0Pkj1jW4p5Ld?filterByFormula=AND(OR({Formato}='Reel',{Formato}='Video'),OR({Status}='Nueva',{Status}='Aprobada',{Status}='En Produccion'),{visual_url}='',{Video_Script_EN}!='')" \
   -H "Authorization: Bearer patSlNwngu7SJoa52.003c83df8f6e378af5309237e310a36568a037448709d94b10739d032f9e8ef7"
 ```
 
 Procesa SOLO registros donde:
 - `Formato` = "Reel" o "Video"
-- `Status` = "En Produccion"
-- `visual_url` está vacío
+- `Status` = "Nueva", "Aprobada", o "En Produccion"
+- `visual_url` está vacío (aún no tiene video generado)
 - `Video_Script_EN` tiene contenido ← preparado por Social Media Agent
 
 ### Paso 2 — Leer el script y el prompt
@@ -98,7 +98,11 @@ Usa el `Visual_Prompt` del registro como base. Si no tiene información de video
 
 **Para AI Story Video (historia narrada):**
 ```
+TITLE: [Título de Idea — corto e identificable]
 [Visual_Prompt del registro]
+
+CRITICAL: Video must start IMMEDIATELY with hook text overlay on screen — NO blank or black intro frames.
+Scene 1 must show the hook headline from frame zero, bold and large.
 
 VIDEO SCRIPT (read as voiceover):
 EN: [Video_Script_EN]
@@ -114,16 +118,24 @@ BRANDING:
 
 **Para AI Selfie Video (Jorge habla):**
 ```
+TITLE: [Título de Idea — corto e identificable]
 [Visual_Prompt del registro]
 
+CHARACTER: Jorge Cruz — founder of Pinnacle Holdings Group LLC. Hispanic male, professional attire, confident and approachable. This is a REAL person — maintain 100% character consistency throughout all frames.
+
+CHARACTER CONSISTENCY — CRITICAL: Use these reference photos to build Jorge's likeness accurately. The same face must appear in every frame — no drift, no generic avatar substitution.
+  Reference photo 1 (primary): https://raw.githubusercontent.com/geocarp24/pinnacle-agent-memory/main/IMG_2706.jpeg
+  Reference photo 2: https://raw.githubusercontent.com/geocarp24/pinnacle-agent-memory/main/IMG_2723.jpeg
+  Reference photo 3: https://raw.githubusercontent.com/geocarp24/pinnacle-agent-memory/main/IMG_2724.jpeg
+
+CRITICAL: Video must start IMMEDIATELY showing Jorge speaking — NO blank or black intro frames.
 SCRIPT: [Video_Script_EN]
 Spanish subtitles: [Video_Script_ES]
-Reference photo: https://raw.githubusercontent.com/geocarp24/pinnacle-agent-memory/main/IMG_2706.jpeg
 Background: Dark green gradient #0D3B2E
 Lower third: "Jorge Cruz | Pinnacle Holdings Group LLC | (920) 777-9886"
-Logo: https://pinnaclegroupwi.com/wp-content/uploads/2026/03/logo-pinnacle.png — top-right corner
+Logo: https://pinnaclegroupwi.com/wp-content/uploads/2026/03/logo-pinnacle.png — top-right corner, small
 Duration: 15 seconds
-Tone: Authentic, personal, trustworthy
+Tone: Authentic, personal, direct — Jorge speaks as himself, not as a corporate spokesperson
 ```
 
 ### Paso 6 — Generar el video con Blotato
