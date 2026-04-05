@@ -84,7 +84,9 @@ AGENTS_DIR      = PROJECT_DIR / "agents"
 PROTOCOLO_SEG   = PROJECT_DIR / "agents" / "protocolo_seguro.md"
 COLA_MENSAJES   = PROJECT_DIR / "agents" / "cola_mensajes.md"
 ALERT_SCRIPT    = PROJECT_DIR / "agents" / "alerta_telegram.sh"
+SHARED_CONV     = PROJECT_DIR / "agents" / "shared_conversation.json"
 OWNER_CHAT_ID   = "8402370952"
+SHARED_CONV_MAX = 60  # máximo de mensajes a guardar en historial compartido
 
 SESSIONS_DIR.mkdir(exist_ok=True)
 
@@ -1302,6 +1304,60 @@ def append_memoria_alex(entry: str):
     _bridge_write("memoria_ALex.md", updated, f"ALEX memoria update — {date_str}")
 
 
+def load_shared_conv() -> list:
+    """Lee el historial compartido desde archivo local."""
+    if SHARED_CONV.exists():
+        try:
+            data = json.loads(SHARED_CONV.read_text(encoding="utf-8"))
+            return data.get("messages", [])
+        except Exception:
+            return []
+    return []
+
+
+def save_shared_conv(messages: list):
+    """Guarda el historial compartido, manteniendo solo los últimos SHARED_CONV_MAX mensajes."""
+    trimmed = messages[-SHARED_CONV_MAX:]
+    SHARED_CONV.write_text(
+        json.dumps({
+            "messages": trimmed,
+            "updated": datetime.now().isoformat()
+        }, ensure_ascii=False, indent=2),
+        encoding="utf-8"
+    )
+
+
+def append_shared_conv(role: str, content: str, channel: str = "telegram"):
+    """Añade un mensaje al historial compartido."""
+    messages = load_shared_conv()
+    messages.append({
+        "role": role,
+        "content": content,
+        "channel": channel,
+        "timestamp": datetime.now().isoformat()
+    })
+    save_shared_conv(messages)
+
+
+def format_shared_conv_for_context(max_messages: int = 20) -> str:
+    """Formatea el historial compartido como texto para inyectar como contexto."""
+    messages = load_shared_conv()
+    if not messages:
+        return ""
+    recent = messages[-max_messages:]
+    lines = ["--- Conversación reciente (historial compartido) ---"]
+    for m in recent:
+        channel_tag = f"[{m.get('channel','?').upper()}]"
+        role_tag = "Jorge" if m["role"] == "user" else "ALEX"
+        ts = m.get("timestamp", "")[:16].replace("T", " ")
+        content = m["content"]
+        if isinstance(content, list):
+            content = " ".join(b.get("text", "") for b in content if isinstance(b, dict))
+        lines.append(f"{ts} {channel_tag} {role_tag}: {content[:500]}")
+    lines.append("--- Fin del historial compartido ---")
+    return "\n".join(lines)
+
+
 def send_security_alert(level: str, description: str, solutions: str = "Revisar logs del sistema."):
     """Envía alerta de seguridad al Jefe vía Telegram Bot API directamente."""
     import subprocess
@@ -1499,6 +1555,15 @@ async def ask_claude(user_id: int, content: list, progress_callback=None) -> str
                 history.append({"role": "assistant", "content": assistant_text})
                 conversation_history[user_id] = history
                 save_history(user_id, history)
+                # Sync al historial compartido (espejo con Claude Code)
+                if history and history[-2]["role"] == "user":
+                    user_content = history[-2]["content"]
+                    if isinstance(user_content, list):
+                        user_text = " ".join(b.get("text","") for b in user_content if isinstance(b, dict) and b.get("type") == "text")
+                    else:
+                        user_text = str(user_content)
+                    append_shared_conv("user", user_text, "telegram")
+                append_shared_conv("assistant", assistant_text, "telegram")
                 return assistant_text
 
             elif response.stop_reason == "tool_use":
@@ -1930,8 +1995,11 @@ async def cmd_claude(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     def run_claude():
         env = {**os.environ, "ANTHROPIC_API_KEY": os.getenv("ANTHROPIC_KEY", "")}
+        # Inyectar historial compartido como contexto
+        history_context = format_shared_conv_for_context(max_messages=20)
+        full_prompt = f"{history_context}\n\n[Nueva tarea desde Telegram]:\n{task}" if history_context else task
         result = subprocess.run(
-            ["claude", "--print", task],
+            ["claude", "--print", full_prompt],
             capture_output=True, text=True, timeout=180,
             cwd=str(PROJECT_DIR), env=env
         )
@@ -1948,6 +2016,11 @@ async def cmd_claude(update: Update, context: ContextTypes.DEFAULT_TYPE):
         response = "❌ Claude Code CLI no encontrado en el servidor."
     except Exception as e:
         response = f"❌ Error inesperado: {str(e)}"
+
+    # Guardar en historial compartido
+    if not response.startswith("❌") and not response.startswith("⏱"):
+        append_shared_conv("user", task, "telegram")
+        append_shared_conv("assistant", response, "claude_code")
 
     # Telegram tiene límite de 4096 chars por mensaje
     for i in range(0, len(response), 4000):
