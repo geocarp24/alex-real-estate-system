@@ -274,7 +274,7 @@
 
 ---
 
-## ✅ Posts Programados en Facebook — 2026-04-05
+## ✅ Posts Programados en FB + IG — 2026-04-05 / 2026-04-05 (actualizado)
 
 **6 Posts de formato `Post` programados en Pinnacle Holdings Group FB Page (`965320503341457`)**
 **Plataforma:** Solo Facebook (IG pendiente — requiere imagen)
@@ -289,10 +289,22 @@
 | Lun 20 Abr 12pm CDT | S3 - ¿Qué pasa con tu herencia? | `d2f8d770` | `recBoDVfwyQ72h2DS` |
 | Lun 27 Abr 12pm CDT | S4 - ¿Qué es un Short Sale? | `1a20aa31` | `recvNs3tIzbDtfl8e` |
 
-**Pendientes (necesitan media):**
-- 4 Carrusel posts (S2-equity, S2-5razones, S3-realtor vs cash, S4-mitos, S4-proceso) → necesitan imágenes
-- 2 Reels (S3-behind the scenes, S4-Jorge habla) → necesitan video de Jorge
-- IG para los 6 posts → necesitan imagen con logo PHG + color #0D3B2E
+**✅ COMPLETADO 2026-04-05 — Todos los 10 posts pendientes programados con fotos de GitHub:**
+
+| Fecha | Título | FB ID | IG ID | Fotos |
+|-------|--------|-------|-------|-------|
+| Lun 6 Abr 12pm CDT | S1 - ¿Quién es Jorge Cruz? | `4e924cba` (prev) | `ba500c68` | IMG_2706 |
+| Mié 8 Abr 12pm CDT | S1 - ¿Cuánto vale tu casa? | `314e7e95` (prev) | `e0551fe0` | IMG_1988 |
+| Mié 15 Abr 12pm CDT | S2 - 5 Razones efectivo | `a99c3170` | `f348c871` | IMG_2091+2092+2113 |
+| Vie 17 Abr 12pm CDT | S2 - ¿Qué es el equity? | `ed2a5080` | `9b75f4cc` | IMG_2719+2723 |
+| Mié 22 Abr 12pm CDT | S3 - Behind the Scenes | `336fbf47` | `4124dd62` | IMG_2724 |
+| Vie 24 Abr 12pm CDT | S3 - Realtor vs Cash Buyer | `b250f747` | `566c539b` | IMG_2726+98EC09BA |
+| Lun 27 Abr 12pm CDT | S4 - ¿Qué es un Short Sale? | `1a20aa31` (prev) | `98e63e30` | IMG_2090 |
+| Mié 29 Abr 12pm CDT | S4 - Proceso paso a paso | `cbc1b3a0` | `93c40c52` | IMG_2706+IMG_1988 |
+| Vie 1 May 12pm CDT | S4 - Mitos cash buyers | `e34cef1c` | `cf9553f5` | IMG_2090+2091 |
+| Lun 4 May 12pm CDT | S4 - Jorge habla: Por qué fundé Pinnacle | `09bed09f` | `6d13bca6` | IMG_2723 |
+
+**Estado final: CERO posts pendientes — calendario completo Abr-May 2026**
 
 ---
 ### 2026-04-05 17:19 — Tarea ejecutada por GitHub Monitor
