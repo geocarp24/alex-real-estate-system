@@ -227,6 +227,126 @@
 - Blotato configurado: FB (Pinnacle) + IG (@pinnacle.groupwi) listos para publicar
 
 ---
+
+## ✅ Blotato MCP — Configuración y Herramientas Disponibles — 2026-04-06
+
+**Método de conexión:** SSE (Server-Sent Events)
+**URL:** `https://mcp.blotato.com/mcp`
+**Config:** `~/.claude/settings.json` → `mcpServers.blotato`
+**Usuario verificado:** ID `fc1219bc` — suscripción activa
+
+### Cuentas conectadas (Pinnacle)
+| Red | Account ID | Identificador | Estado |
+|-----|-----------|--------------|--------|
+| Facebook | `25638` | Pinnacle Holdings Group (Page `965320503341457`) | ✅ ACTIVA — usar por defecto |
+| Facebook | reservada | Geocroficial (`877737568755522`) | Para sesiones futuras |
+| Facebook | reservada | Geo Carpentry (`723873447473999`) | Para sesiones futuras |
+| Instagram | `39285` | @pinnacle.groupwi | ✅ ACTIVA |
+
+**Regla:** Para publicaciones de real estate → siempre usar FB Account `25638` (Pinnacle Holdings Group) + IG `39285`.
+
+### 14 Herramientas MCP Disponibles
+| Tool | Descripción |
+|------|-------------|
+| `blotato_get_user` | Info del usuario/suscripción activa |
+| `blotato_list_accounts` | Lista cuentas FB/IG conectadas con IDs |
+| `blotato_create_post` | Crea y publica post en FB/IG con texto, imagen, scheduling |
+| `blotato_create_presigned_upload_url` | URL para subir imagen/video a Blotato CDN |
+| `blotato_create_source` | Sube archivo multimedia (imagen/video) desde URL |
+| `blotato_create_visual` | Genera visual desde template (37 templates disponibles) |
+| `blotato_delete_schedule` | Elimina un post programado |
+| `blotato_get_post_status` | Estado de publicación (published, failed, pending) |
+| `blotato_get_schedule` | Detalles de un post programado |
+| `blotato_get_source_status` | Estado de upload de un archivo multimedia |
+| `blotato_get_visual_status` | Estado de generación de un visual |
+| `blotato_list_schedules` | Lista posts programados |
+| `blotato_list_visual_templates` | Lista 37 templates de visuales disponibles |
+| `blotato_update_schedule` | Modifica un post programado (texto, fecha, cuentas) |
+
+### Flujo para publicar un post
+1. `blotato_create_source` — subir imagen (si hay) desde URL
+2. `blotato_create_post` — crear post con `account_ids: [25638, 39285]`, texto EN/ES, imagen opcional
+3. `blotato_get_post_status` — verificar resultado
+
+### Visual Templates (37 disponibles)
+- ALEX puede generar visuales de marca usando `blotato_create_visual` + template ID
+- Listar templates actualizados: `blotato_list_visual_templates`
+
+---
+
+## ✅ Posts Programados en Facebook — 2026-04-05
+
+**6 Posts de formato `Post` programados en Pinnacle Holdings Group FB Page (`965320503341457`)**
+**Plataforma:** Solo Facebook (IG pendiente — requiere imagen)
+**Herramienta:** Blotato MCP — todos status "scheduled"
+
+| Fecha | Título | Blotato ID | Airtable ID |
+|-------|--------|-----------|------------|
+| Lun 6 Abr 12pm CDT | S1 - ¿Quién es Jorge Cruz? | `4e924cba` | `recdF2uT42ay04k69` |
+| Mié 8 Abr 12pm CDT | S1 - ¿Cuánto vale tu casa? | `314e7e95` | `recMwpr2pmMPZmRmf` |
+| Vie 10 Abr 12pm CDT | S1 - Foreclosure en Wisconsin | `7fd1a454` | `recnxz2muTo5woVol` |
+| Lun 13 Abr 12pm CDT | S2 - Testimonio Familia Martínez | `a609d373` | `recMuIrouAvcSD3O5` |
+| Lun 20 Abr 12pm CDT | S3 - ¿Qué pasa con tu herencia? | `d2f8d770` | `recBoDVfwyQ72h2DS` |
+| Lun 27 Abr 12pm CDT | S4 - ¿Qué es un Short Sale? | `1a20aa31` | `recvNs3tIzbDtfl8e` |
+
+**Pendientes (necesitan media):**
+- 4 Carrusel posts (S2-equity, S2-5razones, S3-realtor vs cash, S4-mitos, S4-proceso) → necesitan imágenes
+- 2 Reels (S3-behind the scenes, S4-Jorge habla) → necesitan video de Jorge
+- IG para los 6 posts → necesitan imagen con logo PHG + color #0D3B2E
+
+---
 ### 2026-04-05 17:19 — Tarea ejecutada por GitHub Monitor
 **Tarea:** Responde EXACTAMENTE esto: MONITOR GITHUB ACTIVO - Sistema de monitoreo 24/7 funcionando. Detecté esta tarea desde task_queue.json en GitHub.
 **Resultado:** MONITOR GITHUB ACTIVO - Sistema de monitoreo 24/7 funcionando. Detecté esta tarea desde task_queue.json en GitHub.
+
+
+
+## 2026-04-07 — TAREA CRÍTICA: INSTALAR BLOTATO MCP EN VPS
+**Prioridad:** 🔴 MÁXIMA — Aprobada por Jorge
+**Status:** ⚙️ EN PROCESO
+
+### Objetivo
+Instalar el servidor MCP de Blotato en el VPS para que el bot de Telegram pueda publicar en FB + IG directamente sin necesitar Claude Code desktop.
+
+### Instrucciones para el Monitor/VPS:
+
+**Paso 1 — Verificar si Node.js está instalado:**
+```bash
+node --version
+npm --version
+```
+
+**Paso 2 — Instalar el MCP de Blotato:**
+```bash
+npm install -g @blotato/mcp-server
+```
+
+**Paso 3 — Si @blotato/mcp-server no existe en npm, intentar:**
+```bash
+npm install -g blotato-mcp
+```
+
+**Paso 4 — Verificar qué paquetes de Blotato existen en npm:**
+```bash
+npm search blotato
+```
+
+**Paso 5 — Probar llamada directa a la API REST de Blotato:**
+```bash
+curl -s "https://my.blotato.com/api/v1/accounts" \
+  -H "api-key: blt_2Jz5IZHqjY6WzhfTWkDVskRANpeibfXkyDTvUB+mn8k="
+```
+
+**Paso 6 — Probar endpoint alternativo:**
+```bash
+curl -s "https://api.blotato.com/v1/accounts" \
+  -H "api-key: blt_2Jz5IZHqjY6WzhfTWkDVskRANpeibfXkyDTvUB+mn8k=" \
+  -H "Content-Type: application/json"
+```
+
+**Paso 7 — Reportar resultado completo en memoria_ALex.md**
+
+### Criterio de éxito:
+- MCP instalado en VPS O confirmación de que la API REST funciona directamente
+- Documentar exactamente qué endpoint y método funciona
+- Si nada funciona, documentar el error exacto para que ALEX pueda buscar solución alternativa
