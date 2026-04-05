@@ -152,3 +152,21 @@
 ### Acción pendiente:
 - Agregar BLOTATO_API_KEY al .env del VPS
 - Configurar Make.com con Blotato para publicación automática SM
+
+
+
+## 2026-04-06 — TAREA PARA CLAUDE CODE (Puente ALEX→Claude Code activo)
+
+### TAREA #1 — BLOTATO CONFIGURACIÓN COMPLETA
+**Prioridad:** 🔴 MÁXIMA
+**Enviada por:** ALEX Bot via Telegram
+
+**Instrucciones:**
+1. Agrega `BLOTATO_API_KEY=blt_2Jz5IZHqjY6WzhfTWkDVskRANpeibfXkyDTvUB+mn8k=` al archivo `.env` del VPS (`/opt/alex-bot/.env`)
+2. Verifica que la API Key funciona haciendo un GET a `https://my.blotato.com/api/v1/accounts` con header `api-key: blt_2Jz5IZHqjY6WzhfTWkDVskRANpeibfXkyDTvUB+mn8k=`
+3. Lista las cuentas conectadas (FB e IG de Pinnacle Holdings)
+4. Documenta los Account IDs de FB e IG en `claude_code_status.md` en GitHub repo `geocarp24/pinnacle-agent-memory`
+5. Confirma resultado escribiendo en `memoria_ALex.md` con status ✅ o ❌
+
+**Criterio de éxito:** API Key en .env + Account IDs documentados + confirmación en memoria
+**Status:** ⏳ PENDIENTE
