@@ -104,10 +104,22 @@
 
 ---
 
+#### 5. Flujo Social Media auditado y parcialmente reparado (2026-04-05)
+- **Webhook Make.com**: ✅ HTTP 200 confirmado — `hook.us2.make.com/zbvy7391qh9n7dlmw1hy8pq9ym69obxk`
+- **Airtable escritura**: ✅ Confirmada — record test `recCM80pqccFhVLr2` creado correctamente
+- **Campos renombrados**: ` Hashtags` y ` Status` tenían espacio inicial — corregidos via Metadata API
+- **Schema real documentado**: nombres con emojis (`🇺🇸 Caption EN`, `🇲🇽 Caption ES`), `Semana` sin `#`, ID Scripts de Video correcto (`tbli9BsyIwrhwa3aS`)
+- **Bot `alex_bot.py`**: field mapping actualizado con nombres reales
+- **Pendiente manual (Jorge)**: fix `Formato` y `Tipo` choices en Airtable UI + activar escenario Make 4636455
+
+---
+
 ## 🔴 PENDIENTES PRIORITARIOS (próxima sesión)
 
 1. **Analizar primer deal real** — todas las tablas de Airtable RE siguen vacías
-2. **Activar Make escenario ID 4636455** — toggle ON en make.com
-3. **Subir 12 ideas de contenido a Airtable SM** — script disponible en `PINNACLE_SOCIAL_MEDIA_AGENT.md` sec. 9
-4. **Geo Carpentry Budget Builder** — deploy pendiente, base de precios WI
-5. **Website Geo Carpentry Fase 1** — migración a Durable, debió iniciar en Abril
+2. **[JORGE — 5 min]** Activar Make escenario ID 4636455 — toggle ON en us2.make.com
+3. **[JORGE — 5 min]** Fix campos Airtable: `Formato` (→ Post/Reel/Carrusel/Story) y `Tipo` (→ Educativo/Promocional/Personal)
+4. **[JORGE]** Eliminar record test de Airtable: `recCM80pqccFhVLr2`
+5. **Subir 12 ideas SM a Airtable** — ALEX puede hacerlo desde Telegram con `save_to_airtable=True`
+6. **Geo Carpentry Budget Builder** — deploy pendiente, base de precios WI
+7. **Website Geo Carpentry Fase 1** — migración a Durable, ya estamos en Abril
