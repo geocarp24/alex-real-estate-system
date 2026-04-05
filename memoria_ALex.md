@@ -108,10 +108,11 @@
 #### 6. Test E2E Social Media — 2026-04-05
 - **Flujo probado:** ALEX → Webhook Make.com → Escenario 4636455 → Airtable `appU9s3kGkVpdrJkw`
 - **Webhook:** HTTP 200 Accepted ✅
-- **Make.com:** Procesó correctamente ✅
-- **Record creado en Airtable:** `pendiente` ✅
-- **Contenido:** "S2 - Foreclosure: Tienes Opciones" | Formato=Post | Semana=2
-- **Conclusión:** Flujo Social Media operativo al 100% end-to-end
+- **Make.com:** Aceptó el payload ✅
+- **Record creado en Airtable:** ❌ NO — confirmado en sesión siguiente (solo existe `recdF2uT42ay04k69`)
+- **Contenido enviado:** "S2 - Foreclosure: Tienes Opciones" | Formato=Post | Semana=2
+- **Conclusión:** Webhook funciona, pero escenario Make 4636455 no escribió en Airtable. Posibles causas: mapeo incorrecto en Make, conexión OAuth caducada nuevamente, o error en módulo Airtable del escenario.
+- **Acción pendiente:** Revisar Make.com UI → escenario 4636455 → historial de ejecuciones → ver error exacto del módulo Airtable
 
 #### 5. Flujo Social Media auditado y parcialmente reparado (2026-04-05)
 - **Webhook Make.com**: ✅ HTTP 200 confirmado — `hook.us2.make.com/zbvy7391qh9n7dlmw1hy8pq9ym69obxk`
@@ -125,8 +126,8 @@
 
 ## 🔴 PENDIENTES PRIORITARIOS (próxima sesión)
 
-1. **Analizar primer deal real** — todas las tablas de Airtable RE siguen vacías
-2. **Subir 12 ideas SM a Airtable** — ALEX puede hacerlo desde Telegram con `save_to_airtable=True`
-3. **[JORGE]** Eliminar records de prueba de Airtable: `recCM80pqccFhVLr2` y `rec94zvEmcfE9gVMl`
-6. **Geo Carpentry Budget Builder** — deploy pendiente, base de precios WI
-7. **Website Geo Carpentry Fase 1** — migración a Durable, ya estamos en Abril
+1. **[JORGE] Revisar escenario Make 4636455** — webhook acepta pero NO escribe en Airtable. Ir a Make.com → escenario 4636455 → historial de ejecuciones → ver el error del módulo Airtable
+2. **Analizar primer deal real** — todas las tablas de Airtable RE siguen vacías
+3. **Subir 12 ideas SM a Airtable** — directamente via API, sin depender de Make (mientras se resuelve el bug)
+4. **Geo Carpentry Budget Builder** — deploy pendiente, base de precios WI
+5. **Website Geo Carpentry Fase 1** — migración a Durable, ya estamos en Abril
