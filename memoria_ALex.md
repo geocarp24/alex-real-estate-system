@@ -104,6 +104,15 @@
 
 ---
 
+
+#### 6. Test E2E Social Media — 2026-04-05
+- **Flujo probado:** ALEX → Webhook Make.com → Escenario 4636455 → Airtable `appU9s3kGkVpdrJkw`
+- **Webhook:** HTTP 200 Accepted ✅
+- **Make.com:** Procesó correctamente ✅
+- **Record creado en Airtable:** `pendiente` ✅
+- **Contenido:** "S2 - Foreclosure: Tienes Opciones" | Formato=Post | Semana=2
+- **Conclusión:** Flujo Social Media operativo al 100% end-to-end
+
 #### 5. Flujo Social Media auditado y parcialmente reparado (2026-04-05)
 - **Webhook Make.com**: ✅ HTTP 200 confirmado — `hook.us2.make.com/zbvy7391qh9n7dlmw1hy8pq9ym69obxk`
 - **Airtable escritura**: ✅ Confirmada — record test `recCM80pqccFhVLr2` creado correctamente
