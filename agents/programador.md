@@ -163,16 +163,21 @@ curl -s -X POST "https://api.airtable.com/v0/appU9s3kGkVpdrJkw/tblP1CSi35fNgbSwK
   -d '{
     "fields": {
       "Nombre del Post": "[Título de Idea]",
+      "Plataforma": "[FB|IG|AMBAS según registro]",
+      "Formato": "[Post|Carrusel|Reel|Story según registro]",
+      "Tipo": "[Educativo|Promocional|Personal según registro]",
       "Fecha": "[YYYY-MM-DD de scheduledTime]",
       "Caption EN": "[🇺🇸 Caption EN]",
       "Caption ES": "[🇲🇽 Caption ES]",
       "Hashtags": "[Hashtags]",
-      "Semana": [Semana]
+      "Semana": [Semana],
+      "visual_url": "[visual_url del registro]",
+      "Blotato_Post_IDs": "[fb_post_id]|[ig_post_id]"
     }
   }'
 ```
 
-Nota: Los campos Plataforma, Formato, Tipo y Status en Publicaciones son singleSelect — solo inclúyelos en el POST si tienen opciones configuradas en Airtable. Si no tienen opciones, omítelos para evitar errores.
+Nota: El campo `Status` en Publicaciones requiere opciones configuradas — omítelo si está vacío.
 
 ---
 
