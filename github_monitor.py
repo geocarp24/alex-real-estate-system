@@ -287,6 +287,92 @@ def process_task(task: dict, all_tasks: list):
 
 
 # ─────────────────────────────────────────────
+# SCANNER — memoria_ALex.md → task_queue.json
+# ─────────────────────────────────────────────
+
+MEMORIA_LOCAL = PROJECT_DIR / "memoria_ALex.md"
+PENDING_MARKER   = "**Status:** ⏳ PENDIENTE EJECUCIÓN"
+INPROGRESS_MARKER = "**Status:** ⚙️ EN PROCESO"
+
+
+def scan_memoria_for_tasks():
+    """
+    Lee memoria_ALex.md buscando bloques con status PENDIENTE EJECUCIÓN.
+    Los convierte a entradas en task_queue.json y marca el bloque como EN PROCESO.
+    """
+    if not MEMORIA_LOCAL.exists():
+        return
+
+    content = MEMORIA_LOCAL.read_text(encoding="utf-8")
+    if PENDING_MARKER not in content:
+        return
+
+    # Buscar bloques de tarea pendiente
+    lines  = content.split("\n")
+    tasks_found = []
+    i = 0
+
+    while i < len(lines):
+        if PENDING_MARKER in lines[i]:
+            # Retroceder hasta el encabezado ### del bloque
+            block_start = i
+            for j in range(i, max(0, i - 20), -1):
+                if lines[j].startswith("### ") and "TAREA" in lines[j].upper():
+                    block_start = j
+                    break
+
+            # Extraer instrucciones — líneas entre el header y el próximo ---
+            task_lines = []
+            for k in range(block_start, min(len(lines), i + 50)):
+                if k > block_start and lines[k].strip() == "---":
+                    break
+                task_lines.append(lines[k])
+
+            task_text = "\n".join(task_lines).strip()
+
+            # Extraer chat_id si está presente (buscar "chat_id:" en el bloque)
+            chat_id = OWNER_CHAT_ID
+            for tl in task_lines:
+                if "chat_id:" in tl.lower():
+                    parts = tl.split(":")
+                    if len(parts) > 1:
+                        chat_id = parts[-1].strip().strip("`").strip()
+
+            task_id = str(uuid.uuid4())
+            tasks_found.append({
+                "task_id":    task_id,
+                "task":       task_text[:2000],
+                "chat_id":    chat_id,
+                "source":     "memoria_alex",
+                "status":     "pendiente",
+                "created_at": datetime.now().isoformat(),
+                "line_index": i  # para marcar después
+            })
+
+            logger.info(f"Tarea encontrada en memoria_ALex.md: {task_id[:8]}")
+        i += 1
+
+    if not tasks_found:
+        return
+
+    # Marcar tareas como EN PROCESO en memoria_ALex.md
+    updated_content = content.replace(PENDING_MARKER, INPROGRESS_MARKER)
+    MEMORIA_LOCAL.write_text(updated_content, encoding="utf-8")
+
+    # Agregar a task_queue.json
+    existing_tasks = load_task_queue()
+    existing_ids = {t.get("task_id") for t in existing_tasks}
+
+    for task in tasks_found:
+        task.pop("line_index", None)
+        if task["task_id"] not in existing_ids:
+            existing_tasks.append(task)
+
+    save_task_queue(existing_tasks)
+    logger.info(f"{len(tasks_found)} tarea(s) migradas de memoria_ALex.md → task_queue.json")
+
+
+# ─────────────────────────────────────────────
 # LOOP PRINCIPAL
 # ─────────────────────────────────────────────
 
@@ -310,6 +396,9 @@ def main():
 
     while True:
         try:
+            # Escanear memoria_ALex.md y migrar tareas pendientes a task_queue
+            scan_memoria_for_tasks()
+
             tasks = load_task_queue()
             pending = [t for t in tasks if t.get("status") == "pendiente"]
 

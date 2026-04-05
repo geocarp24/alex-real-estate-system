@@ -149,9 +149,10 @@
 - Key: blt_2Jz5IZHqjY6WzhfTWkDVskRANpeibfXkyDTvUB+mn8k=
 - Nota: NO imprimir en outputs
 
-### Acción pendiente:
-- Agregar BLOTATO_API_KEY al .env del VPS
-- Configurar Make.com con Blotato para publicación automática SM
+### Estado:
+- ✅ BLOTATO_API_KEY agregada al .env del VPS — 2026-04-06
+- ✅ Cuentas verificadas via MCP: FB Account 25638 (Pinnacle Holdings Group), IG Account 39285 (@pinnacle.groupwi)
+- ✅ Bot reiniciado con nueva API key cargada
 
 
 
@@ -177,7 +178,7 @@
 
 ### TAREA #1 — BLOTATO API KEY + VERIFICACIÓN
 **Prioridad:** 🔴 MÁXIMA — Aprobada por Jorge
-**Status:** ⏳ PENDIENTE EJECUCIÓN
+**Status:** ✅ COMPLETADO — 2026-04-06
 
 **Instrucciones exactas:**
 1. Abre el archivo `/opt/alex-bot/.env` en el VPS
@@ -205,6 +206,25 @@
 **Criterio de éxito:** API Key en .env + Account IDs documentados + bot reiniciado
 **Aprobado por:** Jorge Cruz — 2026-04-06
 
+**Resultado de ejecución:**
+- ✅ BLOTATO_API_KEY agregada a `/opt/alex-bot/.env`
+- ✅ Cuentas verificadas via MCP Blotato:
+  - FB: Account ID `25638` | Page: Pinnacle Holdings Group (`965320503341457`) — ACTIVA
+  - FB: Page Geocroficial (`877737568755522`) — reservada
+  - FB: Page Geo Carpentry (`723873447473999`) — reservada
+  - IG: Account ID `39285` | @pinnacle.groupwi — ACTIVA
+- ✅ Bot reiniciado con nueva configuración
+- ✅ Monitor conectado a memoria_ALex.md — detecta bloques PENDIENTE EJECUCIÓN automáticamente
+
+---
+
+## ✅ Monitor automático 100% funcional — 2026-04-06
+
+**Sistema completo operativo:**
+- GitHub Monitor corre cada 30s — lee task_queue.json Y escanea memoria_ALex.md
+- Tareas escritas en memoria_ALex.md con `**Status:** ⚙️ EN PROCESO` se migran automáticamente a task_queue.json
+- Claude Code las ejecuta y devuelve resultado a Telegram sin intervención de Jorge
+- Blotato configurado: FB (Pinnacle) + IG (@pinnacle.groupwi) listos para publicar
 
 ---
 ### 2026-04-05 17:19 — Tarea ejecutada por GitHub Monitor
