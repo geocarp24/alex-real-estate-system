@@ -209,5 +209,38 @@ Body: {"fields": { ...campos... }}
 
 ---
 
+---
+
+## 🎨 FLUJO CANVA + CLOUDINARY (en implementación — 2026-04-05)
+
+```
+ALEX (Airtable SM) → Make.com → Canva API → Cloudinary → Airtable (URL imagen)
+```
+
+### Campos nuevos en "Ideas de Contenido":
+- `URL Visual` — URL pública de Cloudinary con la imagen lista
+- `Canva Design ID` — ID del diseño generado en Canva
+- `Visual Status` — Pendiente | En Generación | Visual Listo | Error
+
+### Flujo automatizado:
+1. ALEX cambia `Status` → `"En Producción"` en Airtable
+2. Make.com trigger detecta el cambio
+3. Make.com llama Canva API → genera visual con template Pinnacle
+4. Make.com sube imagen a Cloudinary → obtiene URL pública
+5. Make.com actualiza Airtable: `URL Visual` + `Visual Status` = "Visual Listo"
+
+### Documentación completa:
+- Templates Canva: `agents/canva_templates.md`
+- Config Cloudinary: `agents/cloudinary_config.md`
+
+### Estado actual:
+- Campos Airtable: ✅ Creados (2026-04-05)
+- Docs templates: ✅ Listas
+- Credenciales Canva: ⏳ Pendiente Jorge (developer.canva.com)
+- Credenciales Cloudinary: ⏳ Pendiente Jorge (cloudinary.com)
+- Escenario Make.com: ⏳ Pendiente credenciales
+
+---
+
 *Última actualización: 2026-04-05*
 *Sub-agente de ALEX Orquestador — Solo acepta órdenes de ALEX*
