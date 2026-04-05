@@ -107,27 +107,77 @@ Base ID:  appU9s3kGkVpdrJkw
 - Ideas de Contenido: `tblAj0Pkj1jW4p5Ld`
 - Publicaciones:      `tblP1CSi35fNgbSwK`
 
-**Campos "Ideas de Contenido":**
-Título de Idea, Hook, Mensaje Principal, CTA, Caption EN, Caption ES, Hashtags,
-Formato (Post/Reel/Carrusel/Story), Plataforma (FB/IG/Ambas),
-Tipo (Educativo/Promocional/Personal), Status (Nueva/Aprobada/En Producción/Descartada), Semana #
+**Campos REALES "Ideas de Contenido" (verificado 2026-04-05):**
+```
+Título de Idea     singleLineText
+Hook               multilineText
+Mensaje Principal  multilineText
+CTA                singleLineText
+🇺🇸 Caption EN    multilineText   ← nombre exacto incluye emoji
+🇲🇽 Caption ES    multilineText   ← nombre exacto incluye emoji
+Hashtags           singleLineText  ← ya sin espacio inicial
+Formato            singleSelect    valores actuales: FB | IG | Ambas  ⚠️ fix manual pendiente → Post|Reel|Carrusel|Story
+Plataforma         singleSelect    valores: FB | IG | AMBAS
+Tipo               singleSelect    valores actuales: Educativo | Promo | Pesonal  ⚠️ fix manual pendiente
+Status             singleSelect    valores: Nueva | Aprobada | En Produccion | Descartada
+Fecha Creación     date
+Semana             number          ← sin "#"
+ID de Publicación  singleLineText
+```
 
-**Campos "Publicaciones":**
-Nombre del Post, Plataforma, Formato, Fecha, Horario, Status (Borrador/Programado/Publicado),
-Caption EN, Caption ES, Hashtags, Diseño Canva, Semana #, Tipo, Alcance, Likes, Comentarios
+**Campos REALES "Publicaciones" (tblP1CSi35fNgbSwK):**
+```
+Nombre del Post  singleLineText
+Plataforma       singleSelect
+Formato          singleSelect    ⚠️ fix manual pendiente → Post|Reel|Carrusel|Story
+Fecha            date
+Horario          singleLineText
+Status           singleSelect
+Caption EN       multilineText
+Caption ES       multilineText
+Hashtags         multilineText
+Script Video     multilineText
+Hook             singleLineText
+CTA              singleLineText
+Diseño Canva     singleLineText
+Semana           number
+Tipo             singleSelect
+```
+
+**Scripts de Video (ID REAL: tbli9BsyIwrhwa3aS — no tbltXXXX como estaba documentado):**
+```
+Título del Video / Hook (0-3 seg) / Desarrollo (3-15 seg) / CTA Final
+Idioma: Espanol | English | Bilingüe
+Status: Pendiente | Enviado a Blotato | Generado | Publicado
+```
 
 ---
 
 ## MAKE.COM WEBHOOK
 
-Para enviar idea al flujo de automatización:
 ```
-URL: https://hook.us2.make.com/zbvy7391qh9n7dlmw1hy8pq9ym69obxk
-Método: POST
-Content-Type: application/json
-Payload: {titulo, hook, caption_en, caption_es, hashtags, formato, plataforma, tipo, semana}
+URL:     https://hook.us2.make.com/zbvy7391qh9n7dlmw1hy8pq9ym69obxk
+Método:  POST
+Headers: Content-Type: application/json
+Estado:  ✅ HTTP 200 Accepted (verificado 2026-04-05)
 ```
-Escenario Make ID 4636455 — recibe el webhook y crea registro en Airtable.
+
+**Payload esperado por Make (mapeo al escenario ID 4636455):**
+```json
+{
+  "titulo":      "...",
+  "hook":        "...",
+  "caption_en":  "...",
+  "caption_es":  "...",
+  "hashtags":    "...",
+  "formato":     "Post",
+  "plataforma":  "Ambas",
+  "tipo":        "Educativo",
+  "semana":      1
+}
+```
+
+**⚠️ Escenario Make ID 4636455 requiere activación manual** — ver instrucciones en memoria_social_media.md
 
 ---
 
