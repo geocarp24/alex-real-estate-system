@@ -170,3 +170,37 @@
 
 **Criterio de éxito:** API Key en .env + Account IDs documentados + confirmación en memoria
 **Status:** ⏳ PENDIENTE
+
+
+
+## 2026-04-06 — TAREA URGENTE PARA CLAUDE CODE — APROBADA POR JORGE
+
+### TAREA #1 — BLOTATO API KEY + VERIFICACIÓN
+**Prioridad:** 🔴 MÁXIMA — Aprobada por Jorge
+**Status:** ⏳ PENDIENTE EJECUCIÓN
+
+**Instrucciones exactas:**
+1. Abre el archivo `/opt/alex-bot/.env` en el VPS
+2. Agrega esta línea:
+   ```
+   BLOTATO_API_KEY=blt_2Jz5IZHqjY6WzhfTWkDVskRANpeibfXkyDTvUB+mn8k=
+   ```
+3. Guarda el archivo
+4. Verifica que la API Key funciona:
+   ```bash
+   curl -s https://my.blotato.com/api/v1/accounts \
+     -H "api-key: blt_2Jz5IZHqjY6WzhfTWkDVskRANpeibfXkyDTvUB+mn8k="
+   ```
+5. Lista las cuentas conectadas (FB e IG de Pinnacle Holdings)
+6. Documenta los Account IDs en `claude_code_status.md` en GitHub repo `geocarp24/pinnacle-agent-memory`
+7. Reinicia el servicio del bot:
+   ```bash
+   sudo systemctl restart alex-bot
+   ```
+8. Confirma resultado escribiendo en `memoria_ALex.md`:
+   - ✅ API Key agregada
+   - ✅ Cuentas encontradas (IDs)
+   - ✅ Bot reiniciado
+
+**Criterio de éxito:** API Key en .env + Account IDs documentados + bot reiniciado
+**Aprobado por:** Jorge Cruz — 2026-04-06
