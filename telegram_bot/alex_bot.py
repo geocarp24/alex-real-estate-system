@@ -15,6 +15,7 @@ import asyncio
 import base64
 import json
 import logging
+import subprocess
 import tempfile
 import time
 from datetime import datetime
@@ -1910,6 +1911,49 @@ async def handle_unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # MAIN
 # ─────────────────────────────────────────────
 
+async def cmd_claude(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Ejecuta una tarea en Claude Code CLI y devuelve el resultado via Telegram."""
+    user_id = str(update.effective_user.id)
+    if user_id != OWNER_CHAT_ID:
+        await update.message.reply_text("⛔ Solo el Jefe puede usar este comando.")
+        return
+
+    task = " ".join(context.args) if context.args else ""
+    if not task:
+        await update.message.reply_text(
+            "⚠️ Uso: `/claude <tarea>`\nEjemplo: `/claude muéstrame los leads activos en Airtable`",
+            parse_mode="Markdown"
+        )
+        return
+
+    await update.message.reply_text("⏳ Claude Code procesando...", parse_mode="Markdown")
+
+    def run_claude():
+        env = {**os.environ, "ANTHROPIC_API_KEY": os.getenv("ANTHROPIC_KEY", "")}
+        result = subprocess.run(
+            ["claude", "--print", task],
+            capture_output=True, text=True, timeout=180,
+            cwd=str(PROJECT_DIR), env=env
+        )
+        if result.returncode == 0:
+            return result.stdout.strip() or "✅ Tarea completada (sin output de texto)."
+        else:
+            return f"❌ Error (código {result.returncode}):\n{result.stderr.strip()[:500]}"
+
+    try:
+        response = await asyncio.to_thread(run_claude)
+    except subprocess.TimeoutExpired:
+        response = "⏱ Timeout: Claude Code tardó más de 3 minutos. Tarea puede seguir corriendo en el servidor."
+    except FileNotFoundError:
+        response = "❌ Claude Code CLI no encontrado en el servidor."
+    except Exception as e:
+        response = f"❌ Error inesperado: {str(e)}"
+
+    # Telegram tiene límite de 4096 chars por mensaje
+    for i in range(0, len(response), 4000):
+        await update.message.reply_text(response[i:i+4000])
+
+
 async def main():
     if not http_requests:
         logger.warning("⚠️  Librería 'requests' no instalada. Airtable y Tracy no funcionarán. Ejecuta: pip install requests")
@@ -1927,6 +1971,7 @@ async def main():
     app.add_handler(CommandHandler("capacidades", cmd_capacidades))
     app.add_handler(CommandHandler("permitir",    cmd_permitir))
     app.add_handler(CommandHandler("bloquear",    cmd_bloquear))
+    app.add_handler(CommandHandler("claude",      cmd_claude))
 
     # Mensajes
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
@@ -1941,7 +1986,7 @@ async def main():
     print("  Sub-agentes: Scout | Matemático | Fact-Checker | Tracy")
     print("  Airtable: Contacts | Leads | Deals | Notes & Activity")
     print("  Memoria: compartida con Claude Code")
-    print("  /start /reset /guardar /memoria /historial /capacidades")
+    print("  /start /reset /guardar /memoria /historial /capacidades /claude")
     print("  Ctrl+C para detener")
     print("=" * 60)
 
