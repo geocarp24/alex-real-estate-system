@@ -66,14 +66,9 @@ Tagline ES:      "Compramos Casas — Efectivo. Rápido. Justo."
 
 | Formato | Tipo de contenido | Template ID | Nombre |
 |---------|-----------------|-------------|--------|
-| Carrusel (listas, pasos) | Educativo/proceso | `/base/v2/tutorial-carousel/2491f97b-1b47-4efa-8b96-8c651fa7b3d5/v1` | Tutorial Minimalist Flat |
-| Carrusel (datos/financiero) | Equity, números | `/base/v2/tutorial-carousel/e095104b-e6c5-4a81-a89d-b0df3d7c5baf/v1` | Tutorial Monocolor |
-| Post (imagen con texto) | Anuncios, launches | `/base/v2/image-slideshow/5903b592-1255-43b4-b9ac-f8ed7cbf6a5f/v1` | Image Slideshow Text |
-| Post (impacto visual) | Comparaciones, bold | `/base/v2/images-with-text/0ddb8655-c3da-43da-9f7d-be1915ca7818/v1` | Images Prominent Text |
-| Post (quote/frase) | Motivacional, Jorge habla | `/base/v2/quote-card/77f65d2b-48cc-4adb-bfbb-5bc86f8c01bd/v1` | Quote Card Monocolor |
+| **Carrusel / Post imagen** | **TODOS** | `/base/v2/ai-slide-generator/53cfec04-2500-41cf-8cc1-ba670d2c341a/v1` | **AI Slide Generator ← ESTÁNDAR** |
 | Reel/Video (historia narrada) | Behind the scenes, proceso | `/base/v2/ai-story-video/5903fe43-514d-40ee-a060-0d6628c5f8fd/v1` | AI Story Video |
 | Reel/Video (Jorge habla) | Personal, testimonial | `/base/v2/ai-selfie-video/57f5a565-fd17-458b-be43-4a2d8ccaca75/v1` | AI Selfie Video |
-| Antes/Después | Comparación visual | `/base/v2/images-with-text/c9892c3b-fa75-4ade-821a-a50ff8456230/v1` | When X then Y |
 
 ---
 
@@ -157,7 +152,7 @@ Guarda en `tblAj0Pkj1jW4p5Ld` con estos campos exactos:
   "Semana":            1,
   "Status":            "Nueva",
   "Visual_Prompt":     "[Prompt completo para El Creativo — ver estructura arriba]",
-  "Blotato_Template_ID": "/base/v2/tutorial-carousel/2491f97b-1b47-4efa-8b96-8c651fa7b3d5/v1",  ← para Carruseles de listas/pasos
+  "Blotato_Template_ID": "/base/v2/ai-slide-generator/53cfec04-2500-41cf-8cc1-ba670d2c341a/v1",  ← para TODOS los carruseles y posts de imagen
   "Video_Script_EN":   "[Script EN 15s — solo si Reel/Video]",
   "Video_Script_ES":   "[Script ES 15s — solo si Reel/Video]",
   "Branding_Spec":     "Logo: https://pinnaclegroupwi.com/wp-content/uploads/2026/03/logo-pinnacle.png | Colors: #0D3B2E bg / #FFFFFF text / #C9A84C accent | Position: bottom-right watermark"
