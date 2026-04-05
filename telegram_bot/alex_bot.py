@@ -22,6 +22,12 @@ from pathlib import Path
 from functools import partial
 
 try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).parent.parent / ".env")
+except ImportError:
+    pass
+
+try:
     import requests as http_requests
 except ImportError:
     http_requests = None
@@ -35,15 +41,24 @@ import anthropic
 # ─────────────────────────────────────────────
 # CONFIGURACIÓN
 # ─────────────────────────────────────────────
-TELEGRAM_TOKEN   = "8157575601:AAHmAo0OQroOUdXCnXZEjVh4hJkt0emx5_c"
-ANTHROPIC_KEY    = "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"
+TELEGRAM_TOKEN   = os.getenv("TELEGRAM_TOKEN", "8157575601:AAHmAo0OQroOUdXCnXZEjVh4hJkt0emx5_c")
+ANTHROPIC_KEY    = os.getenv("ANTHROPIC_KEY")
 CLAUDE_MODEL     = "claude-sonnet-4-6"
 MAX_HISTORY      = 40
 
-AIRTABLE_TOKEN   = "patQXGBEGdmbhGRfi.81e226fee4638f95bba27a57003465dd930d9e977d8b4dc7ac372c1b60dd087b"
+AIRTABLE_TOKEN   = os.getenv("AIRTABLE_TOKEN", "patQXGBEGdmbhGRfi.81e226fee4638f95bba27a57003465dd930d9e977d8b4dc7ac372c1b60dd087b")
 AIRTABLE_BASE_ID = "appfQbDA750Oihy9J"
 AIRTABLE_BASE_URL = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}"
-TRACERFY_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjozMjQyNTY2NDc4LCJpYXQiOjE3NzM3NjY0NzgsImp0aSI6IjFkNmMwZTc5YjRjZDRmZGY5YTUzNmQ4NTAzYjFiNTY2IiwidXNlcl9pZCI6NTc2MX0.P7H9nO6KFP-2UfSDl33RX4yxOislHV-v7V2vbPlJIWg"
+TRACERFY_API_KEY = os.getenv("TRACERFY_TOKEN", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjozMjQyNTY2NDc4LCJpYXQiOjE3NzM3NjY0NzgsImp0aSI6IjFkNmMwZTc5YjRjZDRmZGY5YTUzNmQ4NTAzYjFiNTY2IiwidXNlcl9pZCI6NTc2MX0.P7H9nO6KFP-2UfSDl33RX4yxOislHV-v7V2vbPlJIWg")
+
+BRIDGE_URL   = os.getenv("BRIDGE_URL",   "https://agents.pinnaclegroupwi.com")
+ALEX_SECRET  = os.getenv("ALEX_SECRET",  "")
+GITHUB_REPO  = "alex-real-estate-system"
+
+# Social Media Agent — Airtable base separada
+SM_AIRTABLE_TOKEN   = "patSlNwngu7SJoa52.003c83df8f6e378af5309237e310a36568a037448709d94b10739d032f9e8ef7"
+SM_AIRTABLE_BASE_ID = "appU9s3kGkVpdrJkw"
+SM_MAKE_WEBHOOK     = "https://hook.us2.make.com/zbvy7391qh9n7dlmw1hy8pq9ym69obxk"
 
 TABLE_IDS = {
     "Contacts":         "tblacvw0Ss770x8l5",
@@ -279,6 +294,43 @@ TOOLS = [
             },
             "required": ["url"]
         }
+    },
+    {
+        "name": "invoke_social_media",
+        "description": (
+            "Invoca al Social Media Agent para generar contenido de redes sociales de Pinnacle Holdings. "
+            "Puede generar posts, reels, carruseles y stories para Facebook e Instagram. "
+            "Puede guardar ideas en Airtable y enviar al webhook de Make.com. "
+            "Úsalo cuando el Jefe pida contenido para redes sociales, ideas de posts, captions, o gestión del calendario de contenido."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "task": {
+                    "type": "string",
+                    "description": "Descripción de lo que se necesita: generar contenido, crear idea, guardar en Airtable, ver calendario, etc."
+                },
+                "platform": {
+                    "type": "string",
+                    "enum": ["FB", "IG", "Ambas", "LinkedIn"],
+                    "description": "Plataforma objetivo (default: Ambas)"
+                },
+                "format_type": {
+                    "type": "string",
+                    "enum": ["Post", "Reel", "Carrusel", "Story"],
+                    "description": "Formato del contenido (default: Post)"
+                },
+                "save_to_airtable": {
+                    "type": "boolean",
+                    "description": "Si true, guarda la idea generada en Airtable automáticamente (default: false)"
+                },
+                "week_number": {
+                    "type": "integer",
+                    "description": "Número de semana del calendario de contenido (1-4)"
+                }
+            },
+            "required": ["task"]
+        }
     }
 ]
 
@@ -286,12 +338,13 @@ TOOLS = [
 SCOUT_TOOLS = [t for t in TOOLS if t["name"] == "web_fetch"]
 
 PROGRESS_MESSAGES = {
-    "invoke_scout":       "🔍 *El Scout* investigando el mercado...",
-    "invoke_matematico":  "🧮 *El Matemático* calculando el underwriting...",
-    "invoke_fact_checker":"🔎 *El Fact-Checker* auditando el deal...",
-    "invoke_tracy":       "👤 *Tracy* buscando al propietario en Tracerfy...",
-    "airtable_list":      "📋 Consultando Airtable...",
-    "airtable_create":    "💾 Guardando registro en Airtable...",
+    "invoke_scout":        "🔍 *El Scout* investigando el mercado...",
+    "invoke_matematico":   "🧮 *El Matemático* calculando el underwriting...",
+    "invoke_fact_checker": "🔎 *El Fact-Checker* auditando el deal...",
+    "invoke_tracy":        "👤 *Tracy* buscando al propietario en Tracerfy...",
+    "invoke_social_media": "📱 *Social Media Agent* generando contenido...",
+    "airtable_list":       "📋 Consultando Airtable...",
+    "airtable_create":     "💾 Guardando registro en Airtable...",
     "airtable_update":    "✏️ Actualizando registro en Airtable...",
     "read_memoria":       "🧠 Leyendo memoria operacional...",
     "write_memoria":      "💾 Guardando aprendizajes en memoria...",
@@ -397,37 +450,68 @@ def _tool_web_fetch(url: str, purpose: str = "") -> str:
         return f"Error fetching {url}: {str(e)}"
 
 
+def _bridge_read(filename: str) -> str | None:
+    """Lee un archivo de GitHub via el bridge de Hostinger."""
+    if not http_requests or not BRIDGE_URL:
+        return None
+    try:
+        resp = http_requests.get(
+            f"{BRIDGE_URL}/github_bridge.php",
+            params={"repo": GITHUB_REPO, "file": filename},
+            headers={"X-Alex-Secret": ALEX_SECRET},
+            timeout=15
+        )
+        if resp.status_code == 200 and resp.text.strip():
+            return resp.text
+        logger.warning(f"[BRIDGE] read {filename}: HTTP {resp.status_code}")
+        return None
+    except Exception as e:
+        logger.warning(f"[BRIDGE] read error ({filename}): {e}")
+        return None
+
+
+def _bridge_write(filename: str, content: str, message: str = "ALEX memory update") -> bool:
+    """Escribe un archivo a GitHub via el bridge de Hostinger."""
+    if not http_requests or not BRIDGE_URL:
+        return False
+    try:
+        resp = http_requests.post(
+            f"{BRIDGE_URL}/github_write.php",
+            headers={"X-Alex-Secret": ALEX_SECRET, "Content-Type": "application/json"},
+            json={"repo": GITHUB_REPO, "file": filename, "content": content, "message": message},
+            timeout=20
+        )
+        if resp.status_code in (200, 201):
+            logger.info(f"[BRIDGE] write {filename}: OK")
+            return True
+        logger.warning(f"[BRIDGE] write {filename}: HTTP {resp.status_code} — {resp.text[:200]}")
+        return False
+    except Exception as e:
+        logger.warning(f"[BRIDGE] write error ({filename}): {e}")
+        return False
+
+
 def _tool_read_memoria() -> str:
+    # Intenta bridge primero (GitHub = fuente de verdad compartida)
+    bridge_content = _bridge_read("memoria_ALex.md")
+    if bridge_content:
+        return bridge_content
+    # Fallback: archivo local
     if MEMORIA_ALEX.exists():
         return MEMORIA_ALEX.read_text(encoding="utf-8")
     return "No hay memoria operacional registrada aún."
-
-
-def _git_sync_memory() -> None:
-    """Push memory updates to GitHub so Claude Code on PC stays in sync."""
-    import subprocess
-    try:
-        repo = str(PROJECT_DIR)
-        subprocess.run(["git", "-C", repo, "add", "memoria_ALex.md", "telegram_bot/telegram_memory.md"],
-                       capture_output=True, timeout=15)
-        result = subprocess.run(
-            ["git", "-C", repo, "commit", "-m", f"auto: memory sync {datetime.now().strftime('%Y-%m-%d %H:%M')}"],
-            capture_output=True, timeout=15
-        )
-        if result.returncode == 0:  # only push if there was something to commit
-            subprocess.run(["git", "-C", repo, "push", "origin", "master"],
-                           capture_output=True, timeout=20)
-    except Exception:
-        pass  # sync failures are non-critical
 
 
 def _tool_write_memoria(content: str) -> str:
     try:
         existing = MEMORIA_ALEX.read_text(encoding="utf-8") if MEMORIA_ALEX.exists() else ""
         updated = existing + "\n\n" + content if existing.strip() else content
+        # Escribe local
         MEMORIA_ALEX.write_text(updated, encoding="utf-8")
-        _git_sync_memory()
-        return "✅ Memoria operacional actualizada correctamente."
+        # Empuja a GitHub via bridge
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        _bridge_write("memoria_ALex.md", updated, f"ALEX memoria update — {date_str}")
+        return "✅ Memoria operacional actualizada (local + GitHub)."
     except Exception as e:
         return f"Error escribiendo memoria: {str(e)}"
 
@@ -516,6 +600,43 @@ def _tool_invoke_fact_checker(property_data: str, scout_json: str, matematico_js
     )
     logger.info("Invoking El Fact-Checker...")
     return _run_subagent_sync(system_prompt, user_msg)
+
+
+def _tool_invoke_social_media(
+    task: str,
+    platform: str = "Ambas",
+    format_type: str = "Post",
+    save_to_airtable: bool = False,
+    week_number: int = None
+) -> str:
+    """
+    Invoca al Social Media Agent para generar contenido y opcionalmente guardarlo en Airtable.
+    El agente tiene acceso a web_fetch para llamar directamente a Airtable y Make.com.
+    """
+    system_prompt = load_agent_prompt("social_media")
+
+    save_instruction = ""
+    if save_to_airtable:
+        save_instruction = (
+            f"\n\nDespués de generar el contenido, guárdalo en Airtable usando web_fetch:\n"
+            f"POST https://api.airtable.com/v0/{SM_AIRTABLE_BASE_ID}/Ideas%20de%20Contenido\n"
+            f"Header Authorization: Bearer {SM_AIRTABLE_TOKEN}\n"
+            f"Completa todos los campos disponibles. Confirma el record_id al terminar."
+        )
+
+    week_instruction = f"\nSemana de contenido: {week_number}" if week_number else ""
+
+    user_msg = (
+        f"Tarea: {task}\n"
+        f"Plataforma: {platform}\n"
+        f"Formato: {format_type}"
+        f"{week_instruction}"
+        f"{save_instruction}\n\n"
+        "Genera el contenido completo siguiendo el formato de salida obligatorio del sistema."
+    )
+
+    logger.info(f"Invoking Social Media Agent: {task[:80]}...")
+    return _run_subagent_sync(system_prompt, user_msg, tools=SCOUT_TOOLS)
 
 
 def _tool_invoke_tracy(address: str, city: str = "", state: str = "", zip_code: str = "") -> str:
@@ -912,6 +1033,14 @@ async def _execute_tool(tool_name: str, tool_input: dict) -> str:
             tool_input.get("state", ""),
             tool_input.get("zip_code", "")
         ))
+    elif tool_name == "invoke_social_media":
+        return await loop.run_in_executor(None, lambda: _tool_invoke_social_media(
+            tool_input.get("task", ""),
+            tool_input.get("platform", "Ambas"),
+            tool_input.get("format_type", "Post"),
+            tool_input.get("save_to_airtable", False),
+            tool_input.get("week_number")
+        ))
     elif tool_name == "airtable_list":
         return await loop.run_in_executor(None, lambda: _tool_airtable_list(
             tool_input.get("table", ""),
@@ -974,6 +1103,11 @@ def save_history(user_id: int, messages: list):
 
 
 def read_telegram_memory() -> str:
+    # Intenta bridge primero
+    bridge_content = _bridge_read("telegram_bot/telegram_memory.md")
+    if bridge_content:
+        return bridge_content
+    # Fallback: archivo local
     if TELEGRAM_MEM.exists():
         return TELEGRAM_MEM.read_text(encoding="utf-8")
     return ""
@@ -981,6 +1115,8 @@ def read_telegram_memory() -> str:
 
 def write_telegram_memory(content: str):
     TELEGRAM_MEM.write_text(content, encoding="utf-8")
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    _bridge_write("telegram_bot/telegram_memory.md", content, f"ALEX telegram memory — {date_str}")
 
 
 def append_telegram_memory(entry: str):
@@ -993,6 +1129,8 @@ def append_memoria_alex(entry: str):
     existing = _tool_read_memoria()
     updated = existing + "\n\n" + entry if existing.strip() else entry
     MEMORIA_ALEX.write_text(updated, encoding="utf-8")
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    _bridge_write("memoria_ALex.md", updated, f"ALEX memoria update — {date_str}")
 
 
 def send_security_alert(level: str, description: str, solutions: str = "Revisar logs del sistema."):
@@ -1375,7 +1513,6 @@ async def cmd_reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
         saved.append("memoria_ALex.md")
 
     if saved:
-        _git_sync_memory()
         await update.message.reply_text(f"✅ Memoria guardada en: {', '.join(saved)}\nHistorial limpiado.")
     else:
         await update.message.reply_text("✅ Historial limpiado (sin contenido suficiente para resumir).")
@@ -1440,7 +1577,6 @@ async def cmd_guardar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         saved.append("memoria_ALex.md")
 
     if saved:
-        _git_sync_memory()
         display = summary or deal_notes
         msg = f"✅ Guardado en: {', '.join(saved)}\n\n_{display}_"
         await update.message.reply_text(msg, parse_mode="Markdown")
