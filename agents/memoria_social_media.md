@@ -21,7 +21,7 @@ Eres invocado por ALEX Orquestador. **Solo aceptas órdenes de ALEX.**
 | Airtable Publicaciones | ✅ Lista | Sin registros |
 | Airtable Scripts de Video | ✅ Lista | Sin registros |
 | Make.com webhook | ✅ HTTP 200 | Acepta payloads, responde "Accepted" |
-| Make.com escenario 4636455 | ⚠️ INACTIVO | Toggle OFF — requiere activación manual |
+| Make.com escenario 4636455 | ✅ ACTIVO | Activado por Jorge el 2026-04-05 |
 | Facebook Business | ✅ 100% | Listo para publicar |
 | Instagram @pinnacle.groupwi | ✅ 100% | Listo para publicar |
 | Google Business Profile | ⏳ Verificación | Esperando aprobación video |
@@ -40,24 +40,11 @@ Eres invocado por ALEX Orquestador. **Solo aceptas órdenes de ALEX.**
 - Scripts de Video: ID real es `tbli9BsyIwrhwa3aS` (no el documentado antes)
 - Flujo completo Airtable probado y confirmado
 
-### ⚠️ Requieren fix manual en Airtable UI (Jorge):
-1. **Campo `Formato` en Ideas de Contenido** — opciones actuales: `FB | IG | Ambas` (INCORRECTO)
-   - Ir a: airtable.com → base Pinnacle Social Media → tabla Ideas de Contenido → campo Formato
-   - Cambiar opciones a: `Post | Reel | Carrusel | Story`
-
-2. **Campo `Tipo` en Ideas de Contenido** — typos: `Promo` y `Pesonal`
-   - Ir a: airtable.com → Ideas de Contenido → campo Tipo
-   - Renombrar: `Promo` → `Promocional` y `Pesonal` → `Personal`
-
-3. **Campo `Formato` en Publicaciones** — opciones actuales: `Todo | In progress | Done` (Airtable default)
-   - Ir a: tabla Publicaciones → campo Formato
-   - Cambiar opciones a: `Post | Reel | Carrusel | Story`
-
-### ⚠️ Requiere activación manual en Make.com (Jorge):
-4. **Escenario ID 4636455** está creado pero INACTIVO
-   - Ir a: us2.make.com → "Pinnacle — Social Media Ideas → Airtable"
-   - Click el toggle azul ON en la esquina superior izquierda del escenario
-   - Confirmar activación
+### ✅ Fixes manuales completados por Jorge el 2026-04-05:
+1. `Formato` (Ideas de Contenido) → `Post | Reel | Carrusel | Story` ✅
+2. `Tipo` (Ideas de Contenido) → `Educativo | Promocional | Personal` ✅
+3. `Formato` (Publicaciones) → corregido ✅
+4. Escenario Make ID 4636455 → ACTIVADO ✅
 
 ---
 
