@@ -464,7 +464,15 @@ function buildSteps(){
     ]},
     {id:'callback_time',label:'Callback',
       script:`<div class="script-bubble ${cl}">When would be the best time for me to call you back?</div>`,
-      question:'Best time to call back',type:'text',placeholder:'e.g. Mornings before 10am, weekdays...',key:'Best time to call',next:'final_save'},
+      question:'Best time to call back',type:'choices',key:'Best time to call',
+      choices:[
+        {label:'🌅 Morning',value:'Morning',next:'final_save',cls:''},
+        {label:'☀️ Afternoon',value:'Afternoon',next:'final_save',cls:''},
+        {label:'🌙 Evening',value:'Evening',next:'final_save',cls:''},
+        {label:'🕐 Anytime',value:'Anytime',next:'final_save',cls:''},
+        {label:'📅 Weekends Only',value:'Weekends Only',next:'final_save',cls:''},
+        {label:'❓ Unknow yet',value:'Unknow yet',next:'final_save',cls:''},
+    ]},
     // VERIFY ADDRESS
     {id:'verify_address',label:'Address',
       script:`<div class="script-bubble ${cl}">Okay perfect! Well I do need to verify a little bit of information from you.<br><br>So your address is <strong>${addr}</strong>, correct?</div>`,
