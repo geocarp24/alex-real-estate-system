@@ -376,6 +376,29 @@
 
 ---
 
+## 2026-04-06 — LightRAG + Skills instaladas
+
+### LightRAG — Búsqueda semántica activa
+- **Script:** `rag/alex_rag.py`
+- **Datos indexados:** memoria_ALex.md + shared_conversation.json + 83 Contacts + 5 Leads + 5 Deals
+- **Comandos:**
+  - `python3 rag/alex_rag.py index` — re-indexar todo
+  - `python3 rag/alex_rag.py query "pregunta"` — buscar
+- **Estado:** ✅ Funcional
+
+### Skills instaladas en Claude Code (~/.claude/skills/)
+| Skill | Comando | Descripción |
+|-------|---------|-------------|
+| humanizer | `/humanizer` | Humaniza textos con escritura AI |
+| claude-mem | `/mem-search` | Memoria persistente entre sesiones |
+| ui-ux-pro-max + 6 sub-skills | `/ui-ux-pro-max` | Diseño UI/UX, logos, slides, brand |
+| obsidian (5 skills) | `/obsidian-*` | Markdown avanzado, canvas, CLI |
+| everything-claude-code (181 skills) | varios | Ingeniería de software completa |
+| superpowers (14 skills) | `/brainstorming`, `/tdd`, etc. | Metodologías avanzadas de desarrollo |
+| **Total: ~208 skills** | | |
+
+---
+
 ## 2026-04-06 — Acceso SSH Hostinger — GUARDADO
 
 ### Credenciales SSH Hostinger (pinnaclegroupwi.com)
