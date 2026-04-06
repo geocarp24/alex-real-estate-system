@@ -64,11 +64,27 @@ Tagline ES:      "Compramos Casas — Efectivo. Rápido. Justo."
 
 ## PLANTILLAS DE BLOTATO — MAPA DE SELECCIÓN
 
-| Formato | Tipo de contenido | Template ID | Nombre |
-|---------|-----------------|-------------|--------|
-| **Carrusel / Post imagen** | **TODOS** | `/base/v2/ai-slide-generator/53cfec04-2500-41cf-8cc1-ba670d2c341a/v1` | **AI Slide Generator ← ESTÁNDAR** |
-| Reel/Video (historia narrada) | Behind the scenes, proceso | `/base/v2/ai-story-video/5903fe43-514d-40ee-a060-0d6628c5f8fd/v1` | AI Story Video |
-| Reel/Video (Jorge habla) | Personal, testimonial | `/base/v2/ai-selfie-video/57f5a565-fd17-458b-be43-4a2d8ccaca75/v1` | AI Selfie Video |
+| Formato | Template ID | Nombre |
+|---------|-------------|--------|
+| **Carrusel / Post imagen** | `53cfec04-2500-41cf-8cc1-ba670d2c341a` | **AI Slide Generator ← ÚNICO ESTÁNDAR** |
+| Reel/Video (historia narrada) | `/base/v2/ai-story-video/5903fe43-514d-40ee-a060-0d6628c5f8fd/v1` | AI Story Video |
+| Reel/Video (Jorge habla) | `/base/v2/ai-selfie-video/57f5a565-fd17-458b-be43-4a2d8ccaca75/v1` | AI Selfie Video |
+
+---
+
+## 5 TEMAS DE COLOR — ELEGIR SEGÚN CONTENIDO
+
+Para carruseles y posts, especifica el tema en el `Visual_Prompt`. El Creativo lo usa para construir los `slidePrompts`.
+
+| Tema | Fondo | Texto | Acento | Cuándo usar |
+|------|-------|-------|--------|-------------|
+| **T1 — Dark Premium** | `#0D3B2E` verde oscuro | `#FFFFFF` blanco | `#C9A84C` dorado | Default. Educativo, listas, procesos, comparaciones |
+| **T2 — White Clean** | `#FFFFFF` blanco | `#0D3B2E` verde | `#C9A84C` dorado | Datos, FAQ, contenido informativo |
+| **T3 — Gold & Black** | `#1A1A1A` negro | `#FFFFFF` blanco | `#C9A84C` dorado | Alto impacto, mitos, urgencia, foreclosure |
+| **T4 — Soft Cream** | `#F5F0E8` crema | `#0D3B2E` verde / `#2C2C2C` gris | `#C9A84C` dorado | Testimonios, historias personales, herencia, divorcio |
+| **T5 — Vibrant Blue** | `#1B2A8C` azul | `#FFFFFF` blanco | `#FF2D78` fucsia + `#00E676` verde vivo | Contenido de alto engagement, audiencia joven |
+
+**Regla:** si no especificas tema, El Creativo usa T1 por default.
 
 ---
 
@@ -87,26 +103,31 @@ Horario:    Mejor día y hora en CST para publicar
 
 #### PARTE 2 — Visual Prompt (siempre — para El Creativo)
 
-El Visual Prompt debe ser una instrucción completa y precisa para Blotato. Estructura obligatoria:
+El Visual Prompt debe ser una instrucción completa y precisa para El Creativo. Estructura obligatoria:
 
 ```
-TITLE: [Título corto e identificable del creativo — ej: "Foreclosure Options WI Sem5" o "Jorge Story Behind Scenes"]
+TITLE: [Título corto e identificable — ej: "Foreclosure Options WI S5" o "Jorge Behind Scenes S3"]
+TEMA: [T1 Dark Premium | T2 White Clean | T3 Gold & Black | T4 Soft Cream | T5 Vibrant Blue]
 
-[INICIO — CRÍTICO]
-Start IMMEDIATELY with the hook/headline on the first frame. NO blank intro. NO black or empty frames at the beginning.
-First frame must show bold headline text from frame zero — this is the first thing the audience sees.
+[HOOK — Slide 1, SIEMPRE]
+Slide 1: "[Hook EN — máx 8 palabras, bold, large]" / "[Hook ES]"
+Logo Pinnacle watermark esquina inferior derecha.
 
-[CONTENIDO]
-Slide/Scene 1 (HOOK): "[Hook EN — frase impactante, máx 8 palabras, bold, large font]" / "[Hook ES below]"
-Describe el contenido slide por slide (para carruseles) o la imagen (para posts).
-Siempre en inglés para mejores resultados con Blotato IA.
+[CONTENIDO — Slides 2 a 5]
+Slide 2: [Punto 1 EN] / [ES]
+Slide 3: [Punto 2 EN] / [ES]
+Slide 4: [Punto 3 EN] / [ES]
+Slide 5: [Punto 4 EN] / [ES]  ← condensar si hay más de 4 puntos
+
+[CTA — Slide 6, SIEMPRE]
+Logo Pinnacle centrado grande.
+"We Buy Houses — Cash. Fast. Fair." / "Compramos Casas — Efectivo. Rápido. Justo."
+Phone: (920) 777-9886 | pinnaclegroupwi.com
 
 [BRANDING]
-Brand: Pinnacle Holdings Group LLC
-Logo: Include logo from https://pinnaclegroupwi.com/wp-content/uploads/2026/03/logo-pinnacle.png — place bottom right corner, small watermark style
-Colors: Dark green #0D3B2E background, white text #FFFFFF, gold accents #C9A84C
-Style: Professional real estate, clean, modern, trustworthy
-Bilingual: Include Spanish translation under each English point
+Logo: https://pinnaclegroupwi.com/wp-content/uploads/2026/03/logo-pinnacle.png
+Colores según TEMA seleccionado (ver tabla arriba)
+Bilingual: EN principal, ES traducción debajo en cada slide
 
 [CTA SLIDE — SIEMPRE AL FINAL]
 Last slide: Call to action
@@ -152,7 +173,7 @@ Guarda en `tblAj0Pkj1jW4p5Ld` con estos campos exactos:
   "Semana":            1,
   "Status":            "Nueva",
   "Visual_Prompt":     "[Prompt completo para El Creativo — ver estructura arriba]",
-  "Blotato_Template_ID": "/base/v2/ai-slide-generator/53cfec04-2500-41cf-8cc1-ba670d2c341a/v1",  ← para TODOS los carruseles y posts de imagen
+  "Blotato_Template_ID": "53cfec04-2500-41cf-8cc1-ba670d2c341a",  ← para TODOS los carruseles y posts de imagen
   "Video_Script_EN":   "[Script EN 15s — solo si Reel/Video]",
   "Video_Script_ES":   "[Script ES 15s — solo si Reel/Video]",
   "Branding_Spec":     "Logo: https://pinnaclegroupwi.com/wp-content/uploads/2026/03/logo-pinnacle.png | Colors: #0D3B2E bg / #FFFFFF text / #C9A84C accent | Position: bottom-right watermark"

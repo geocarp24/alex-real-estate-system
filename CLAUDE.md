@@ -55,11 +55,21 @@ Flujo recomendado:
 - Lanza **Tracy** cuando el usuario pida skip tracing de una dirección (independiente del análisis de deal, o al final si el deal pasa el Fact-Checker).
 
 **Flujo de Social Media (cadena secuencial):**
-1. **El Director** → genera scripts para Reels (S3 Behind the Scenes, S4 Jorge Habla) + guarda en Airtable Scripts de Video
-2. **El Creativo** → lee Ideas de Contenido (Status="En Produccion", visual_url vacío), genera visual con Blotato, guarda `visual_url` en Airtable
-3. **El Programador** → lee Ideas de Contenido (Status="Visual Listo"), publica en FB+IG via Blotato en slots Mar/Jue/Sáb 10am-12pm CST
+1. **Social Media Agent** (tú mismo) → genera ideas de contenido con Caption EN/ES, Hook, Visual_Prompt (con TEMA T1-T5), Blotato_Template_ID, Hashtags → guarda en Airtable `tblAj0Pkj1jW4p5Ld`
+2. **El Director** → solo para Reels/Video — genera video con Blotato, guarda `visual_url`
+3. **El Creativo** → lee registros con `visual_url` vacío y `Visual_Prompt` no vacío (no Reel/Video) → genera carrusel/imagen con template `53cfec04` usando el TEMA especificado → guarda `visual_url` + `Blotato_Visual_ID` en Airtable
+4. **El Programador** → lee registros con `visual_url` no vacío y `Blotato_Post_IDs` vacío → publica en FB+IG via Blotato → slots disponibles: Mar/Jue/Sáb 10am-12pm CST
 
-Lanza **El Director** primero solo para Reels. **El Creativo** y **El Programador** pueden correr en cadena automática (El Programador espera a que El Creativo termine).
+**Reglas de orquestación:**
+- El Creativo y El Director corren en paralelo (uno para imágenes, otro para videos)
+- El Programador siempre corre DESPUÉS de El Creativo/Director (necesita `visual_url`)
+- Si el Jefe pide "generar contenido": lanza Social Media Agent primero, luego El Creativo, luego El Programador
+- Si el Jefe pide "publicar lo que hay": lanza solo El Programador
+
+**Template único para carruseles:** `53cfec04-2500-41cf-8cc1-ba670d2c341a` (AI Slide Generator)
+**5 temas de color disponibles:** T1 Dark Premium (default) | T2 White Clean | T3 Gold & Black | T4 Soft Cream | T5 Vibrant Blue
+**Credenciales Social Media Airtable:** Base `appU9s3kGkVpdrJkw` | Token en `agents/social_media.md`
+**Cuentas Blotato:** FB accountId=25638 pageId=965320503341457 | IG accountId=39285
 
 ---
 
