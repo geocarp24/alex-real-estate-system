@@ -3032,6 +3032,73 @@ async def cmd_responder(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"❌ *Error al enviar*\n{msg}", parse_mode="Markdown")
 
 
+async def cmd_buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /buscar <pregunta> — Busca en la base de conocimiento de ALEX usando LightRAG
+    Busca en: memoria, conversaciones, Contacts, Leads, Deals de Airtable
+    """
+    user_id = str(update.effective_user.id)
+    if user_id != OWNER_CHAT_ID:
+        await update.message.reply_text("⛔ Solo el Jefe puede usar este comando.")
+        return
+
+    query = " ".join(context.args) if context.args else ""
+    if not query:
+        await update.message.reply_text(
+            "📚 Uso: /buscar <pregunta>\n\n"
+            "Ejemplos:\n"
+            "• /buscar cuántos leads tenemos en Wisconsin\n"
+            "• /buscar propiedades con foreclosure\n"
+            "• /buscar último deal analizado"
+        )
+        return
+
+    await update.message.reply_text(f"🔍 Buscando: *{query}*...", parse_mode="Markdown")
+
+    try:
+        result = subprocess.run(
+            ["/opt/alex-bot/venv/bin/python3", "/opt/alex-bot/rag/alex_rag.py", "query", query],
+            capture_output=True, text=True, timeout=60,
+            cwd="/opt/alex-bot"
+        )
+        answer = result.stdout.strip() or result.stderr.strip() or "Sin resultados."
+        # Limitar longitud para Telegram
+        if len(answer) > 3500:
+            answer = answer[:3500] + "\n\n_[respuesta truncada]_"
+        await update.message.reply_text(f"📚 *Resultado:*\n\n{answer}", parse_mode="Markdown")
+    except subprocess.TimeoutExpired:
+        await update.message.reply_text("⏱ La búsqueda tardó demasiado. Intenta con una pregunta más específica.")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error en búsqueda: {str(e)}")
+
+
+async def cmd_reindexar(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /reindexar — Re-indexa toda la base de conocimiento de ALEX en LightRAG
+    """
+    user_id = str(update.effective_user.id)
+    if user_id != OWNER_CHAT_ID:
+        await update.message.reply_text("⛔ Solo el Jefe puede usar este comando.")
+        return
+
+    await update.message.reply_text("⚙️ Re-indexando base de conocimiento... (puede tomar 1-2 minutos)")
+
+    try:
+        result = subprocess.run(
+            ["/opt/alex-bot/venv/bin/python3", "/opt/alex-bot/rag/alex_rag.py", "index"],
+            capture_output=True, text=True, timeout=180,
+            cwd="/opt/alex-bot"
+        )
+        output = result.stdout.strip()
+        lines = [l for l in output.split("\n") if l.startswith("✓") or l.startswith("✅") or "Error" in l]
+        summary = "\n".join(lines) or "Completado."
+        await update.message.reply_text(f"✅ *Re-indexación completa:*\n\n{summary}", parse_mode="Markdown")
+    except subprocess.TimeoutExpired:
+        await update.message.reply_text("⏱ La indexación tardó demasiado. Intenta más tarde.")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error: {str(e)}")
+
+
 async def cmd_agenda(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     /agenda — Ver agenda de hoy
@@ -3160,6 +3227,9 @@ async def main():
     app.add_handler(CommandHandler("responder",   cmd_responder))
     app.add_handler(CommandHandler("agenda",      cmd_agenda))
     app.add_handler(CommandHandler("cita",        cmd_cita))
+    # LightRAG — Búsqueda semántica
+    app.add_handler(CommandHandler("buscar",      cmd_buscar))
+    app.add_handler(CommandHandler("reindexar",   cmd_reindexar))
 
     # Mensajes
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
@@ -3174,6 +3244,7 @@ async def main():
     print("  Sub-agentes: Scout | Matemático | Fact-Checker | Tracy")
     print("  Airtable: Contacts | Leads | Deals | Notes & Activity")
     print("  El Secretario: /emails /responder /agenda /cita")
+    print("  LightRAG: /buscar /reindexar")
     print("  Memoria: compartida con Claude Code")
     print("  /start /reset /guardar /memoria /historial /capacidades /claude")
     print("  Ctrl+C para detener")
