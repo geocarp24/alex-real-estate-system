@@ -2900,6 +2900,242 @@ async def cmd_tarea(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 
+# ─────────────────────────────────────────────
+# EL SECRETARIO — Comandos de Email y Calendario
+# ─────────────────────────────────────────────
+
+def _secretario_import():
+    """Importa El Secretario con manejo de error."""
+    try:
+        import sys
+        sys.path.insert(0, str(PROJECT_DIR))
+        from secretario.email_monitor import (
+            get_ultimos_emails, responder_email_aprobado, procesar_emails
+        )
+        from secretario.calendar_manager import (
+            get_eventos_hoy, get_eventos_semana, crear_cita,
+            formatear_agenda_diaria, get_google_service
+        )
+        return True, {
+            "get_ultimos_emails": get_ultimos_emails,
+            "responder_email_aprobado": responder_email_aprobado,
+            "procesar_emails": procesar_emails,
+            "get_eventos_hoy": get_eventos_hoy,
+            "get_eventos_semana": get_eventos_semana,
+            "crear_cita": crear_cita,
+            "formatear_agenda_diaria": formatear_agenda_diaria,
+            "get_google_service": get_google_service,
+        }
+    except Exception as e:
+        return False, str(e)
+
+
+async def cmd_emails(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /emails — Ver últimos emails importantes
+    /emails revisar — Forzar revisión ahora
+    """
+    user_id = str(update.effective_user.id)
+    if user_id != OWNER_CHAT_ID:
+        await update.message.reply_text("⛔ Solo el Jefe puede usar este comando.")
+        return
+
+    ok, mod = _secretario_import()
+    if not ok:
+        await update.message.reply_text(f"⚠️ El Secretario no disponible: {mod}")
+        return
+
+    # Revisar ahora si se pide
+    if context.args and context.args[0].lower() in ("revisar", "check", "ahora"):
+        await update.message.reply_text("📧 Revisando emails ahora...")
+        try:
+            await asyncio.to_thread(mod["procesar_emails"])
+        except Exception as e:
+            await update.message.reply_text(f"⚠️ Error al revisar: {e}")
+            return
+
+    # Mostrar últimos emails
+    try:
+        emails = await asyncio.to_thread(mod["get_ultimos_emails"], 5)
+    except Exception as e:
+        await update.message.reply_text(f"⚠️ Error leyendo DB: {e}")
+        return
+
+    if not emails:
+        await update.message.reply_text("📭 No hay emails registrados aún.\n\nUsa `/emails revisar` para revisar ahora.")
+        return
+
+    cat_emojis = {"LEAD": "🏠", "URGENTE": "🚨", "RUTINARIO": "📋", "SPAM": "🗑️"}
+    lines = ["📧 *ÚLTIMOS EMAILS — deals@pinnaclegroupwi.com*\n"]
+
+    for em in emails:
+        cat   = em.get("categoria", "?")
+        emoji = cat_emojis.get(cat, "📧")
+        resp  = "✅" if em.get("respondido") else "⏳"
+        lines.append(
+            f"{emoji} `ID:{em['id']}` {resp} *{cat}*\n"
+            f"   De: {em.get('remitente','')[:50]}\n"
+            f"   Asunto: {em.get('asunto','')[:60]}\n"
+            f"   {em.get('resumen','')[:100]}\n"
+        )
+
+    lines.append("\nPara responder: `/responder <ID>`")
+    lines.append("Para revisar nuevos: `/emails revisar`")
+
+    await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+
+
+async def cmd_responder(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /responder <id> — Enviar respuesta sugerida por ALEX
+    /responder <id> <mensaje personalizado>
+    """
+    user_id = str(update.effective_user.id)
+    if user_id != OWNER_CHAT_ID:
+        await update.message.reply_text("⛔ Solo el Jefe puede usar este comando.")
+        return
+
+    if not context.args:
+        await update.message.reply_text(
+            "⚠️ Uso:\n"
+            "`/responder 5` — enviar respuesta sugerida al email ID 5\n"
+            "`/responder 5 Tu mensaje aquí` — enviar mensaje personalizado",
+            parse_mode="Markdown"
+        )
+        return
+
+    ok, mod = _secretario_import()
+    if not ok:
+        await update.message.reply_text(f"⚠️ El Secretario no disponible: {mod}")
+        return
+
+    try:
+        db_id = int(context.args[0])
+    except ValueError:
+        await update.message.reply_text("⚠️ El ID debe ser un número. Ejemplo: `/responder 5`")
+        return
+
+    texto_personalizado = " ".join(context.args[1:]) if len(context.args) > 1 else None
+
+    await update.message.reply_text("📤 Enviando respuesta...")
+    try:
+        ok_send, msg = await asyncio.to_thread(
+            mod["responder_email_aprobado"], db_id, texto_personalizado
+        )
+    except Exception as e:
+        await update.message.reply_text(f"⚠️ Error: {e}")
+        return
+
+    if ok_send:
+        await update.message.reply_text(f"✅ *Respuesta enviada*\n{msg}", parse_mode="Markdown")
+    else:
+        await update.message.reply_text(f"❌ *Error al enviar*\n{msg}", parse_mode="Markdown")
+
+
+async def cmd_agenda(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /agenda — Ver agenda de hoy
+    /agenda semana — Ver próximos 7 días
+    """
+    user_id = str(update.effective_user.id)
+    if user_id != OWNER_CHAT_ID:
+        await update.message.reply_text("⛔ Solo el Jefe puede usar este comando.")
+        return
+
+    ok, mod = _secretario_import()
+    if not ok:
+        await update.message.reply_text(f"⚠️ Calendar no disponible: {mod}")
+        return
+
+    modo_semana = context.args and context.args[0].lower() in ("semana", "week", "7d")
+
+    await update.message.reply_text("📅 Consultando agenda...")
+    try:
+        service = await asyncio.to_thread(mod["get_google_service"])
+        if not service:
+            await update.message.reply_text(
+                "⚠️ Google Calendar no configurado aún.\n\n"
+                "Para configurarlo:\n"
+                "1. Sigue las instrucciones en el VPS\n"
+                "2. Ejecuta: `python3 secretario/calendar_manager.py --setup`",
+                parse_mode="Markdown"
+            )
+            return
+
+        if modo_semana:
+            eventos = await asyncio.to_thread(mod["get_eventos_semana"], service)
+            titulo  = f"📅 *AGENDA — PRÓXIMOS 7 DÍAS*\n"
+        else:
+            eventos = await asyncio.to_thread(mod["get_eventos_hoy"], service)
+            titulo  = None
+
+        mensaje = mod["formatear_agenda_diaria"](eventos, titulo)
+        await update.message.reply_text(mensaje, parse_mode="Markdown")
+
+    except Exception as e:
+        await update.message.reply_text(f"⚠️ Error consultando agenda: {e}")
+
+
+async def cmd_cita(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /cita <fecha> <hora> <nombre> <motivo>
+    Ejemplo: /cita 2024-01-15 14:30 John Smith Llamada propiedad Milwaukee
+    """
+    user_id = str(update.effective_user.id)
+    if user_id != OWNER_CHAT_ID:
+        await update.message.reply_text("⛔ Solo el Jefe puede usar este comando.")
+        return
+
+    if not context.args or len(context.args) < 4:
+        await update.message.reply_text(
+            "⚠️ Uso: `/cita <fecha> <hora> <nombre> <motivo>`\n\n"
+            "Ejemplo:\n"
+            "`/cita 2024-01-15 14:30 John Smith Llamada sobre propiedad en Milwaukee`\n\n"
+            "La fecha en formato: YYYY-MM-DD\n"
+            "La hora en formato: HH:MM (24h, CST)",
+            parse_mode="Markdown"
+        )
+        return
+
+    ok, mod = _secretario_import()
+    if not ok:
+        await update.message.reply_text(f"⚠️ Calendar no disponible: {mod}")
+        return
+
+    fecha = context.args[0]
+    hora  = context.args[1]
+    # Nombre: siguientes dos palabras, motivo: el resto
+    nombre = f"{context.args[2]} {context.args[3]}" if len(context.args) > 3 else context.args[2]
+    motivo = " ".join(context.args[4:]) if len(context.args) > 4 else "Reunión Pinnacle"
+
+    await update.message.reply_text(f"📅 Creando cita: {nombre} — {fecha} {hora}...")
+
+    try:
+        service = await asyncio.to_thread(mod["get_google_service"])
+        if not service:
+            await update.message.reply_text("⚠️ Google Calendar no configurado. Configura primero con /agenda.")
+            return
+
+        ok_cita, msg = await asyncio.to_thread(
+            mod["crear_cita"], fecha, hora, nombre, motivo, 60, service
+        )
+
+        if ok_cita:
+            await update.message.reply_text(
+                f"✅ *Cita creada exitosamente*\n\n"
+                f"📅 {fecha} a las {hora} CST\n"
+                f"👤 {nombre}\n"
+                f"📋 {motivo}\n\n"
+                f"Recibirás recordatorio 30 min antes.",
+                parse_mode="Markdown"
+            )
+        else:
+            await update.message.reply_text(f"❌ Error creando cita: {msg}")
+
+    except Exception as e:
+        await update.message.reply_text(f"⚠️ Error: {e}")
+
+
 async def main():
     if not http_requests:
         logger.warning("⚠️  Librería 'requests' no instalada. Airtable y Tracy no funcionarán. Ejecuta: pip install requests")
@@ -2919,6 +3155,11 @@ async def main():
     app.add_handler(CommandHandler("bloquear",    cmd_bloquear))
     app.add_handler(CommandHandler("claude",      cmd_claude))
     app.add_handler(CommandHandler("tarea",       cmd_tarea))
+    # El Secretario — Email y Calendario
+    app.add_handler(CommandHandler("emails",      cmd_emails))
+    app.add_handler(CommandHandler("responder",   cmd_responder))
+    app.add_handler(CommandHandler("agenda",      cmd_agenda))
+    app.add_handler(CommandHandler("cita",        cmd_cita))
 
     # Mensajes
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
@@ -2932,6 +3173,7 @@ async def main():
     print("  ALEX Bot — Capacidades Completas")
     print("  Sub-agentes: Scout | Matemático | Fact-Checker | Tracy")
     print("  Airtable: Contacts | Leads | Deals | Notes & Activity")
+    print("  El Secretario: /emails /responder /agenda /cita")
     print("  Memoria: compartida con Claude Code")
     print("  /start /reset /guardar /memoria /historial /capacidades /claude")
     print("  Ctrl+C para detener")

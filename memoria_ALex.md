@@ -82,6 +82,28 @@
 
 ---
 
+### 2026-04-06 — El Secretario y El Planificador
+
+#### 5. El Secretario — Monitor de Email (deals@pinnaclegroupwi.com)
+- **Script:** `secretario/email_monitor.py` — IMAP + Claude clasificación + Airtable + Telegram
+- **Servicio systemd:** `secretario-email.service` ✅ Activo (pid 1181386)
+- **IMAP:** ✅ Conectado a imap.hostinger.com:993 — 166 emails, 90 no leídos en primer ciclo
+- **Credenciales en `.env`:** `SECRETARIO_EMAIL`, `SECRETARIO_PASSWORD`, `IMAP_HOST`, `IMAP_PORT`, `SMTP_HOST`, `SMTP_PORT`
+- **DB local:** `secretario/emails.db` — SQLite para tracking de emails procesados
+- **Comandos Telegram:** `/emails`, `/responder <ID>`, `/responder <ID> mensaje`
+- **Clasificación:** LEAD → Airtable + notificación | URGENTE → notificación | RUTINARIO → resumen | SPAM → ignorar
+
+#### 6. El Planificador — Google Calendar
+- **Script:** `secretario/calendar_manager.py`
+- **Cron alexuser:** resumen matutino 8am CST (14:00 UTC) + recordatorios cada 15min
+- **Google libs:** ✅ Instaladas en venv (`google-auth`, `google-auth-oauthlib`, `google-api-python-client`)
+- **Comandos Telegram:** `/agenda`, `/agenda semana`, `/cita <fecha> <hora> <nombre> <motivo>`
+- **Estado OAuth:** ⚠️ PENDIENTE — Jorge debe crear proyecto en Google Cloud Console y bajar `credentials.json`
+  - Ruta destino: `secretario/google_creds/credentials.json`
+  - Luego ejecutar: `python3 secretario/calendar_manager.py --auth`
+
+---
+
 ## 📊 ESTADO ACTUAL DEL SISTEMA — 2026-04-05
 
 | Componente | Estado | Notas |
@@ -96,6 +118,8 @@
 | Sub-agente El Fact-Checker | ✅ Listo | `agents/fact-checker.md` |
 | Sub-agente Tracy | ✅ Listo | `agents/tracy.md` + Tracerfy API |
 | Sub-agente Social Media | ✅ Listo | `agents/social_media.md` — NUEVO hoy |
+| El Secretario (Email) | ✅ Activo | `secretario/email_monitor.py` — servicio systemd |
+| El Planificador (Calendar) | ⚠️ Parcial | `secretario/calendar_manager.py` — OAuth pendiente |
 | Airtable CRM (Real Estate) | ✅ Activo | Base `appfQbDA750Oihy9J` — tablas vacías |
 | Airtable Social Media | ✅ Activo | Base `appU9s3kGkVpdrJkw` — 12 ideas pendientes |
 | el_polling.php | ✅ Activo | Cron cada 5min en Hostinger |

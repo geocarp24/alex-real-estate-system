@@ -1,19 +1,4 @@
 {
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "cd \"c:/Users/Admin/OneDrive/Documents/Claude for real estate\" && git add -A && git diff --cached --quiet || git commit -m \"auto: save $(date +\"%Y-%m-%d %H:%M:%S\")\" && git push 2>/dev/null || true",
-            "async": true,
-            "statusMessage": "Guardando versión en GitHub..."
-          }
-        ]
-      }
-    ]
-  },
   "permissions": {
     "allow": [
       "Bash(dir \"C:\\\\Users\\\\Admin\\\\OneDrive\\\\Documents\\\\Claude for real estate\" /s /b 2>/dev/null | head -50)",
@@ -28,7 +13,33 @@
       "Bash(bash*alerta_telegram.sh*)",
       "Bash(sleep*)",
       "Bash(printf*)",
-      "Bash(git*)"
+      "Bash(git*)",
+      "mcp__blotato__blotato_create_post",
+      "mcp__blotato__blotato_list_visual_templates",
+      "mcp__blotato__blotato_create_visual",
+      "mcp__blotato__blotato_get_visual_status",
+      "mcp__blotato__blotato_list_schedules",
+      "WebFetch(domain:help.blotato.com)",
+      "Bash(kill 1033700)",
+      "Bash(nohup venv/bin/python3 telegram_bot/alex_bot.py)",
+      "Bash(pkill -f alex_bot.py)",
+      "Bash(nohup /opt/alex-bot/venv/bin/python3 /opt/alex-bot/telegram_bot/alex_bot.py)",
+      "Bash(pkill -9 -f alex_bot.py)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"c:/Users/Admin/OneDrive/Documents/Claude for real estate\" && git add -A && git diff --cached --quiet || git commit -m \"auto: save $(date +\"%Y-%m-%d %H:%M:%S\")\" && git push 2>/dev/null || true",
+            "statusMessage": "Guardando versión en GitHub...",
+            "async": true
+          }
+        ]
+      }
     ]
   }
 }
