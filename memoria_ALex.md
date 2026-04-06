@@ -37,7 +37,7 @@
 
 ---
 
-*Última actualización: 2026-04-05*
+*Última actualización: 2026-04-06*
 
 ---
 
@@ -79,6 +79,19 @@
   - Make.com webhook autorizado: `hook.us2.make.com/zbvy7391...`
 - **Protocolo de seguridad actualizado** a v1.1 — Social Media Agent en cadena de autoridad
 - **Fuente de datos:** repo `geocarp24/pinnacle-agent-memory` → `PINNACLE_SOCIAL_MEDIA_AGENT.md`
+
+---
+
+### 2026-04-06 — Regla Tracerfy + Limpieza Automática
+
+#### 7. El Secretario — Regla Tracerfy agregada
+- **Regla:** Emails cuyo FROM contenga "tracerfy" se archivan silenciosamente — sin Telegram, sin Airtable, sin Claude
+- **Flujo IMAP:** COPY a carpeta "Archive" → `\\Deleted` en INBOX → EXPUNGE
+- **Si carpeta Archive no existe:** se crea automáticamente en el servidor Hostinger
+- **SQLite:** campos `is_tracerfy=1` y `archived_date=YYYY-MM-DD` registran el archivado
+- **Limpieza automática:** al inicio de cada ciclo (cada 5 min), busca Tracerfy con `archived_date <= hoy-30días` → elimina permanentemente de IMAP y SQLite
+- **Función de detección:** `es_tracerfy(remitente)` — case-insensitive
+- **Estado:** ✅ Activo en producción (servicio systemd existente)
 
 ---
 
@@ -339,6 +352,46 @@
 **Resultado:** MONITOR GITHUB ACTIVO - Sistema de monitoreo 24/7 funcionando. Detecté esta tarea desde task_queue.json en GitHub.
 
 
+
+## 2026-04-06 — Pinnacle Call Assistant — Sesión de trabajo
+
+### Reglas de trabajo — OBLIGATORIAS (aprobadas por Jorge)
+1. **Siempre subir a Hostinger Y a GitHub** cuando se modifica un archivo de Tools
+2. **Siempre actualizar memoria_ALex.md** al final de cada sesión con los cambios hechos
+3. **Pedir confirmación antes de hacer cambios extras** — solo cambiar lo que el Jefe pidió
+
+### Call Assistant — Estado actual
+- **URL:** `pinnaclegroupwi.com/Tools/Pinnacle_Call_Assistant.html`
+- **Login:** `deals@pinnaclegroupwi.com` / `4523Jics`
+- **Copia GitHub:** `hostinger/tools/Pinnacle_Call_Assistant.html`
+- **Archivos de soporte:** `auth.php`, `config.php`, `calendar.php`, `calendar_events.php`, `send_notification.php`
+
+### Fix aplicado hoy (2026-04-06)
+- **Problema:** `config.php` le faltaban las constantes `USERS` y `SESSION_HOURS` → login fallaba
+- **Fix:** Agregadas las constantes → login funciona con `deals@pinnaclegroupwi.com` / `4523Jics`
+- **Fix 2:** Paso `callback_time` ("Best time to call back") cambiado de `type:'text'` a dropdown con las 6 opciones válidas de Airtable (Morning, Afternoon, Evening, Anytime, Weekends Only, Unknow yet) — evita error INVALID_MULTIPLE_CHOICE_OPTIONS
+
+### Pendiente (próxima sesión — aprobado por Jorge)
+- Convertir otros Single Select fields a dropdowns: Stage completo, Water Source, Construction Type, Script Type, Occupied Status (typo "Owner Ocupied"), Roof/HVAC "Unknown" no válido en Airtable
+
+---
+
+## 2026-04-06 — Acceso SSH Hostinger — GUARDADO
+
+### Credenciales SSH Hostinger (pinnaclegroupwi.com)
+- **Host:** `156.67.74.243`
+- **Puerto:** `65002`
+- **Usuario:** `u433637438`
+- **Contraseña:** en `.env` → `HOSTINGER_SSH_PASS`
+- **Ruta Tools:** `~/domains/pinnaclegroupwi.com/public_html/Tools/`
+- **Comando de conexión:** `sshpass -p "$HOSTINGER_SSH_PASS" ssh -p 65002 -o StrictHostKeyChecking=no u433637438@156.67.74.243`
+
+### Backup de archivos en GitHub
+- **Carpeta:** `hostinger/tools/` en repo `geocarp24/alex-real-estate-system`
+- **Archivos:** Pinnacle_Call_Assistant.html, Property_Inspector.html, auth.php, config.php, calendar.php, y más
+- **Propósito:** Referencia para futuros cambios — leer desde GitHub antes de editar en Hostinger
+
+---
 
 ## 2026-04-07 — TAREA CRÍTICA: INSTALAR BLOTATO MCP EN VPS
 **Prioridad:** 🔴 MÁXIMA — Aprobada por Jorge
