@@ -140,11 +140,57 @@ Tone: Authentic, personal, direct — Jorge speaks as himself, not as a corporat
 
 ### Paso 6 — Generar el video con Blotato
 
+**CRÍTICO — Formato de inputs validado (errores comunes documentados):**
+
+**Para AI Story Video** (`/base/v2/ai-story-video/.../v1`):
+```python
+inputs = {
+    "scenes": [
+        # mediaSource DEBE ser string directo — NO objeto {"aiPrompt": "..."}
+        {"mediaSource": "descripción visual de la escena para AI", "script": "texto del voiceover"},
+        {"mediaSource": "descripción visual escena 2", "script": "continuación del voiceover"},
+        {"mediaSource": "CTA scene: Pinnacle Holdings logo, phone number, website", "script": "Call us today"},
+    ],
+    "voiceName": "Bill (American, trustworthy)",  # usar valor exacto del enum
+    "aiImageModel": "fal-ai/nano-banana-pro",
+    "aspectRatio": "9:16",
+    "captionPosition": "bottom",
+    "highlightColor": "#C9A84C",
+    "transition": "fade"
+}
+```
+
+**Para AI Selfie Video** (`/base/v2/ai-selfie-video/.../v1`):
+```python
+inputs = {
+    "scenes": [
+        # description = visual, narration = lo que dice el personaje
+        {"description": "descripción visual de la escena", "narration": "texto que dice Jorge"},
+        {"description": "escena 2 descripción", "narration": "continuación del script"},
+    ],
+    # characterDescription = TEXTO DESCRIPTIVO, NO URL de imagen
+    # GitHub raw URLs NO funcionan — Blotato no puede accederlas
+    "characterDescription": "Hispanic male in his 30s-40s, professional business casual attire, confident and trustworthy expression, warm smile, dark hair. Real estate investor founder.",
+    "style": "realistic",
+    "aspectRatio": "9:16"
+}
+# NOTA: Para usar foto real de Jorge → primero subir con blotato_create_presigned_upload_url
+```
+
+**Voces disponibles (AI Story Video):**
+```
+"Alice (British, confident)", "Aria (American, expressive)", "Bill (American, trustworthy)",
+"Brian (American, deep)", "Callum (Transatlantic, intense)", "Charlie (Australian, natural)",
+"Daniel (British, authoritative)", "Eric (American, friendly)", "George (British, warm)",
+"Jessica (American, expressive)", "Laura (American, upbeat)", "Liam (American, articulate)"
+```
+→ Para Pinnacle usar: **"Bill (American, trustworthy)"** o **"Brian (American, deep)"**
+
 ```python
 result = blotato_create_visual(
-    templateId="[template ID seleccionado]",
-    prompt="[prompt completo construido en Paso 5]",
-    inputs={},
+    templateId="[template ID seleccionado — ver tabla Paso 4]",
+    prompt="[descripción general del video para contexto]",
+    inputs=inputs,  # inputs estructurados según tipo de template (ver arriba)
     render=True
 )
 visual_id = result["id"]
@@ -192,8 +238,18 @@ CRITICAL BRANDING REQUIREMENTS:
 
 ## MANEJO DE ERRORES
 
-- Si video falla → espera 2 minutos, reintenta con prompt simplificado
-- Si AI Selfie Video falla con foto de Jorge → prueba con AI Story Video
+**Errores comunes y soluciones validadas:**
+
+| Error | Causa | Solución |
+|-------|-------|---------|
+| `creation-from-template-failed` — `scenes.0.mediaSource: must be a non-empty string` | Se usó `{"aiPrompt": "..."}` en mediaSource | Usar string directo: `{"mediaSource": "descripción plana"}` |
+| `creation-from-template-failed` — `characterDescription: must be a valid Image URL` | Se pasó URL de GitHub raw | Usar descripción de texto: "Hispanic male, professional..." |
+| Video se queda en `script-ready` indefinidamente | Cola de Blotato saturada | Lanzar máximo 1 job a la vez — esperar `done` antes del siguiente |
+| Video tarda más de 15 min | Cola saturada por jobs anteriores | Esperar — eventualmente completa. No reintentes |
+
+**Reglas generales:**
+- Si `creation-from-template-failed` → espera 60s, reintenta con inputs corregidos
+- Si AI Selfie Video falla → prueba con AI Story Video (más estable)
 - Si todo falla → actualiza Airtable `Status = "Error Video"` + reporta a ALEX
 
 ---
@@ -214,5 +270,6 @@ CRITICAL BRANDING REQUIREMENTS:
 
 ---
 
-*Versión 2.0 — 2026-04-05*
+*Versión 3.0 — 2026-04-05*
+*Inputs de AI Story Video y AI Selfie Video documentados con formatos validados*
 *Invocado por: ALEX Orquestador*
