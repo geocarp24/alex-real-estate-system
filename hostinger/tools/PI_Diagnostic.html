@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PI Diagnostic — Pinnacle</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0e1a; color: #e2e8f0; padding: 16px; }
+  h1 { font-size: 20px; color: #3b82f6; margin-bottom: 4px; }
+  .sub { font-size: 12px; color: #64748b; margin-bottom: 20px; }
+  .card { background: #111827; border: 1px solid #2d3748; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .card h2 { font-size: 16px; color: #f59e0b; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .result { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 12px; font-family: 'SF Mono', 'Menlo', monospace; font-size: 12px; line-height: 1.6; white-space: pre-wrap; word-break: break-all; max-height: 300px; overflow-y: auto; color: #94a3b8; margin-top: 8px; }
+  .result.ok { border-color: #10b981; }
+  .result.fail { border-color: #ef4444; }
+  .row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; flex-wrap: wrap; }
+  input[type="text"] { background: #1e293b; border: 1px solid #4a5568; color: #e2e8f0; padding: 10px 12px; border-radius: 8px; font-size: 14px; flex: 1; min-width: 150px; }
+  input::placeholder { color: #64748b; }
+  button { background: #3b82f6; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  button:hover { background: #2563eb; }
+  button:disabled { opacity: 0.4; cursor: wait; }
+  .btn-green { background: #10b981; }
+  .btn-green:hover { background: #059669; }
+  .btn-red { background: #ef4444; }
+  .btn-red:hover { background: #dc2626; }
+  .btn-yellow { background: #f59e0b; color: #000; }
+  .label { font-size: 12px; color: #94a3b8; font-weight: 600; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .tag-ok { background: rgba(16,185,129,0.2); color: #10b981; }
+  .tag-fail { background: rgba(239,68,68,0.2); color: #ef4444; }
+  .tag-warn { background: rgba(245,158,11,0.2); color: #f59e0b; }
+  .divider { height: 1px; background: #2d3748; margin: 12px 0; }
+  .step-num { background: #3b82f6; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; flex-shrink: 0; }
+  .status-line { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 4px 0; }
+</style>
+</head>
+<body>
+
+<h1>🔧 Property Inspector — Diagnostic Tool</h1>
+<p class="sub">Pinnacle Holdings Group LLC — All tests run directly against your server. Results shown on screen.</p>
+
+<!-- ═══ STEP 0: FILE VERSION CHECK ═══ -->
+<div class="card">
+  <h2><span class="step-num">0</span> File Version Check</h2>
+  <p style="font-size:13px;color:#94a3b8;margin-bottom:8px;">This checks if the CORRECTED files are actually deployed on the server.</p>
+  <button onclick="checkFileVersion()">🔍 Check Deployed Files</button>
+  <div class="result" id="r-version" style="display:none;"></div>
+</div>
+
+<!-- ═══ STEP 1: LOAD CONTACT ═══ -->
+<div class="card">
+  <h2><span class="step-num">1</span> Load Contact from Airtable</h2>
+  <div class="row">
+    <input type="text" id="contact-id" placeholder="Paste Airtable Contact record ID (recXXXXXX...)">
+    <button onclick="loadContact()">📋 Load Contact</button>
+  </div>
+  <div class="result" id="r-contact" style="display:none;"></div>
+</div>
+
+<!-- ═══ STEP 2: TEST SMS ═══ -->
+<div class="card">
+  <h2><span class="step-num">2</span> Test SMS via Quo API</h2>
+  <p style="font-size:13px;color:#94a3b8;margin-bottom:8px;">Send a test SMS to verify delivery. Uses the SAME code as the Invite button.</p>
+  <div class="row">
+    <input type="text" id="sms-phone" placeholder="Phone number to test (e.g. 9207843792)">
+    <button class="btn-green" onclick="testSms()">📱 Send Test SMS</button>
+  </div>
+  <div class="result" id="r-sms" style="display:none;"></div>
+</div>
+
+<!-- ═══ STEP 3: TEST EMAIL ═══ -->
+<div class="card">
+  <h2><span class="step-num">3</span> Test Email via SMTP</h2>
+  <p style="font-size:13px;color:#94a3b8;margin-bottom:8px;">Send a test email to verify delivery. Uses the SAME sendSmtpEmail function.</p>
+  <div class="row">
+    <input type="text" id="email-to" placeholder="Email address to test" value="deals@pinnaclegroupwi.com">
+    <button class="btn-green" onclick="testEmail()">📧 Send Test Email</button>
+  </div>
+  <div class="result" id="r-email" style="display:none;"></div>
+</div>
+
+<!-- ═══ STEP 4: TEST INVITE (FULL FLOW) ═══ -->
+<div class="card">
+  <h2><span class="step-num">4</span> Test Full Invite Flow</h2>
+  <p style="font-size:13px;color:#94a3b8;margin-bottom:8px;">Simulates pressing the 📱 Invite button. Requires Step 1 first.</p>
+  <button class="btn-yellow" onclick="testInvite()" id="btn-invite-test" disabled>📱 Simulate Invite Button</button>
+  <div class="result" id="r-invite" style="display:none;"></div>
+</div>
+
+<!-- ═══ STEP 5: CHECK PHOTOS ═══ -->
+<div class="card">
+  <h2><span class="step-num">5</span> Check Existing Photos</h2>
+  <p style="font-size:13px;color:#94a3b8;margin-bottom:8px;">Loads existing visit data and checks if photos come back. Requires Step 1 first.</p>
+  <button onclick="checkPhotos()" id="btn-photos-test" disabled>📸 Check Photos</button>
+  <div class="result" id="r-photos" style="display:none;"></div>
+</div>
+
+<!-- ═══ STEP 6: DEBUG ENDPOINT ═══ -->
+<div class="card">
+  <h2><span class="step-num">6</span> Run Debug Endpoint</h2>
+  <p style="font-size:13px;color:#94a3b8;margin-bottom:8px;">Calls ?action=debug_invite — shows raw Quo API + Email test results.</p>
+  <button class="btn-red" onclick="runDebug()">🧪 Run Full Debug</button>
+  <div class="result" id="r-debug" style="display:none;"></div>
+</div>
+
+<script>
+const PROXY = 'property_inspector_proxy.php';
+let CONTACT = null; // loaded contact data
+
+function show(id, text, status) {
+  const el = document.getElementById(id);
+  el.style.display = 'block';
+  el.textContent = typeof text === 'string' ? text : JSON.stringify(text, null, 2);
+  el.className = 'result' + (status === 'ok' ? ' ok' : status === 'fail' ? ' fail' : '');
+}
+
+// ─── STEP 0: Check if corrected files are deployed ───
+async function checkFileVersion() {
+  show('r-version', '⏳ Checking...', '');
+  try {
+    // Fetch the proxy file as text to look for our signature changes
+    const res = await fetch(PROXY + '?action=ping_version');
+    const text = await res.text();
+    
+    // Also fetch the HTML file to check for our changes
+    const htmlRes = await fetch('Property_Inspector.html');
+    const htmlText = await htmlRes.text();
+    
+    let report = '=== FILE VERSION CHECK ===\n\n';
+    
+    // Check proxy for PHPMailer signature (our fix)
+    // We can't read PHP source, but we can check if debug_invite returns properly
+    report += '📄 property_inspector_proxy.php:\n';
+    report += '   → File exists: ✅ (proxy responded)\n';
+    
+    // Check HTML for our Math.floor fix
+    const hasFloorFix = htmlText.includes('Math.floor(f[\'Phone1\'])') || htmlText.includes('Math.floor(f["Phone1"])');
+    const hasOldCode = htmlText.includes('S.phone1      = f[\'Phone1\']    ? String(f[\'Phone1\'])');
+    
+    report += '\n📄 Property_Inspector.html:\n';
+    if (hasFloorFix) {
+      report += '   → Phone1 Math.floor fix: ✅ DEPLOYED\n';
+    } else if (hasOldCode) {
+      report += '   → Phone1 Math.floor fix: ❌ OLD VERSION — file was NOT replaced!\n';
+      report += '   → ⚠️  You need to upload the corrected file to the server\n';
+    } else {
+      report += '   → Phone1 handling: ⚠️  Cannot determine version\n';
+    }
+    
+    const hasNewDebug = htmlText.includes('smsInfo.sent_to') || htmlText.includes('debugParts');
+    report += '   → Improved debug toast: ' + (hasNewDebug ? '✅ DEPLOYED' : '❌ OLD VERSION') + '\n';
+    
+    // Check send_notification.php
+    report += '\n📄 send_notification.php:\n';
+    report += '   → Cannot verify PHP source from browser (normal)\n';
+    report += '   → Will be tested in Step 6 (Debug Endpoint)\n';
+    
+    report += '\n═══════════════════════════════════════\n';
+    report += hasFloorFix ? '✅ Corrected files ARE deployed' : '❌ OLD FILES still deployed — upload the new ones!';
+    
+    show('r-version', report, hasFloorFix ? 'ok' : 'fail');
+  } catch(err) {
+    show('r-version', '❌ Error: ' + err.message + '\n\nIs this file in the same folder as the proxy?', 'fail');
+  }
+}
+
+// ─── STEP 1: Load Contact ───
+async function loadContact() {
+  const cid = document.getElementById('contact-id').value.trim();
+  if (!cid) { show('r-contact', '❌ Paste a contact record ID first (starts with "rec")', 'fail'); return; }
+  
+  show('r-contact', '⏳ Loading contact ' + cid + '...', '');
+  try {
+    const res = await fetch(PROXY + '?action=get_contact&id=' + encodeURIComponent(cid));
+    const data = await res.json();
+    
+    if (data.error) { show('r-contact', '❌ Airtable Error:\n' + JSON.stringify(data, null, 2), 'fail'); return; }
+    
+    CONTACT = data;
+    const f = data.fields || {};
+    
+    let report = '=== CONTACT LOADED ===\n\n';
+    report += '📋 Full Name:        ' + (f['Full Name'] || '⚠️ EMPTY') + '\n';
+    report += '📞 Phone1 (raw):     ' + JSON.stringify(f['Phone1']) + '\n';
+    report += '   Phone1 type:      ' + typeof f['Phone1'] + '\n';
+    
+    // Simulate our fix
+    let phone1Display = f['Phone1'];
+    if (typeof phone1Display === 'number') phone1Display = Math.floor(phone1Display);
+    const phoneClean = phone1Display ? String(phone1Display).replace(/\D/g,'') : '';
+    report += '   Phone1 cleaned:   ' + (phoneClean || '⚠️ EMPTY — this is why SMS fails!') + '\n';
+    
+    report += '📧 Email1:           ' + (f['Email1'] || '⚠️ EMPTY — this is why email fails!') + '\n';
+    report += '🏠 Property Address: ' + JSON.stringify(f['Property Address']) + '\n';
+    report += '🏗️  Foundation:       ' + (f['Foundation'] || '(not set)') + '\n';
+    
+    // Fill SMS/Email fields for easy testing
+    if (phoneClean) document.getElementById('sms-phone').value = phoneClean;
+    if (f['Email1']) document.getElementById('email-to').value = f['Email1'];
+    
+    // Enable buttons
+    document.getElementById('btn-invite-test').disabled = false;
+    document.getElementById('btn-photos-test').disabled = false;
+    
+    const hasPhone = !!phoneClean;
+    const hasEmail = !!f['Email1'];
+    report += '\n═══════════════════════════════════════\n';
+    if (!hasPhone && !hasEmail) {
+      report += '❌ PROBLEM FOUND: This contact has NO phone and NO email!\n';
+      report += '   → The Invite button cannot send anything.\n';
+      report += '   → Add Phone1 or Email1 in Airtable for this contact.';
+    } else {
+      report += '✅ Contact loaded. ';
+      if (hasPhone) report += 'Phone: ' + phoneClean + ' ';
+      if (hasEmail) report += 'Email: ' + f['Email1'];
+    }
+    
+    show('r-contact', report, (!hasPhone && !hasEmail) ? 'fail' : 'ok');
+  } catch(err) {
+    show('r-contact', '❌ Fetch Error: ' + err.message, 'fail');
+  }
+}
+
+// ─── STEP 2: Test SMS ───
+async function testSms() {
+  const phone = document.getElementById('sms-phone').value.trim().replace(/\D/g,'');
+  if (!phone) { show('r-sms', '❌ Enter a phone number first', 'fail'); return; }
+  
+  show('r-sms', '⏳ Sending test SMS to ' + phone + '...', '');
+  try {
+    const res = await fetch(PROXY + '?action=send_client_invite', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        contact_id: 'DIAGNOSTIC_TEST',
+        contact_name: 'Test',
+        phone: phone,
+        email: '',
+        address: 'Diagnostic Test'
+      })
+    });
+    const data = await res.json();
+    
+    let report = '=== SMS TEST RESULT ===\n\n';
+    report += 'Full response:\n' + JSON.stringify(data, null, 2);
+    
+    const smsOk = data.results?.sms?.success;
+    report += '\n\n═══════════════════════════════════════\n';
+    report += smsOk ? '✅ SMS sent successfully! Check your phone.' : '❌ SMS FAILED — see response above for details.';
+    
+    show('r-sms', report, smsOk ? 'ok' : 'fail');
+  } catch(err) {
+    show('r-sms', '❌ Fetch Error: ' + err.message, 'fail');
+  }
+}
+
+// ─── STEP 3: Test Email ───
+async function testEmail() {
+  const email = document.getElementById('email-to').value.trim();
+  if (!email) { show('r-email', '❌ Enter an email address first', 'fail'); return; }
+  
+  show('r-email', '⏳ Sending test email to ' + email + '...', '');
+  try {
+    const res = await fetch(PROXY + '?action=send_client_invite', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        contact_id: 'DIAGNOSTIC_TEST',
+        contact_name: 'Test',
+        phone: '',
+        email: email,
+        address: 'Diagnostic Test'
+      })
+    });
+    const data = await res.json();
+    
+    let report = '=== EMAIL TEST RESULT ===\n\n';
+    report += 'Full response:\n' + JSON.stringify(data, null, 2);
+    
+    const emailOk = data.results?.email?.success;
+    report += '\n\n═══════════════════════════════════════\n';
+    report += emailOk ? '✅ Email sent! Check inbox (and spam folder).' : '❌ Email FAILED — see response above.';
+    
+    show('r-email', report, emailOk ? 'ok' : 'fail');
+  } catch(err) {
+    show('r-email', '❌ Fetch Error: ' + err.message, 'fail');
+  }
+}
+
+// ─── STEP 4: Test Full Invite ───
+async function testInvite() {
+  if (!CONTACT) { show('r-invite', '❌ Load a contact first (Step 1)', 'fail'); return; }
+  
+  const f = CONTACT.fields || {};
+  let phone1 = f['Phone1'];
+  if (typeof phone1 === 'number') phone1 = Math.floor(phone1);
+  const phone = phone1 ? String(phone1).replace(/\D/g,'') : '';
+  const email = f['Email1'] || '';
+  const cid = document.getElementById('contact-id').value.trim();
+  const name = (f['Full Name'] || 'there').split(' ')[0];
+  
+  show('r-invite', '⏳ Simulating Invite for ' + name + '...\nPhone: ' + (phone||'NONE') + '\nEmail: ' + (email||'NONE'), '');
+  
+  try {
+    const res = await fetch(PROXY + '?action=send_client_invite', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        contact_id: cid,
+        contact_name: name,
+        phone: phone,
+        email: email,
+        address: 'Test Property'
+      })
+    });
+    const data = await res.json();
+    
+    let report = '=== FULL INVITE SIMULATION ===\n\n';
+    report += 'Input sent to proxy:\n';
+    report += '  contact_id:   ' + cid + '\n';
+    report += '  contact_name: ' + name + '\n';
+    report += '  phone:        ' + (phone || '(empty)') + '\n';
+    report += '  email:        ' + (email || '(empty)') + '\n\n';
+    report += 'Proxy response:\n' + JSON.stringify(data, null, 2);
+    
+    const smsOk = data.results?.sms?.success;
+    const emailOk = data.results?.email?.success;
+    report += '\n\n═══════════════════════════════════════\n';
+    report += 'SMS:   ' + (smsOk ? '✅ Sent' : (phone ? '❌ Failed' : '⚠️ Skipped (no phone)')) + '\n';
+    report += 'Email: ' + (emailOk ? '✅ Sent' : (email ? '❌ Failed' : '⚠️ Skipped (no email)'));
+    
+    show('r-invite', report, (smsOk || emailOk) ? 'ok' : 'fail');
+  } catch(err) {
+    show('r-invite', '❌ Fetch Error: ' + err.message, 'fail');
+  }
+}
+
+// ─── STEP 5: Check Photos ───
+async function checkPhotos() {
+  const cid = document.getElementById('contact-id').value.trim();
+  if (!cid) { show('r-photos', '❌ Load a contact first (Step 1)', 'fail'); return; }
+  
+  show('r-photos', '⏳ Checking existing visit for ' + cid + '...', '');
+  try {
+    const res = await fetch(PROXY + '?action=get_existing_visit&contact_id=' + encodeURIComponent(cid));
+    const data = await res.json();
+    
+    let report = '=== EXISTING VISIT CHECK ===\n\n';
+    
+    if (!data.exists) {
+      report += '📂 No previous visit found for this contact.\n';
+      report += '   → This is normal if no photos were uploaded yet.';
+      show('r-photos', report, 'ok');
+      return;
+    }
+    
+    report += '📂 Previous visit FOUND!\n\n';
+    
+    // Check each photo field
+    const photoFields = ['Exterior Front','Exterior Back','Garage','Living Room','Kitchen',
+      'Bedroom 1','Bedroom 2','Bedroom 3','Bedroom 4',
+      'Bathroom 1','Bathroom 2','Bathroom 3',
+      'Basement','Roof','HVAC','Additional'];
+    
+    let totalPhotos = 0;
+    let serverUrlCount = 0;
+    let airtableUrlCount = 0;
+    
+    photoFields.forEach(field => {
+      const atts = data.fields?.[field];
+      if (atts && Array.isArray(atts) && atts.length > 0) {
+        report += '📸 ' + field + ': ' + atts.length + ' photo(s)\n';
+        atts.forEach((att, i) => {
+          const url = att.url || '(no url)';
+          const isServer = url.includes('pinnaclegroupwi.com/Tools/property_photos');
+          const isAirtable = url.includes('airtable.com') || url.includes('dl.airtableusercontent.com');
+          if (isServer) serverUrlCount++;
+          if (isAirtable) airtableUrlCount++;
+          report += '   [' + (i+1) + '] ' + (isServer ? '✅ SERVER' : isAirtable ? '❌ AIRTABLE TEMP' : '⚠️ OTHER') + ': ' + url.substring(0, 80) + '...\n';
+        });
+        totalPhotos += atts.length;
+      }
+    });
+    
+    if (totalPhotos === 0) {
+      report += '⚠️ Visit record exists but no photos found in any field.\n';
+    }
+    
+    // Transcript
+    if (data.transcript) {
+      report += '\n🎙️ Transcript: ' + data.transcript.substring(0, 200) + (data.transcript.length > 200 ? '...' : '') + '\n';
+    }
+    
+    report += '\n═══════════════════════════════════════\n';
+    report += 'Total photos: ' + totalPhotos + '\n';
+    report += 'Server URLs (permanent): ' + serverUrlCount + '\n';
+    report += 'Airtable URLs (temporary): ' + airtableUrlCount + '\n';
+    if (airtableUrlCount > 0 && serverUrlCount === 0) {
+      report += '\n❌ ALL URLs are temporary Airtable URLs!\n';
+      report += '   → The corrected proxy should return server URLs instead.\n';
+      report += '   → This means the NEW proxy file is NOT deployed yet.';
+    } else if (serverUrlCount > 0) {
+      report += '\n✅ Photos use permanent server URLs — fix is working!';
+    }
+    
+    show('r-photos', report, serverUrlCount > 0 ? 'ok' : (airtableUrlCount > 0 ? 'fail' : ''));
+  } catch(err) {
+    show('r-photos', '❌ Fetch Error: ' + err.message, 'fail');
+  }
+}
+
+// ─── STEP 6: Debug Endpoint ───
+async function runDebug() {
+  show('r-debug', '⏳ Running debug endpoint...', '');
+  try {
+    const res = await fetch(PROXY + '?action=debug_invite');
+    const data = await res.json();
+    
+    let report = '=== DEBUG ENDPOINT RESULTS ===\n\n';
+    const d = data.debug || {};
+    
+    report += '🔑 API Keys:\n';
+    report += '   QUO_API_KEY defined: ' + (d.quo_api_key_defined ? '✅' : '❌') + '\n';
+    report += '   QUO key length:     ' + d.quo_key_length + ' chars ' + (d.quo_key_length === 64 ? '✅' : '❌ (expected 64)') + '\n';
+    report += '   SMTP_PASSWORD defined: ' + (d.smtp_password_defined ? '✅' : '❌') + '\n';
+    
+    report += '\n📱 SMS Test:\n';
+    report += '   HTTP Code:  ' + d.sms_http_code + ' ' + (d.sms_http_code === 202 ? '✅' : '❌') + '\n';
+    report += '   cURL Error: ' + (d.sms_curl_error || 'none') + '\n';
+    if (d.sms_response?.data) {
+      report += '   Status:     ' + d.sms_response.data.status + ' ' + (d.sms_response.data.status === 'sent' ? '✅' : '❌') + '\n';
+      report += '   Sent to:    ' + JSON.stringify(d.sms_response.data.to) + '\n';
+      report += '   From:       ' + d.sms_response.data.from + '\n';
+      report += '   Message ID: ' + d.sms_response.data.id + '\n';
+    } else {
+      report += '   Response: ' + JSON.stringify(d.sms_response) + '\n';
+    }
+    
+    report += '\n📧 Email Test:\n';
+    report += '   Sent: ' + (d.email_sent ? '✅ true' : '❌ false') + '\n';
+    
+    report += '\nFull raw response:\n' + JSON.stringify(data, null, 2);
+    
+    const allOk = d.sms_http_code === 202 && d.email_sent;
+    show('r-debug', report, allOk ? 'ok' : 'fail');
+  } catch(err) {
+    show('r-debug', '❌ Fetch Error: ' + err.message + '\n\n⚠️ Make sure this file is in the same folder as property_inspector_proxy.php', 'fail');
+  }
+}
+</script>
+
+</body>
+</html>
