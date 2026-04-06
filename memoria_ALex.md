@@ -98,9 +98,12 @@
 - **Cron alexuser:** resumen matutino 8am CST (14:00 UTC) + recordatorios cada 15min
 - **Google libs:** ✅ Instaladas en venv (`google-auth`, `google-auth-oauthlib`, `google-api-python-client`)
 - **Comandos Telegram:** `/agenda`, `/agenda semana`, `/cita <fecha> <hora> <nombre> <motivo>`
-- **Estado OAuth:** ⚠️ PENDIENTE — Jorge debe crear proyecto en Google Cloud Console y bajar `credentials.json`
-  - Ruta destino: `secretario/google_creds/credentials.json`
-  - Luego ejecutar: `python3 secretario/calendar_manager.py --auth`
+- **Estado OAuth — 2026-04-06:** ✅ credentials.json instalado en `secretario/google_creds/credentials.json`
+  - Client ID: `26650922402-186bhh0gb01uho45va1boita1rkulpil.apps.googleusercontent.com`
+  - Proyecto Google Cloud: `pinnacle-alex`
+  - `.env` actualizado con `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CREDS_PATH`, `GOOGLE_TOKEN_PATH`
+  - Script de autorización: `secretario/auth_google.py`
+  - **PENDIENTE:** Jorge ejecutar `python3 secretario/auth_google.py` desde SSH y pegar el código de autorización
 
 ---
 
@@ -119,7 +122,7 @@
 | Sub-agente Tracy | ✅ Listo | `agents/tracy.md` + Tracerfy API |
 | Sub-agente Social Media | ✅ Listo | `agents/social_media.md` — NUEVO hoy |
 | El Secretario (Email) | ✅ Activo | `secretario/email_monitor.py` — servicio systemd |
-| El Planificador (Calendar) | ⚠️ Parcial | `secretario/calendar_manager.py` — OAuth pendiente |
+| El Planificador (Calendar) | ⚠️ 95% | `secretario/calendar_manager.py` — credentials.json instalado, falta autorización OAuth |
 | Airtable CRM (Real Estate) | ✅ Activo | Base `appfQbDA750Oihy9J` — tablas vacías |
 | Airtable Social Media | ✅ Activo | Base `appU9s3kGkVpdrJkw` — 12 ideas pendientes |
 | el_polling.php | ✅ Activo | Cron cada 5min en Hostinger |
