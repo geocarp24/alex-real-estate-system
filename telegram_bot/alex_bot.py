@@ -3,11 +3,16 @@ ALEX — Telegram Bot (Full Capabilities)
 Real Estate Investment AI Assistant
 
 Capacidades completas:
-- Sub-agentes: El Scout, El Matemático, El Fact-Checker, Tracy
-- Airtable: lectura y escritura completa (Contacts, Leads, Deals, Notes & Activity)
+- Sub-agentes inmobiliarios: El Scout, El Matemático, El Fact-Checker, Tracy
+- Sub-agentes Social Media: Social Media Agent, El Creativo, El Director, El Programador
+- Blotato REST API: generación de visuals/videos + publicación en FB/IG (programada)
+- Airtable: lectura y escritura completa (CRM + Social Media base)
 - Web fetch: El Scout puede obtener datos reales de mercado
 - Memoria compartida: memoria_ALex.md + telegram_memory.md
 - Multimedia: texto, voz (Whisper), fotos (Claude Vision), videos
+
+Pipeline Social Media desde Telegram:
+  Social Media Agent → El Creativo (imágenes) + El Director (videos) → El Programador (FB+IG)
 """
 
 import os
@@ -64,7 +69,18 @@ SM_MAKE_WEBHOOK      = "https://hook.us2.make.com/zbvy7391qh9n7dlmw1hy8pq9ym69ob
 SM_TABLE_IDS = {
     "Ideas de Contenido": "tblAj0Pkj1jW4p5Ld",
     "Publicaciones":      "tblP1CSi35fNgbSwK",
+    "Scripts de Video":   "tbli9BsyIwrhwa3aS",
 }
+
+# Blotato — Social Media Publishing
+BLOTATO_API_KEY      = os.getenv("BLOTATO_API_KEY", "blt_2Jz5IZHqjY6WzhfTWkDVskRANpeibfXkyDTvUB+mn8k=")
+BLOTATO_BASE_URL     = "https://backend.blotato.com/v2"
+BLOTATO_FB_ACCOUNT   = "25638"
+BLOTATO_FB_PAGE_ID   = "965320503341457"
+BLOTATO_IG_ACCOUNT   = "39285"
+BLOTATO_SLIDE_TPL    = "53cfec04-2500-41cf-8cc1-ba670d2c341a"   # AI Slide Generator (carruseles/posts)
+BLOTATO_STORY_TPL    = "/base/v2/ai-story-video/5903fe43-514d-40ee-a060-0d6628c5f8fd/v1"
+BLOTATO_SELFIE_TPL   = "/base/v2/ai-selfie-video/57f5a565-fd17-458b-be43-4a2d8ccaca75/v1"
 
 TABLE_IDS = {
     "Contacts":         "tblacvw0Ss770x8l5",
@@ -404,6 +420,78 @@ TOOLS = [
             },
             "required": ["task"]
         }
+    },
+    {
+        "name": "invoke_creativo",
+        "description": (
+            "Invoca a El Creativo para generar visuals de posts y carruseles con Blotato. "
+            "Lee registros de Airtable Social Media con Visual_Prompt listo (Status=Nueva/Aprobada, visual_url vacío, NO Reel/Video), "
+            "construye los slidePrompts para el AI Slide Generator, genera el visual con Blotato, espera a que complete, "
+            "y guarda la URL del visual en Airtable. "
+            "Úsalo cuando el Jefe pida generar visuales de posts o carruseles, o como parte del pipeline de Social Media."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "task": {
+                    "type": "string",
+                    "description": "Descripción de la tarea: 'generar visuals pendientes', o especificar record_id concreto"
+                },
+                "record_id": {
+                    "type": "string",
+                    "description": "ID específico de Airtable a procesar (opcional — si vacío, procesa todos los pendientes)"
+                }
+            },
+            "required": ["task"]
+        }
+    },
+    {
+        "name": "invoke_director",
+        "description": (
+            "Invoca a El Director para generar Reels y videos con Blotato. "
+            "Lee registros de Airtable Social Media con Formato=Reel/Video y Video_Script_EN listo, "
+            "construye los inputs del template de video (AI Story Video o AI Selfie Video según el tipo), "
+            "genera el video con Blotato, espera a que complete, y guarda la URL en Airtable. "
+            "Úsalo cuando el Jefe pida generar Reels, videos de historia narrada, o videos de Jorge hablando."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "task": {
+                    "type": "string",
+                    "description": "Descripción de la tarea: 'generar reels pendientes', o especificar record_id concreto"
+                },
+                "record_id": {
+                    "type": "string",
+                    "description": "ID específico de Airtable a procesar (opcional)"
+                }
+            },
+            "required": ["task"]
+        }
+    },
+    {
+        "name": "invoke_programador",
+        "description": (
+            "Invoca a El Programador para publicar posts en Facebook e Instagram via Blotato. "
+            "Lee registros de Airtable Social Media con visual_url listo y sin Blotato_Post_IDs, "
+            "calcula el siguiente slot disponible (Mar/Jue/Sáb 10am CST), "
+            "programa el post en FB e IG, y actualiza Airtable con los IDs de publicación. "
+            "Úsalo cuando el Jefe pida publicar contenido, programar posts, o como último paso del pipeline de Social Media."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "task": {
+                    "type": "string",
+                    "description": "Descripción de la tarea: 'publicar lo que hay', 'programar posts pendientes', etc."
+                },
+                "record_id": {
+                    "type": "string",
+                    "description": "ID específico de Airtable a procesar (opcional)"
+                }
+            },
+            "required": ["task"]
+        }
     }
 ]
 
@@ -416,6 +504,9 @@ PROGRESS_MESSAGES = {
     "invoke_fact_checker": "🔎 *El Fact-Checker* auditando el deal...",
     "invoke_tracy":        "👤 *Tracy* buscando al propietario en Tracerfy...",
     "invoke_social_media": "📱 *Social Media Agent* generando contenido...",
+    "invoke_creativo":     "🎨 *El Creativo* generando visual con Blotato...",
+    "invoke_director":     "🎬 *El Director* generando video/Reel con Blotato...",
+    "invoke_programador":  "📅 *El Programador* publicando en FB+IG...",
     "airtable_list":       "📋 Consultando Airtable CRM...",
     "airtable_create":     "💾 Guardando en Airtable CRM...",
     "airtable_update":     "✏️ Actualizando Airtable CRM...",
@@ -791,6 +882,537 @@ def _tool_invoke_social_media(
 
     logger.info(f"Invoking Social Media Agent: {task[:80]}...")
     return _run_subagent_sync(system_prompt, user_msg, tools=SCOUT_TOOLS)
+
+
+# ─────────────────────────────────────────────
+# BLOTATO — REST API HELPERS
+# ─────────────────────────────────────────────
+
+def _blotato_headers() -> dict:
+    return {"blotato-api-key": BLOTATO_API_KEY, "Content-Type": "application/json"}
+
+
+def _blotato_create_visual(template_id: str, prompt: str, inputs: dict, render: bool = True) -> dict:
+    """Crea un visual (imagen/carrusel/video) desde un template de Blotato."""
+    if not http_requests:
+        return {"error": "requests not installed"}
+    try:
+        resp = http_requests.post(
+            f"{BLOTATO_BASE_URL}/videos/from-templates",
+            headers=_blotato_headers(),
+            json={"templateId": template_id, "prompt": prompt, "inputs": inputs, "render": render},
+            timeout=30
+        )
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def _blotato_get_visual_status(visual_id: str) -> dict:
+    """Obtiene el status de un visual creado con Blotato."""
+    if not http_requests:
+        return {"error": "requests not installed"}
+    try:
+        resp = http_requests.get(
+            f"{BLOTATO_BASE_URL}/videos/creations/{visual_id}",
+            headers=_blotato_headers(),
+            timeout=30
+        )
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def _blotato_poll_visual(visual_id: str, max_wait: int = 600, interval: int = 30) -> dict:
+    """Espera hasta que el visual esté done o falle. Retorna el status final."""
+    start = time.time()
+    logger.info(f"[Blotato] Polling visual {visual_id} (max {max_wait}s)...")
+    while time.time() - start < max_wait:
+        time.sleep(interval)
+        status = _blotato_get_visual_status(visual_id)
+        current = status.get("status", "unknown")
+        logger.info(f"[Blotato] {visual_id} → {current}")
+        if current == "done":
+            return status
+        if "failed" in current or "error" in status:
+            return status
+    return {"status": "timeout", "id": visual_id}
+
+
+def _blotato_create_post(
+    account_id: str,
+    platform: str,
+    text: str,
+    media_urls: list,
+    scheduled_time: str,
+    page_id: str = None,
+    media_type: str = None
+) -> dict:
+    """Crea y programa un post en FB o IG via Blotato."""
+    if not http_requests:
+        return {"error": "requests not installed"}
+    payload = {
+        "post": {"text": text, "mediaUrls": media_urls},
+        "target": {"accountId": account_id, "platform": platform},
+        "scheduledTime": scheduled_time
+    }
+    if page_id:
+        payload["target"]["pageId"] = page_id
+    if media_type:
+        payload["post"]["mediaType"] = media_type
+    try:
+        resp = http_requests.post(
+            f"{BLOTATO_BASE_URL}/posts",
+            headers=_blotato_headers(),
+            json=payload,
+            timeout=30
+        )
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def _blotato_list_schedules() -> list:
+    """Lista los posts programados en Blotato."""
+    if not http_requests:
+        return []
+    try:
+        resp = http_requests.get(f"{BLOTATO_BASE_URL}/schedules", headers=_blotato_headers(), timeout=30)
+        data = resp.json()
+        return data if isinstance(data, list) else data.get("items", data.get("schedules", []))
+    except Exception as e:
+        logger.warning(f"[Blotato] list_schedules error: {e}")
+        return []
+
+
+def _next_available_slot(existing_schedules: list) -> str:
+    """
+    Calcula el siguiente slot disponible: Mar/Jue/Sáb 10am o 12pm CST (UTC-6).
+    Retorna timestamp ISO8601 en UTC.
+    """
+    from datetime import timedelta, timezone as tz
+    occupied = set()
+    for s in existing_schedules:
+        st = s.get("scheduledTime") or s.get("scheduled_time") or ""
+        if st:
+            occupied.add(st[:16])  # "YYYY-MM-DDTHH:MM"
+
+    now = datetime.now(tz.utc)
+    candidate = now + timedelta(days=1)
+    candidate = candidate.replace(hour=16, minute=0, second=0, microsecond=0)  # 10am CST = 16:00 UTC
+
+    for _ in range(60):  # máximo 60 intentos (~4 semanas)
+        weekday = candidate.weekday()  # 0=Lun, 1=Mar, 3=Jue, 5=Sáb
+        if weekday in (1, 3, 5):  # Martes, Jueves, Sábado
+            for hour_utc in (16, 18):  # 10am CST y 12pm CST
+                slot = candidate.replace(hour=hour_utc)
+                slot_str = slot.strftime("%Y-%m-%dT%H:%M")
+                if slot_str not in occupied:
+                    return slot.strftime("%Y-%m-%dT%H:%M:%SZ")
+        candidate += timedelta(days=1)
+
+    # fallback: 7 días desde ahora
+    fallback = now + timedelta(days=7)
+    return fallback.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+# ─────────────────────────────────────────────
+# EL CREATIVO — Genera visuals para posts/carruseles
+# ─────────────────────────────────────────────
+
+def _tool_invoke_creativo(task: str, record_id: str = None) -> str:
+    """
+    Orquesta a El Creativo:
+    1. Lee registros pendientes de Airtable SM (posts/carruseles sin visual)
+    2. Usa Claude para construir los slidePrompts desde el Visual_Prompt
+    3. Llama a Blotato REST API para generar el visual
+    4. Espera a que complete y guarda las URLs en Airtable
+    """
+    if not http_requests:
+        return "Error: librería 'requests' no instalada."
+
+    sm_headers = {"Authorization": f"Bearer {SM_AIRTABLE_TOKEN}", "Content-Type": "application/json"}
+    table_id = SM_TABLE_IDS["Ideas de Contenido"]
+
+    # Leer registros pendientes
+    if record_id:
+        url = f"{SM_AIRTABLE_BASE_URL}/{table_id}/{record_id}"
+        resp = http_requests.get(url, headers=sm_headers, timeout=30).json()
+        records = [resp] if "id" in resp else []
+    else:
+        formula = "AND(OR({Status}='Nueva',{Status}='Aprobada',{Status}='En Produccion'),{visual_url}='',{Visual_Prompt}!='',NOT(OR({Formato}='Reel',{Formato}='Video')))"
+        url = f"{SM_AIRTABLE_BASE_URL}/{table_id}?filterByFormula={http_requests.utils.quote(formula)}&maxRecords=3"
+        resp = http_requests.get(url, headers=sm_headers, timeout=30).json()
+        records = resp.get("records", [])
+
+    if not records:
+        return "✅ El Creativo: No hay registros pendientes de visual."
+
+    results = []
+    for record in records:
+        rec_id = record.get("id", "")
+        fields = record.get("fields", {})
+        titulo = fields.get("Título de Idea", rec_id)
+        visual_prompt = fields.get("Visual_Prompt", "")
+        hook = fields.get("Hook", "")
+
+        if not visual_prompt:
+            results.append(f"⚠️ {titulo}: Sin Visual_Prompt, saltando.")
+            continue
+
+        logger.info(f"[Creativo] Procesando: {titulo}")
+
+        # Usar Claude para construir slidePrompts
+        creativo_system = load_agent_prompt("creativo")
+        build_msg = (
+            f"Construye los slidePrompts para este registro de Airtable.\n\n"
+            f"Título: {titulo}\nHook: {hook}\n\nVisual_Prompt:\n{visual_prompt}\n\n"
+            "Responde ÚNICAMENTE con un JSON válido así:\n"
+            '{"slidePrompts": ["descripción slide 1...", "descripción slide 2...", ...]}\n'
+            "Máximo 6 slidePrompts. Sin texto adicional, solo el JSON."
+        )
+        raw = _run_subagent_sync(creativo_system, build_msg)
+
+        try:
+            # Extraer JSON de la respuesta
+            import re
+            json_match = re.search(r'\{.*\}', raw, re.DOTALL)
+            slide_data = json.loads(json_match.group()) if json_match else {}
+            slide_prompts = slide_data.get("slidePrompts", [])
+        except Exception:
+            slide_prompts = []
+
+        if not slide_prompts:
+            results.append(f"⚠️ {titulo}: Claude no generó slidePrompts válidos.")
+            continue
+
+        # Llamar a Blotato
+        overall_prompt = f"TITLE: {titulo}. Pinnacle Holdings Group LLC real estate carousel. {len(slide_prompts)} slides. Hook: '{hook}'. Professional bilingual EN/ES."
+        create_result = _blotato_create_visual(
+            template_id=BLOTATO_SLIDE_TPL,
+            prompt=overall_prompt,
+            inputs={"model": "nano-banana-pro", "aspectRatio": "4:5", "slidePrompts": slide_prompts},
+            render=True
+        )
+
+        visual_id = create_result.get("id")
+        if not visual_id:
+            results.append(f"❌ {titulo}: Blotato no retornó ID — {create_result}")
+            continue
+
+        logger.info(f"[Creativo] Visual creado: {visual_id}, esperando...")
+
+        # Polling
+        final = _blotato_poll_visual(visual_id, max_wait=600, interval=30)
+        if final.get("status") != "done":
+            results.append(f"⏳ {titulo}: Visual en proceso ({final.get('status')}) — ID: {visual_id}")
+            continue
+
+        image_urls = final.get("imageUrls", [])
+        visual_url = image_urls[0] if image_urls else final.get("mediaUrl", "")
+        all_urls = "|".join(image_urls) if len(image_urls) > 1 else visual_url
+        blotato_visual_id_field = f"{visual_id}|||{all_urls}"
+
+        # Guardar en Airtable
+        patch_resp = http_requests.patch(
+            f"{SM_AIRTABLE_BASE_URL}/{table_id}/{rec_id}",
+            headers=sm_headers,
+            json={"fields": {"visual_url": visual_url, "Blotato_Visual_ID": blotato_visual_id_field}},
+            timeout=30
+        ).json()
+
+        if "id" in patch_resp:
+            results.append(f"✅ {titulo}\n   Slides: {len(image_urls)} | visual_url guardada ✅\n   Blotato ID: {visual_id}")
+        else:
+            results.append(f"⚠️ {titulo}: Visual listo pero error en Airtable — {patch_resp}")
+
+    return "\n\n".join(results) if results else "El Creativo: Sin resultados."
+
+
+# ─────────────────────────────────────────────
+# EL DIRECTOR — Genera videos/Reels
+# ─────────────────────────────────────────────
+
+def _tool_invoke_director(task: str, record_id: str = None) -> str:
+    """
+    Orquesta a El Director:
+    1. Lee registros Reel/Video pendientes de Airtable SM
+    2. Usa Claude para construir los inputs de video (scenes array)
+    3. Llama a Blotato con AI Story Video o AI Selfie Video
+    4. Espera y guarda la URL del video en Airtable
+    """
+    if not http_requests:
+        return "Error: librería 'requests' no instalada."
+
+    sm_headers = {"Authorization": f"Bearer {SM_AIRTABLE_TOKEN}", "Content-Type": "application/json"}
+    table_id = SM_TABLE_IDS["Ideas de Contenido"]
+
+    if record_id:
+        url = f"{SM_AIRTABLE_BASE_URL}/{table_id}/{record_id}"
+        resp = http_requests.get(url, headers=sm_headers, timeout=30).json()
+        records = [resp] if "id" in resp else []
+    else:
+        formula = "AND(OR({Formato}='Reel',{Formato}='Video'),OR({Status}='Nueva',{Status}='Aprobada',{Status}='En Produccion'),{visual_url}='',{Video_Script_EN}!='')"
+        url = f"{SM_AIRTABLE_BASE_URL}/{table_id}?filterByFormula={http_requests.utils.quote(formula)}&maxRecords=2"
+        resp = http_requests.get(url, headers=sm_headers, timeout=30).json()
+        records = resp.get("records", [])
+
+    if not records:
+        return "✅ El Director: No hay Reels/Videos pendientes."
+
+    results = []
+    for record in records:
+        rec_id = record.get("id", "")
+        fields = record.get("fields", {})
+        titulo = fields.get("Título de Idea", rec_id)
+        script_en = fields.get("Video_Script_EN", "")
+        script_es = fields.get("Video_Script_ES", "")
+        visual_prompt = fields.get("Visual_Prompt", "")
+        template_id_field = fields.get("Blotato_Template_ID", "")
+
+        logger.info(f"[Director] Procesando: {titulo}")
+
+        # Determinar template
+        if "selfie" in template_id_field.lower() or "jorge habla" in titulo.lower() or "jorge" in titulo.lower():
+            template_id = BLOTATO_SELFIE_TPL
+            video_type = "selfie"
+        else:
+            template_id = BLOTATO_STORY_TPL
+            video_type = "story"
+
+        # Usar Claude para construir inputs del video
+        director_system = load_agent_prompt("director")
+        if video_type == "story":
+            build_msg = (
+                f"Construye los inputs para AI Story Video.\n\n"
+                f"Título: {titulo}\nScript EN: {script_en}\nScript ES: {script_es}\n"
+                f"Visual_Prompt: {visual_prompt}\n\n"
+                "Responde ÚNICAMENTE con JSON válido:\n"
+                '{"inputs": {"scenes": [{"mediaSource": "descripción visual", "script": "voiceover text"}, ...], '
+                '"voiceName": "Bill (American, trustworthy)", "aiImageModel": "fal-ai/nano-banana-pro", '
+                '"aspectRatio": "9:16", "captionPosition": "bottom", "highlightColor": "#C9A84C", "transition": "fade"}}\n'
+                "CRÍTICO: mediaSource debe ser string directo NO VACÍO, nunca objeto aiPrompt. Máximo 3 escenas."
+            )
+        else:
+            build_msg = (
+                f"Construye los inputs para AI Selfie Video.\n\n"
+                f"Título: {titulo}\nScript EN: {script_en}\nScript ES: {script_es}\n\n"
+                "Responde ÚNICAMENTE con JSON válido:\n"
+                '{"inputs": {"scenes": [{"description": "descripción visual escena", "narration": "lo que dice"}, ...], '
+                '"characterDescription": "Hispanic male in his 30s-40s, professional business casual attire, '
+                'confident and trustworthy expression, warm smile, dark hair. Real estate investor founder.", '
+                '"style": "realistic", "aspectRatio": "9:16"}}\n'
+                "CRÍTICO: characterDescription debe ser texto descriptivo, NUNCA una URL."
+            )
+
+        raw = _run_subagent_sync(director_system, build_msg)
+
+        try:
+            import re
+            json_match = re.search(r'\{.*\}', raw, re.DOTALL)
+            video_data = json.loads(json_match.group()) if json_match else {}
+            inputs = video_data.get("inputs", {})
+        except Exception:
+            inputs = {}
+
+        if not inputs:
+            results.append(f"⚠️ {titulo}: Claude no generó inputs de video válidos.")
+            continue
+
+        overall_prompt = f"TITLE: {titulo}. 15-second {'selfie' if video_type == 'selfie' else 'story'} video for Pinnacle Holdings Group LLC. Script: {script_en[:200]}"
+        create_result = _blotato_create_visual(
+            template_id=template_id,
+            prompt=overall_prompt,
+            inputs=inputs,
+            render=True
+        )
+
+        visual_id = create_result.get("id")
+        if not visual_id:
+            results.append(f"❌ {titulo}: Blotato no retornó ID — {create_result}")
+            continue
+
+        logger.info(f"[Director] Video creado: {visual_id}, esperando...")
+        final = _blotato_poll_visual(visual_id, max_wait=900, interval=30)
+
+        if final.get("status") != "done":
+            results.append(f"⏳ {titulo}: Video en proceso ({final.get('status')}) — ID: {visual_id}")
+            continue
+
+        media_url = final.get("mediaUrl", "") or (final.get("imageUrls") or [""])[0]
+        patch_resp = http_requests.patch(
+            f"{SM_AIRTABLE_BASE_URL}/{table_id}/{rec_id}",
+            headers=sm_headers,
+            json={"fields": {"visual_url": media_url, "Blotato_Visual_ID": visual_id, "Status": "Visual Listo"}},
+            timeout=30
+        ).json()
+
+        if "id" in patch_resp:
+            results.append(f"✅ {titulo}\n   Template: {'AI Selfie Video' if video_type == 'selfie' else 'AI Story Video'}\n   mediaUrl: {media_url}\n   Blotato ID: {visual_id}")
+        else:
+            results.append(f"⚠️ {titulo}: Video listo pero error en Airtable — {patch_resp}")
+
+    return "\n\n".join(results) if results else "El Director: Sin resultados."
+
+
+# ─────────────────────────────────────────────
+# EL PROGRAMADOR — Publica posts en FB+IG
+# ─────────────────────────────────────────────
+
+def _tool_invoke_programador(task: str, record_id: str = None) -> str:
+    """
+    Orquesta a El Programador:
+    1. Lee registros con visual_url listo y sin Blotato_Post_IDs
+    2. Calcula el siguiente slot disponible (Mar/Jue/Sáb 10am o 12pm CST)
+    3. Publica en FB e IG via Blotato
+    4. Actualiza Airtable con los IDs de publicación
+    """
+    if not http_requests:
+        return "Error: librería 'requests' no instalada."
+
+    sm_headers = {"Authorization": f"Bearer {SM_AIRTABLE_TOKEN}", "Content-Type": "application/json"}
+    table_id_ideas     = SM_TABLE_IDS["Ideas de Contenido"]
+    table_id_pubs      = SM_TABLE_IDS["Publicaciones"]
+
+    if record_id:
+        url = f"{SM_AIRTABLE_BASE_URL}/{table_id_ideas}/{record_id}"
+        resp = http_requests.get(url, headers=sm_headers, timeout=30).json()
+        records = [resp] if "id" in resp else []
+    else:
+        formula = "AND({visual_url}!='',{Blotato_Post_IDs}='')"
+        url = f"{SM_AIRTABLE_BASE_URL}/{table_id_ideas}?filterByFormula={http_requests.utils.quote(formula)}&maxRecords=5"
+        resp = http_requests.get(url, headers=sm_headers, timeout=30).json()
+        records = resp.get("records", [])
+
+    if not records:
+        return "✅ El Programador: No hay posts listos para publicar."
+
+    # Obtener slots ya ocupados en Blotato
+    existing_schedules = _blotato_list_schedules()
+
+    results = []
+    for record in records:
+        rec_id = record.get("id", "")
+        fields = record.get("fields", {})
+        titulo = fields.get("Título de Idea", rec_id)
+
+        # Validaciones
+        visual_url = fields.get("visual_url", "")
+        caption_en = fields.get("🇺🇸 Caption EN", "")
+        caption_es = fields.get("🇲🇽 Caption ES", "")
+        hashtags   = fields.get("Hashtags", "")
+        formato    = fields.get("Formato", "Post")
+        plataforma = fields.get("Plataforma", "AMBAS")
+        semana     = fields.get("Semana", 1)
+
+        if not visual_url:
+            results.append(f"⚠️ {titulo}: Sin visual_url, saltando.")
+            continue
+        if not caption_en:
+            results.append(f"⚠️ {titulo}: Sin Caption EN, saltando.")
+            continue
+
+        # Construir texto
+        text = f"{caption_en}\n\n---\n\n{caption_es}\n\n{hashtags}".strip()
+
+        # Construir mediaUrls
+        blotato_vid = fields.get("Blotato_Visual_ID", "")
+        if "|||" in blotato_vid:
+            urls_part = blotato_vid.split("|||")[1]
+            media_urls = [u for u in urls_part.split("|") if u.startswith("http")]
+        else:
+            media_urls = [visual_url]
+
+        # Calcular slot
+        slot_time = _next_available_slot(existing_schedules)
+        # Marcar este slot como ocupado para el siguiente post
+        existing_schedules.append({"scheduledTime": slot_time})
+
+        # media_type para Reels
+        media_type = "reel" if formato.lower() == "reel" else None
+
+        fb_post_id = ""
+        ig_post_id = ""
+
+        # Publicar en Facebook
+        if plataforma.upper() in ("FB", "AMBAS"):
+            fb_result = _blotato_create_post(
+                account_id=BLOTATO_FB_ACCOUNT,
+                platform="facebook",
+                text=text,
+                media_urls=media_urls,
+                scheduled_time=slot_time,
+                page_id=BLOTATO_FB_PAGE_ID,
+                media_type=media_type
+            )
+            fb_post_id = fb_result.get("postSubmissionId", "")
+            if not fb_post_id:
+                logger.warning(f"[Programador] FB fallo para {titulo}: {fb_result}")
+
+        # Publicar en Instagram
+        if plataforma.upper() in ("IG", "AMBAS"):
+            ig_result = _blotato_create_post(
+                account_id=BLOTATO_IG_ACCOUNT,
+                platform="instagram",
+                text=text,
+                media_urls=media_urls,
+                scheduled_time=slot_time,
+                media_type=media_type
+            )
+            ig_post_id = ig_result.get("postSubmissionId", "")
+            if not ig_post_id:
+                logger.warning(f"[Programador] IG fallo para {titulo}: {ig_result}")
+
+        if not fb_post_id and not ig_post_id:
+            results.append(f"❌ {titulo}: Falló en FB e IG — sin IDs de publicación.")
+            continue
+
+        post_ids = "|".join(filter(None, [fb_post_id, ig_post_id]))
+
+        # Actualizar Ideas de Contenido
+        http_requests.patch(
+            f"{SM_AIRTABLE_BASE_URL}/{table_id_ideas}/{rec_id}",
+            headers=sm_headers,
+            json={"fields": {"Blotato_Post_IDs": post_ids}},
+            timeout=30
+        )
+
+        # Crear registro en Publicaciones
+        from datetime import datetime as dt
+        fecha_str = slot_time[:10]
+        http_requests.post(
+            f"{SM_AIRTABLE_BASE_URL}/{table_id_pubs}",
+            headers=sm_headers,
+            json={"fields": {
+                "Nombre del Post": titulo,
+                "Plataforma": plataforma,
+                "Formato": formato,
+                "Tipo": fields.get("Tipo", "Educativo"),
+                "Fecha": fecha_str,
+                "Caption EN": caption_en,
+                "Caption ES": caption_es,
+                "Hashtags": hashtags,
+                "Semana": semana,
+                "visual_url": visual_url,
+                "Blotato_Post_IDs": post_ids
+            }},
+            timeout=30
+        )
+
+        # Convertir a CST para mostrar
+        from datetime import timezone as tz, timedelta
+        slot_dt = dt.strptime(slot_time, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=tz.utc)
+        slot_cst = slot_dt - timedelta(hours=6)
+        slot_display = slot_cst.strftime("%a %d %b %H:%M CST")
+
+        results.append(
+            f"✅ {titulo}\n"
+            f"   FB: {fb_post_id or 'skip'} | IG: {ig_post_id or 'skip'}\n"
+            f"   Programado: {slot_display}\n"
+            f"   Plataformas: {plataforma}"
+        )
+
+    return "\n\n".join(results) if results else "El Programador: Sin resultados."
 
 
 def _tool_invoke_tracy(address: str, city: str = "", state: str = "", zip_code: str = "") -> str:
@@ -1194,6 +1816,21 @@ async def _execute_tool(tool_name: str, tool_input: dict) -> str:
             tool_input.get("format_type", "Post"),
             tool_input.get("save_to_airtable", False),
             tool_input.get("week_number")
+        ))
+    elif tool_name == "invoke_creativo":
+        return await loop.run_in_executor(None, lambda: _tool_invoke_creativo(
+            tool_input.get("task", ""),
+            tool_input.get("record_id")
+        ))
+    elif tool_name == "invoke_director":
+        return await loop.run_in_executor(None, lambda: _tool_invoke_director(
+            tool_input.get("task", ""),
+            tool_input.get("record_id")
+        ))
+    elif tool_name == "invoke_programador":
+        return await loop.run_in_executor(None, lambda: _tool_invoke_programador(
+            tool_input.get("task", ""),
+            tool_input.get("record_id")
         ))
     elif tool_name == "airtable_list":
         return await loop.run_in_executor(None, lambda: _tool_airtable_list(
