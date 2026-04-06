@@ -149,11 +149,40 @@ def get_history_context(max_messages: int = 20) -> str:
 # CLAUDE CODE CLI
 # ─────────────────────────────────────────────
 
+def load_shared_memory() -> str:
+    """Carga memoria_ALex.md para inyectarla como contexto en cada tarea."""
+    memoria_file = PROJECT_DIR / "memoria_ALex.md"
+    if memoria_file.exists():
+        content = memoria_file.read_text(encoding="utf-8")
+        # Limitar a 4000 chars para no saturar el prompt
+        return content[:4000]
+    return ""
+
+
 def run_claude_cli(prompt: str) -> tuple[bool, str]:
+    """
+    Ejecuta Claude Code con acceso completo al proyecto:
+    - --dangerously-skip-permissions: Claude puede leer/escribir archivos y ejecutar bash
+    - cwd=PROJECT_DIR: carga CLAUDE.md y los agentes del proyecto automáticamente
+    - Memoria inyectada: Claude tiene contexto operacional desde el primer token
+    """
     env = {**os.environ, "ANTHROPIC_API_KEY": ANTHROPIC_KEY}
+
+    # Inyectar memoria compartida como contexto
+    memoria = load_shared_memory()
+    history_ctx = get_history_context(15)
+
+    context_block = ""
+    if memoria:
+        context_block += f"[MEMORIA OPERACIONAL DE ALEX — contexto compartido]:\n{memoria}\n\n"
+    if history_ctx:
+        context_block += f"{history_ctx}\n\n"
+
+    full_prompt = f"{context_block}[TAREA DELEGADA POR ALEX]:\n{prompt}" if context_block else prompt
+
     try:
         result = subprocess.run(
-            ["claude", "--print", prompt],
+            ["claude", "--print", "--dangerously-skip-permissions", full_prompt],
             capture_output=True, text=True,
             timeout=CLAUDE_TIMEOUT,
             cwd=str(PROJECT_DIR),
@@ -191,8 +220,9 @@ def worker_loop():
             tasks_store[task_id]["status"] = "processing"
             tasks_store[task_id]["started_at"] = datetime.now().isoformat()
 
-            # Notificar a Jorge que empezamos
-            send_telegram(chat_id, "⚙️ Claude Code procesando tu tarea...")
+            # Notificar a Jorge que empezamos (solo si viene de Telegram directamente)
+            if source != "alex_bot":
+                send_telegram(chat_id, "⚙️ Claude Code procesando tu tarea...")
 
             # Construir prompt con contexto histórico
             history_ctx = get_history_context(20)
@@ -214,11 +244,13 @@ def worker_loop():
                 append_shared_conv("user",      prompt,   source)
                 append_shared_conv("assistant", response, "claude_code")
 
-            # Enviar resultado a Telegram (bidireccional)
-            if success:
-                send_telegram(chat_id, f"✅ Claude Code:\n\n{response}")
-            else:
-                send_telegram(chat_id, response)
+            # Enviar resultado a Telegram solo si viene de Telegram directamente
+            # Si source=="alex_bot", el bot está haciendo polling — no enviar duplicado
+            if source != "alex_bot":
+                if success:
+                    send_telegram(chat_id, f"✅ Claude Code:\n\n{response}")
+                else:
+                    send_telegram(chat_id, response)
 
             logger.info(f"Tarea {task_id[:8]} — {'OK' if success else 'ERROR'}")
             task_queue.task_done()

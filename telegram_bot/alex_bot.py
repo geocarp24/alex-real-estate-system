@@ -422,6 +422,32 @@ TOOLS = [
         }
     },
     {
+        "name": "invoke_claude_code",
+        "description": (
+            "Delega una tarea técnica a Claude Code — el agente de desarrollo del equipo ALEX. "
+            "Claude Code tiene acceso COMPLETO al proyecto: puede leer y escribir archivos, "
+            "ejecutar comandos bash, modificar agentes, crear scripts, depurar código, "
+            "y comparte la misma memoria operacional (memoria_ALex.md). "
+            "Úsalo cuando necesites: escribir o modificar código, crear nuevos agentes, "
+            "depurar errores en scripts, analizar archivos del proyecto, instalar dependencias, "
+            "o cualquier tarea de desarrollo técnico que requiera acceso al sistema."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "task": {
+                    "type": "string",
+                    "description": "Descripción detallada de la tarea técnica a realizar. Incluye contexto relevante, archivos involucrados, y el resultado esperado."
+                },
+                "context": {
+                    "type": "string",
+                    "description": "Contexto adicional opcional: datos del deal, resultados de otros agentes, o información que Claude Code necesite para completar la tarea."
+                }
+            },
+            "required": ["task"]
+        }
+    },
+    {
         "name": "invoke_creativo",
         "description": (
             "Invoca a El Creativo para generar visuals de posts y carruseles con Blotato. "
@@ -504,6 +530,7 @@ PROGRESS_MESSAGES = {
     "invoke_fact_checker": "🔎 *El Fact-Checker* auditando el deal...",
     "invoke_tracy":        "👤 *Tracy* buscando al propietario en Tracerfy...",
     "invoke_social_media": "📱 *Social Media Agent* generando contenido...",
+    "invoke_claude_code":  "💻 *Claude Code* procesando tarea técnica...",
     "invoke_creativo":     "🎨 *El Creativo* generando visual con Blotato...",
     "invoke_director":     "🎬 *El Director* generando video/Reel con Blotato...",
     "invoke_programador":  "📅 *El Programador* publicando en FB+IG...",
@@ -882,6 +909,73 @@ def _tool_invoke_social_media(
 
     logger.info(f"Invoking Social Media Agent: {task[:80]}...")
     return _run_subagent_sync(system_prompt, user_msg, tools=SCOUT_TOOLS)
+
+
+# ─────────────────────────────────────────────
+# CLAUDE CODE — Agente de desarrollo del equipo
+# ─────────────────────────────────────────────
+
+CLAUDE_API_URL = "http://localhost:5001"
+ALEX_SECRET    = os.getenv("ALEX_SECRET", "pinnacle2024ALEXsecret99")
+
+
+def _tool_invoke_claude_code(task: str, context: str = "") -> str:
+    """
+    Delega una tarea técnica a Claude Code via el API Server local.
+    Claude Code tiene acceso completo al proyecto y memoria compartida.
+    Hace polling hasta recibir el resultado (máx 5 minutos).
+    """
+    if not http_requests:
+        return "Error: librería 'requests' no instalada."
+
+    full_prompt = f"{context}\n\n{task}" if context else task
+    headers = {"X-Alex-Secret": ALEX_SECRET, "Content-Type": "application/json"}
+
+    # Verificar que el API server esté activo
+    try:
+        health = http_requests.get(f"{CLAUDE_API_URL}/health", headers=headers, timeout=5)
+        if health.status_code != 200:
+            return f"❌ Claude Code API Server no disponible (HTTP {health.status_code})."
+    except Exception:
+        return "❌ Claude Code API Server no responde en localhost:5001."
+
+    # Encolar la tarea
+    try:
+        resp = http_requests.post(
+            f"{CLAUDE_API_URL}/task",
+            headers=headers,
+            json={"prompt": full_prompt, "chat_id": "internal_alex", "source": "alex_bot"},
+            timeout=15
+        )
+        if resp.status_code != 202:
+            return f"❌ Error encolando tarea: {resp.text[:300]}"
+        task_id = resp.json().get("task_id")
+    except Exception as e:
+        return f"❌ Error conectando con Claude Code: {str(e)}"
+
+    logger.info(f"[invoke_claude_code] Tarea encolada: {task_id[:8]}... | {task[:80]}")
+
+    # Polling hasta completar
+    start = time.time()
+    while time.time() - start < 300:
+        time.sleep(5)
+        try:
+            status_resp = http_requests.get(
+                f"{CLAUDE_API_URL}/task/{task_id}",
+                headers=headers,
+                timeout=10
+            )
+            data = status_resp.json()
+            status = data.get("status", "")
+            if status in ("done", "error"):
+                response = data.get("response", "Sin respuesta.")
+                if status == "error":
+                    return f"⚠️ Claude Code reportó error:\n{response}"
+                return response
+        except Exception:
+            pass  # seguir esperando
+
+    return "⏱ Claude Code no completó la tarea en 5 minutos. Revisa el log del servidor."
 
 
 # ─────────────────────────────────────────────
@@ -1816,6 +1910,11 @@ async def _execute_tool(tool_name: str, tool_input: dict) -> str:
             tool_input.get("format_type", "Post"),
             tool_input.get("save_to_airtable", False),
             tool_input.get("week_number")
+        ))
+    elif tool_name == "invoke_claude_code":
+        return await loop.run_in_executor(None, lambda: _tool_invoke_claude_code(
+            tool_input.get("task", ""),
+            tool_input.get("context", "")
         ))
     elif tool_name == "invoke_creativo":
         return await loop.run_in_executor(None, lambda: _tool_invoke_creativo(
