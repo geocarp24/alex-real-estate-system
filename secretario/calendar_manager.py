@@ -29,9 +29,7 @@ import requests
 
 # Intentar importar Google Calendar — opcional
 try:
-    from google.oauth2.credentials import Credentials
-    from google_auth_oauthlib.flow import InstalledAppFlow
-    from google.auth.transport.requests import Request as GoogleRequest
+    from google.oauth2 import service_account
     from googleapiclient.discovery import build
     GOOGLE_AVAILABLE = True
 except ImportError:
@@ -42,12 +40,11 @@ except ImportError:
 # ─────────────────────────────────────────────
 TELEGRAM_TOKEN  = os.getenv("TELEGRAM_TOKEN", "8157575601:AAHmAo0OQroOUdXCnXZEjVh4hJkt0emx5_c")
 OWNER_CHAT_ID   = os.getenv("TELEGRAM_CHAT_ID", "8402370952")
-GOOGLE_CAL_ID   = os.getenv("GOOGLE_CALENDAR_ID", "primary")
+GOOGLE_CAL_ID   = os.getenv("GOOGLE_CALENDAR_ID", "deals@pinnaclegroupwi.com")
 
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
-CREDS_DIR   = PROJECT_DIR / "secretario" / "google_creds"
-TOKEN_FILE  = CREDS_DIR / "token.json"
-CREDS_FILE  = CREDS_DIR / "credentials.json"
+CREDS_DIR       = PROJECT_DIR / "secretario" / "google_creds"
+SA_FILE         = CREDS_DIR / "service_account.json"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -63,41 +60,22 @@ log = logging.getLogger(__name__)
 # AUTENTICACIÓN GOOGLE
 # ─────────────────────────────────────────────
 def get_google_service():
-    """Retorna cliente autenticado de Google Calendar."""
+    """Retorna cliente autenticado de Google Calendar usando Service Account."""
     if not GOOGLE_AVAILABLE:
-        log.error("Google Calendar libs no instaladas. Ejecuta: pip install google-auth google-auth-oauthlib google-api-python-client")
+        log.error("Google Calendar libs no instaladas.")
         return None
 
-    CREDS_DIR.mkdir(parents=True, exist_ok=True)
-    creds = None
-
-    if TOKEN_FILE.exists():
-        creds = Credentials.from_authorized_user_file(str(TOKEN_FILE), SCOPES)
-
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            try:
-                creds.refresh(GoogleRequest())
-            except Exception as e:
-                log.error(f"Error refreshing token: {e}")
-                creds = None
-
-        if not creds:
-            if not CREDS_FILE.exists():
-                log.error(f"Archivo credentials.json no encontrado en {CREDS_FILE}")
-                log.error("Sigue las instrucciones de setup: python3 calendar_manager.py --setup")
-                return None
-
-            flow = InstalledAppFlow.from_client_secrets_file(str(CREDS_FILE), SCOPES)
-            creds = flow.run_local_server(port=0)
-
-        TOKEN_FILE.write_text(creds.to_json())
+    if not SA_FILE.exists():
+        log.error(f"Service account JSON no encontrado en {SA_FILE}")
+        return None
 
     try:
-        service = build("calendar", "v3", credentials=creds)
-        return service
+        creds = service_account.Credentials.from_service_account_file(
+            str(SA_FILE), scopes=SCOPES
+        )
+        return build("calendar", "v3", credentials=creds)
     except Exception as e:
-        log.error(f"Error building Calendar service: {e}")
+        log.error(f"Error conectando Google Calendar: {e}")
         return None
 
 # ─────────────────────────────────────────────

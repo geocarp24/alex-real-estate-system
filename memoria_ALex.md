@@ -465,3 +465,92 @@ curl -s "https://api.blotato.com/v1/accounts" \
 - MCP instalado en VPS O confirmación de que la API REST funciona directamente
 - Documentar exactamente qué endpoint y método funciona
 - Si nada funciona, documentar el error exacto para que ALEX pueda buscar solución alternativa
+
+---
+
+## SESIÓN 2026-04-06 — Seguimiento Engine + Google Calendar
+
+### SISTEMA DE SEGUIMIENTO — OPERATIVO EN MAKE.COM
+
+**Campaña de 24 toques construida y funcional:**
+- **Scenario Engine** (ID: 4656571) — Corre diario 9:30 AM — Envía SMS + Email a contactos en Stage "Seguimiento"
+- **Scenario Cold** (ID: 4656574) — Corre diario 9:45 AM — Mueve a "Dead" contactos con Step >= 24
+
+**Para activar un contacto:**
+1. Airtable → Contacts → Stage = `Seguimiento` → Seguimiento Step = `0`
+2. El sistema hace el resto por 12 meses automáticamente
+
+**Calendario de toques:**
+- Mes 1: Días 1, 3, 7, 14, 21 (5 toques intensos)
+- Mes 2-12: Cada 2 semanas (19 toques)
+- Total: 24 toques → Stage pasa a Dead automáticamente
+
+**Conexiones Make.com activas:**
+- SMTP Hostinger (ID: 8232359): deals@pinnaclegroupwi.com / smtp.hostinger.com:587
+- Airtable OAuth (ID: 7862703)
+- Quo/OpenPhone (ID: 7973467) — Número: (920) 777-9886
+
+**Campo nuevo en Contacts:** `Seguimiento Step` (Number, default 0)
+**Stage nuevo en Contacts:** `Seguimiento` (entre "To Be Contacted" y "Contacted")
+
+**Fórmula Next follow up date:**
+```
+{{addDays(now; switch(1.`Seguimiento Step`; 0; 2; 1; 4; 2; 7; 3; 7; 4; 21; 14))}}
+```
+
+**Notas técnicas Make IML:**
+- Concatenación: `"texto" + variable` (NO concat(), NO toString())
+- Phone en Airtable: almacenado como Number sin + (ej: 19204454093)
+- Quo recibe: `{{1.Phone1}}` directamente sin formateo
+- Separador de funciones: `;` (punto y coma)
+
+---
+
+### CALL ASSISTANT — CORRECCIONES APLICADAS
+
+**URL del botón en Leads:**
+```
+"https://pinnaclegroupwi.com/Tools/Pinnacle_Call_Assistant.html?recordId=" & RECORD_ID()
+```
+⚠️ "Tools" con T mayúscula — crítico
+
+**Campos Single Select convertidos a dropdowns:**
+- Stage: To Be Contacted | Seguimiento | Contacted | Analized | Offer Sent | Dead
+- Lenguage: English | Spanish (ortografía exacta: "Lenguage")
+- Best time to call: Morning | Afternoon | Evening | Anytime | Weekends Only | Unknow yet
+- Occupied Status: Empty | Owner Occupied | Rented
+- Water Source: City Water | Septic | Well
+- Construction Type: Concrete | Wood | Brick
+- Foundation: Basement | Crawl Space | Slab
+- Roof Status: Under 15 years | Over 15 years
+- HVAC Status: Under 15 years | Over 15 years
+- Lease Type: Month to Month | Yearly
+- Script Type: Marketing List | Pre-foreclosure | Driving for Dollars
+
+---
+
+### GOOGLE CALENDAR — CONECTADO VÍA SERVICE ACCOUNT
+
+**Service Account:** alex-calendar-agent@pinnacle-alex-bot.iam.gserviceaccount.com
+**Archivo:** /opt/alex-bot/secretario/google_creds/service_account.json
+**Calendario conectado:** deals@pinnaclegroupwi.com
+**Estado:** OPERATIVO ✅
+
+**Comandos Telegram disponibles:**
+- `/agenda` — Ver citas de hoy
+- `/agenda semana` — Próximos 7 días
+- `/cita 2026-04-10 14:00 John Smith Motivo` — Crear cita
+
+---
+
+### IDs DE REFERENCIA MAKE.COM
+- Organization: 6716517 | Team: 1932270
+- Scenario Engine: 4656571 | Scenario Cold: 4656574
+- SMTP Connection: 8232359 | Airtable OAuth: 7862703 | Quo: 7973467
+- Quo Phone ID: PNNlYlSvAb
+
+### PENDIENTES
+- [ ] Probar flujo completo con contacto que tenga email
+- [ ] Verificar ID del campo "Seguimiento Step" en Make.com
+- [ ] Agregar emails a contactos que no los tienen
+- [ ] Considerar Phone2 como respaldo en SMS
