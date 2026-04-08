@@ -198,6 +198,24 @@ rotateLog();
 logMsg('══════════════════════════════════════');
 logMsg('EL POLLING started');
 
+// ===== CAMBIO 4: Rate limiting — máximo 10 traces por día =====
+$counterFile = '/tmp/tracerfy_daily_count.txt';
+$today       = date('Y-m-d');
+$dailyCount  = 0;
+if (file_exists($counterFile)) {
+    $parts = explode(':', trim(file_get_contents($counterFile)));
+    if (count($parts) === 2 && $parts[0] === $today) {
+        $dailyCount = (int) $parts[1];
+    }
+}
+if ($dailyCount >= 10) {
+    logMsg("Rate limit alcanzado — {$dailyCount} traces hoy. Esperando mañana.");
+    logMsg('══════════════════════════════════════');
+    exit(0);
+}
+logMsg("Créditos Tracerfy usados hoy: {$dailyCount}/10");
+// ===== FIN CAMBIO 4 =====
+
 // ── STEP 1: Fetch one qualifying Lead ─────────────────────────
 // Only process WI leads — Tracerfy coverage is Wisconsin-based
 // IL and other out-of-market states fail with "No valid rows" error
@@ -232,11 +250,46 @@ if (!$address) {
 
 logMsg("Lead: {$address}, {$city}, {$state} {$zip}  (ID: {$leadId})");
 
-// Lock lead immediately so the cron never picks it up twice,
-// even if a later step fails.
-atPatch(TABLE_LEADS, $leadId, ['Skip Trace Done' => true]);
-logMsg("Lead {$leadId} locked (Skip Trace Done=true)");
+// ===== CAMBIO 3: Lock con campo In Progress (no Done) =====
+// Skip Trace Done se pone true SOLO al finalizar (éxito o error definitivo).
+// Timeout de polling → reset In Progress=false para reintento.
+atPatch(TABLE_LEADS, $leadId, ['Skip Trace In Progress' => true]);
+logMsg("Lead {$leadId} locked (Skip Trace In Progress=true)");
+// ===== FIN CAMBIO 3 parte 1 =====
 
+
+// ===== CAMBIO 2: Deduplicación — no trazar misma dirección dos veces =====
+$dedupeCheck = atList(TABLE_TRACY, [
+    'filterByFormula' => "AND({address}='" . addslashes($address) . "', {status}='success')",
+    'maxRecords'      => 1,
+]);
+if (!empty($dedupeCheck['records'])) {
+    logMsg("Lead {$leadId} — dirección ya trazada exitosamente, reutilizando datos (dedup)");
+    $existingTracy = $dedupeCheck['records'][0];
+    $chDedup = curl_init(CHISMOSO_URL);
+    curl_setopt_array($chDedup, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => json_encode(['record_id' => $existingTracy['id']]),
+        CURLOPT_HTTPHEADER     => [
+            'Content-Type: application/json',
+            'X-Chismoso-Token: ' . CHISMOSO_TOKEN,
+        ],
+        CURLOPT_TIMEOUT        => 30,
+    ]);
+    curl_exec($chDedup);
+    curl_close($chDedup);
+    atPatch(TABLE_LEADS, $leadId, [
+        'Skip Trace Done'        => true,
+        'Skip Trace In Progress' => false,
+        'Stage'                  => 'To be Contacted',
+    ]);
+    logMsg("Lead {$leadId} actualizado: Done=true, Stage='To be Contacted' (dedup sin gastar crédito)");
+    logMsg("EL POLLING done (dedup): {$address}");
+    logMsg('══════════════════════════════════════');
+    exit(0);
+}
+// ===== FIN CAMBIO 2 =====
 
 // ── STEP 2: Create Tracy record (pending) ─────────────────────
 $tracyFields = array_filter([
@@ -268,8 +321,34 @@ fputcsv($fh, [$address, $city, $state, $zip, '', '', '', '', '']);
 fclose($fh);
 logMsg("CSV built: {$csvPath}");
 
+// ===== CAMBIO 1: Validar dirección completa antes de gastar créditos =====
+$hasAddress = !empty($address) && !empty($city) && !empty($state) && !empty($zip);
+if (!$hasAddress) {
+    logMsg("Lead {$leadId} — dirección incompleta (addr={$address} city={$city} state={$state} zip={$zip}), skip sin gastar créditos");
+    @unlink($csvPath);
+    atPatch(TABLE_LEADS, $leadId, ['Skip Trace Done' => true, 'Skip Trace In Progress' => false]);
+    atPatch(TABLE_TRACY, $tracyId, ['status' => 'error', 'notas' => 'Dirección incompleta — skip sin crédito']);
+    logMsg('══════════════════════════════════════');
+    exit(0);
+}
+
+// ===== CAMBIO 1: Lead ya tiene teléfono — no gastar crédito =====
+$existingPhone = $lf['Phone1'] ?? $lf['Phone'] ?? '';
+if (!empty($existingPhone)) {
+    logMsg("Lead {$leadId} — ya tiene teléfono ({$existingPhone}), skip sin gastar créditos");
+    @unlink($csvPath);
+    atPatch(TABLE_LEADS, $leadId, ['Skip Trace Done' => true, 'Skip Trace In Progress' => false, 'Stage' => 'To be Contacted']);
+    atPatch(TABLE_TRACY, $tracyId, ['status' => 'success', 'notas' => 'Teléfono preexistente — crédito no consumido']);
+    logMsg("EL POLLING done (phone exists): {$address}");
+    logMsg('══════════════════════════════════════');
+    exit(0);
+}
+// ===== FIN CAMBIO 1 =====
 
 // ── STEP 4: Upload to Tracerfy ────────────────────────────────
+// ===== CAMBIO 5: Log de créditos antes del request =====
+logMsg("=== TRACERFY REQUEST === Lead: {$leadId} | Dirección: {$address}, {$city}, {$state} {$zip} | Créditos usados hoy: {$dailyCount}/10");
+// ===== FIN CAMBIO 5 =====
 $uploadResult = tracerfyUpload($csvPath);
 @unlink($csvPath);
 
@@ -288,14 +367,16 @@ if (empty($uploadResult['queue_id'])) {
                        : 'Unexpected Tracerfy error',
     ]);
 
-    // Mark Done=true to avoid infinite retry.
-    // If unsupported address: keep Stage as-is so user can review manually.
-    // If other error: keep Stage as-is for now.
-    atPatch(TABLE_LEADS, $leadId, ['Skip Trace Done' => true]);
+    // Mark Done=true to avoid infinite retry (address error is permanent).
+    atPatch(TABLE_LEADS, $leadId, ['Skip Trace Done' => true, 'Skip Trace In Progress' => false]);
     exit(1);
 }
 
 $queueId = (int) $uploadResult['queue_id'];
+// ===== CAMBIO 5: Incrementar contador tras crédito consumido =====
+file_put_contents($counterFile, $today . ':' . ($dailyCount + 1));
+logMsg("Crédito consumido — total hoy: " . ($dailyCount + 1) . "/10");
+// ===== FIN CAMBIO 5 =====
 logMsg("Queue ID: {$queueId} — polling...");
 
 
@@ -309,6 +390,10 @@ if ($queueData === null) {
         'status'    => 'error',
         'resultado' => $errMsg,
     ]);
+    // ===== CAMBIO 3: Timeout = reset In Progress (no Done) para reintento =====
+    atPatch(TABLE_LEADS, $leadId, ['Skip Trace In Progress' => false]);
+    logMsg("Lead {$leadId} unlocked (timeout) — Skip Trace Done=false, se reintentará próximo cron");
+    // ===== FIN CAMBIO 3 timeout =====
     exit(1);
 }
 
@@ -323,7 +408,11 @@ if (empty($queueData)) {
         'notas'     => 'Tracerfy completed — no results.',
     ]);
     // No contacts → skip el_chismoso, just update Stage and exit.
-    atPatch(TABLE_LEADS, $leadId, ['Stage' => 'To be Contacted']);
+    atPatch(TABLE_LEADS, $leadId, [
+        'Skip Trace Done'        => true,
+        'Skip Trace In Progress' => false,
+        'Stage'                  => 'To be Contacted',
+    ]);
     logMsg("No contacts — Stage updated, skipping el_chismoso.");
     logMsg("EL POLLING done: {$address}");
     logMsg('══════════════════════════════════════');
@@ -394,17 +483,19 @@ logMsg("el_chismoso.php ({$chismCode}): " . substr((string) $chismRes, 0, 300));
 
 
 // ── STEP 8: Update Lead Stage ─────────────────────────────────
-// Skip Trace Done was already set at the top to prevent duplicates.
-// Here we only update the Stage.
+// ===== CAMBIO 3: Poner Skip Trace Done=true aquí (fin del proceso exitoso) =====
 $leadUpdate = atPatch(TABLE_LEADS, $leadId, [
-    'Stage' => 'To be Contacted',
+    'Skip Trace Done'        => true,
+    'Skip Trace In Progress' => false,
+    'Stage'                  => 'To be Contacted',
 ]);
 
 if (!empty($leadUpdate['id'])) {
-    logMsg("Lead {$leadId} updated: Skip Trace Done=true, Stage='To Be Contacted'");
+    logMsg("Lead {$leadId} updated: Skip Trace Done=true, In Progress=false, Stage='To Be Contacted'");
 } else {
     logMsg("WARNING: Lead update may have failed: " . json_encode($leadUpdate));
 }
+// ===== FIN CAMBIO 3 parte final =====
 
 logMsg("EL POLLING done: {$address}");
 logMsg('══════════════════════════════════════');
