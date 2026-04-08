@@ -1737,29 +1737,27 @@ def _tool_invoke_tracy(address: str, city: str = "", state: str = "", zip_code: 
                 )
                 lookup_data = lookup_resp.json()
                 logger.info(f"Tracy instant lookup response: {json.dumps(lookup_data, ensure_ascii=False)[:500]}")
-                if isinstance(lookup_data, dict) and lookup_data.get("first_name"):
-                    owner_name = f"{lookup_data.get('first_name', '')} {lookup_data.get('last_name', '')}".strip()
-                    phones = [lookup_data.get(k) for k in [
-                        "primary_phone", "mobile_1", "mobile_2", "mobile_3",
-                        "mobile_4", "mobile_5", "landline_1", "landline_2", "landline_3"
-                    ] if lookup_data.get(k)]
-                    emails = [lookup_data.get(k) for k in [
-                        "email_1", "email_2", "email_3", "email_4", "email_5"
-                    ] if lookup_data.get(k)]
+                persons = lookup_data.get("persons", []) if isinstance(lookup_data, dict) else []
+                if persons:
+                    p = persons[0]
+                    owner_name = f"{p.get('first_name', '')} {p.get('last_name', '')}".strip()
+                    phones = [ph.get("number") for ph in p.get("phones", []) if ph.get("number")]
+                    phone_types = [ph.get("type", "") for ph in p.get("phones", [])]
+                    emails = [em.get("address") for em in p.get("emails", []) if em.get("address")]
                     if owner_name:
                         contacts.append({
                             "name": owner_name,
                             "phone": phones[0] if phones else None,
-                            "phone_type": lookup_data.get("primary_phone_type", ""),
+                            "phone_type": phone_types[0] if phone_types else "",
                             "extra_phones": phones[1:],
                             "email": emails[0] if emails else None,
                             "extra_emails": emails[1:],
                             "address": full_address,
-                            "mail_address": lookup_data.get("mail_address", ""),
-                            "mail_city": lookup_data.get("mail_city", ""),
-                            "mail_state": lookup_data.get("mail_state", ""),
-                            "mail_zip": lookup_data.get("mail_zip", ""),
-                            "tracerfy_id": lookup_data.get("id"),
+                            "mail_address": p.get("mail_address", ""),
+                            "mail_city": p.get("mail_city", ""),
+                            "mail_state": p.get("mail_state", ""),
+                            "mail_zip": p.get("mail_zip", ""),
+                            "tracerfy_id": p.get("id"),
                             "role": "Owner",
                         })
                         logger.info(f"Tracy instant lookup encontró: {owner_name}")
@@ -1834,17 +1832,9 @@ def _tool_invoke_tracy(address: str, city: str = "", state: str = "", zip_code: 
                 json={"fields": {"status": "success", "resultado": resultado_str, "notas": notas_str}},
                 timeout=20
             )
-            # ── WEBHOOK: Notificar a el_chismoso.php ─────────────
-            try:
-                wh = http_requests.post(
-                    "https://pinnaclegroupwi.com/Tools/el_chismoso.php",
-                    headers={"X-Chismoso-Token": "pinnacle2026", "Content-Type": "application/json"},
-                    json={"record_id": tracy_record_id},
-                    timeout=15
-                )
-                logger.info(f"[CHISMOSO] {wh.status_code} — {wh.text[:200]}")
-            except Exception as e:
-                logger.warning(f"[CHISMOSO] Webhook error: {e}")
+            # el_chismoso.php solo es usado por el_polling.php (Flujo A).
+            # El bot (Flujo B) escribe Contacts directamente — no llamar al webhook
+            # para evitar sobreescritura con campos vacíos del registro Tracy.
 
         return json.dumps({
             "tracy_results": {
