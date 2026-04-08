@@ -125,6 +125,7 @@ function tracerfyUpload(string $csvPath): array {
             'mail_address_column'  => 'mail_address',
             'mail_city_column'     => 'mail_city',
             'mail_state_column'    => 'mail_state',
+            'trace_type'           => 'advanced',  // Find owner by address only (2 credits/lead)
         ],
         CURLOPT_HTTPHEADER     => ['Authorization: Bearer ' . TRACERFY_TOKEN],
         CURLOPT_TIMEOUT        => 30,
