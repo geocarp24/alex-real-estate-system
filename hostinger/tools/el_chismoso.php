@@ -58,24 +58,28 @@ if ($status !== 'success') {
 }
 
 // ── STEP 2: Build Contact fields from Tracy data ──────────────
+// Contacts table uses "Full Name" (not First/Last Name separately)
+$firstName = trim($tf['first_name'] ?? '');
+$lastName  = trim($tf['last_name']  ?? '');
+$fullName  = trim("{$firstName} {$lastName}");
+
 // Phone fields: Number type in Airtable → send as integer (raw digits only)
+// Contacts table has Phone1, Phone2, Phone3 only (no Phone4)
 $phone1 = phoneToInt($tf['primary_phone'] ?? '');
 $phone2 = phoneToInt($tf['mobile_1']      ?? '');
-$phone3 = phoneToInt($tf['mobile_2']      ?? '');
-$phone4 = phoneToInt($tf['landline_1']    ?? '');
+// Phone3: use mobile_2, fallback to landline_1
+$phone3 = phoneToInt($tf['mobile_2'] ?? '') ?: phoneToInt($tf['landline_1'] ?? '');
 
 $contactFields = [
-    'First Name'    => $tf['first_name']           ?? '',
-    'Last Name'     => $tf['last_name']             ?? '',
+    'Full Name'     => $fullName,
     'Phone1 Type'   => $tf['primary_phone_type']    ?? '',
     'Email1'        => $tf['email_1']               ?? '',
     'Email2'        => $tf['email_2']               ?? '',
-    'Email3'        => $tf['email_3']               ?? '',
     'Mail Address'  => $tf['mail_address']          ?? '',
     'Mail City'     => $tf['mail_city']             ?? '',
     'Mail State'    => $tf['mail_state']            ?? '',
     'Mail Zip'      => $tf['mail_zip']              ?? '',
-    'Lead Source'   => 'Skip Trace - Tracy',
+    'Lead Source'   => 'Skip Trace - Tracerfy',
     'Stage'         => 'To Be Contacted',
     'Tracerfy ID'   => intval($tf['tracerfy_id']    ?? 0),
 ];
@@ -84,10 +88,9 @@ $contactFields = [
 if ($phone1) $contactFields['Phone1'] = $phone1;
 if ($phone2) $contactFields['Phone2'] = $phone2;
 if ($phone3) $contactFields['Phone3'] = $phone3;
-if ($phone4) $contactFields['Phone4'] = $phone4;
 
 // Category = Single Select
-if (!empty($tf['first_name'])) {
+if ($fullName) {
     $contactFields['Category'] = 'Seller';
 }
 
@@ -116,6 +119,27 @@ if ($tracerfyId) {
 
     if (!empty($data['records'][0]['id'])) {
         $existingId = $data['records'][0]['id'];
+    }
+}
+
+// FALLBACK: si no encontró por Tracerfy ID, buscar por Mail Address
+if (!$existingId) {
+    $mailAddr = trim($tf['mail_address'] ?? '');
+    if ($mailAddr) {
+        $formula2   = rawurlencode("LOWER({Mail Address})=LOWER('" . addslashes($mailAddr) . "')");
+        $searchUrl2 = 'https://api.airtable.com/v0/' . BASE_ID . '/' . rawurlencode(TABLE_CONTACTS)
+                    . '?filterByFormula=' . $formula2 . '&maxRecords=1';
+        $ch2 = curl_init($searchUrl2);
+        curl_setopt_array($ch2, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER     => ['Authorization: Bearer ' . AIRTABLE_TOKEN]
+        ]);
+        $res2  = curl_exec($ch2);
+        curl_close($ch2);
+        $data2 = json_decode($res2, true);
+        if (!empty($data2['records'][0]['id'])) {
+            $existingId = $data2['records'][0]['id'];
+        }
     }
 }
 
@@ -154,7 +178,7 @@ echo json_encode([
     'contact_id'       => $contactRecordId,
     'tracy_id'         => $tracyId,
     'tracerfy_id'      => $tracerfyId,
-    'name'             => ($tf['first_name'] ?? '') . ' ' . ($tf['last_name'] ?? ''),
+    'name'             => $fullName,
 ]);
 
 // ─────────────────────────────────────────────────────────────
