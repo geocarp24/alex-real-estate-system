@@ -99,15 +99,17 @@ $contactFields = array_filter($contactFields, function($v) {
     return $v !== '' && $v !== null && $v !== false;
 });
 
-// ── STEP 3: Search existing Contact by Tracerfy ID ────────────
+// ── STEP 3: Search existing Contact (dedup by Tracerfy ID → Mail Address) ──
 $tracerfyId  = intval($tf['tracerfy_id'] ?? 0);
-$existingId  = null;
+$existingId    = null;
+$mergeFields   = [];  // extra fields to merge from duplicate losers
+$dedupDeleted  = 0;   // how many duplicate contacts were deleted
 
+// PRIORITY 1: exact match by Tracerfy ID (most reliable)
 if ($tracerfyId) {
-    $formula     = rawurlencode("{Tracerfy ID}={$tracerfyId}");
-    $searchUrl   = 'https://api.airtable.com/v0/' . BASE_ID . '/' . rawurlencode(TABLE_CONTACTS)
-                 . '?filterByFormula=' . $formula . '&maxRecords=1';
-
+    $formula   = rawurlencode("{Tracerfy ID}={$tracerfyId}");
+    $searchUrl = 'https://api.airtable.com/v0/' . BASE_ID . '/' . TABLE_CONTACTS
+               . '?filterByFormula=' . $formula . '&maxRecords=1';
     $ch = curl_init($searchUrl);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
@@ -116,34 +118,34 @@ if ($tracerfyId) {
     $res  = curl_exec($ch);
     curl_close($ch);
     $data = json_decode($res, true);
-
     if (!empty($data['records'][0]['id'])) {
         $existingId = $data['records'][0]['id'];
     }
 }
 
-// FALLBACK: si no encontró por Tracerfy ID, buscar por Mail Address
+// PRIORITY 2: dedup search by normalized Mail Address (catches Tracerfy ID drift)
 if (!$existingId) {
     $mailAddr = trim($tf['mail_address'] ?? '');
     if ($mailAddr) {
-        $formula2   = rawurlencode("LOWER({Mail Address})=LOWER('" . addslashes($mailAddr) . "')");
-        $searchUrl2 = 'https://api.airtable.com/v0/' . BASE_ID . '/' . rawurlencode(TABLE_CONTACTS)
-                    . '?filterByFormula=' . $formula2 . '&maxRecords=1';
-        $ch2 = curl_init($searchUrl2);
-        curl_setopt_array($ch2, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER     => ['Authorization: Bearer ' . AIRTABLE_TOKEN]
-        ]);
-        $res2  = curl_exec($ch2);
-        curl_close($ch2);
-        $data2 = json_decode($res2, true);
-        if (!empty($data2['records'][0]['id'])) {
-            $existingId = $data2['records'][0]['id'];
+        $dedup = findOrDedupeContactByMailAddress($mailAddr);
+        if ($dedup['winner_id']) {
+            $existingId   = $dedup['winner_id'];
+            $mergeFields  = $dedup['merge_fields'];
+            $dedupDeleted = $dedup['deleted'];
         }
     }
 }
 
 // ── STEP 4: Upsert Contact ────────────────────────────────────
+// Merge any fields rescued from deleted duplicates (only fill gaps)
+if ($mergeFields) {
+    foreach ($mergeFields as $k => $v) {
+        if (!isset($contactFields[$k]) || $contactFields[$k] === '' || $contactFields[$k] === null) {
+            $contactFields[$k] = $v;
+        }
+    }
+}
+
 if ($existingId) {
     // UPDATE existing contact
     $result = airtablePatch(TABLE_CONTACTS, $existingId, $contactFields);
@@ -179,6 +181,8 @@ echo json_encode([
     'tracy_id'         => $tracyId,
     'tracerfy_id'      => $tracerfyId,
     'name'             => $fullName,
+    'duplicates_merged'=> !empty($mergeFields) ? count($mergeFields) : 0,
+    'duplicates_deleted'=> $dedupDeleted,
 ]);
 
 // ─────────────────────────────────────────────────────────────
@@ -252,4 +256,155 @@ function airtablePost($table, $fields) {
     $res = curl_exec($ch);
     curl_close($ch);
     return json_decode($res, true);
+}
+
+/**
+ * DELETE an Airtable record (used for dedup cleanup)
+ */
+function airtableDelete($table, $recordId) {
+    $url = 'https://api.airtable.com/v0/' . BASE_ID . '/' . rawurlencode($table) . '/' . $recordId;
+    $ch  = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CUSTOMREQUEST  => 'DELETE',
+        CURLOPT_HTTPHEADER     => ['Authorization: Bearer ' . AIRTABLE_TOKEN]
+    ]);
+    $res = curl_exec($ch);
+    curl_close($ch);
+    return json_decode($res, true);
+}
+
+/**
+ * Aggressive address normalization for dedup matching.
+ * Catches variations like "1219 Chicago St." vs "1219 chicago street" vs "1219 CHICAGO ST"
+ */
+function normalizeAddress(string $addr): string {
+    $s = strtolower(trim($addr));
+    // Strip punctuation
+    $s = str_replace(['.', ',', '#', "'"], '', $s);
+    // Common street suffix normalization
+    $replacements = [
+        '/\bstreet\b/'    => 'st',
+        '/\bavenue\b/'    => 'ave',
+        '/\broad\b/'      => 'rd',
+        '/\bdrive\b/'     => 'dr',
+        '/\bboulevard\b/' => 'blvd',
+        '/\blane\b/'      => 'ln',
+        '/\bcourt\b/'     => 'ct',
+        '/\bcircle\b/'    => 'cir',
+        '/\bplace\b/'     => 'pl',
+        '/\bhighway\b/'   => 'hwy',
+        '/\bnorth\b/'     => 'n',
+        '/\bsouth\b/'     => 's',
+        '/\beast\b/'      => 'e',
+        '/\bwest\b/'      => 'w',
+    ];
+    $s = preg_replace(array_keys($replacements), array_values($replacements), $s);
+    // Collapse whitespace
+    $s = preg_replace('/\s+/', ' ', $s);
+    return trim($s);
+}
+
+/**
+ * Score a Contact record by completeness (used to pick winner in dedup).
+ * Higher = more complete = keep this one.
+ */
+function scoreContactCompleteness(array $fields): int {
+    $score = 0;
+    if (!empty($fields['Full Name']))    $score += 3;
+    if (!empty($fields['Tracerfy ID']))  $score += 2;
+    if (!empty($fields['Phone1']))       $score += 1;
+    if (!empty($fields['Phone2']))       $score += 1;
+    if (!empty($fields['Phone3']))       $score += 1;
+    if (!empty($fields['Email1']))       $score += 1;
+    if (!empty($fields['Email2']))       $score += 1;
+    if (!empty($fields['Mail City']))    $score += 1;
+    if (!empty($fields['Mail State']))   $score += 1;
+    if (!empty($fields['Mail Zip']))     $score += 1;
+    if (!empty($fields['Phone1 Type']))  $score += 1;
+    return $score;
+}
+
+/**
+ * Find or dedupe contacts matching a normalized Mail Address.
+ * - Finds ALL contacts whose normalized Mail Address matches
+ * - If ≥2, keeps the most complete as winner, merges fields from losers, deletes losers
+ * - Returns ['winner_id' => ..., 'merge_fields' => [...], 'deleted' => N]
+ */
+function findOrDedupeContactByMailAddress(string $mailAddr): array {
+    $result = ['winner_id' => null, 'merge_fields' => [], 'deleted' => 0];
+    $target = normalizeAddress($mailAddr);
+    if ($target === '') return $result;
+
+    // Fetch candidates with broad filter (LOWER + SEARCH — catches common variations)
+    // We fetch then normalize client-side for accurate matching
+    $escapedTarget = addslashes($target);
+    $formula = "OR(LOWER({Mail Address})='{$escapedTarget}',SEARCH('{$escapedTarget}',LOWER({Mail Address}))>0)";
+    $url = 'https://api.airtable.com/v0/' . BASE_ID . '/' . TABLE_CONTACTS
+         . '?filterByFormula=' . rawurlencode($formula) . '&pageSize=100';
+
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER     => ['Authorization: Bearer ' . AIRTABLE_TOKEN],
+        CURLOPT_TIMEOUT        => 20,
+    ]);
+    $res = curl_exec($ch);
+    curl_close($ch);
+    $data = json_decode($res, true) ?? [];
+    $records = $data['records'] ?? [];
+
+    // Client-side precise filter using normalizeAddress
+    $matches = [];
+    foreach ($records as $r) {
+        $candidate = normalizeAddress($r['fields']['Mail Address'] ?? '');
+        if ($candidate === $target) {
+            $matches[] = $r;
+        }
+    }
+
+    if (count($matches) === 0) return $result;
+
+    if (count($matches) === 1) {
+        $result['winner_id'] = $matches[0]['id'];
+        return $result;
+    }
+
+    // Multiple matches → dedupe
+    usort($matches, function($a, $b) {
+        $sa = scoreContactCompleteness($a['fields'] ?? []);
+        $sb = scoreContactCompleteness($b['fields'] ?? []);
+        if ($sa !== $sb) return $sb - $sa;  // higher score first
+        // Tiebreaker: older (lower Created Time) wins
+        $ta = $a['fields']['Created Time'] ?? $a['createdTime'] ?? '';
+        $tb = $b['fields']['Created Time'] ?? $b['createdTime'] ?? '';
+        return strcmp($ta, $tb);
+    });
+
+    $winner = array_shift($matches);
+    $losers = $matches;
+    $result['winner_id'] = $winner['id'];
+
+    // Merge: pull non-empty fields from losers that winner is missing
+    $winnerFields = $winner['fields'] ?? [];
+    $mergeable    = ['Full Name','Phone1','Phone2','Phone3','Email1','Email2',
+                     'Tracerfy ID','Phone1 Type','Mail City','Mail State','Mail Zip','Category'];
+    $merge = [];
+    foreach ($losers as $l) {
+        $lf = $l['fields'] ?? [];
+        foreach ($mergeable as $k) {
+            if (!empty($lf[$k]) && empty($winnerFields[$k]) && !isset($merge[$k])) {
+                $merge[$k] = $lf[$k];
+            }
+        }
+    }
+    $result['merge_fields'] = $merge;
+
+    // Delete losers
+    foreach ($losers as $l) {
+        airtableDelete(TABLE_CONTACTS, $l['id']);
+        $result['deleted']++;
+    }
+
+    return $result;
 }

@@ -176,6 +176,31 @@ function phoneToInt($phone): ?int {
     return (int) $digits;
 }
 
+// ── Aggressive address normalization (matches el_chismoso.php) ──
+function normalizeAddress(string $addr): string {
+    $s = strtolower(trim($addr));
+    $s = str_replace(['.', ',', '#', "'"], '', $s);
+    $replacements = [
+        '/\bstreet\b/'    => 'st',
+        '/\bavenue\b/'    => 'ave',
+        '/\broad\b/'      => 'rd',
+        '/\bdrive\b/'     => 'dr',
+        '/\bboulevard\b/' => 'blvd',
+        '/\blane\b/'      => 'ln',
+        '/\bcourt\b/'     => 'ct',
+        '/\bcircle\b/'    => 'cir',
+        '/\bplace\b/'     => 'pl',
+        '/\bhighway\b/'   => 'hwy',
+        '/\bnorth\b/'     => 'n',
+        '/\bsouth\b/'     => 's',
+        '/\beast\b/'      => 'e',
+        '/\bwest\b/'      => 'w',
+    ];
+    $s = preg_replace(array_keys($replacements), array_values($replacements), $s);
+    $s = preg_replace('/\s+/', ' ', $s);
+    return trim($s);
+}
+
 // ── Convert phone to E.164 format (e.g. +12625551234) ─────────
 function phoneToE164($phone): string {
     if (!$phone) return '';
@@ -257,14 +282,27 @@ logMsg("Lead {$leadId} locked (Skip Trace Done=true)");
 // ===== FIN CAMBIO 3 parte 1 =====
 
 
-// ===== CAMBIO 2: Deduplicación — no trazar misma dirección dos veces =====
+// ===== CAMBIO 2: Deduplicación con normalización + ventana 14 días =====
+// Busca Tracy records exitosos recientes, filtra client-side por address normalizada
+$normalizedTarget = normalizeAddress($address);
+$cutoffDate       = gmdate('Y-m-d\TH:i:s.000\Z', strtotime('-14 days'));
 $dedupeCheck = atList(TABLE_TRACY, [
-    'filterByFormula' => "AND({address}='" . addslashes($address) . "', {status}='success')",
-    'maxRecords'      => 1,
+    'filterByFormula' => "AND({status}='success',IS_AFTER({fecha_rastreo},'{$cutoffDate}'))",
+    'maxRecords'      => 100,
+    'sort[0][field]'  => 'fecha_rastreo',
+    'sort[0][direction]' => 'desc',
 ]);
-if (!empty($dedupeCheck['records'])) {
-    logMsg("Lead {$leadId} — dirección ya trazada exitosamente, reutilizando datos (dedup)");
-    $existingTracy = $dedupeCheck['records'][0];
+
+$existingTracy = null;
+foreach ($dedupeCheck['records'] ?? [] as $r) {
+    if (normalizeAddress($r['fields']['address'] ?? '') === $normalizedTarget) {
+        $existingTracy = $r;
+        break;
+    }
+}
+
+if ($existingTracy) {
+    logMsg("Lead {$leadId} — dirección ya trazada en últimos 14 días ({$existingTracy['id']}), reutilizando (no gasta crédito)");
     $chDedup = curl_init(CHISMOSO_URL);
     curl_setopt_array($chDedup, [
         CURLOPT_RETURNTRANSFER => true,
@@ -276,8 +314,20 @@ if (!empty($dedupeCheck['records'])) {
         ],
         CURLOPT_TIMEOUT        => 30,
     ]);
-    curl_exec($chDedup);
+    $chDedupRes  = curl_exec($chDedup);
+    $chDedupCode = curl_getinfo($chDedup, CURLINFO_HTTP_CODE);
     curl_close($chDedup);
+    logMsg("  el_chismoso dedup response ({$chDedupCode}): " . substr((string)$chDedupRes, 0, 200));
+
+    // Validación: si chismoso falló, revertir Skip Trace Done y reintentar en próximo cron
+    $chDedupJson = json_decode($chDedupRes, true);
+    if ($chDedupCode !== 200 || empty($chDedupJson['success'])) {
+        logMsg("  ❌ el_chismoso dedup FAILED — revirtiendo Skip Trace Done para retry");
+        atPatch(TABLE_LEADS, $leadId, ['Skip Trace Done' => false]);
+        logMsg('══════════════════════════════════════');
+        exit(1);
+    }
+
     atPatch(TABLE_LEADS, $leadId, [
         'Skip Trace Done' => true,
         'Stage'           => 'To be Contacted',
@@ -476,6 +526,24 @@ $chismCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
 logMsg("el_chismoso.php ({$chismCode}): " . substr((string) $chismRes, 0, 300));
+
+// ── VALIDATION: retry on failure ─────────────────────────────
+$chismJson = json_decode($chismRes, true);
+if ($chismCode !== 200 || empty($chismJson['success'])) {
+    logMsg("❌ el_chismoso FAILED (HTTP {$chismCode}) — revirtiendo flags para retry en próximo cron");
+    atPatch(TABLE_TRACY, $tracyId, ['pushed_to_contacts' => false]);
+    atPatch(TABLE_LEADS, $leadId, ['Skip Trace Done' => false]);
+    logMsg('══════════════════════════════════════');
+    exit(1);
+}
+
+// Log dedup info si hubo limpieza
+if (!empty($chismJson['duplicates_deleted'])) {
+    logMsg("  ✓ Dedup: {$chismJson['duplicates_deleted']} contacto(s) duplicado(s) eliminado(s)");
+}
+if (!empty($chismJson['duplicates_merged'])) {
+    logMsg("  ✓ Merge: {$chismJson['duplicates_merged']} campo(s) rescatado(s) de duplicados");
+}
 
 
 // ── STEP 8: Update Lead Stage ─────────────────────────────────
