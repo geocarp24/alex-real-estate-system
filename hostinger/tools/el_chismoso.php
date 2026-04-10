@@ -19,8 +19,8 @@ header('Content-Type: application/json');
 // ── SECURITY TOKEN ───────────────────────────────────────────
 define('CHISMOSO_TOKEN', 'pinnacle2026');
 define('BASE_ID',        'appfQbDA750Oihy9J');
-define('TABLE_TRACY',    'Tracy');
-define('TABLE_CONTACTS', 'Contacts');
+define('TABLE_TRACY',    'tbl6CJm4kYspOuTDB');
+define('TABLE_CONTACTS', 'tblacvw0Ss770x8l5');
 
 // ── VERIFY TOKEN ─────────────────────────────────────────────
 $token = $_SERVER['HTTP_X_CHISMOSO_TOKEN'] ?? '';
@@ -96,7 +96,7 @@ if ($fullName) {
 
 // Remove empty string fields to avoid overwriting with blanks
 $contactFields = array_filter($contactFields, function($v) {
-    return $v !== '' && $v !== null && $v !== 0;
+    return $v !== '' && $v !== null && $v !== false;
 });
 
 // ── STEP 3: Search existing Contact by Tracerfy ID ────────────

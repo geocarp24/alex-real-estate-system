@@ -451,7 +451,7 @@ if (empty($queueData)) {
         'email_3'            => trim($contact['email_3']            ?? ''),
         'tracerfy_id'        => intval($contact['id']               ?? 0),
         'notas'              => 'Processed by el_polling.php',
-    ], fn($v) => $v !== '' && $v !== null && $v !== 0);
+    ], fn($v) => $v !== '' && $v !== null && $v !== false);
 
     atPatch(TABLE_TRACY, $tracyId, $tracyUpdate);
 }
