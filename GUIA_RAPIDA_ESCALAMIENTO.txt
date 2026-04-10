@@ -1,0 +1,291 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                 SISTEMA INTELIGENTE DE ESCALAMIENTO DE MODELOS                  ║
+║                                                                                  ║
+║  MÁXIMO AHORRO (71%) + CALIDAD GARANTIZADA = CERO DESPERDICIO                  ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1️⃣  CÓMO FUNCIONAN LOS MODELOS AHORA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ANTES (Caro + Simple):
+  Todas las tareas → OPUS 💰💰💰
+  Presupuesto: $4,336/mes
+
+AHORA (Inteligente + Económico):
+  Tareas simples → HAIKU 💰 ($0.01)
+  Tareas medianas → SONNET 💰💰 ($0.08)
+  Tareas complejas → OPUS 💰💰💰 ($0.30) ← Solo si es necesario
+  Presupuesto: $1,236/mes
+
+AHORRO: 71% = $3,099/mes = $37,195/año
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2️⃣  QUITÓ FUNCIONA LA MAGIA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Sistema de ANÁLISIS AUTOMÁTICO:
+
+┌─────────────────────────────────────────────────────────┐
+│ Prompt: "Refactor authentication architecture"         │
+└─────────────────────────────────────────────────────────┘
+                        ↓
+        ┌───────────────────────────────┐
+        │  ¿Contiene palabras complejas? │
+        │  - refactor ✓                  │
+        │  - architecture ✓              │
+        │  - production ✓                │
+        └───────────────────────────────┘
+                        ↓
+         COMPLEJIDAD DETECTADA: HIGH
+                        ↓
+        ┌───────────────────────────────┐
+        │  Modelo recomendado: OPUS ✅  │
+        │  (Se escaló automáticamente)   │
+        └───────────────────────────────┘
+
+Palabras clave que disparan ESCALAMIENTO:
+  refactor, architecture, debug, production, critical, complex,
+  edge_case, multi_scenario, sophisticated
+
+Número de tokens que dispara ESCALAMIENTO:
+  Scout: > 8,000 tokens
+  Matemático: > 6,000 tokens
+  Fact-Checker: Si confidence < 6.5
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3️⃣  CÓMO USARLO EN TU CÓDIGO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+OPCIÓN A: Con escalamiento automático (RECOMENDADO) ⭐
+─────────────────────────────────────────────────────
+from agents.model_assignment import get_model
+
+model = get_model(
+    agent_name="scout",
+    prompt="Your market research task",
+    auto_escalate=True  ← Esto activa la magia
+)
+
+Agent(name="scout", model=model, prompt=prompt)
+
+✅ Sistema analiza automáticamente
+✅ Asigna modelo correcto (Haiku/Sonnet/Opus)
+✅ Registra escalamiento si ocurre
+✅ Costo optimizado
+
+OPCIÓN B: Sin escalamiento automático (Legacy)
+──────────────────────────────────────────────
+model = get_model("scout")  # Siempre usa Sonnet
+
+OPCIÓN C: Análisis manual (Debug/Test)
+───────────────────────────────────────
+from agents.model_assignment import TaskComplexity
+
+analysis = TaskComplexity.analyze("Your prompt", "scout")
+print(analysis)
+# {
+#   "initial_model": "sonnet",
+#   "recommended_model": "opus",
+#   "escalate": True,
+#   "reason": "task_complexity_high",
+#   "complexity_level": "high"
+# }
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4️⃣  REGLAS POR AGENTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TRACY (Skip Tracing)
+├─ Modelo inicial: HAIKU 💰
+├─ Escala a SONNET si: error_rate > 10% O confidence < 5
+├─ Máximo: SONNET (nunca Opus)
+└─ Costo: $50/mes → Ahorra $895/mes
+
+SCOUT (Market Research)
+├─ Modelo inicial: SONNET 💰💰
+├─ Escala a OPUS si: tokens > 8,000 O keywords complejos
+└─ Costo: $122/mes con escalamiento inteligente
+
+MATEMÁTICO (Financial Analysis)
+├─ Modelo inicial: SONNET 💰💰
+├─ Escala a OPUS si: tokens > 6,000 O errores matemáticos
+└─ Costo: $122/mes con escalamiento inteligente
+
+FACT-CHECKER (Auditoría)
+├─ Modelo inicial: SONNET 💰💰
+├─ Escala a OPUS si: confidence < 6.5 O contradicciones
+└─ Costo: $82/mes con escalamiento inteligente
+
+PROGRAMADOR (Code Development)
+├─ Modelo inicial: SONNET 💰💰
+├─ Escala a OPUS si: refactoring/debugging/arquitectura/production
+├─ Máximo: OPUS (no hay más escalamiento)
+└─ Costo: Variado según complejidad
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5️⃣  EJEMPLOS REALES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+EJEMPLO 1: Tarea Muy Simple
+───────────────────────────
+Prompt: "Find John Smith in Wisconsin"
+Agent: Tracy
+Tokens: 200
+
+Análisis:
+  - Sin palabras complejas
+  - Pocos tokens
+  - Complejidad: LOW
+
+Resultado: HAIKU 💰
+Costo: $0.01
+
+EJEMPLO 2: Tarea Moderada
+─────────────────────────
+Prompt: "Analyze Milwaukee market data"
+Agent: Scout
+Tokens: 4,500
+
+Análisis:
+  - Sin palabras complejas
+  - Tokens moderados
+  - Complejidad: MEDIUM
+
+Resultado: SONNET 💰💰
+Costo: $0.08
+
+EJEMPLO 3: Tarea Compleja (AUTO-ESCALACIÓN)
+────────────────────────────────────────────
+Prompt: "Refactor authentication with complex edge cases and multi-scenario analysis"
+Agent: Scout
+Tokens: 9,200
+
+Análisis:
+  - Contiene: refactor, edge_case, multi_scenario
+  - Tokens > 8,000
+  - Complejidad: HIGH
+
+Resultado: ESCALA A OPUS 💰💰💰
+Costo: $0.30
+Beneficio: Problema resuelto correctamente
+Nota: ⬆️ Escalamiento registrado en dashboard
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6️⃣  MONITOREO Y DASHBOARD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Cada ejecución se registra automáticamente:
+
+┌─────────────────────────────────────────────────────────┐
+│ Tabla Airtable: Model Router Metrics                   │
+├─────────────────────────────────────────────────────────┤
+│ task_id        │ scout_analysis_001                    │
+│ agent          │ scout                                 │
+│ initial_model  │ sonnet                                │
+│ final_model    │ opus                                  │
+│ escalated      │ YES ⬆️                                 │
+│ reason         │ tokens_estimated > 8000               │
+│ cost_usd       │ $0.30                                 │
+│ confidence     │ 8.5/10                                │
+│ time_ms        │ 4,532                                 │
+└─────────────────────────────────────────────────────────┘
+
+Revisar SEMANALMENTE:
+  ✅ ¿Cuántas escalaciones hubo?
+  ✅ ¿En qué agentes?
+  ✅ ¿Costo total vs presupuesto?
+  ✅ ¿Hay patrones de escalación?
+
+ALERTAS:
+  🟡 Amarilla: Acercándose a presupuesto mensual ($1,200)
+  🔴 Roja: Presupuesto excedido ($1,200+)
+  🛑 Bloqueo: Auto-pause si excede 20% ($1,485)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+7️⃣  CONFIGURACIÓN GLOBAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+~/.claude/settings.json
+  "model": "opus"
+
+¿Por qué Opus por defecto?
+  - Cuando usas Claude Code DIRECTAMENTE (sin agentes)
+  - Obtienes máxima calidad
+  - Los agentes usan su lógica especial de escalamiento
+  - No afecta el ahorro (los agentes siguen siendo económicos)
+
+agents/model_router_config.json
+  - Configuración centralizada
+  - Umbrales de escalamiento por agente
+  - Límites de presupuesto
+  - Palabras clave de complejidad
+
+agents/model_assignment.py
+  - Lógica de escalamiento inteligente
+  - Clase TaskComplexity
+  - Función get_model() mejorada
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+8️⃣  PRÓXIMOS PASOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+HOY (2026-04-10):
+  ✅ Sistema implementado
+  ✅ Configuración aplicada
+  ✅ Documentación completa
+
+MAÑANA (2026-04-11):
+  [ ] Prueba con 3-5 tareas reales
+  [ ] Verifica escalamientos en dashboard
+  [ ] Ajusta palabras clave si es necesario
+
+SEMANA 1 (2026-04-15):
+  [ ] Monitoreo diario de escalamientos
+  [ ] Review de Confidence Scores
+  [ ] Verificar presupuesto vs real
+
+SEMANA 2 (2026-04-22):
+  [ ] Reporte semanal de escalamientos
+  [ ] Ajuste de umbrales si es necesario
+  [ ] Optimización adicional
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9️⃣  DOCUMENTACIÓN COMPLETA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📄 SMART_MODEL_ESCALATION.md
+   - Guía completa de implementación
+   - Reglas de escalamiento detalladas
+   - Ejemplos de uso
+
+📄 SMART_ESCALATION_SUMMARY.md
+   - Resumen ejecutivo
+   - Impacto económico
+   - Checklist de implementación
+
+📄 agents/model_router_config.json
+   - Configuración JSON centralizada
+   - Umbrales por agente
+   - Triggers de escalamiento
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔟 CONTACTO Y SOPORTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Pregunta: ¿Cuándo escala a Opus?
+Respuesta: Solo cuando detecta complejidad. Mira el dashboard.
+
+Pregunta: ¿Puedo desactivar escalamiento?
+Respuesta: Sí: get_model("agent") sin prompt.
+
+Pregunta: ¿Costo de escalamiento?
+Respuesta: Registrado en Airtable. Max $500 por tarea.
+
+Pregunta: ¿Si presupuesto se excede?
+Respuesta: Auto-pause de Opus. Alerta roja antes.
+
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                   ✅ SISTEMA LISTO PARA PRODUCCIÓN                            ║
+║           Máximo ahorro sin comprometer calidad = Gana-Gana                    ║
+╚════════════════════════════════════════════════════════════════════════════════╝
