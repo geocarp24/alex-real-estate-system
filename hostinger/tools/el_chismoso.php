@@ -21,6 +21,7 @@ define('CHISMOSO_TOKEN', 'pinnacle2026');
 define('BASE_ID',        'appfQbDA750Oihy9J');
 define('TABLE_TRACY',    'tbl6CJm4kYspOuTDB');
 define('TABLE_CONTACTS', 'tblacvw0Ss770x8l5');
+define('TABLE_LEADS',    'tblxZz2EWIglOLnEd');
 
 // ── VERIFY TOKEN ─────────────────────────────────────────────
 $token = $_SERVER['HTTP_X_CHISMOSO_TOKEN'] ?? '';
@@ -49,6 +50,13 @@ if (!$tracyRecord) {
 }
 
 $tf = $tracyRecord['fields'] ?? [];
+
+// Extract linked Lead IDs from Tracy.Leads 2 (set by el_polling).
+// Fallback: if empty, search Leads by normalized address match.
+$leadLinks = $tf['Leads 2'] ?? [];
+if (empty($leadLinks) && !empty($tf['address'])) {
+    $leadLinks = findLeadIdsByAddress($tf['address']);
+}
 
 // Safety check — only process "success" records
 $status = strtolower($tf['status'] ?? '');
@@ -143,6 +151,21 @@ if ($mergeFields) {
         if (!isset($contactFields[$k]) || $contactFields[$k] === '' || $contactFields[$k] === null) {
             $contactFields[$k] = $v;
         }
+    }
+}
+
+// Link Contact → Lead(s) via Property Address field (append, don't overwrite)
+if (!empty($leadLinks)) {
+    $currentLinks = [];
+    if ($existingId) {
+        // Fetch current Contact to read existing Property Address links
+        $existingContact = airtableGet(TABLE_CONTACTS, $existingId);
+        $currentLinks    = $existingContact['fields']['Property Address'] ?? [];
+    }
+    // Union: combine current + new leads, dedupe
+    $unionLinks = array_values(array_unique(array_merge($currentLinks, $leadLinks)));
+    if ($unionLinks !== $currentLinks) {
+        $contactFields['Property Address'] = $unionLinks;
     }
 }
 
@@ -256,6 +279,40 @@ function airtablePost($table, $fields) {
     $res = curl_exec($ch);
     curl_close($ch);
     return json_decode($res, true);
+}
+
+/**
+ * Find Lead record IDs matching a property address (normalized).
+ * Used as fallback when Tracy.Leads 2 is empty (legacy records).
+ */
+function findLeadIdsByAddress(string $address): array {
+    $target = normalizeAddress($address);
+    if ($target === '') return [];
+
+    // Broad server-side filter with SEARCH for partial matches
+    $esc     = addslashes($target);
+    $formula = "OR(LOWER({Address})='{$esc}',SEARCH('{$esc}',LOWER({Address}))>0)";
+    $url = 'https://api.airtable.com/v0/' . BASE_ID . '/' . TABLE_LEADS
+         . '?filterByFormula=' . rawurlencode($formula) . '&pageSize=50';
+
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER     => ['Authorization: Bearer ' . AIRTABLE_TOKEN],
+        CURLOPT_TIMEOUT        => 15,
+    ]);
+    $res = curl_exec($ch);
+    curl_close($ch);
+    $data = json_decode($res, true) ?? [];
+
+    // Client-side precise match
+    $matches = [];
+    foreach ($data['records'] ?? [] as $r) {
+        if (normalizeAddress($r['fields']['Address'] ?? '') === $target) {
+            $matches[] = $r['id'];
+        }
+    }
+    return $matches;
 }
 
 /**

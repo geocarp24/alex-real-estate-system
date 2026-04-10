@@ -303,6 +303,15 @@ foreach ($dedupeCheck['records'] ?? [] as $r) {
 
 if ($existingTracy) {
     logMsg("Lead {$leadId} — dirección ya trazada en últimos 14 días ({$existingTracy['id']}), reutilizando (no gasta crédito)");
+
+    // Append current leadId to Tracy's Leads 2 link (union of existing + new)
+    $existingLeadLinks = $existingTracy['fields']['Leads 2'] ?? [];
+    if (!in_array($leadId, $existingLeadLinks, true)) {
+        $existingLeadLinks[] = $leadId;
+        atPatch(TABLE_TRACY, $existingTracy['id'], ['Leads 2' => $existingLeadLinks]);
+        logMsg("  Tracy {$existingTracy['id']} linkeado al nuevo Lead {$leadId}");
+    }
+
     $chDedup = curl_init(CHISMOSO_URL);
     curl_setopt_array($chDedup, [
         CURLOPT_RETURNTRANSFER => true,
@@ -340,6 +349,7 @@ if ($existingTracy) {
 // ===== FIN CAMBIO 2 =====
 
 // ── STEP 2: Create Tracy record (pending) ─────────────────────
+// 'Leads 2' is a linked-record field → Airtable expects array of record IDs
 $tracyFields = array_filter([
     'address'       => $address,
     'city'          => $city,
@@ -348,6 +358,7 @@ $tracyFields = array_filter([
     'fecha_rastreo' => gmdate('Y-m-d\TH:i:s.000\Z'),
     'status'        => 'pending',
     'notas'         => 'Iniciado por el_polling.php (cron)',
+    'Leads 2'       => [$leadId],  // bidirectional link back to Lead
 ], fn($v) => $v !== '' && $v !== null);
 
 $tracyResult = atPost(TABLE_TRACY, $tracyFields);
