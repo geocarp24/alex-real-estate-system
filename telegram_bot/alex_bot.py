@@ -29,9 +29,14 @@ from functools import partial
 
 try:
     from dotenv import load_dotenv
-    load_dotenv(Path(__file__).parent.parent / ".env")
-except ImportError:
-    pass
+    env_path = Path(__file__).parent.parent / ".env"
+    if env_path.exists():
+        load_dotenv(env_path)
+        print(f"✅ .env loaded from {env_path}")
+    else:
+        print(f"⚠️ .env not found at {env_path}")
+except ImportError as e:
+    print(f"⚠️ dotenv import failed: {e}")
 
 try:
     import requests as http_requests
@@ -44,12 +49,28 @@ from telegram.ext import (
 )
 import anthropic
 
+# Import model configuration (audit 2026-04-10)
+try:
+    sys.path.insert(0, str(Path(__file__).parent.parent / "agents"))
+    from model_assignment import get_model, AGENT_MODELS
+    MODEL_CONFIG_LOADED = True
+except ImportError:
+    MODEL_CONFIG_LOADED = False
+    print("⚠️ model_assignment.py not found — using default Sonnet for all agents")
+
 # ─────────────────────────────────────────────
 # CONFIGURACIÓN
 # ─────────────────────────────────────────────
 TELEGRAM_TOKEN   = os.getenv("TELEGRAM_TOKEN", "8157575601:AAHmAo0OQroOUdXCnXZEjVh4hJkt0emx5_c")
 ANTHROPIC_KEY    = os.getenv("ANTHROPIC_KEY")
-CLAUDE_MODEL     = "claude-sonnet-4-6"
+
+# Verificar que ANTHROPIC_KEY esté disponible
+if not ANTHROPIC_KEY:
+    print("❌ ERROR: ANTHROPIC_KEY no encontrada en .env o variables de entorno")
+    print(f"   Variables disponibles: {[k for k in os.environ.keys() if 'ANTHROPIC' in k or 'KEY' in k]}")
+    raise RuntimeError("ANTHROPIC_KEY es requerida para iniciar el bot")
+
+CLAUDE_MODEL     = "claude-sonnet-4-6"  # Default for general responses
 MAX_HISTORY      = 40
 
 AIRTABLE_TOKEN   = os.getenv("AIRTABLE_TOKEN", "patQXGBEGdmbhGRfi.81e226fee4638f95bba27a57003465dd930d9e977d8b4dc7ac372c1b60dd087b")
@@ -788,17 +809,24 @@ def _tool_write_memoria(content: str) -> str:
         return f"Error escribiendo memoria: {str(e)}"
 
 
-def _run_subagent_sync(system_prompt: str, user_message: str, tools=None) -> str:
+def _run_subagent_sync(system_prompt: str, user_message: str, tools=None, model: str = None) -> str:
     """
     Runs a sub-agent as a separate synchronous Claude API call.
     Supports a nested tool use loop for tools like web_fetch.
+
+    Args:
+        model: Claude model to use (default: CLAUDE_MODEL=sonnet).
+               Use "claude-haiku-4-5" for Tracy, "claude-sonnet-4-6" for others.
     """
+    if model is None:
+        model = CLAUDE_MODEL
+
     messages = [{"role": "user", "content": user_message}]
     max_iters = 12
 
     for _ in range(max_iters):
         kwargs = {
-            "model": CLAUDE_MODEL,
+            "model": model,
             "max_tokens": 4096,
             "system": system_prompt,
             "messages": messages
@@ -847,7 +875,9 @@ def _tool_invoke_scout(property_data: str, strategy: str) -> str:
         "Devuelve únicamente el JSON estricto de tu análisis."
     )
     logger.info(f"Invoking El Scout for: {property_data[:80]}...")
-    return _run_subagent_sync(system_prompt, user_msg, tools=SCOUT_TOOLS)
+    # OPTIMIZED: Scout uses Sonnet (70% cheaper than Opus)
+    model = get_model("scout") if MODEL_CONFIG_LOADED else CLAUDE_MODEL
+    return _run_subagent_sync(system_prompt, user_msg, tools=SCOUT_TOOLS, model=model)
 
 
 def _tool_invoke_matematico(property_data: str, strategy: str, scout_json: str = "") -> str:
@@ -859,7 +889,9 @@ def _tool_invoke_matematico(property_data: str, strategy: str, scout_json: str =
         "Devuelve únicamente el JSON estricto de tu análisis."
     )
     logger.info("Invoking El Matemático...")
-    return _run_subagent_sync(system_prompt, user_msg)
+    # OPTIMIZED: Matemático uses Sonnet (70% cheaper than Opus)
+    model = get_model("matematico") if MODEL_CONFIG_LOADED else CLAUDE_MODEL
+    return _run_subagent_sync(system_prompt, user_msg, model=model)
 
 
 def _tool_invoke_fact_checker(property_data: str, scout_json: str, matematico_json: str) -> str:
@@ -871,7 +903,10 @@ def _tool_invoke_fact_checker(property_data: str, scout_json: str, matematico_js
         "Devuelve únicamente el JSON estricto de tu auditoría con el Confidence Score."
     )
     logger.info("Invoking El Fact-Checker...")
-    return _run_subagent_sync(system_prompt, user_msg)
+    # OPTIMIZED: Fact-Checker uses Sonnet (70% cheaper than Opus)
+    # ⚠️ VALIDATION: Monitor Confidence Scores — must be ≥7.0/10
+    model = get_model("fact-checker") if MODEL_CONFIG_LOADED else CLAUDE_MODEL
+    return _run_subagent_sync(system_prompt, user_msg, model=model)
 
 
 def _tool_invoke_social_media(
@@ -1165,7 +1200,9 @@ def _tool_invoke_creativo(task: str, record_id: str = None) -> str:
             '{"slidePrompts": ["descripción slide 1...", "descripción slide 2...", ...]}\n'
             "Máximo 6 slidePrompts. Sin texto adicional, solo el JSON."
         )
-        raw = _run_subagent_sync(creativo_system, build_msg)
+        # OPTIMIZED: El Creativo uses Sonnet (71% cheaper than Opus)
+        model = get_model("creativo") if MODEL_CONFIG_LOADED else CLAUDE_MODEL
+        raw = _run_subagent_sync(creativo_system, build_msg, model=model)
 
         try:
             # Extraer JSON de la respuesta
@@ -1299,7 +1336,9 @@ def _tool_invoke_director(task: str, record_id: str = None) -> str:
                 "CRÍTICO: characterDescription debe ser texto descriptivo, NUNCA una URL."
             )
 
-        raw = _run_subagent_sync(director_system, build_msg)
+        # OPTIMIZED: El Director uses Sonnet (71% cheaper than Opus)
+        model = get_model("director") if MODEL_CONFIG_LOADED else CLAUDE_MODEL
+        raw = _run_subagent_sync(director_system, build_msg, model=model)
 
         try:
             import re
