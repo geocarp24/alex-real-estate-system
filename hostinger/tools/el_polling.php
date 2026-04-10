@@ -219,7 +219,7 @@ logMsg("Créditos Tracerfy usados hoy: {$dailyCount}/10");
 // ── STEP 1: Fetch one qualifying Lead ─────────────────────────
 // Only process WI leads — Tracerfy coverage is Wisconsin-based
 // IL and other out-of-market states fail with "No valid rows" error
-$formula = "AND({Stage}='Review this Deal',{Skip Trace Done}=FALSE(),{Estate}='WI')";
+$formula = "AND(OR({Stage}='Review this Deal',{Stage}='Review This Deal'),{Skip Trace Done}=FALSE(),{Estate}='WI')";
 $listData = atList(TABLE_LEADS, [
     'filterByFormula'    => $formula,
     'maxRecords'         => 1,
@@ -250,11 +250,10 @@ if (!$address) {
 
 logMsg("Lead: {$address}, {$city}, {$state} {$zip}  (ID: {$leadId})");
 
-// ===== CAMBIO 3: Lock con campo In Progress (no Done) =====
-// Skip Trace Done se pone true SOLO al finalizar (éxito o error definitivo).
-// Timeout de polling → reset In Progress=false para reintento.
-atPatch(TABLE_LEADS, $leadId, ['Skip Trace In Progress' => true]);
-logMsg("Lead {$leadId} locked (Skip Trace In Progress=true)");
+// Lock immediately — prevents re-pick on next 5-min cycle.
+// On timeout: we reset Done=false so the lead retries.
+atPatch(TABLE_LEADS, $leadId, ['Skip Trace Done' => true]);
+logMsg("Lead {$leadId} locked (Skip Trace Done=true)");
 // ===== FIN CAMBIO 3 parte 1 =====
 
 
@@ -280,9 +279,8 @@ if (!empty($dedupeCheck['records'])) {
     curl_exec($chDedup);
     curl_close($chDedup);
     atPatch(TABLE_LEADS, $leadId, [
-        'Skip Trace Done'        => true,
-        'Skip Trace In Progress' => false,
-        'Stage'                  => 'To be Contacted',
+        'Skip Trace Done' => true,
+        'Stage'           => 'To be Contacted',
     ]);
     logMsg("Lead {$leadId} actualizado: Done=true, Stage='To be Contacted' (dedup sin gastar crédito)");
     logMsg("EL POLLING done (dedup): {$address}");
@@ -326,7 +324,7 @@ $hasAddress = !empty($address) && !empty($city) && !empty($state) && !empty($zip
 if (!$hasAddress) {
     logMsg("Lead {$leadId} — dirección incompleta (addr={$address} city={$city} state={$state} zip={$zip}), skip sin gastar créditos");
     @unlink($csvPath);
-    atPatch(TABLE_LEADS, $leadId, ['Skip Trace Done' => true, 'Skip Trace In Progress' => false]);
+    atPatch(TABLE_LEADS, $leadId, ['Skip Trace Done' => true]);
     atPatch(TABLE_TRACY, $tracyId, ['status' => 'error', 'notas' => 'Dirección incompleta — skip sin crédito']);
     logMsg('══════════════════════════════════════');
     exit(0);
@@ -337,7 +335,7 @@ $existingPhone = $lf['Phone1'] ?? $lf['Phone'] ?? '';
 if (!empty($existingPhone)) {
     logMsg("Lead {$leadId} — ya tiene teléfono ({$existingPhone}), skip sin gastar créditos");
     @unlink($csvPath);
-    atPatch(TABLE_LEADS, $leadId, ['Skip Trace Done' => true, 'Skip Trace In Progress' => false, 'Stage' => 'To be Contacted']);
+    atPatch(TABLE_LEADS, $leadId, ['Skip Trace Done' => true, 'Stage' => 'To be Contacted']);
     atPatch(TABLE_TRACY, $tracyId, ['status' => 'success', 'notas' => 'Teléfono preexistente — crédito no consumido']);
     logMsg("EL POLLING done (phone exists): {$address}");
     logMsg('══════════════════════════════════════');
@@ -368,7 +366,7 @@ if (empty($uploadResult['queue_id'])) {
     ]);
 
     // Mark Done=true to avoid infinite retry (address error is permanent).
-    atPatch(TABLE_LEADS, $leadId, ['Skip Trace Done' => true, 'Skip Trace In Progress' => false]);
+    atPatch(TABLE_LEADS, $leadId, ['Skip Trace Done' => true]);
     exit(1);
 }
 
@@ -390,10 +388,9 @@ if ($queueData === null) {
         'status'    => 'error',
         'resultado' => $errMsg,
     ]);
-    // ===== CAMBIO 3: Timeout = reset In Progress (no Done) para reintento =====
-    atPatch(TABLE_LEADS, $leadId, ['Skip Trace In Progress' => false]);
+    // Reset Done=false on timeout so the lead retries next cycle.
+    atPatch(TABLE_LEADS, $leadId, ['Skip Trace Done' => false]);
     logMsg("Lead {$leadId} unlocked (timeout) — Skip Trace Done=false, se reintentará próximo cron");
-    // ===== FIN CAMBIO 3 timeout =====
     exit(1);
 }
 
@@ -409,9 +406,8 @@ if (empty($queueData)) {
     ]);
     // No contacts → skip el_chismoso, just update Stage and exit.
     atPatch(TABLE_LEADS, $leadId, [
-        'Skip Trace Done'        => true,
-        'Skip Trace In Progress' => false,
-        'Stage'                  => 'To be Contacted',
+        'Skip Trace Done' => true,
+        'Stage'           => 'To be Contacted',
     ]);
     logMsg("No contacts — Stage updated, skipping el_chismoso.");
     logMsg("EL POLLING done: {$address}");
@@ -483,19 +479,16 @@ logMsg("el_chismoso.php ({$chismCode}): " . substr((string) $chismRes, 0, 300));
 
 
 // ── STEP 8: Update Lead Stage ─────────────────────────────────
-// ===== CAMBIO 3: Poner Skip Trace Done=true aquí (fin del proceso exitoso) =====
 $leadUpdate = atPatch(TABLE_LEADS, $leadId, [
-    'Skip Trace Done'        => true,
-    'Skip Trace In Progress' => false,
-    'Stage'                  => 'To be Contacted',
+    'Skip Trace Done' => true,
+    'Stage'           => 'To be Contacted',
 ]);
 
 if (!empty($leadUpdate['id'])) {
-    logMsg("Lead {$leadId} updated: Skip Trace Done=true, In Progress=false, Stage='To Be Contacted'");
+    logMsg("Lead {$leadId} updated: Skip Trace Done=true, Stage='To Be Contacted'");
 } else {
     logMsg("WARNING: Lead update may have failed: " . json_encode($leadUpdate));
 }
-// ===== FIN CAMBIO 3 parte final =====
 
 logMsg("EL POLLING done: {$address}");
 logMsg('══════════════════════════════════════');

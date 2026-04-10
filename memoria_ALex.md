@@ -554,3 +554,148 @@ curl -s "https://api.blotato.com/v1/accounts" \
 - [ ] Verificar ID del campo "Seguimiento Step" en Make.com
 - [ ] Agregar emails a contactos que no los tienen
 - [ ] Considerar Phone2 como respaldo en SMS
+
+---
+
+## 2026-04-07 — GEO CARPENTRY LLC — BASE DE CONOCIMIENTO
+
+### PERFIL DE LA EMPRESA
+- **Nombre:** Geo Carpentry LLC
+- **Ubicación:** Green Bay, WI (ZIP 54301)
+- **Radio de servicio:** 100 millas — cubre Green Bay, Appleton, Oshkosh
+- **Experiencia:** 15+ años en construcción residencial
+- **Licencia:** Licensed & Insured ✅
+- **Ventaja competitiva:** Cotizaciones en 24 horas
+- **Website:** geocarpentry.com (en migración a Hostinger/WordPress)
+- **Facebook:** Existe — baja presencia (1 follower, sin reseñas)
+- **GMB:** Existe — 2 reseñas 5 estrellas
+- **Yelp:** Existe
+- **Presupuesto marketing:** $0 (arranque orgánico)
+- **Meta 2026:** $1,000,000 en revenue
+
+### SERVICIOS PRINCIPALES
+1. Kitchen Remodeling (alto ROI)
+2. Bathroom Remodeling (alto ROI — spa-like, curbless showers, heated floors)
+3. Custom Decks y Outdoor Living (madera y composite)
+4. Basement Finishing (home offices, gyms, living spaces)
+5. Home Additions (primary suites, sunrooms, garage conversions)
+6. Garage Builds
+7. Residential New Construction
+8. Energy Efficiency & Smart Home Integration
+
+### ANÁLISIS DE MERCADO WISCONSIN 2026
+- Single-family housing permits en aumento en Wisconsin (WBA Q1 2026)
+- Green Bay aprobó zoning reforms: duplexes y ADUs permitidos en zonas residenciales → OPORTUNIDAD para additions y new construction
+- Demanda alta por aging housing stock + record home equity + condiciones económicas favorables
+- Tendencias 2026: smart kitchens, spa bathrooms, four-season sunrooms, ADUs, energy efficiency
+
+### FORTALEZAS IDENTIFICADAS
+- 15+ años de experiencia
+- Servicios completos (remodel + additions + new construction)
+- Licensed & insured
+- Radio de 100 millas
+- Cotización en 24 horas
+- Conexión con Pinnacle Holdings (rehabs garantizados)
+- Bilingüe (ventaja con comunidad hispana en WI)
+
+### DEBILIDADES IDENTIFICADAS
+- Presencia digital muy baja (2 reseñas GMB, 1 follower FB)
+- Sin portafolio visible en website
+- Sin landing pages localizadas por ciudad
+- Sin reseñas en plataformas de terceros
+- Sin costo calculator ni design gallery en website
+- Sin blog para SEO orgánico
+- Formulario en Google Forms (poco profesional)
+- Website en Mixo.io (SEO limitado) → EN MIGRACIÓN a Hostinger/WordPress
+
+### OPORTUNIDADES CLAVE 2026
+1. ADUs y duplexes — nuevas leyes de zoning en Green Bay
+2. Kitchen + Bathroom remodel — mayor ROI para homeowners
+3. Mercado hispano en WI — bilingüe = ventaja competitiva
+4. Property managers — trabajo recurrente
+5. Agentes RE locales — referidos constantes
+6. Green Bay Home Show (Resch Center) — evento anual
+7. Nextdoor — plataforma subestimada para contratistas locales
+
+### ESTRATEGIA APROBADA (Orgánica — $0 presupuesto inicial)
+Prioridad 1: Reseñas (meta: 15+ en 30 días)
+Prioridad 2: GMB optimizado al 100% con fotos
+Prioridad 3: Migrar website a Hostinger/WordPress con landing pages localizadas
+Prioridad 4: Nextdoor Business + grupos Facebook locales
+Prioridad 5: Networking — agentes RE, property managers, arquitectos
+Prioridad 6: Blog con contenido SEO local
+Prioridad 7: Craigslist Green Bay + Houzz + Angi + Thumbtack (gratuitos)
+
+### PROYECCIÓN REVENUE 2026
+- Mayo: $10K-30K | Junio: $30K-60K | Julio: $60K-100K | Q4: $150K-200K/mes
+- Total realista orgánico: $400K-600K
+- Para $1M: requiere $1,500-2,000/mes Google Ads desde Julio
+
+### PENDIENTES TÉCNICOS
+- [ ] Migrar geocarpentry.com a Hostinger/WordPress
+- [ ] Landing pages: Green Bay/Appleton/Oshkosh por servicio
+- [ ] Google Analytics + Facebook Pixel
+- [ ] Reemplazar Google Forms con formulario propio
+- [ ] Galería de portafolio con fotos reales
+- [ ] Blog con contenido SEO
+- [ ] Perfiles: Nextdoor, Houzz, Angi, Thumbtack
+- [ ] 15+ reseñas en GMB
+- [ ] Unirse a grupos Facebook locales
+
+
+
+## 2026-04-07 — REGLA CRÍTICA: OPTIMIZACIÓN DE CRÉDITOS CLAUDE
+
+### APROBADO POR JORGE — APLICAR SIEMPRE SIN EXCEPCIÓN
+
+#### Jerarquía de modelos (de menor a mayor costo):
+```
+NIVEL 1 — Haiku (más barato):
+→ Respuestas simples de texto
+→ Consultas de Airtable básicas
+→ Confirmaciones y updates de estado
+→ Lectura de memoria
+→ Respuestas de Telegram simples
+→ Clasificación de emails (El Secretario)
+
+NIVEL 2 — Sonnet (medio):
+→ Análisis de deals simples
+→ Generación de contenido social media
+→ Skip tracing con Tracy
+→ Cambios de código SENCILLOS (menos de 20 líneas)
+→ Consultas de mercado básicas
+→ Respuestas estructuradas al Jefe
+
+NIVEL 3 — Opus/Claude Code (más caro):
+→ SOLO cuando hay modificación de código compleja (+20 líneas)
+→ Debugging profundo de sistemas
+→ Arquitectura de nuevos agentes
+→ Análisis financiero complejo (Scout + Matemático + Fact-Checker)
+→ Tareas que requieren razonamiento muy profundo
+```
+
+#### Reglas de orquestación de recursos:
+1. **NUNCA invocar Claude Code** para tareas que no requieran modificación de código pesado
+2. **NUNCA usar modelo caro** cuando uno más barato puede resolver la tarea
+3. **Antes de invocar cualquier sub-agente** — evaluar si realmente es necesario
+4. **Agrupar tareas similares** — hacer múltiples consultas en una sola llamada
+5. **Caché de resultados** — si ya tenemos un dato, no volver a buscarlo
+6. **Leer memoria primero** — evitar análisis repetidos de mismas propiedades/zonas
+
+#### Criterio de decisión rápido:
+```
+¿Es código complejo?  → SÍ → Claude Code (Opus)
+¿Es código simple?    → SÍ → Sonnet
+¿Es texto/consulta?   → SÍ → Haiku
+¿Ya está en memoria?  → SÍ → Usar memoria, NO invocar agente
+¿Es análisis de deal? → SÍ → Sonnet (Scout + Matemático + Fact-Checker)
+```
+
+#### Meta de ahorro:
+- Reducir uso de Claude Code en 70%
+- Usar Haiku para 60% de tareas rutinarias
+- Usar Sonnet para 30% de tareas medias
+- Usar Opus/Claude Code solo para 10% crítico
+
+**Estado:** ✅ ACTIVO — Aplicar inmediatamente en todas las sesiones
+**Aprobado por:** Jorge Cruz — 2026-04-07

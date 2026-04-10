@@ -20,7 +20,7 @@ import sys
 import time
 import sqlite3
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 # Ajustar path para importar desde el proyecto
@@ -89,9 +89,18 @@ def init_db():
             telegram_notificado INTEGER DEFAULT 0,
             airtable_record_id TEXT,
             respondido INTEGER DEFAULT 0,
-            respuesta_enviada TEXT
+            respuesta_enviada TEXT,
+            is_tracerfy INTEGER DEFAULT 0,
+            archived_date TEXT
         )
     """)
+    # Migrar tabla existente si le faltan los campos nuevos
+    for col, col_def in [("is_tracerfy", "INTEGER DEFAULT 0"), ("archived_date", "TEXT")]:
+        try:
+            c.execute(f"ALTER TABLE emails_procesados ADD COLUMN {col} {col_def}")
+            log.info(f"Columna '{col}' agregada a emails_procesados")
+        except sqlite3.OperationalError:
+            pass  # La columna ya existe
     conn.commit()
     conn.close()
 
@@ -163,6 +172,43 @@ def get_ultimos_emails(n: int = 5) -> list:
     rows = c.fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+def guardar_tracerfy_archivado(message_id: str, remitente: str, asunto: str, fecha: str):
+    """Registra un email de Tracerfy archivado en la DB local."""
+    conn = sqlite3.connect(str(DB_PATH))
+    c = conn.cursor()
+    archived_date = datetime.now().strftime("%Y-%m-%d")
+    c.execute("""
+        INSERT OR IGNORE INTO emails_procesados
+        (message_id, fecha, remitente, asunto, categoria, resumen, is_tracerfy, archived_date)
+        VALUES (?, ?, ?, ?, 'TRACERFY', 'Archivado automáticamente — Tracerfy', 1, ?)
+    """, (message_id, fecha, remitente, asunto, archived_date))
+    conn.commit()
+    conn.close()
+
+def get_tracerfy_para_eliminar() -> list:
+    """Retorna emails de Tracerfy archivados hace más de 30 días."""
+    cutoff = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+    conn = sqlite3.connect(str(DB_PATH))
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute("""
+        SELECT * FROM emails_procesados
+        WHERE is_tracerfy = 1
+          AND archived_date IS NOT NULL
+          AND archived_date <= ?
+    """, (cutoff,))
+    rows = c.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def eliminar_tracerfy_db(message_id: str):
+    """Elimina registro de Tracerfy de la DB local."""
+    conn = sqlite3.connect(str(DB_PATH))
+    c = conn.cursor()
+    c.execute("DELETE FROM emails_procesados WHERE message_id = ?", (message_id,))
+    conn.commit()
+    conn.close()
 
 # ─────────────────────────────────────────────
 # IMAP — LEER EMAILS
@@ -243,6 +289,121 @@ def leer_emails_no_leidos() -> list:
         log.error(f"Error IMAP: {e}")
 
     return emails
+
+# ─────────────────────────────────────────────
+# TRACERFY — ARCHIVADO SILENCIOSO
+# ─────────────────────────────────────────────
+TRACERFY_ARCHIVE_FOLDER = "Archive"
+
+def es_tracerfy(remitente: str) -> bool:
+    """Detecta si un email proviene de Tracerfy."""
+    return "tracerfy" in remitente.lower()
+
+def _ensure_archive_folder(mail: imaplib.IMAP4_SSL) -> str:
+    """
+    Verifica que la carpeta Archive exista en el servidor.
+    Si no existe, la crea. Retorna el nombre de carpeta a usar.
+    """
+    _, folders = mail.list()
+    folder_names = []
+    for f in folders:
+        if isinstance(f, bytes):
+            parts = f.decode().split('"')
+            folder_names.append(parts[-1].strip().strip('"'))
+
+    # Buscar variantes comunes de Archive
+    for candidate in [TRACERFY_ARCHIVE_FOLDER, "Archived", "ARCHIVE", "Archivado"]:
+        if candidate in folder_names:
+            return candidate
+
+    # Crear la carpeta Archive
+    result, _ = mail.create(TRACERFY_ARCHIVE_FOLDER)
+    if result == "OK":
+        log.info(f"Carpeta '{TRACERFY_ARCHIVE_FOLDER}' creada en servidor IMAP")
+    else:
+        log.warning(f"No se pudo crear la carpeta Archive, usando INBOX como fallback")
+        return "INBOX"
+    return TRACERFY_ARCHIVE_FOLDER
+
+def archivar_email_tracerfy(imap_num: str) -> bool:
+    """
+    Mueve un email de Tracerfy a la carpeta Archive en el servidor IMAP.
+    COPY al destino → marcar \\Deleted en INBOX → EXPUNGE.
+    Retorna True si el archivado fue exitoso.
+    """
+    try:
+        mail = imaplib.IMAP4_SSL(IMAP_HOST, IMAP_PORT)
+        mail.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+        mail.select("INBOX")
+
+        archive_folder = _ensure_archive_folder(mail)
+
+        # Copiar a Archive
+        result, _ = mail.copy(imap_num, archive_folder)
+        if result != "OK":
+            log.error(f"Error al copiar email {imap_num} a {archive_folder}: {result}")
+            mail.logout()
+            return False
+
+        # Marcar como eliminado en INBOX
+        mail.store(imap_num, "+FLAGS", "\\Deleted")
+        mail.expunge()
+        mail.logout()
+        log.info(f"Email Tracerfy {imap_num} archivado en '{archive_folder}'")
+        return True
+    except Exception as e:
+        log.error(f"Error archivando email Tracerfy: {e}")
+        return False
+
+def limpiar_tracerfy_antiguos():
+    """
+    Job de limpieza diaria:
+    - Busca emails de Tracerfy archivados hace más de 30 días (en SQLite)
+    - Los elimina permanentemente del servidor IMAP (carpeta Archive)
+    - Los elimina de la DB local
+    - Registra cuántos fueron eliminados
+    """
+    pendientes = get_tracerfy_para_eliminar()
+    if not pendientes:
+        log.info("Limpieza Tracerfy: no hay emails con más de 30 días.")
+        return
+
+    log.info(f"Limpieza Tracerfy: {len(pendientes)} email(s) a eliminar permanentemente")
+
+    try:
+        mail = imaplib.IMAP4_SSL(IMAP_HOST, IMAP_PORT)
+        mail.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+
+        # Determinar carpeta Archive
+        archive_folder = _ensure_archive_folder(mail)
+        mail.select(archive_folder)
+
+        eliminados = 0
+        for em in pendientes:
+            msg_id = em["message_id"]
+            try:
+                # Buscar por Message-ID en la carpeta Archive
+                _, data = mail.search(None, f'HEADER Message-ID "{msg_id}"')
+                ids = data[0].split() if data[0] else []
+                if ids:
+                    for num in ids:
+                        mail.store(num, "+FLAGS", "\\Deleted")
+                    mail.expunge()
+                    log.info(f"Eliminado permanentemente: {em['asunto'][:60]}")
+                else:
+                    log.info(f"Email no encontrado en Archive (ya eliminado?): {msg_id[:40]}")
+
+                # Eliminar de DB local en ambos casos
+                eliminar_tracerfy_db(msg_id)
+                eliminados += 1
+            except Exception as e:
+                log.error(f"Error eliminando {msg_id[:40]}: {e}")
+
+        mail.logout()
+        log.info(f"Limpieza Tracerfy completada: {eliminados}/{len(pendientes)} eliminados")
+
+    except Exception as e:
+        log.error(f"Error en limpieza Tracerfy: {e}")
 
 # ─────────────────────────────────────────────
 # CLAUDE — CLASIFICAR Y REDACTAR
@@ -457,6 +618,9 @@ def procesar_emails():
     log.info("=== Iniciando ciclo de revisión de emails ===")
     init_db()
 
+    # Job de limpieza diaria de Tracerfy (corre al inicio de cada ciclo, es idempotente)
+    limpiar_tracerfy_antiguos()
+
     emails = leer_emails_no_leidos()
     if not emails:
         log.info("Sin emails nuevos.")
@@ -469,6 +633,19 @@ def procesar_emails():
         if email_ya_procesado(msg_id):
             log.info(f"Ya procesado: {em['asunto'][:60]}")
             continue
+
+        # ── Regla Tracerfy: archivar silenciosamente ──────────────────────
+        if es_tracerfy(em["remitente"]):
+            log.info(f"Tracerfy detectado — archivando silenciosamente: {em['asunto'][:60]}")
+            ok = archivar_email_tracerfy(em["imap_num"])
+            guardar_tracerfy_archivado(msg_id, em["remitente"], em["asunto"], em["fecha"])
+            if ok:
+                log.info(f"Tracerfy archivado: {em['asunto'][:60]}")
+            else:
+                log.warning(f"No se pudo archivar en IMAP, pero registrado en DB: {msg_id[:40]}")
+            procesados += 1
+            continue
+        # ──────────────────────────────────────────────────────────────────
 
         log.info(f"Clasificando: {em['asunto'][:60]} | De: {em['remitente'][:50]}")
 
