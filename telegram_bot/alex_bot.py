@@ -52,7 +52,7 @@ import anthropic
 # Import model configuration (audit 2026-04-10)
 try:
     sys.path.insert(0, str(Path(__file__).parent.parent / "agents"))
-    from model_assignment import get_model, AGENT_MODELS
+    from model_assignment import get_model, get_model_with_escalation_logging, AGENT_MODELS
     MODEL_CONFIG_LOADED = True
 except ImportError:
     MODEL_CONFIG_LOADED = False
@@ -875,8 +875,16 @@ def _tool_invoke_scout(property_data: str, strategy: str) -> str:
         "Devuelve únicamente el JSON estricto de tu análisis."
     )
     logger.info(f"Invoking El Scout for: {property_data[:80]}...")
-    # OPTIMIZED: Scout uses Sonnet (70% cheaper than Opus)
-    model = get_model("scout") if MODEL_CONFIG_LOADED else CLAUDE_MODEL
+    # SMART ESCALATION: Scout starts with Sonnet, escalates to Opus if complex
+    if MODEL_CONFIG_LOADED:
+        model = get_model_with_escalation_logging(
+            agent_name="scout",
+            prompt=user_msg,
+            task_id=f"scout_{datetime.now().timestamp()}",
+            log_to_airtable=True
+        )
+    else:
+        model = CLAUDE_MODEL
     return _run_subagent_sync(system_prompt, user_msg, tools=SCOUT_TOOLS, model=model)
 
 
@@ -889,8 +897,16 @@ def _tool_invoke_matematico(property_data: str, strategy: str, scout_json: str =
         "Devuelve únicamente el JSON estricto de tu análisis."
     )
     logger.info("Invoking El Matemático...")
-    # OPTIMIZED: Matemático uses Sonnet (70% cheaper than Opus)
-    model = get_model("matematico") if MODEL_CONFIG_LOADED else CLAUDE_MODEL
+    # SMART ESCALATION: Matemático starts with Sonnet, escalates to Opus if complex
+    if MODEL_CONFIG_LOADED:
+        model = get_model_with_escalation_logging(
+            agent_name="matematico",
+            prompt=user_msg,
+            task_id=f"math_{datetime.now().timestamp()}",
+            log_to_airtable=True
+        )
+    else:
+        model = CLAUDE_MODEL
     return _run_subagent_sync(system_prompt, user_msg, model=model)
 
 
@@ -903,9 +919,17 @@ def _tool_invoke_fact_checker(property_data: str, scout_json: str, matematico_js
         "Devuelve únicamente el JSON estricto de tu auditoría con el Confidence Score."
     )
     logger.info("Invoking El Fact-Checker...")
-    # OPTIMIZED: Fact-Checker uses Sonnet (70% cheaper than Opus)
+    # SMART ESCALATION: Fact-Checker starts with Sonnet, escalates to Opus if complex
     # ⚠️ VALIDATION: Monitor Confidence Scores — must be ≥7.0/10
-    model = get_model("fact-checker") if MODEL_CONFIG_LOADED else CLAUDE_MODEL
+    if MODEL_CONFIG_LOADED:
+        model = get_model_with_escalation_logging(
+            agent_name="fact-checker",
+            prompt=user_msg,
+            task_id=f"check_{datetime.now().timestamp()}",
+            log_to_airtable=True
+        )
+    else:
+        model = CLAUDE_MODEL
     return _run_subagent_sync(system_prompt, user_msg, model=model)
 
 
@@ -1200,8 +1224,16 @@ def _tool_invoke_creativo(task: str, record_id: str = None) -> str:
             '{"slidePrompts": ["descripción slide 1...", "descripción slide 2...", ...]}\n'
             "Máximo 6 slidePrompts. Sin texto adicional, solo el JSON."
         )
-        # OPTIMIZED: El Creativo uses Sonnet (71% cheaper than Opus)
-        model = get_model("creativo") if MODEL_CONFIG_LOADED else CLAUDE_MODEL
+        # SMART ESCALATION: El Creativo starts with Sonnet, escalates to Opus if complex
+        if MODEL_CONFIG_LOADED:
+            model = get_model_with_escalation_logging(
+                agent_name="creativo",
+                prompt=build_msg,
+                task_id=f"creative_{rec_id}_{datetime.now().timestamp()}",
+                log_to_airtable=True
+            )
+        else:
+            model = CLAUDE_MODEL
         raw = _run_subagent_sync(creativo_system, build_msg, model=model)
 
         try:
@@ -1336,8 +1368,16 @@ def _tool_invoke_director(task: str, record_id: str = None) -> str:
                 "CRÍTICO: characterDescription debe ser texto descriptivo, NUNCA una URL."
             )
 
-        # OPTIMIZED: El Director uses Sonnet (71% cheaper than Opus)
-        model = get_model("director") if MODEL_CONFIG_LOADED else CLAUDE_MODEL
+        # SMART ESCALATION: El Director starts with Sonnet, escalates to Opus if complex
+        if MODEL_CONFIG_LOADED:
+            model = get_model_with_escalation_logging(
+                agent_name="director",
+                prompt=build_msg,
+                task_id=f"director_{rec_id}_{datetime.now().timestamp()}",
+                log_to_airtable=True
+            )
+        else:
+            model = CLAUDE_MODEL
         raw = _run_subagent_sync(director_system, build_msg, model=model)
 
         try:
