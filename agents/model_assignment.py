@@ -40,24 +40,123 @@ AGENT_MODELS = {
 }
 
 # ─────────────────────────────────────────────────────────
+# SMART ESCALATION ROUTING (NEW 2026-04-10)
+# ─────────────────────────────────────────────────────────
+
+class TaskComplexity:
+    """Escalamiento inteligente: Haiku → Sonnet → Opus según complejidad"""
+
+    # Palabras clave que indican tareas complejas
+    COMPLEXITY_KEYWORDS = {
+        "high": ["refactor", "architecture", "debug", "production", "critical",
+                 "complex", "edge_case", "multi_scenario", "sophisticated"],
+        "medium": ["analyze", "verify", "calculate", "projection", "scenario"],
+        "low": ["format", "search", "confirm", "simple"]
+    }
+
+    @staticmethod
+    def analyze(prompt: str, agent_name: str) -> dict:
+        """
+        Analiza complejidad de la tarea y determina si necesita escalación.
+
+        Retorna:
+            {
+                "initial_model": str (tier),
+                "recommended_model": str (tier),
+                "escalate": bool,
+                "reason": str,
+                "complexity_level": str (low/medium/high)
+            }
+        """
+        prompt_lower = prompt.lower()
+        token_estimate = max(len(prompt) // 4, 100)
+
+        # Detectar complejidad
+        complexity = TaskComplexity._detect_complexity(prompt_lower, token_estimate)
+
+        initial_tier = AGENT_MODELS.get(agent_name, "sonnet")
+        recommended_tier = initial_tier
+        escalate = False
+        reason = ""
+
+        # Reglas de escalamiento
+        if complexity == "high":
+            if initial_tier in ["haiku", "sonnet"]:
+                recommended_tier = "opus"
+                escalate = True
+                reason = "task_complexity_high"
+        elif complexity == "medium":
+            if initial_tier == "haiku":
+                recommended_tier = "sonnet"
+                escalate = True
+                reason = "task_complexity_medium"
+
+        return {
+            "initial_model": initial_tier,
+            "recommended_model": recommended_tier,
+            "escalate": escalate,
+            "reason": reason,
+            "complexity_level": complexity,
+            "estimated_tokens": token_estimate
+        }
+
+    @staticmethod
+    def _detect_complexity(text: str, tokens: int) -> str:
+        """Determina nivel de complejidad: low, medium, high"""
+        # Token-based heuristic
+        if tokens > 10000:
+            return "high"
+        elif tokens > 6000:
+            return "medium"
+
+        # Keyword-based detection
+        for keyword in TaskComplexity.COMPLEXITY_KEYWORDS["high"]:
+            if keyword in text:
+                return "high"
+
+        for keyword in TaskComplexity.COMPLEXITY_KEYWORDS["medium"]:
+            if keyword in text:
+                return "medium"
+
+        return "low"
+
+
+# ─────────────────────────────────────────────────────────
 # HELPER FUNCTIONS
 # ─────────────────────────────────────────────────────────
 
-def get_model(agent_name: str) -> str:
+def get_model(agent_name: str, prompt: str = "", auto_escalate: bool = True) -> str:
     """
-    Get the model for a given agent.
+    Get the model for a given agent with optional intelligent escalation.
 
     Args:
         agent_name: Name of agent (scout, tracy, creativo, etc.)
+        prompt: Task prompt (opcional, usado para análisis de complejidad)
+        auto_escalate: Si True, escala automáticamente si es complejo
 
     Returns:
         Claude model ID (e.g., "claude-sonnet-4-6")
 
     Example:
+        # Sin escalamiento automático (comportamiento anterior)
         model = get_model("tracy")
         # Returns: "claude-haiku-4-5"
+
+        # Con escalamiento automático
+        model = get_model("scout", prompt="Analizar mercado complejo con patrones inusuales")
+        # Returns: "claude-opus-4-6" (escaló automáticamente a Opus)
     """
     tier = AGENT_MODELS.get(agent_name, "sonnet")
+
+    # Si no hay prompt o escalamiento deshabilitado, retornar modelo base
+    if not prompt or not auto_escalate:
+        return MODELS[tier]
+
+    # Analizar complejidad y escalar si necesario
+    analysis = TaskComplexity.analyze(prompt, agent_name)
+    if analysis["escalate"]:
+        tier = analysis["recommended_model"]
+
     return MODELS[tier]
 
 def get_all_agents() -> dict:
