@@ -699,3 +699,94 @@ NIVEL 3 — Opus/Claude Code (más caro):
 
 **Estado:** ✅ ACTIVO — Aplicar inmediatamente en todas las sesiones
 **Aprobado por:** Jorge Cruz — 2026-04-07
+
+---
+
+### 2026-04-10 — Tracy→Contacts: Sistema anti-duplicados desplegado (Opus)
+
+**Problema:** el_chismoso creaba duplicados intermitentes porque Tracerfy devuelve formatos inconsistentes entre runs (CAPS vs Title Case, phone con/sin country code). 11 contactos Skip Trace con 3 duplicados (27% dedup rate).
+
+**Causa raíz real:** No fueron "contactos vacíos" como se pensó antes — fueron pares de duplicados con el mismo Tracerfy ID pero diferente formato de nombre/teléfono. El fallback-por-Mail-Address del código viejo no disparaba por alguna race condition.
+
+**Solución desplegada:**
+1. `el_chismoso.php` — función `findOrDedupeContactByMailAddress()` con normalización agresiva (strip punct + street→st etc.) y completeness score. Busca TODOS los matches, elige winner, merge campos, DELETE losers.
+2. `el_polling.php` — dedup Tracy con normalización + ventana 14 días + validación de respuesta chismoso con retry automático.
+3. `cleanup_duplicates.php` (NUEVO) — one-shot para limpieza histórica. Protegido por token, con modo dry_run.
+
+**Resultado:** 11 → 8 Skip Trace contacts únicos. 0 duplicados restantes.
+
+**Descubrimiento crítico:** El puerto SSH real de Hostinger es **65002** (no 22). Credenciales completas en `/opt/alex-bot/.env` como `HOSTINGER_SSH_*`. sshpass instalado en el VPS. Esto destraba deploys directos sin depender de GitHub Actions. Guardado en memoria auto como `reference_hostinger_deploy.md`.
+
+**Gap pendiente:** Commit `65820c0` existe solo localmente — git push a GitHub falló por falta de PAT. Deploy está vivo en producción pero historial git no sincronizado.
+
+**Commit local:** `65820c0 feat: sistema anti-duplicados Tracy→Contacts permanente`
+
+---
+
+### 2026-04-11 — Tracy/Contacts linked a Leads via Property Address (Opus)
+
+**Problema reportado:** Jorge notó que Tracy/Contacts no aparecían linkeados en la tabla Leads. Recordaba que antes toda la info del dueño aparecía linkeada automáticamente en Leads y ahora no.
+
+**Diagnóstico (vía Meta API):** Los linked-record fields YA EXISTÍAN en el schema de Airtable:
+- Leads: 🔗 `Contacts`, 🔗 `Tracy`, lookup `status (from Tracy)`
+- Contacts: 🔗 `Property Address` → Leads
+- Tracy: 🔗 `Leads 2` → Leads
+
+Pero el código PHP **no los poblaba** — solo el Stage, Full Name, Phone, etc. Por eso los campos bidireccionales quedaban vacíos y la info no "aparecía linkeada" en Leads.
+
+**Descubrimiento clave:** Había una sesión Sonnet paralela del 2026-04-10 22:05 (`a2a2f5a`) que ya había escrito la lógica correcta en el_polling y el_chismoso — pero NUNCA se desplegó al servidor. El código local de git estaba correcto pero producción corría la versión vieja. Lesión: los commits en git local no llegan a Hostinger automáticamente, siempre hay que hacer SCP (vía .env credentials) o git push → GitHub Actions.
+
+**Solución final desplegada hoy:**
+1. el_polling.php setea Tracy.`Leads 2` al crear record (y append en dedup 14d)
+2. el_chismoso.php lee Tracy.`Leads 2`, fallback `findLeadIdsByAddress()`, setea Contact.`Property Address` con union
+3. `backfill_links.php` (NUEVO) — one-shot con dry_run, match por address normalizada
+
+**Backfill ejecutado:** 14 Tracy + 12 Contacts linkeados. Los 64 Tracy sin match corresponden a leads históricos que ya no existen en la tabla.
+
+**Verificado:** Lead `recUeRc3nqs8JzovK` (515 N HURON ST) ahora muestra linkeados `Contacts`, `Tracy` y lookup `status (from Tracy)`.
+
+**Notificación:** Enviada a Jorge vía Telegram bot al completar.
+
+**Commit local:** `f3a005a feat: link Tracy y Contacts a Leads vía Property Address`
+
+---
+
+### 2026-04-11 — Pipeline Tracy→Contacts: enrichment completo (Opus, FASE A+B+C+D)
+
+**Contexto:** Jorge pidió ver todos los campos que cada agente toca, analizar brechas y cerrar lo que faltaba para quedar profesional.
+
+**Análisis detallado escrito en `/root/.claude/plans/lexical-dazzling-muffin.md`:** workflow diagrams, field matrix per agent, 14 gaps priorizados por severidad.
+
+**4 fases desplegadas:**
+
+1. **FASE A — Pérdida de datos:**
+   - el_chismoso ahora captura Phone1-4 (antes: 3). Fallback chain: primary → mobile_1-3 → landline_1-2
+   - Email3 escrito a Contacts (antes perdido)
+   - Nuevo campo `Owner Address` consolidado ("Street, City, State Zip")
+   - `scoreContactCompleteness()` + `mergeable` sincronizados en el_chismoso y cleanup_duplicates
+
+2. **FASE B — CRM tracking:**
+   - `Leads.Last Contact Date` seteado en cada rama final de el_polling (6 branches)
+   - `Contacts.Last contact date` seteado en cada upsert de el_chismoso
+
+3. **FASE C — Audit trail:**
+   - Nueva función `logDedupeAudit()` en el_chismoso
+   - Cuando se eliminan duplicados, crea registro en `Notes & Activity` linkeado al winner con snapshot de los losers (nombre, teléfonos, tracerfy_id, score) y lista de campos rescatados
+   - Constante `TABLE_NOTES = 'tbleOBXJl7sDhwj5w'`
+
+4. **FASE D — Stages diferenciadas:**
+   - `atPatch()` ahora acepta `$typecast=true` param para auto-crear select options
+   - `no_results` → `'Skip Trace - No Results'`
+   - `timeout/error/incomplete_address` → `'Skip Trace - Error'`
+   - `success/phone_exists` → `'To be Contacted'` (sin cambio — preserva pipeline)
+
+**Verificación:** 15/15 Skip Trace contacts re-procesados vía el_chismoso direct POST. Owner Address y Last contact date al 100%. Email3 y Phone4 poblados donde Tracerfy devolvió data.
+
+**Pendiente manual (Jorge):** eliminar del schema Contacts en Airtable UI: `Leads`, `Leads 2`, `LG`. Son campos texto huérfanos que nunca se usaron — el linking real lo hace `Property Address`. No se puede borrar columnas vía API.
+
+**Commit local:** `25a9e09` feat: FASE A+B+C+D — enrichment completo del pipeline Tracy→Contacts
+
+**Decisiones de diseño:**
+- Phone strategy: Phone4 existente + landline_2 fallback (no Phone5 nuevo) — Jorge eligió esta opción
+- Dedup: Mail Address (unchanged)
+- Stages success: mantener "To be Contacted" sin romper el pipeline existente (solo agregar stages para rutas de excepción)
