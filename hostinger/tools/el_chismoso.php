@@ -22,6 +22,7 @@ define('BASE_ID',        'appfQbDA750Oihy9J');
 define('TABLE_TRACY',    'tbl6CJm4kYspOuTDB');
 define('TABLE_CONTACTS', 'tblacvw0Ss770x8l5');
 define('TABLE_LEADS',    'tblxZz2EWIglOLnEd');
+define('TABLE_NOTES',    'tbleOBXJl7sDhwj5w');
 
 // ── VERIFY TOKEN ─────────────────────────────────────────────
 $token = $_SERVER['HTTP_X_CHISMOSO_TOKEN'] ?? '';
@@ -72,30 +73,54 @@ $lastName  = trim($tf['last_name']  ?? '');
 $fullName  = trim("{$firstName} {$lastName}");
 
 // Phone fields: Number type in Airtable → send as integer (raw digits only)
-// Contacts table has Phone1, Phone2, Phone3 only (no Phone4)
-$phone1 = phoneToInt($tf['primary_phone'] ?? '');
-$phone2 = phoneToInt($tf['mobile_1']      ?? '');
-// Phone3: use mobile_2, fallback to landline_1
-$phone3 = phoneToInt($tf['mobile_2'] ?? '') ?: phoneToInt($tf['landline_1'] ?? '');
+// Capture up to 4 phones. Priority: primary → mobile_1 → mobile_2 → mobile_3 → landline_1 → landline_2
+$phoneCandidates = array_values(array_filter([
+    phoneToInt($tf['primary_phone'] ?? ''),
+    phoneToInt($tf['mobile_1']      ?? ''),
+    phoneToInt($tf['mobile_2']      ?? ''),
+    phoneToInt($tf['mobile_3']      ?? ''),
+    phoneToInt($tf['landline_1']    ?? ''),
+    phoneToInt($tf['landline_2']    ?? ''),
+]));
+$phone1 = $phoneCandidates[0] ?? null;
+$phone2 = $phoneCandidates[1] ?? null;
+$phone3 = $phoneCandidates[2] ?? null;
+$phone4 = $phoneCandidates[3] ?? null;
+
+// Consolidated Owner Address: "515 N Huron St, De Pere, WI 54115"
+$mailStreet = trim($tf['mail_address'] ?? '');
+$mailCity   = trim($tf['mail_city']    ?? '');
+$mailState  = trim($tf['mail_state']   ?? '');
+$mailZip    = trim($tf['mail_zip']     ?? '');
+$ownerAddrParts = array_values(array_filter([
+    $mailStreet,
+    $mailCity,
+    trim($mailState . ' ' . $mailZip),
+]));
+$ownerAddress = implode(', ', $ownerAddrParts);
 
 $contactFields = [
-    'Full Name'     => $fullName,
-    'Phone1 Type'   => $tf['primary_phone_type']    ?? '',
-    'Email1'        => $tf['email_1']               ?? '',
-    'Email2'        => $tf['email_2']               ?? '',
-    'Mail Address'  => $tf['mail_address']          ?? '',
-    'Mail City'     => $tf['mail_city']             ?? '',
-    'Mail State'    => $tf['mail_state']            ?? '',
-    'Mail Zip'      => $tf['mail_zip']              ?? '',
-    'Lead Source'   => 'Skip Trace - Tracerfy',
-    'Stage'         => 'To Be Contacted',
-    'Tracerfy ID'   => intval($tf['tracerfy_id']    ?? 0),
+    'Full Name'         => $fullName,
+    'Phone1 Type'       => $tf['primary_phone_type']    ?? '',
+    'Email1'            => $tf['email_1']               ?? '',
+    'Email2'            => $tf['email_2']               ?? '',
+    'Email3'            => $tf['email_3']               ?? '',
+    'Mail Address'      => $mailStreet,
+    'Mail City'         => $mailCity,
+    'Mail State'        => $mailState,
+    'Mail Zip'          => $mailZip,
+    'Owner Address'     => $ownerAddress,
+    'Lead Source'       => 'Skip Trace - Tracerfy',
+    'Stage'             => 'To Be Contacted',
+    'Tracerfy ID'       => intval($tf['tracerfy_id']    ?? 0),
+    'Last contact date' => gmdate('Y-m-d'),
 ];
 
 // Only add phone fields if they have valid values
 if ($phone1) $contactFields['Phone1'] = $phone1;
 if ($phone2) $contactFields['Phone2'] = $phone2;
 if ($phone3) $contactFields['Phone3'] = $phone3;
+if ($phone4) $contactFields['Phone4'] = $phone4;
 
 // Category = Single Select
 if ($fullName) {
@@ -112,6 +137,7 @@ $tracerfyId  = intval($tf['tracerfy_id'] ?? 0);
 $existingId    = null;
 $mergeFields   = [];  // extra fields to merge from duplicate losers
 $dedupDeleted  = 0;   // how many duplicate contacts were deleted
+$loserAudit    = [];  // snapshot of loser contacts for audit trail
 
 // PRIORITY 1: exact match by Tracerfy ID (most reliable)
 if ($tracerfyId) {
@@ -140,6 +166,7 @@ if (!$existingId) {
             $existingId   = $dedup['winner_id'];
             $mergeFields  = $dedup['merge_fields'];
             $dedupDeleted = $dedup['deleted'];
+            $loserAudit   = $dedup['loser_audit'];
         }
     }
 }
@@ -195,6 +222,11 @@ if (!$contactRecordId) {
 airtablePatch(TABLE_TRACY, $tracyId, [
     'pushed_to_contacts' => true,
 ]);
+
+// ── STEP 5b: Audit trail — log dedup deletions to Notes & Activity ──
+if (!empty($loserAudit) && $contactRecordId) {
+    logDedupeAudit($contactRecordId, $loserAudit, $mergeFields);
+}
 
 // ── SUCCESS RESPONSE ─────────────────────────────────────────
 echo json_encode([
@@ -368,17 +400,20 @@ function normalizeAddress(string $addr): string {
  */
 function scoreContactCompleteness(array $fields): int {
     $score = 0;
-    if (!empty($fields['Full Name']))    $score += 3;
-    if (!empty($fields['Tracerfy ID']))  $score += 2;
-    if (!empty($fields['Phone1']))       $score += 1;
-    if (!empty($fields['Phone2']))       $score += 1;
-    if (!empty($fields['Phone3']))       $score += 1;
-    if (!empty($fields['Email1']))       $score += 1;
-    if (!empty($fields['Email2']))       $score += 1;
-    if (!empty($fields['Mail City']))    $score += 1;
-    if (!empty($fields['Mail State']))   $score += 1;
-    if (!empty($fields['Mail Zip']))     $score += 1;
-    if (!empty($fields['Phone1 Type']))  $score += 1;
+    if (!empty($fields['Full Name']))     $score += 3;
+    if (!empty($fields['Tracerfy ID']))   $score += 2;
+    if (!empty($fields['Phone1']))        $score += 1;
+    if (!empty($fields['Phone2']))        $score += 1;
+    if (!empty($fields['Phone3']))        $score += 1;
+    if (!empty($fields['Phone4']))        $score += 1;
+    if (!empty($fields['Email1']))        $score += 1;
+    if (!empty($fields['Email2']))        $score += 1;
+    if (!empty($fields['Email3']))        $score += 1;
+    if (!empty($fields['Mail City']))     $score += 1;
+    if (!empty($fields['Mail State']))    $score += 1;
+    if (!empty($fields['Mail Zip']))      $score += 1;
+    if (!empty($fields['Phone1 Type']))   $score += 1;
+    if (!empty($fields['Owner Address'])) $score += 1;
     return $score;
 }
 
@@ -389,7 +424,7 @@ function scoreContactCompleteness(array $fields): int {
  * - Returns ['winner_id' => ..., 'merge_fields' => [...], 'deleted' => N]
  */
 function findOrDedupeContactByMailAddress(string $mailAddr): array {
-    $result = ['winner_id' => null, 'merge_fields' => [], 'deleted' => 0];
+    $result = ['winner_id' => null, 'merge_fields' => [], 'deleted' => 0, 'loser_audit' => []];
     $target = normalizeAddress($mailAddr);
     if ($target === '') return $result;
 
@@ -444,8 +479,9 @@ function findOrDedupeContactByMailAddress(string $mailAddr): array {
 
     // Merge: pull non-empty fields from losers that winner is missing
     $winnerFields = $winner['fields'] ?? [];
-    $mergeable    = ['Full Name','Phone1','Phone2','Phone3','Email1','Email2',
-                     'Tracerfy ID','Phone1 Type','Mail City','Mail State','Mail Zip','Category'];
+    $mergeable    = ['Full Name','Phone1','Phone2','Phone3','Phone4','Email1','Email2','Email3',
+                     'Tracerfy ID','Phone1 Type','Mail City','Mail State','Mail Zip',
+                     'Mail Address','Owner Address','Category'];
     $merge = [];
     foreach ($losers as $l) {
         $lf = $l['fields'] ?? [];
@@ -457,6 +493,18 @@ function findOrDedupeContactByMailAddress(string $mailAddr): array {
     }
     $result['merge_fields'] = $merge;
 
+    // Snapshot losers for audit trail BEFORE deleting
+    foreach ($losers as $l) {
+        $lf = $l['fields'] ?? [];
+        $result['loser_audit'][] = [
+            'id'          => $l['id'],
+            'full_name'   => $lf['Full Name']   ?? '(sin nombre)',
+            'phone1'      => $lf['Phone1']      ?? '',
+            'tracerfy_id' => $lf['Tracerfy ID'] ?? '',
+            'score'       => scoreContactCompleteness($lf),
+        ];
+    }
+
     // Delete losers
     foreach ($losers as $l) {
         airtableDelete(TABLE_CONTACTS, $l['id']);
@@ -464,4 +512,51 @@ function findOrDedupeContactByMailAddress(string $mailAddr): array {
     }
 
     return $result;
+}
+
+/**
+ * Create an audit-trail Note & Activity record linked to the winner Contact.
+ * Called when dedup merges/deletes duplicates, so Jorge can see what happened.
+ */
+function logDedupeAudit(string $winnerContactId, array $loserAudit, array $mergeFields): void {
+    if (empty($loserAudit)) return;
+
+    $lines = [];
+    $lines[] = "Dedup executed on " . gmdate('Y-m-d H:i') . " UTC";
+    $lines[] = "Deleted " . count($loserAudit) . " duplicate contact(s):";
+    foreach ($loserAudit as $l) {
+        $lines[] = sprintf(
+            "  - %s | id=%s | Phone1=%s | Tracerfy ID=%s | score=%d",
+            $l['full_name'],
+            substr($l['id'], 0, 14),
+            $l['phone1'],
+            $l['tracerfy_id'],
+            $l['score']
+        );
+    }
+    if (!empty($mergeFields)) {
+        $lines[] = "Rescued fields merged into winner: " . implode(', ', array_keys($mergeFields));
+    }
+
+    $noteFields = [
+        'Note Title'   => 'Contact Dedup — ' . count($loserAudit) . ' duplicate(s) merged',
+        'Date'         => gmdate('Y-m-d'),
+        'Call Logs'    => implode("\n", $lines),
+        'Contact Name' => [$winnerContactId],
+    ];
+
+    $url = 'https://api.airtable.com/v0/' . BASE_ID . '/' . TABLE_NOTES;
+    $ch  = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => json_encode(['fields' => $noteFields, 'typecast' => true]),
+        CURLOPT_HTTPHEADER     => [
+            'Authorization: Bearer ' . AIRTABLE_TOKEN,
+            'Content-Type: application/json'
+        ],
+        CURLOPT_TIMEOUT        => 15,
+    ]);
+    curl_exec($ch);
+    curl_close($ch);
 }

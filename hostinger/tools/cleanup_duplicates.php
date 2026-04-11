@@ -61,17 +61,20 @@ function normalizeAddress(string $addr): string {
 
 function scoreContactCompleteness(array $fields): int {
     $score = 0;
-    if (!empty($fields['Full Name']))    $score += 3;
-    if (!empty($fields['Tracerfy ID']))  $score += 2;
-    if (!empty($fields['Phone1']))       $score += 1;
-    if (!empty($fields['Phone2']))       $score += 1;
-    if (!empty($fields['Phone3']))       $score += 1;
-    if (!empty($fields['Email1']))       $score += 1;
-    if (!empty($fields['Email2']))       $score += 1;
-    if (!empty($fields['Mail City']))    $score += 1;
-    if (!empty($fields['Mail State']))   $score += 1;
-    if (!empty($fields['Mail Zip']))     $score += 1;
-    if (!empty($fields['Phone1 Type']))  $score += 1;
+    if (!empty($fields['Full Name']))     $score += 3;
+    if (!empty($fields['Tracerfy ID']))   $score += 2;
+    if (!empty($fields['Phone1']))        $score += 1;
+    if (!empty($fields['Phone2']))        $score += 1;
+    if (!empty($fields['Phone3']))        $score += 1;
+    if (!empty($fields['Phone4']))        $score += 1;
+    if (!empty($fields['Email1']))        $score += 1;
+    if (!empty($fields['Email2']))        $score += 1;
+    if (!empty($fields['Email3']))        $score += 1;
+    if (!empty($fields['Mail City']))     $score += 1;
+    if (!empty($fields['Mail State']))    $score += 1;
+    if (!empty($fields['Mail Zip']))      $score += 1;
+    if (!empty($fields['Phone1 Type']))   $score += 1;
+    if (!empty($fields['Owner Address'])) $score += 1;
     return $score;
 }
 
@@ -197,8 +200,9 @@ foreach ($dupGroups as $norm => $group) {
 
     // Build merge fields from losers
     $winnerFields = $winner['fields'] ?? [];
-    $mergeable    = ['Full Name','Phone1','Phone2','Phone3','Email1','Email2',
-                     'Tracerfy ID','Phone1 Type','Mail City','Mail State','Mail Zip','Category'];
+    $mergeable    = ['Full Name','Phone1','Phone2','Phone3','Phone4','Email1','Email2','Email3',
+                     'Tracerfy ID','Phone1 Type','Mail City','Mail State','Mail Zip',
+                     'Mail Address','Owner Address','Category'];
     $merge = [];
     foreach ($losers as $l) {
         $lf = $l['fields'] ?? [];

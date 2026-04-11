@@ -88,13 +88,16 @@ function atPost(string $tableId, array $fields): array {
 }
 
 // ── Airtable PATCH (update record) ───────────────────────────
-function atPatch(string $tableId, string $recordId, array $fields): array {
-    $url = AIRTABLE_BASE . '/' . $tableId . '/' . $recordId;
-    $ch  = curl_init($url);
+// $typecast=true auto-creates missing select options (used for new Lead Stages)
+function atPatch(string $tableId, string $recordId, array $fields, bool $typecast = false): array {
+    $url     = AIRTABLE_BASE . '/' . $tableId . '/' . $recordId;
+    $payload = ['fields' => $fields];
+    if ($typecast) $payload['typecast'] = true;
+    $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_CUSTOMREQUEST  => 'PATCH',
-        CURLOPT_POSTFIELDS     => json_encode(['fields' => $fields]),
+        CURLOPT_POSTFIELDS     => json_encode($payload),
         CURLOPT_HTTPHEADER     => [
             'Authorization: Bearer ' . AIRTABLE_TOKEN,
             'Content-Type: application/json',
@@ -338,8 +341,9 @@ if ($existingTracy) {
     }
 
     atPatch(TABLE_LEADS, $leadId, [
-        'Skip Trace Done' => true,
-        'Stage'           => 'To be Contacted',
+        'Skip Trace Done'   => true,
+        'Stage'             => 'To be Contacted',
+        'Last Contact Date' => gmdate('Y-m-d'),
     ]);
     logMsg("Lead {$leadId} actualizado: Done=true, Stage='To be Contacted' (dedup sin gastar crédito)");
     logMsg("EL POLLING done (dedup): {$address}");
@@ -385,7 +389,11 @@ $hasAddress = !empty($address) && !empty($city) && !empty($state) && !empty($zip
 if (!$hasAddress) {
     logMsg("Lead {$leadId} — dirección incompleta (addr={$address} city={$city} state={$state} zip={$zip}), skip sin gastar créditos");
     @unlink($csvPath);
-    atPatch(TABLE_LEADS, $leadId, ['Skip Trace Done' => true]);
+    atPatch(TABLE_LEADS, $leadId, [
+        'Skip Trace Done'   => true,
+        'Stage'             => 'Skip Trace - Error',
+        'Last Contact Date' => gmdate('Y-m-d'),
+    ], true);
     atPatch(TABLE_TRACY, $tracyId, ['status' => 'error', 'notas' => 'Dirección incompleta — skip sin crédito']);
     logMsg('══════════════════════════════════════');
     exit(0);
@@ -396,7 +404,11 @@ $existingPhone = $lf['Phone1'] ?? $lf['Phone'] ?? '';
 if (!empty($existingPhone)) {
     logMsg("Lead {$leadId} — ya tiene teléfono ({$existingPhone}), skip sin gastar créditos");
     @unlink($csvPath);
-    atPatch(TABLE_LEADS, $leadId, ['Skip Trace Done' => true, 'Stage' => 'To be Contacted']);
+    atPatch(TABLE_LEADS, $leadId, [
+        'Skip Trace Done'   => true,
+        'Stage'             => 'To be Contacted',
+        'Last Contact Date' => gmdate('Y-m-d'),
+    ]);
     atPatch(TABLE_TRACY, $tracyId, ['status' => 'success', 'notas' => 'Teléfono preexistente — crédito no consumido']);
     logMsg("EL POLLING done (phone exists): {$address}");
     logMsg('══════════════════════════════════════');
@@ -427,7 +439,11 @@ if (empty($uploadResult['queue_id'])) {
     ]);
 
     // Mark Done=true to avoid infinite retry (address error is permanent).
-    atPatch(TABLE_LEADS, $leadId, ['Skip Trace Done' => true]);
+    atPatch(TABLE_LEADS, $leadId, [
+        'Skip Trace Done'   => true,
+        'Stage'             => 'Skip Trace - Error',
+        'Last Contact Date' => gmdate('Y-m-d'),
+    ], true);
     exit(1);
 }
 
@@ -467,10 +483,11 @@ if (empty($queueData)) {
     ]);
     // No contacts → skip el_chismoso, just update Stage and exit.
     atPatch(TABLE_LEADS, $leadId, [
-        'Skip Trace Done' => true,
-        'Stage'           => 'To be Contacted',
-    ]);
-    logMsg("No contacts — Stage updated, skipping el_chismoso.");
+        'Skip Trace Done'   => true,
+        'Stage'             => 'Skip Trace - No Results',
+        'Last Contact Date' => gmdate('Y-m-d'),
+    ], true);
+    logMsg("No contacts — Stage='Skip Trace - No Results', skipping el_chismoso.");
     logMsg("EL POLLING done: {$address}");
     logMsg('══════════════════════════════════════');
     exit(0);
@@ -559,8 +576,9 @@ if (!empty($chismJson['duplicates_merged'])) {
 
 // ── STEP 8: Update Lead Stage ─────────────────────────────────
 $leadUpdate = atPatch(TABLE_LEADS, $leadId, [
-    'Skip Trace Done' => true,
-    'Stage'           => 'To be Contacted',
+    'Skip Trace Done'   => true,
+    'Stage'             => 'To be Contacted',
+    'Last Contact Date' => gmdate('Y-m-d'),
 ]);
 
 if (!empty($leadUpdate['id'])) {
