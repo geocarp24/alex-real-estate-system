@@ -68,11 +68,67 @@ a:hover { color: var(--gc-orange-hover); }
    ASTRA THEME OVERRIDES (header / nav / buttons)
    ============================================ */
 
+/* HEADER BAR */
 .main-header-bar,
 .ast-header-break-point .main-header-bar,
 .ast-builder-grid-row-container {
   background: var(--gc-navy) !important;
   border-bottom: 3px solid var(--gc-orange);
+}
+
+/* FORCE LOGO VISIBLE + LARGE */
+header .custom-logo-link img,
+.site-header .custom-logo-link img,
+.site-logo-img .custom-logo-link img,
+.ast-site-identity .custom-logo-link img {
+  max-width: 180px !important;
+  width: 180px !important;
+  height: auto !important;
+}
+
+/* FORCE SITE TITLE VISIBLE + BRANDED */
+.site-title,
+.site-header .site-title,
+.site-header .site-title a {
+  display: block !important;
+  font-family: var(--gc-font-headline) !important;
+  font-size: 28px !important;
+  font-weight: 900 !important;
+  color: var(--gc-white) !important;
+  letter-spacing: 2px !important;
+  line-height: 1.2 !important;
+  text-transform: uppercase;
+}
+
+.site-title a:hover {
+  color: var(--gc-orange) !important;
+}
+
+/* Site title: split GEO / CARPENTRY colors */
+.site-title a::first-letter {
+  color: var(--gc-white) !important;
+}
+
+/* SITE DESCRIPTION (tagline) */
+.site-description,
+.site-header .site-description {
+  display: block !important;
+  font-family: var(--gc-font-accent) !important;
+  font-size: 11px !important;
+  color: var(--gc-orange) !important;
+  letter-spacing: 2px !important;
+  text-transform: uppercase;
+  font-weight: 600 !important;
+  margin-top: 2px;
+}
+
+/* Site identity wrap — horizontal layout with logo + text */
+.ast-site-identity,
+.site-branding {
+  display: flex !important;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 0;
 }
 
 .main-navigation a,
@@ -115,6 +171,141 @@ button:hover {
   background: var(--gc-navy) !important;
   transform: translateY(-2px) !important;
   box-shadow: var(--gc-shadow-lg) !important;
+}
+
+/* ============================================
+   GC BRAND BAR (top of every page — guaranteed visibility)
+   ============================================ */
+
+.gc-brand-bar {
+  background: var(--gc-navy);
+  border-bottom: 3px solid var(--gc-orange);
+  padding: 18px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 24px;
+  position: relative;
+  z-index: 100;
+}
+
+.gc-brand-link {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+
+.gc-brand-link:hover {
+  opacity: 0.92;
+}
+
+.gc-brand-logo {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: transparent;
+}
+
+.gc-brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gc-brand-title {
+  font-family: var(--gc-font-headline);
+  font-size: 32px;
+  font-weight: 900;
+  color: var(--gc-orange);
+  line-height: 1.1;
+  margin: 0;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+.gc-brand-title span {
+  color: var(--gc-white);
+}
+
+.gc-brand-tagline {
+  font-family: var(--gc-font-accent);
+  font-size: 11px;
+  color: var(--gc-white);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.gc-brand-contact {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.gc-brand-phone,
+.gc-brand-whatsapp {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-radius: 6px;
+  font-family: var(--gc-font-accent);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  text-decoration: none;
+  transition: var(--gc-transition);
+}
+
+.gc-brand-phone {
+  background: var(--gc-orange);
+  color: var(--gc-white) !important;
+}
+
+.gc-brand-phone:hover {
+  background: var(--gc-orange-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(255, 107, 0, 0.4);
+}
+
+.gc-brand-whatsapp {
+  background: #25D366;
+  color: var(--gc-white) !important;
+}
+
+.gc-brand-whatsapp:hover {
+  background: #128C7E;
+  transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+  .gc-brand-bar {
+    flex-direction: column;
+    text-align: center;
+    padding: 20px 16px;
+    gap: 16px;
+  }
+  .gc-brand-link {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .gc-brand-title {
+    font-size: 26px;
+    letter-spacing: 2px;
+  }
+  .gc-brand-logo {
+    width: 60px;
+    height: 60px;
+  }
+  .gc-brand-contact {
+    justify-content: center;
+  }
 }
 
 /* ============================================

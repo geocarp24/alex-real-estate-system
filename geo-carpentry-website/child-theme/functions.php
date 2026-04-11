@@ -105,12 +105,12 @@ add_action( 'wp_head', function () {
                     'itemOffered' => [ '@type' => 'Service', 'name' => $svc ],
                 ];
             }, [
-                'Custom Carpentry & Woodwork',
+                'Finish Carpentry & Trim',
                 'Kitchen Remodeling',
                 'Bathroom Remodeling',
                 'Deck Building',
                 'Home Renovation',
-                'General Construction',
+                'General Construction & Custom Home Builds',
             ] ),
         ],
     ];
@@ -122,6 +122,155 @@ add_action( 'wp_head', function () {
  */
 add_action( 'wp_head', function () {
     if ( is_front_page() ) {
-        echo '<meta name="description" content="Licensed carpentry and construction in Green Bay and Northeast Wisconsin. Custom carpentry, kitchen and bathroom remodeling, decks, and home renovations. 10+ years experience. Free estimates: (920) 367-1272.">' . "\n";
+        echo '<meta name="description" content="Licensed carpentry and construction in Green Bay and Northeast Wisconsin. Kitchen and bathroom remodeling, deck building, home renovations, general construction. 10+ years experience. Free estimates: (920) 367-1272.">' . "\n";
     }
 }, 1 );
+
+/**
+ * Override Astra's footer with our branded Geo Carpentry footer.
+ * Removes Astra's default footer and outputs our custom HTML.
+ */
+add_action( 'astra_footer', function () {
+    ?>
+    <footer class="gc-footer" role="contentinfo">
+      <div class="gc-footer-inner">
+
+        <div class="gc-footer-brand">
+          <h3>GEO <span>CARPENTRY</span></h3>
+          <div class="gc-footer-tagline">Built to Last. Crafted with Pride.</div>
+          <p>Licensed carpentry and construction company serving Green Bay and Northeast Wisconsin since 2014. Quality craftsmanship, honest pricing, exceptional results.</p>
+          <div class="gc-footer-social">
+            <a href="https://www.facebook.com/profile.php?id=61578160947198" target="_blank" rel="noopener" class="gc-social-btn" title="Facebook">f</a>
+            <a href="https://www.instagram.com/geocarpentryllc2026" target="_blank" rel="noopener" class="gc-social-btn" title="Instagram">ig</a>
+            <a href="https://wa.me/19209340351" target="_blank" rel="noopener" class="gc-social-btn" title="WhatsApp">wa</a>
+          </div>
+        </div>
+
+        <div class="gc-footer-col">
+          <h4>Services</h4>
+          <ul>
+            <li><a href="/services/finish-carpentry/">Finish Carpentry</a></li>
+            <li><a href="/services/kitchen-remodeling/">Kitchen Remodeling</a></li>
+            <li><a href="/services/bathroom-remodeling/">Bathroom Remodeling</a></li>
+            <li><a href="/services/deck-building/">Deck Building</a></li>
+            <li><a href="/services/home-renovation/">Home Renovation</a></li>
+            <li><a href="/services/general-construction/">General Construction</a></li>
+          </ul>
+        </div>
+
+        <div class="gc-footer-col">
+          <h4>Company</h4>
+          <ul>
+            <li><a href="/about/">About Us</a></li>
+            <li><a href="/services/">All Services</a></li>
+            <li><a href="/portfolio/">Portfolio</a></li>
+            <li><a href="/news/">News &amp; Blog</a></li>
+            <li><a href="/faq/">FAQ</a></li>
+            <li><a href="/contact/">Contact</a></li>
+          </ul>
+        </div>
+
+        <div class="gc-footer-col">
+          <h4>Contact</h4>
+          <ul class="gc-footer-contact">
+            <li>📞 <a href="tel:+19203671272">(920) 367-1272</a></li>
+            <li>💬 <a href="https://wa.me/19209340351" target="_blank" rel="noopener">(920) 934-0351 WhatsApp</a></li>
+            <li>📧 <a href="mailto:admin@geocarpentry.com">admin@geocarpentry.com</a></li>
+            <li>📍 735 E Walnut St Suite 3<br>&nbsp;&nbsp;&nbsp;&nbsp;Green Bay, WI 54301</li>
+            <li>🕐 Mon-Fri 8am-6pm<br>&nbsp;&nbsp;&nbsp;&nbsp;Sat 9am-3pm</li>
+          </ul>
+        </div>
+
+      </div>
+
+      <div class="gc-footer-bottom">
+        <p>© <?php echo date( 'Y' ); ?> <span>Geo Carpentry LLC</span>. All rights reserved. Licensed &amp; Insured in Wisconsin.</p>
+        <p><a href="/privacy-policy/" style="color:rgba(255,255,255,0.5);">Privacy Policy</a> · <a href="/terms-of-service/" style="color:rgba(255,255,255,0.5);">Terms of Service</a></p>
+      </div>
+    </footer>
+    <?php
+}, 5 );
+
+/**
+ * Remove Astra's default footer widgets and copyright since we replaced them.
+ */
+add_action( 'wp', function () {
+    remove_action( 'astra_footer', 'astra_footer_small_footer_template' );
+    remove_action( 'astra_footer', 'astra_advanced_footer_markup' );
+} );
+
+/**
+ * Inject an email capture popup (lead magnet: free estimate) after 15 seconds
+ * on first visit. Uses sessionStorage so it only shows once per session.
+ */
+add_action( 'wp_footer', function () {
+    ?>
+    <div id="gc-popup-overlay" style="display:none;position:fixed;inset:0;background:rgba(27,42,74,0.78);z-index:9999;align-items:center;justify-content:center;padding:20px;">
+      <div id="gc-popup" style="background:#fff;max-width:520px;width:100%;border-radius:16px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,0.4);position:relative;border-top:6px solid #FF6B00;animation:gcFadeInUp 0.4s ease;">
+        <button onclick="gcClosePopup()" style="position:absolute;top:12px;right:16px;background:transparent;border:none;font-size:28px;color:#1B2A4A;cursor:pointer;line-height:1;z-index:2;padding:0;width:auto;">×</button>
+        <div style="padding:48px 40px 40px;text-align:center;">
+          <div style="display:inline-block;background:#FF6B00;color:#fff;padding:6px 18px;border-radius:30px;font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:18px;">🎁 Free Offer</div>
+          <h2 style="font-family:'Playfair Display',serif;color:#1B2A4A;font-size:30px;margin-bottom:14px;line-height:1.2;">Get Your Free Project Estimate</h2>
+          <p style="color:#6b7280;font-size:16px;line-height:1.6;margin-bottom:28px;">Share your email and we'll send you a 24-hour quote plus a free guide to 2026 Wisconsin construction costs.</p>
+          <form id="gc-lead-form" onsubmit="return gcSubmitLead(event)" style="display:flex;flex-direction:column;gap:12px;">
+            <input type="text" id="gc-lead-name" placeholder="Your name" required style="padding:14px 18px;border:2px solid #F5F5F5;border-radius:6px;font-size:15px;font-family:'Inter',sans-serif;outline:none;">
+            <input type="email" id="gc-lead-email" placeholder="Your email address" required style="padding:14px 18px;border:2px solid #F5F5F5;border-radius:6px;font-size:15px;font-family:'Inter',sans-serif;outline:none;">
+            <button type="submit" style="background:#FF6B00;color:#fff;padding:16px 24px;border:none;border-radius:6px;font-family:'Montserrat',sans-serif;font-weight:700;font-size:15px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;margin-top:6px;transition:all 0.3s ease;">Send Me My Free Estimate</button>
+          </form>
+          <p style="color:#6b7280;font-size:12px;margin-top:16px;">Or call <a href="tel:+19203671272" style="color:#FF6B00;font-weight:700;">(920) 367-1272</a> now for immediate service</p>
+        </div>
+      </div>
+    </div>
+    <script>
+    (function() {
+      if (typeof sessionStorage === 'undefined') return;
+      if (sessionStorage.getItem('gc_popup_shown')) return;
+      setTimeout(function() {
+        document.getElementById('gc-popup-overlay').style.display = 'flex';
+        sessionStorage.setItem('gc_popup_shown', '1');
+      }, 15000);
+    })();
+    function gcClosePopup() {
+      document.getElementById('gc-popup-overlay').style.display = 'none';
+    }
+    function gcSubmitLead(e) {
+      e.preventDefault();
+      var name = document.getElementById('gc-lead-name').value;
+      var email = document.getElementById('gc-lead-email').value;
+      var subject = encodeURIComponent('Free Estimate Request — ' + name);
+      var body = encodeURIComponent('Hi Geo Carpentry,\n\nPlease send me a free estimate.\n\nName: ' + name + '\nEmail: ' + email + '\n\nThanks!');
+      window.location.href = 'mailto:admin@geocarpentry.com?subject=' + subject + '&body=' + body;
+      gcClosePopup();
+      return false;
+    }
+    </script>
+    <?php
+} );
+
+/**
+ * Inject a visible GEO CARPENTRY brand block at the top of EVERY page,
+ * regardless of Astra header builder config.
+ * This guarantees the brand is always visible even if the theme customizer
+ * hides site-title or removes the site-identity component.
+ */
+add_action( 'wp_body_open', function () {
+    $logo_id  = get_theme_mod( 'custom_logo' );
+    $logo_url = $logo_id ? wp_get_attachment_image_url( $logo_id, 'medium' ) : '';
+    ?>
+    <div class="gc-brand-bar" role="banner">
+      <a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="gc-brand-link">
+        <?php if ( $logo_url ) : ?>
+          <img src="<?php echo esc_url( $logo_url ); ?>" alt="Geo Carpentry LLC — Licensed Carpentry &amp; Construction Northeast Wisconsin" class="gc-brand-logo">
+        <?php endif; ?>
+        <div class="gc-brand-text">
+          <h1 class="gc-brand-title"><span>GEO</span> CARPENTRY</h1>
+          <div class="gc-brand-tagline">Built to Last. Crafted with Pride.</div>
+        </div>
+      </a>
+      <div class="gc-brand-contact">
+        <a href="tel:+19203671272" class="gc-brand-phone">📞 (920) 367-1272</a>
+        <a href="https://wa.me/19209340351" class="gc-brand-whatsapp" target="_blank" rel="noopener">💬 WhatsApp</a>
+      </div>
+    </div>
+    <?php
+} );
