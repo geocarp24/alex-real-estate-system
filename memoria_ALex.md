@@ -790,3 +790,139 @@ Pero el código PHP **no los poblaba** — solo el Stage, Full Name, Phone, etc.
 - Phone strategy: Phone4 existente + landline_2 fallback (no Phone5 nuevo) — Jorge eligió esta opción
 - Dedup: Mail Address (unchanged)
 - Stages success: mantener "To be Contacted" sin romper el pipeline existente (solo agregar stages para rutas de excepción)
+
+---
+
+### 2026-04-11 — Geo Carpentry website: contenido completo generado (Opus)
+
+**Petición:** Jorge pidió migración profesional de geocarpentry.com a Hostinger/WordPress/Astra con "Construction Company" starter template, y que ALEX hiciera TODO el contenido sin que él tuviera que meterse.
+
+**Descubrimientos clave durante el diagnóstico:**
+1. **Brand Identity Doc v1.0** compartido por Jorge — colores oficiales Navy `#1B2A4A` + Orange `#FF6B00` (NO los del workflow YAML previo que usaban `#0d2137`/`#c85a14`)
+2. **Fonts oficiales:** Playfair Display (headlines) + Inter (body) + Montserrat (accents)
+3. **Slogan oficial:** "Built to Last. Crafted with Pride."
+4. **NAP completo:** Phone (920) 367-1272, WhatsApp (920) 934-0351, admin@geocarpentry.com, 735 E Walnut St Suite 3 Green Bay WI, founded 2014, 10+ years, 500+ projects, 100mi radius, bilingual
+5. **Service area: 15 ciudades** — Green Bay, Appleton, Oshkosh, Sheboygan, Manitowoc, Fond du Lac, Wausau, Marinette, Oconto, Shawano, De Pere, Ashwaubenon, Howard, Suamico, Pulaski
+6. **6 servicios oficiales:** Custom Carpentry, Kitchen Remodeling, Bathroom Remodeling, Deck Building, Home Renovation, General Construction
+7. **SSH Hostinger funciona para geocarpentry.com** — path `domains/geocarpentry.com/public_html/` (misma cuenta u433637438 que pinnaclegroupwi.com)
+8. **WP-CLI YA INSTALADO** en /usr/local/bin/wp del servidor
+9. **WordPress 6.9.4** activo, Astra 4.12.7 theme
+10. **Logo YA subido** al WordPress (attachment ID 24) — `GEO-CARPENTRY-Logo-with-Soft-White-Highlights-2.png` con múltiples versiones + favicon
+11. **Plugin SEO activo:** SureRank (también genera schema markup propio, coexiste con el mío)
+
+**Decisiones finales (diferentes al plan inicial):**
+- Descartar el Construction Company starter template — Jorge prefirió from scratch
+- Custom child theme `geo-carpentry-child` con CSS de ~570 líneas
+- Stock photos de Unsplash (no fotos reales)
+- Colores del Brand Doc (corregidos del workflow YAML)
+
+**Workarounds técnicos descubiertos:**
+- `wp db export` falla silenciosamente en este Hostinger — usar `mysqldump` directo con credenciales de wp-config
+- WP Application Password NO aparece en wp-admin UI cuando el sitio no tiene HTTPS — WordPress lo oculta por seguridad. Solución: crear via `wp user application-password create` vía SSH
+- Cloudflare bloquea requests desde el VPS externo (error 1001) — todo se hace via SSH+WP-CLI directo, no REST API externa
+- Media upload via REST API falla por Cloudflare — usar `wp media import` con SCP
+- `--post_category` en wp post create no acepta nombres, solo slugs/IDs — usar `wp term create category` + `wp post term set` por separado
+- `wp menu list --field=X` no funciona, usar `--fields=X --format=ids`
+
+**Lo que quedó deployed:**
+- Child theme activado en producción
+- 5 core pages + 6 service pages (parent=services, URLs /services/{slug}/)
+- 10 SEO blog posts localizados para WI + 6 categorías
+- 10 stock photos en media library
+- Main Menu en location primary (Home → Services → Portfolio → About → Contact)
+- Schema markup LocalBusiness completo en `<head>` de cada página (via functions.php)
+- robots.txt con referencia al sitemap
+- Logo existente asignado como custom_logo del child theme
+
+**Issue bloqueante para go-live:**
+- Domain geocarpentry.com apunta a Cloudflare (172.66.0.42) pero el origin no está configurado correctamente
+- Desde fuera, `https://geocarpentry.com` retorna 409 (Cloudflare error 1001)
+- El sitio es accesible SOLO vía Hostinger staging URL: `https://blueviolet-gerbil-900105.hostingersite.com/`
+- **Jorge tiene que:** configurar Cloudflare DNS → origin IP de Hostinger + activar SSL (o pausar Cloudflare y apuntar DNS directo a Hostinger)
+
+**URLs para review:**
+- Staging (funciona): https://blueviolet-gerbil-900105.hostingersite.com/
+- Target (roto hasta fix DNS): http://geocarpentry.com/
+
+**Commit local:** `feat: Geo Carpentry website — full content + child theme generation`
+
+---
+
+### 2026-04-11 (sesión nocturna) — Geo Carpentry website v2: feedback round (Opus)
+
+**Feedback de Jorge:**
+1. ❌ No se veía "Geo Carpentry" por ningún lado (site-title oculto por Astra)
+2. ❌ Quitar TODO lo "custom" excepto construcciones nuevas custom
+3. ❌ Footer tenía info incorrecta
+4. ❌ Faltaba blog visible, FAQ, privacy, terms
+5. ❌ Faltaba formulario, chat, email popup
+6. ❌ Faltaba versión Spanish
+7. ❌ Admin email incorrecto
+8. ❌ Voice search optimization
+
+**Soluciones desplegadas (todas mientras Jorge dormía):**
+
+**BATCH 1 — Brand visibility:**
+- Astra ocultaba site-title via `display:none !important`. Workaround: creé un `gc-brand-bar` que se inyecta via `wp_body_open` action en cada página, con logo 72px + "GEO CARPENTRY" título + slogan + phone + WhatsApp. Bypass completo de la config de Astra.
+
+**BATCH 2 — Eliminar "custom":**
+- Creé nueva service page `Finish Carpentry & Trim` (reemplaza Custom Carpentry)
+- Borré `custom-carpentry` page, creé `finish-carpentry` con parent=services
+- Regeneré kitchen/bathroom/deck/home-renovation/general-construction pages sin mencionar "custom" (excepto "Custom Home Builds" en General Construction)
+- Actualicé home + services page
+- Actualicé schema markup LocalBusiness (hasOfferCatalog) con los nombres nuevos
+
+**BATCH 3 — Footer:**
+- Sobrescribí `astra_footer` action con footer branded custom
+- Columnas: Brand (logo + tagline + social), Services, Company, Contact
+- NAP completo + privacy/terms links en bottom
+
+**BATCH 4 — Blog/FAQ/Legal pages:**
+- `/news/` — asignada como `page_for_posts` para mostrar los 10 blog posts
+- `/faq/` — 15 Q&As + FAQPage schema markup (voice search opt)
+- `/privacy-policy/` — asignada como `wp_page_for_privacy_policy`
+- `/terms-of-service/` — legal completo
+- Menú actualizado: Home → Services → News → FAQ → Portfolio → About → Contact
+
+**BATCH 5 — Forms + Popup:**
+- SureForms [sureforms id=2145] embedded en Contact page
+- Email capture popup después de 15s (sessionStorage gated) con mailto fallback a admin@geocarpentry.com
+
+**BATCH 6 — Spanish version (3 pages core):**
+- `/inicio/` — home-es
+- `/servicios/` — services-es
+- `/contacto/` — contact-es (con formulario)
+- Pendiente: About, Portfolio, 6 service pages, FAQ, Blog Spanish
+
+**Descubrimientos técnicos:**
+- SureForms shortcode: `[sureforms id="XX"]` (NO srfm)
+- SureForms post type: `sureforms_form`
+- WP-CLI `wp menu list --field=X` no funciona, usar `--fields=X --format=ids`
+- WP-CLI `wp option patch update astra-settings key value` para setear keys específicas de un serialized option
+- Astra `display-site-title=True` no es suficiente — el component puede estar removido del header builder. Workaround: inyectar via wp_body_open action
+- Para override del footer de Astra: `remove_action('astra_footer', 'astra_footer_small_footer_template')` + custom output
+
+**Estado final:**
+- 18 pages + 10 posts + 69 media items
+- Child theme v2 con gc-brand-bar + popup + footer custom
+- Schema LocalBusiness + FAQPage
+- Commit `f6520ee` pushed to github.com/geocarp24/alex-real-estate-system
+
+**Issue bloqueante:** Dominio geocarpentry.com aún apunta a Cloudflare sin origin config. Staging URL `https://blueviolet-gerbil-900105.hostingersite.com/` es el único accesible desde afuera.
+
+**Pendientes para próxima sesión:**
+- Stock images referenciadas en HTML de páginas (ya están en media library)
+- WP Live Chat Support config
+- Quote-specific form (separado del Contact form)
+- More Spanish pages (About, Portfolio, 6 service pages, FAQ, Blog)
+- Cloudflare/DNS fix para go-live
+
+
+
+## 2026 — Make.com API Key (CONFIDENCIAL)
+- **API Key:** `0d1609f7-8242-4ca2-8e05-706d18152cda`
+- **Organization ID:** `6716517`
+- **Team ID:** `1932270`
+- **Base URL:** `https://us2.make.com/api/v2`
+- **Header:** `Authorization: Token 0d1609f7-8242-4ca2-8e05-706d18152cda`
+- **Nota:** NUNCA imprimir en outputs públicos. Solo uso interno del sistema ALEX.
