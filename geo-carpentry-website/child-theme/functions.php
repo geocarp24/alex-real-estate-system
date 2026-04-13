@@ -248,29 +248,90 @@ add_action( 'wp_footer', function () {
 } );
 
 /**
- * Inject a visible GEO CARPENTRY brand block at the top of EVERY page,
- * regardless of Astra header builder config.
- * This guarantees the brand is always visible even if the theme customizer
- * hides site-title or removes the site-identity component.
+ * Register a navigation menu for the unified header.
+ */
+add_action( 'after_setup_theme', function () {
+    register_nav_menus( [ 'gc-primary' => 'Geo Carpentry Primary Menu' ] );
+} );
+
+/**
+ * Hide Astra's default header — we replace it with gc-brand-bar.
+ */
+add_action( 'wp_head', function () {
+    echo '<style>
+        .site-header,
+        .ast-header-break-point .site-header,
+        #ast-desktop-header,
+        #ast-mobile-header,
+        .main-header-bar,
+        .ast-main-header-wrap { display: none !important; }
+    </style>' . "\n";
+}, 99 );
+
+/**
+ * Unified header: logo + brand + navigation + contact CTAs.
+ * Replaces both the old gc-brand-bar and Astra's header.
  */
 add_action( 'wp_body_open', function () {
     $logo_id  = get_theme_mod( 'custom_logo' );
     $logo_url = $logo_id ? wp_get_attachment_image_url( $logo_id, 'medium' ) : '';
     ?>
-    <div class="gc-brand-bar" role="banner">
-      <a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="gc-brand-link">
-        <?php if ( $logo_url ) : ?>
-          <img src="<?php echo esc_url( $logo_url ); ?>" alt="Geo Carpentry LLC — Licensed Carpentry &amp; Construction Northeast Wisconsin" class="gc-brand-logo">
-        <?php endif; ?>
-        <div class="gc-brand-text">
-          <h1 class="gc-brand-title"><span>GEO</span> CARPENTRY</h1>
-          <div class="gc-brand-tagline">Built to Last. Crafted with Pride.</div>
+    <header class="gc-header" role="banner">
+      <div class="gc-header-inner">
+
+        <a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="gc-brand-link">
+          <?php if ( $logo_url ) : ?>
+            <img src="<?php echo esc_url( $logo_url ); ?>" alt="Geo Carpentry LLC" class="gc-brand-logo">
+          <?php endif; ?>
+          <div class="gc-brand-text">
+            <span class="gc-brand-title"><span>GEO</span> CARPENTRY</span>
+            <span class="gc-brand-tagline">Built to Last. Crafted with Pride.</span>
+          </div>
+        </a>
+
+        <nav class="gc-nav" aria-label="Primary navigation">
+          <button class="gc-nav-toggle" aria-label="Open menu" aria-expanded="false">
+            <span></span><span></span><span></span>
+          </button>
+          <?php
+          wp_nav_menu( [
+              'theme_location' => 'gc-primary',
+              'container'      => false,
+              'menu_class'     => 'gc-nav-list',
+              'depth'          => 2,
+              'fallback_cb'    => function () {
+                  echo '<ul class="gc-nav-list">';
+                  echo '<li><a href="/">Home</a></li>';
+                  echo '<li><a href="/about/">About</a></li>';
+                  echo '<li><a href="/services/">Services</a></li>';
+                  echo '<li><a href="/portfolio/">Portfolio</a></li>';
+                  echo '<li><a href="/news/">Blog</a></li>';
+                  echo '<li><a href="/faq/">FAQ</a></li>';
+                  echo '<li><a href="/contact/">Contact</a></li>';
+                  echo '</ul>';
+              },
+          ] );
+          ?>
+        </nav>
+
+        <div class="gc-header-contact">
+          <a href="tel:+19203671272" class="gc-brand-phone">📞 (920) 367-1272</a>
+          <a href="https://wa.me/19209340351" class="gc-brand-whatsapp" target="_blank" rel="noopener">💬 WhatsApp</a>
         </div>
-      </a>
-      <div class="gc-brand-contact">
-        <a href="tel:+19203671272" class="gc-brand-phone">📞 (920) 367-1272</a>
-        <a href="https://wa.me/19209340351" class="gc-brand-whatsapp" target="_blank" rel="noopener">💬 WhatsApp</a>
+
       </div>
-    </div>
+    </header>
+    <script>
+    (function(){
+      var btn = document.querySelector('.gc-nav-toggle');
+      var nav = document.querySelector('.gc-nav-list');
+      if (!btn || !nav) return;
+      btn.addEventListener('click', function(){
+        var open = nav.classList.toggle('gc-nav-open');
+        btn.classList.toggle('gc-nav-active', open);
+        btn.setAttribute('aria-expanded', open);
+      });
+    })();
+    </script>
     <?php
 } );
