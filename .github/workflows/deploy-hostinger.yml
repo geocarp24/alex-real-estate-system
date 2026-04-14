@@ -47,8 +47,13 @@ jobs:
           script: |
             cat > /home/u433637438/domains/pinnaclegroupwi.com/public_html/Tools/config.php << 'PHPEOF'
             <?php
-            define('AIRTABLE_TOKEN',  '${{ secrets.AIRTABLE_TOKEN }}');
-            define('TRACERFY_TOKEN',  '${{ secrets.TRACERFY_TOKEN }}');
+            define('AIRTABLE_TOKEN',    '${{ secrets.AIRTABLE_TOKEN }}');
+            define('TRACERFY_TOKEN',    '${{ secrets.TRACERFY_TOKEN }}');
+            define('ANTHROPIC_API_KEY', '${{ secrets.ANTHROPIC_API_KEY }}');
+            define('MAKE_API_TOKEN',    '${{ secrets.MAKE_API_TOKEN }}');
+            define('QUO_API_KEY',       '${{ secrets.QUO_API_KEY }}');
+            define('TELEGRAM_BOT_TOKEN','${{ secrets.TELEGRAM_BOT_TOKEN }}');
+            define('TELEGRAM_CHAT_ID',  '${{ secrets.TELEGRAM_CHAT_ID }}');
             PHPEOF
 
             cat > /home/u433637438/domains/pinnaclegroupwi.com/public_html/agents/alex_config.php << 'PHPEOF'
