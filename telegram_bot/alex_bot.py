@@ -16,6 +16,7 @@ Pipeline Social Media desde Telegram:
 """
 
 import os
+import sys
 import asyncio
 import base64
 import json
