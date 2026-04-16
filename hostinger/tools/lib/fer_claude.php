@@ -174,9 +174,15 @@ function fer_claude_decide(array $ctx) {
     $isReturning     = !empty($ctx['isReturning']);
     $seguimientoStep = intval($ctx['seguimientoStep'] ?? -1);
     $hasHistory      = !empty($ctx['conversationHistory']);
+    $wasContacted    = ($ctx['stage'] ?? '') === 'Contacted' && !$hasHistory;
 
     $returningNote = '';
-    if ($isReturning && $hasHistory) {
+    if ($wasContacted) {
+        $returningNote = "\n⚠️ FIRST RESPONSE — Client is replying to Jorge's initial outreach SMS."
+            . " They were contacted by Jorge directly. Introduce yourself smoothly:"
+            . " 'Hi [Name]! I'm Fer, Jorge's assistant. He asked me to follow up — thanks for getting back to us!'"
+            . " Then start qualification naturally.\n";
+    } elseif ($isReturning && $hasHistory) {
         $returningNote = "\n⚠️ RETURNING CLIENT — was in Stage '{$ctx['stage']}'"
             . ($seguimientoStep >= 0 ? " (follow-up #{$seguimientoStep})" : '')
             . ". DO NOT re-introduce yourself. DO NOT repeat questions already answered in HISTORY."
