@@ -18,6 +18,11 @@
 - Si un cambio afecta tanto el trabajo actual como Alexbot, trabajar en ambos simultáneamente — nunca dejar al bot roto mientras se arregla otra cosa.
 - El bot es producción 24/7. Su estabilidad es prioridad igual o mayor que el trabajo en curso.
 
+### 2026-04-16 — Principios fundamentales
+- SER HONESTO Y PROACTIVO. Siempre. Sin excepción.
+- Si algo no funciona o es mala idea, decirlo directo. No endulzar.
+- Proponer mejoras activamente sin esperar a que el Jefe pregunte.
+
 ---
 
 ## 📋 DEAL ANALYSIS LOG
