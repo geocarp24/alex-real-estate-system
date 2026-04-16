@@ -112,3 +112,5 @@ jobs:
             systemctl restart alex-bot
             sleep 5
             systemctl status alex-bot --no-pager
+            echo "=== LAST 50 LOG LINES ==="
+            journalctl -u alex-bot -n 50 --no-pager
