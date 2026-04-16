@@ -157,9 +157,23 @@ function fer_claude_decide(array $ctx) {
     );
     $model = $escalationMarker ? FER_CLAUDE_MODEL_ESCALATED : FER_CLAUDE_MODEL_DEFAULT;
 
+    $isReturning     = !empty($ctx['isReturning']);
+    $seguimientoStep = intval($ctx['seguimientoStep'] ?? -1);
+    $hasHistory      = !empty($ctx['conversationHistory']);
+
+    $returningNote = '';
+    if ($isReturning && $hasHistory) {
+        $returningNote = "\n⚠️ RETURNING CLIENT — was in Stage '{$ctx['stage']}'"
+            . ($seguimientoStep >= 0 ? " (follow-up #{$seguimientoStep})" : '')
+            . ". DO NOT re-introduce yourself. DO NOT repeat questions already answered in HISTORY."
+            . " Resume where you left off. Acknowledge they're back warmly: 'Glad to hear from you again'"
+            . " or similar. Reconfirm key info briefly if needed, then advance the qualification.\n";
+    }
+
     $userContext = sprintf(
         "CONTACT: %s | Property: %s | City: %s, WI | Language: %s | Stage: %s\n" .
         "CRM Notes: %s\n" .
+        "%s" .
         "HISTORY (most recent at bottom):\n%s\n" .
         "COUNT: %d | isOwner: %s | motivation: %s | timeline: %s | urgency: %s\n" .
         "CLIENT SAYS: %s",
@@ -169,6 +183,7 @@ function fer_claude_decide(array $ctx) {
         $ctx['language']            ?? 'English',
         $ctx['stage']               ?? 'New Lead',
         $ctx['negotiationNotes']    ?? '',
+        $returningNote,
         $ctx['conversationHistory'] ?: '(first message from this contact)',
         intval($ctx['messageCount']  ?? 0),
         $ctx['isOwner']    ?? 'unknown',

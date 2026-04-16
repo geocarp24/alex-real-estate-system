@@ -104,6 +104,8 @@ $city            = $fields['City']                     ?? 'Green Bay';
 $stage           = $fields['Stage']                    ?? 'New Lead';
 $negotiationNotes= $fields['Negotiation notes']        ?? '';
 $language        = $fields['Lenguage']                 ?? 'English';
+$seguimientoStep = intval($fields['Seguimiento Step']  ?? -1);
+$isReturning     = in_array($stage, ['Seguimiento', 'Contacted', 'Negotiation']) && $stage !== 'New Lead';
 
 if ($contactId === null) {
     $created = fer_at_create_contact($fromPhone, [
@@ -140,8 +142,17 @@ $claudeResult = fer_claude_decide([
     'motivation'          => $motivation,
     'timeline'            => $timeline,
     'urgency'             => $urgency,
+    'isReturning'         => $isReturning,
+    'seguimientoStep'     => $seguimientoStep,
 ]);
 $fer = $claudeResult['fer'];
+
+// ── 6b. Smart stage transitions ─────────────────────────────────
+// If client was in Seguimiento and responds → move to Negotiation (stops Make follow-ups)
+if ($stage === 'Seguimiento' && !empty($fer['responseToClient']) && ($fer['newStage'] ?? '') !== 'Dead') {
+    $fer['newStage'] = 'Negotiation';
+    fer_log_info('stage_reengagement', ['from' => 'Seguimiento', 'to' => 'Negotiation']);
+}
 
 // ── 7. Send SMS back to the client ──────────────────────────────
 $smsResult = null;
@@ -177,12 +188,19 @@ fer_conv_append_turn($fromPhone, $convRecord, $body, $fer['responseToClient'] ??
 
 // ── 10. Update Airtable contact ─────────────────────────────────
 if ($contactId) {
+    $newStage = $fer['newStage'] ?? 'Responded';
     $newNotes = fer_at_append_notes($negotiationNotes, $fer['notes'] ?? '(no note)');
-    fer_at_update_contact($contactId, [
-        'Stage'              => $fer['newStage'] ?? 'Responded',
+    $contactUpdate = [
+        'Stage'              => $newStage,
         'Last contact date'  => date('Y-m-d'),
         'Negotiation notes'  => $newNotes,
-    ]);
+    ];
+    // When Fer marks Seguimiento → set Step=0 to activate Make Engine
+    if ($newStage === 'Seguimiento' && $stage !== 'Seguimiento') {
+        $contactUpdate['Seguimiento Step'] = 0;
+        fer_log_info('seguimiento_activated', ['contact' => $contactId]);
+    }
+    fer_at_update_contact($contactId, $contactUpdate);
 }
 
 // ── 10b. Log full conversation to Fer Conversations table (QC) ──
