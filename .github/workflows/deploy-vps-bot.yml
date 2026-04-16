@@ -45,7 +45,8 @@ jobs:
               python-telegram-bot==21.6 \
               anthropic \
               requests \
-              openai
+              openai \
+              python-dotenv
 
             echo "Dependencies installed OK"
 
