@@ -12,7 +12,7 @@
  *   4. Poll Tracerfy queue until results arrive
  *   5. Update Tracy (status=success|error)
  *   6. POST to el_chismoso.php (writes to Contacts)
- *   7. Update Lead: Skip Trace Done=true, Stage='To be Contacted'
+ *   7. Update Lead: Skip Trace Done=true, Stage='To Be Contacted'
  * ============================================================
  */
 
@@ -342,10 +342,10 @@ if ($existingTracy) {
 
     atPatch(TABLE_LEADS, $leadId, [
         'Skip Trace Done'   => true,
-        'Stage'             => 'To be Contacted',
+        'Stage'             => 'To Be Contacted',
         'Last Contact Date' => gmdate('Y-m-d'),
     ]);
-    logMsg("Lead {$leadId} actualizado: Done=true, Stage='To be Contacted' (dedup sin gastar crédito)");
+    logMsg("Lead {$leadId} actualizado: Done=true, Stage='To Be Contacted' (dedup sin gastar crédito)");
     logMsg("EL POLLING done (dedup): {$address}");
     logMsg('══════════════════════════════════════');
     exit(0);
@@ -406,7 +406,7 @@ if (!empty($existingPhone)) {
     @unlink($csvPath);
     atPatch(TABLE_LEADS, $leadId, [
         'Skip Trace Done'   => true,
-        'Stage'             => 'To be Contacted',
+        'Stage'             => 'To Be Contacted',
         'Last Contact Date' => gmdate('Y-m-d'),
     ]);
     atPatch(TABLE_TRACY, $tracyId, ['status' => 'success', 'notas' => 'Teléfono preexistente — crédito no consumido']);
@@ -577,7 +577,7 @@ if (!empty($chismJson['duplicates_merged'])) {
 // ── STEP 8: Update Lead Stage ─────────────────────────────────
 $leadUpdate = atPatch(TABLE_LEADS, $leadId, [
     'Skip Trace Done'   => true,
-    'Stage'             => 'To be Contacted',
+    'Stage'             => 'To Be Contacted',
     'Last Contact Date' => gmdate('Y-m-d'),
 ]);
 

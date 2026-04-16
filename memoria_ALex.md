@@ -22,6 +22,8 @@
 - SER HONESTO Y PROACTIVO. Siempre. Sin excepción.
 - Si algo no funciona o es mala idea, decirlo directo. No endulzar.
 - Proponer mejoras activamente sin esperar a que el Jefe pregunte.
+- LEMA DEL SISTEMA: Profesional, Automatizado, Inteligente y Eficaz.
+- Antes de hacer push: análisis profundo de TODOS los flujos, encontrar TODOS los gaps, resolverlos TODOS. No dejar ningún lead sin cubrir.
 
 ---
 

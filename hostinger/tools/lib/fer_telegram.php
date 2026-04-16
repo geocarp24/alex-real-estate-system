@@ -22,7 +22,12 @@ function fer_telegram_alert(array $payload) {
         return false;
     }
 
-    $msg = "FER ESCALA A JORGE\n\n"
+    $score = $payload['ferScore'] ?? '?';
+    $count = $payload['messageCount'] ?? '?';
+    $scoreBar = str_repeat('#', min((int)$score, 10)) . str_repeat('.', max(0, 10 - (int)$score));
+
+    $msg = "FER ESCALA A JORGE\n"
+         . "Score: [{$scoreBar}] {$score}/10 ({$count} msgs)\n\n"
          . "Nombre: "     . ($payload['contactName']     ?? 'N/A') . "\n"
          . "Tel: "        . ($payload['clientPhone']     ?? 'N/A') . "\n"
          . "Propiedad: "  . ($payload['propertyAddress'] ?? 'N/A') . "\n"
@@ -31,7 +36,7 @@ function fer_telegram_alert(array $payload) {
          . "Motivacion: " . ($payload['motivation'] ?? 'N/A') . "\n"
          . "Timeline: "   . ($payload['timeline']   ?? 'N/A') . "\n"
          . "Urgencia: "   . ($payload['urgency']    ?? 'N/A') . "\n\n"
-         . "Ultimo msg cliente:\n" . ($payload['clientMessage'] ?? '') . "\n\n"
+         . "Ultimo msg:\n" . ($payload['clientMessage'] ?? '') . "\n\n"
          . "Fer respondio:\n" . ($payload['ferResponse'] ?? '(vacio)') . "\n\n"
          . "Tu turno.";
 

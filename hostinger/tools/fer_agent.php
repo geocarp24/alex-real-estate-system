@@ -99,13 +99,23 @@ $contact    = fer_at_find_contact_by_phone($fromPhone);
 $contactId  = $contact['id']                           ?? null;
 $fields     = $contact['fields']                       ?? [];
 $contactName     = $fields['Full Name']                ?? $fields['First Name'] ?? 'there';
-$propertyAddress = $fields['Property Address']         ?? ($fields['Address']    ?? '');
+// Property Address is a linked record — read the lookup field for actual text
+$propertyAddress = '';
+$propLookup = $fields['Property Address (from Property Address)'] ?? null;
+if (is_array($propLookup) && !empty($propLookup)) {
+    $propertyAddress = $propLookup[0];
+} elseif (is_string($propLookup)) {
+    $propertyAddress = $propLookup;
+} else {
+    $propertyAddress = $fields['Address'] ?? '';
+}
 $city            = $fields['City']                     ?? 'Green Bay';
 $stage           = $fields['Stage']                    ?? 'New Lead';
 $negotiationNotes= $fields['Negotiation notes']        ?? '';
 $language        = $fields['Lenguage']                 ?? 'English';
 $seguimientoStep = intval($fields['Seguimiento Step']  ?? -1);
-$isReturning     = in_array($stage, ['Seguimiento', 'Contacted', 'Negotiation']) && $stage !== 'New Lead';
+$isDNC           = !empty($fields['Do not contact']);
+$isReturning     = in_array($stage, ['Seguimiento', 'Contacted', 'Negotiation']);
 
 if ($contactId === null) {
     $created = fer_at_create_contact($fromPhone, [
@@ -154,6 +164,13 @@ if ($stage === 'Seguimiento' && !empty($fer['responseToClient']) && ($fer['newSt
     fer_log_info('stage_reengagement', ['from' => 'Seguimiento', 'to' => 'Negotiation']);
 }
 
+// DNC guard: if contact is marked Do Not Contact, NEVER set Seguimiento (no outbound)
+// Fer can respond to inbound (TCPA allows) but no automated follow-ups
+if ($isDNC && ($fer['newStage'] ?? '') === 'Seguimiento') {
+    $fer['newStage'] = 'Responded';
+    fer_log_warn('dnc_blocked_seguimiento', ['contact' => $contactId, 'phone' => $fromPhone]);
+}
+
 // ── 7. Send SMS back to the client ──────────────────────────────
 $smsResult = null;
 if (!empty($fer['responseToClient'])) {
@@ -162,17 +179,32 @@ if (!empty($fer['responseToClient'])) {
 
 // ── 8. Escalation to Jorge ──────────────────────────────────────
 if (!empty($fer['escalate'])) {
+    // Calculate Fer Score: +3 owner, +2 motivation, +1 timeline, +2 urgency hot, +1 owed, +1 price
+    $ferScore = 0;
+    $fIsOwner    = $fer['isOwner']    ?? $isOwner;
+    $fMotivation = $fer['motivation'] ?? $motivation;
+    $fTimeline   = $fer['timeline']   ?? $timeline;
+    $fUrgency    = $fer['urgency']    ?? $urgency;
+    if ($fIsOwner === 'yes')                                    $ferScore += 3;
+    if ($fMotivation !== 'unknown' && $fMotivation !== null)    $ferScore += 2;
+    if ($fTimeline !== 'unknown' && $fTimeline !== null)        $ferScore += 2;
+    if ($fUrgency === 'hot')                                    $ferScore += 2;
+    elseif ($fUrgency === 'warm')                               $ferScore += 1;
+    $ferScore = min($ferScore, 10);
+
     fer_telegram_alert([
         'contactName'     => $contactName,
         'clientPhone'     => $fromPhone,
         'propertyAddress' => $propertyAddress,
         'escalateReason'  => $fer['escalateReason']  ?? 'N/A',
-        'isOwner'         => $fer['isOwner']    ?? $isOwner,
-        'motivation'      => $fer['motivation'] ?? $motivation,
-        'timeline'        => $fer['timeline']   ?? $timeline,
-        'urgency'         => $fer['urgency']    ?? $urgency,
+        'isOwner'         => $fIsOwner,
+        'motivation'      => $fMotivation,
+        'timeline'        => $fTimeline,
+        'urgency'         => $fUrgency,
         'clientMessage'   => $body,
         'ferResponse'     => $fer['responseToClient'] ?? '',
+        'ferScore'        => $ferScore,
+        'messageCount'    => $msgCount + 1,
     ]);
 }
 
