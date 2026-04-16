@@ -71,7 +71,7 @@ jobs:
             # Write .env file with all API keys
             cat > /opt/alex-bot/.env << 'ENVEOF'
             TELEGRAM_TOKEN=8157575601:AAHmAo0OQroOUdXCnXZEjVh4hJkt0emx5_c
-            ANTHROPIC_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+            ANTHROPIC_KEY=${{ secrets.ANTHROPIC_KEY }}
             AIRTABLE_TOKEN=${{ secrets.AIRTABLE_TOKEN }}
             TRACERFY_TOKEN=${{ secrets.TRACERFY_TOKEN }}
             ENVEOF
