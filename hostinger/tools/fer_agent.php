@@ -185,6 +185,10 @@ if ($contactId) {
     ]);
 }
 
+// ── 10b. Log full conversation to Fer Conversations table (QC) ──
+$existingConvo = fer_at_find_convo($fromPhone);
+fer_at_log_conversation($fromPhone, $fer, $body, $contactName, $propertyAddress, $existingConvo);
+
 // ── 11. Respond 200 to Quo ──────────────────────────────────────
 http_response_code(200);
 echo json_encode([

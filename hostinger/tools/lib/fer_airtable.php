@@ -147,3 +147,95 @@ function fer_at_append_notes($existingNotes, $newLine) {
     $line  = $stamp . $newLine;
     return $existingNotes === '' ? $line : ($existingNotes . "\n" . $line);
 }
+
+// ============================================================
+// FER CONVERSATIONS TABLE — QC & audit trail
+// Table: tbleausFNpHhqLfsm (Fer Conversations)
+// ============================================================
+
+if (!defined('FER_AT_CONVOS')) {
+    define('FER_AT_CONVOS', 'tbleausFNpHhqLfsm');
+}
+
+/**
+ * Find existing conversation record by phone.
+ */
+function fer_at_find_convo($phone) {
+    $needle = fer_at_phone_11($phone);
+    $formula = "{Phone}='" . $needle . "'";
+    $url = fer_at_url(FER_AT_CONVOS, '?' . http_build_query([
+        'filterByFormula' => $formula,
+        'maxRecords'      => 1,
+    ]));
+    $res = fer_at_request('GET', $url);
+    if (!$res['ok']) return null;
+    $records = $res['data']['records'] ?? [];
+    return !empty($records) ? $records[0] : null;
+}
+
+/**
+ * Create or update conversation record with full transcript.
+ */
+function fer_at_log_conversation($phone, array $ferDecision, $clientMsg, $contactName, $propertyAddress, $existingConvo = null) {
+    $stamp = '[' . date('Y-m-d H:i') . ']';
+    $newTurn = $stamp . " Cliente: " . trim((string)$clientMsg) . "\n"
+             . $stamp . " Fer: " . trim((string)($ferDecision['responseToClient'] ?? '(vacio)')) . "\n";
+
+    if ($existingConvo !== null) {
+        $recId   = $existingConvo['id'];
+        $fields  = $existingConvo['fields'] ?? [];
+        $oldLog  = $fields['Conversation Log'] ?? '';
+        $count   = intval($fields['Message Count'] ?? 0) + 1;
+
+        $updates = [
+            'Conversation Log' => $oldLog . $newTurn,
+            'Message Count'    => $count,
+            'Stage'            => $ferDecision['newStage']   ?? 'Responded',
+            'Last Contact'     => date('c'),
+            'Last Fer Note'    => $ferDecision['notes']      ?? '',
+        ];
+        if (($ferDecision['isOwner'] ?? '') !== '' && $ferDecision['isOwner'] !== 'unknown') {
+            $updates['Is Owner'] = $ferDecision['isOwner'];
+        }
+        if (($ferDecision['motivation'] ?? '') !== '' && $ferDecision['motivation'] !== 'unknown') {
+            $updates['Motivation'] = $ferDecision['motivation'];
+        }
+        if (($ferDecision['timeline'] ?? '') !== '' && $ferDecision['timeline'] !== 'unknown') {
+            $updates['Timeline'] = $ferDecision['timeline'];
+        }
+        if (($ferDecision['urgency'] ?? '') !== '' && $ferDecision['urgency'] !== 'unknown') {
+            $updates['Urgency'] = $ferDecision['urgency'];
+        }
+        if (($ferDecision['language'] ?? '') !== '' ) {
+            $updates['Language'] = $ferDecision['language'];
+        }
+        if (!empty($ferDecision['escalate'])) {
+            $updates['Escalated']       = true;
+            $updates['Escalate Reason'] = $ferDecision['escalateReason'] ?? '';
+        }
+
+        return fer_at_request('PATCH', fer_at_url(FER_AT_CONVOS, '/' . $recId), ['fields' => $updates]);
+    }
+
+    // Create new record
+    $fields = [
+        'Phone'            => fer_at_phone_11($phone),
+        'Contact Name'     => $contactName ?: 'Unknown',
+        'Property Address' => $propertyAddress ?: '',
+        'Stage'            => $ferDecision['newStage']      ?? 'Responded',
+        'Conversation Log' => $newTurn,
+        'Message Count'    => 1,
+        'Is Owner'         => $ferDecision['isOwner']       ?? 'unknown',
+        'Motivation'       => $ferDecision['motivation']    ?? 'unknown',
+        'Timeline'         => $ferDecision['timeline']      ?? 'unknown',
+        'Urgency'          => $ferDecision['urgency']       ?? 'unknown',
+        'Language'         => $ferDecision['language']       ?? 'English',
+        'Escalated'        => !empty($ferDecision['escalate']),
+        'Escalate Reason'  => $ferDecision['escalateReason'] ?? '',
+        'Last Fer Note'    => $ferDecision['notes']          ?? '',
+        'First Contact'    => date('c'),
+        'Last Contact'     => date('c'),
+    ];
+
+    return fer_at_request('POST', fer_at_url(FER_AT_CONVOS), ['fields' => $fields]);
+}
