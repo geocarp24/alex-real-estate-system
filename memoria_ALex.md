@@ -13,6 +13,11 @@
 - No hacer trabajo extra que no se pidió. Ser proactivo solo cuando agrega valor real.
 - Menos explicación, más acción.
 
+### 2026-04-16 — Protección de Alexbot
+- Antes de hacer merge a master o cualquier cambio que toque archivos compartidos (agents/, memoria_ALex.md, workflows), verificar si puede afectar a Alexbot.
+- Si un cambio afecta tanto el trabajo actual como Alexbot, trabajar en ambos simultáneamente — nunca dejar al bot roto mientras se arregla otra cosa.
+- El bot es producción 24/7. Su estabilidad es prioridad igual o mayor que el trabajo en curso.
+
 ---
 
 ## 📋 DEAL ANALYSIS LOG
