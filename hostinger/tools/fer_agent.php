@@ -13,7 +13,7 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/lib/fer_logger.php';
 require_once __DIR__ . '/lib/fer_deduplication.php';
 require_once __DIR__ . '/lib/fer_airtable.php';
-require_once __DIR__ . '/lib/fer_datastore.php';
+require_once __DIR__ . '/lib/fer_conversations.php';
 require_once __DIR__ . '/lib/fer_claude.php';
 require_once __DIR__ . '/lib/fer_quo.php';
 require_once __DIR__ . '/lib/fer_telegram.php';
@@ -116,14 +116,14 @@ if ($contactId === null) {
     $contactName = 'there';
 }
 
-// ── 5. DataStore history fetch ──────────────────────────────────
-$dsRecord   = fer_ds_get($fromPhone);
-$history    = $dsRecord['history']      ?? '';
-$msgCount   = intval($dsRecord['messageCount'] ?? 0);
-$isOwner    = $dsRecord['isOwner']      ?? 'unknown';
-$motivation = $dsRecord['motivation']   ?? 'unknown';
-$timeline   = $dsRecord['timeline']     ?? 'unknown';
-$urgency    = $dsRecord['urgency']      ?? 'unknown';
+// ── 5. Conversation history fetch (local files) ─────────────────
+$convRecord = fer_conv_get($fromPhone);
+$history    = $convRecord['history']      ?? '';
+$msgCount   = intval($convRecord['messageCount'] ?? 0);
+$isOwner    = $convRecord['isOwner']      ?? 'unknown';
+$motivation = $convRecord['motivation']   ?? 'unknown';
+$timeline   = $convRecord['timeline']     ?? 'unknown';
+$urgency    = $convRecord['urgency']      ?? 'unknown';
 
 // ── 6. Ask Claude ───────────────────────────────────────────────
 $claudeResult = fer_claude_decide([
@@ -166,7 +166,7 @@ if (!empty($fer['escalate'])) {
 }
 
 // ── 9. Persist conversation + qualification meta ────────────────
-fer_ds_append_turn($fromPhone, $dsRecord, $body, $fer['responseToClient'] ?? '', [
+fer_conv_append_turn($fromPhone, $convRecord, $body, $fer['responseToClient'] ?? '', [
     'contactId'  => $contactId,
     'isOwner'    => $fer['isOwner']    ?? null,
     'motivation' => $fer['motivation'] ?? null,
