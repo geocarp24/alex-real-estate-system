@@ -5,6 +5,16 @@
 
 ---
 
+## REGLAS DEL JEFE (aplican a TODOS los agentes, siempre)
+
+### 2026-04-16 — Comunicación
+- Respuestas cortas y simples. Evitar lenguaje técnico innecesario.
+- No pedir confirmación repetida. Si el Jefe dice "procede", procede.
+- No hacer trabajo extra que no se pidió. Ser proactivo solo cuando agrega valor real.
+- Menos explicación, más acción.
+
+---
+
 ## 📋 DEAL ANALYSIS LOG
 
 > Registro de deals analizados. Incluye estimación inicial, resultado real (si disponible), diferencias y lecciones aprendidas.
