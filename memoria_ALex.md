@@ -33,6 +33,15 @@
 - Telegram: bot token para alertas.
 - REGLA: si algo se puede automatizar o ejecutar directo, HACERLO. Nunca delegarle trabajo manual al Jefe.
 
+### 2026-04-17 — Protocolo de cambios en scripts y prompts
+- NUNCA modificar scripts de agentes (prompts, diálogos, objection handling) sin aprobación del Jefe.
+- Entrar en MODO PLANEACIÓN primero: presentar los cambios propuestos, explicar qué cambia y por qué, esperar aprobación.
+- Una vez aprobado, entonces hacer el cambio exacto acordado. Nada más, nada menos.
+- NO tocar código que no necesite cambio. Solo lo estrictamente necesario.
+- Esto aplica a: fer_claude.php (prompt), system prompts de cualquier agente, objection scripts, mensajes al cliente.
+- Esto NO aplica a: bugs técnicos, parsing, logging, infraestructura — esos se arreglan directo.
+- Beneficio: ahorra créditos + evita corromper archivos + decisiones consensuadas.
+
 ---
 
 ## 📋 DEAL ANALYSIS LOG
