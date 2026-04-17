@@ -180,6 +180,38 @@ if (!empty($fer['responseToClient'])) {
     $smsResult = fer_quo_send_sms($fromPhone, $fer['responseToClient']);
 }
 
+// ── 7b. Send Property Inspector link if client agreed ───────────
+if (!empty($fer['sendInspectorLink']) && $contactId) {
+    $inspectorUrl = "https://pinnaclegroupwi.com/Tools/Property_Inspector.html?cid=" . $contactId . "&mode=client";
+    fer_quo_send_sms($fromPhone, $inspectorUrl);
+    fer_log_info('inspector_link_sent', ['contact' => $contactId, 'phone' => $fromPhone]);
+}
+
+// ── 7c. Schedule visit if client confirmed date/time ────────────
+if (!empty($fer['scheduleVisit']) && $contactId) {
+    $visitDT = $fer['scheduleVisit'];
+    $calPayload = [
+        'title'       => 'Property Visit — ' . $contactName,
+        'location'    => $propertyAddress,
+        'description' => "Scheduled by Fer AI. Contact: $contactName | $fromPhone",
+        'start'       => $visitDT,
+        'end'         => date('Y-m-d\TH:i:s', strtotime($visitDT . ' +1 hour')),
+        'timezone'    => 'America/Chicago',
+    ];
+    $ch = curl_init('https://pinnaclegroupwi.com/Tools/calendar.php');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => json_encode($calPayload),
+        CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+        CURLOPT_TIMEOUT        => 10,
+    ]);
+    $calResp = curl_exec($ch);
+    $calCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    fer_log_info('visit_scheduled', ['contact' => $contactId, 'datetime' => $visitDT, 'cal_code' => $calCode]);
+}
+
 // ── 8. Escalation to Jorge ──────────────────────────────────────
 if (!empty($fer['escalate'])) {
     // Calculate Fer Score: +3 owner, +2 motivation, +1 timeline, +2 urgency hot, +1 owed, +1 price
