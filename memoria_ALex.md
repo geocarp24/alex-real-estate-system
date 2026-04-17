@@ -18,6 +18,100 @@
 - Si un cambio afecta tanto el trabajo actual como Alexbot, trabajar en ambos simultáneamente — nunca dejar al bot roto mientras se arregla otra cosa.
 - El bot es producción 24/7. Su estabilidad es prioridad igual o mayor que el trabajo en curso.
 
+### 2026-04-16 — Principios fundamentales
+- SER HONESTO Y PROACTIVO. Siempre. Sin excepción.
+- Si algo no funciona o es mala idea, decirlo directo. No endulzar.
+- Proponer mejoras activamente sin esperar a que el Jefe pregunte.
+- LEMA DEL SISTEMA: Profesional, Automatizado, Inteligente y Eficaz.
+- Antes de hacer push: análisis profundo de TODOS los flujos, encontrar TODOS los gaps, resolverlos TODOS. No dejar ningún lead sin cubrir.
+
+### 2026-04-17 — Capacidades y autonomía
+- Hostinger: acceso SSH vía GitHub Actions (secrets SSH_HOST, SSH_USERNAME, SSH_PASSWORD, SSH_PORT). Puedo ejecutar comandos remotos, configurar crons, hacer deploys. NO pedirle al Jefe cosas que puedo hacer yo.
+- Make.com: acceso API (token en memoria de chat). Puedo listar/modificar escenarios.
+- Airtable: acceso API completo. Puedo crear tablas, campos, registros.
+- Quo/OpenPhone: API key para enviar SMS.
+- Telegram: bot token para alertas.
+- REGLA: si algo se puede automatizar o ejecutar directo, HACERLO. Nunca delegarle trabajo manual al Jefe.
+
+### 2026-04-17 — Protocolo de cambios en scripts y prompts
+- NUNCA modificar scripts de agentes (prompts, diálogos, objection handling) sin aprobación del Jefe.
+- Entrar en MODO PLANEACIÓN primero: presentar los cambios propuestos, explicar qué cambia y por qué, esperar aprobación.
+- Una vez aprobado, entonces hacer el cambio exacto acordado. Nada más, nada menos.
+- NO tocar código que no necesite cambio. Solo lo estrictamente necesario.
+- Esto aplica a: fer_claude.php (prompt), system prompts de cualquier agente, objection scripts, mensajes al cliente.
+- Esto NO aplica a: bugs técnicos, parsing, logging, infraestructura — esos se arreglan directo.
+- Beneficio: ahorra créditos + evita corromper archivos + decisiones consensuadas.
+
+### 2026-04-17 — FER AI Receptionist: Proyecto completo
+
+**Estado: EN PRODUCCIÓN**
+
+**Arquitectura:**
+- Quo webhook → `fer_agent.php` (Hostinger) → Claude Haiku/Sonnet → SMS + Telegram + Airtable
+- Make.com eliminado del flujo de respuesta SMS (solo queda para First Contact, Seguimiento, Calendar confirmation)
+- Historial de conversación: archivos locales en `fer_conversations/` + tabla Airtable "Fer Conversations" (QC)
+
+**Archivos clave:**
+- `hostinger/tools/fer_agent.php` — orquestador principal v5
+- `hostinger/tools/lib/fer_claude.php` — prompt + llamada Claude con auto-escalation Haiku→Sonnet
+- `hostinger/tools/lib/fer_conversations.php` — historial local por teléfono
+- `hostinger/tools/lib/fer_airtable.php` — Contacts + Fer Conversations table
+- `hostinger/tools/lib/fer_quo.php` — envío SMS via Quo/OpenPhone
+- `hostinger/tools/lib/fer_telegram.php` — alertas de escalación a Jorge via @Ferpinnaclebot
+- `hostinger/tools/lib/fer_logger.php` — logs estructurados JSONL
+- `hostinger/tools/lib/fer_deduplication.php` — dedup por messageId
+- `hostinger/tools/fer_stale_cron.php` — cron diario 8am, mueve "Contacted" sin respuesta 5d → "Seguimiento"
+- `hostinger/tools/fer_diag.php` — diagnóstico + reset de conversaciones
+
+**Tabla Airtable "Fer Conversations":** `tbleausFNpHhqLfsm`
+- Guarda transcripción completa, Stage, calificación, Fer Score, timestamps
+
+**Bot Telegram:** @Ferpinnaclebot (token: `8769959472:AAF3PqXGVKUijzt8zXHM0_7MleKnc4L-nT4`)
+- Alertas de escalación con Fer Score visual [####......] + datos de calificación
+
+**Secrets en GitHub (7 para Hostinger):**
+- AIRTABLE_TOKEN, TRACERFY_TOKEN, ANTHROPIC_API_KEY, MAKE_API_TOKEN, QUO_API_KEY, FER_TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+
+**Flujo completo de leads (sin gaps):**
+1. Lead list → Leads ("Review this Deal") → el_polling (Tracy skip trace) → el_chismoso → Contacts ("To Be Contacted")
+2. Make First Contact SMS v2 (4723767) → SMS bilingüe como Jorge → Stage "Contacted"
+3. Cliente responde → Quo webhook → fer_agent.php → Fer califica con historial
+4. Fer: transición suave Jorge→Fer para primer contacto ("Soy Fer, la asistente de Jorge, gracias por responder")
+5. Calificación Partner Driven: owner → situación → timeline → amount owed → asking price → lowest → realtor math → win-win
+6. Regla 3 strikes: si cliente repite mismo precio 3 veces, Fer para y dice "Jorge respeta eso"
+7. Scheduling: sugiere cita con ángulo de ahorro de tiempo → crea evento en Google Calendar
+8. Property Inspector: sugiere fotos con link directo → envía URL con contactId+client mode
+9. Escalation: Fer Score 0-10 + alerta Telegram a Jorge
+10. Seguimiento: Step=0 → Make Engine (24 toques, 12 meses) → respuesta → Fer retoma sin repetir
+11. DNC guard: contactos marcados no entran a Seguimiento
+12. Stale cron: "Contacted" sin respuesta 5 días → "Seguimiento" automático
+13. Cold: Step ≥ 24 → "Dead"
+
+**Escenarios Make activos (7):**
+- 4541469: Deal Driven Import
+- 4501430: Confirmation SMS Appointments (webhook)
+- 4723767: First Contact SMS v2 (Airtable watch, Stage="To Be Contacted")
+- 4656574: Seguimiento Cold (diario 9:45 AM, Step≥24 → Dead)
+- 4656571: Seguimiento Engine (diario 9:30 AM, SMS+Email, Step++)
+- 4636455: Social Media Ideas → Airtable
+- 4408392: Website Leads
+- DESACTIVADOS: 4725930 (Quo Inbound "Ana" — reemplazado por Fer), 4738270 (Fer v1 crasheado)
+
+**Prompt de Fer — reglas clave:**
+- Empathy first, qualification second
+- No promesas falsas (sin tiempos específicos, sin montos, sin "dinero en tu bolsillo")
+- Price discovery: preguntar con inteligencia (pasos 5-8 del Call Assistant), nunca negociar
+- 3 strikes en precio: si repite 3 veces, para y continúa
+- Returning clients: no re-presentarse, retomar donde quedó
+- DNC: responder inbound (TCPA OK) pero nunca poner en Seguimiento
+- Bilingüe: detecta idioma del cliente automáticamente
+
+**Para resetear conversación de un número:**
+- `https://pinnaclegroupwi.com/Tools/fer_agent.php?reset=all` (todas)
+- `https://pinnaclegroupwi.com/Tools/fer_agent.php?reset=19209340351` (específico)
+- También borrar el registro correspondiente en tabla Fer Conversations de Airtable
+
+**Para probar limpio:** usar otro número O resetear historial local + borrar registro en Fer Conversations de Airtable
 ---
 
 ## 📋 DEAL ANALYSIS LOG
