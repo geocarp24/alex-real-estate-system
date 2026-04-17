@@ -39,7 +39,10 @@ if (!is_array($event)) {
 
 $eventType = $event['type']    ?? '';
 $eventId   = $event['id']      ?? '';
-$obj       = $event['data']['object'] ?? ($event['data'] ?? []);
+// Quo puts fields directly in data (with data.object = "message" string).
+// Our test payloads may nest them in data.object as an array.
+$dataObj = $event['data']['object'] ?? null;
+$obj = (is_array($dataObj)) ? $dataObj : ($event['data'] ?? []);
 
 fer_log_info('webhook_received', [
     'event_id'   => $eventId,
