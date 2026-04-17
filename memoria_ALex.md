@@ -25,6 +25,14 @@
 - LEMA DEL SISTEMA: Profesional, Automatizado, Inteligente y Eficaz.
 - Antes de hacer push: análisis profundo de TODOS los flujos, encontrar TODOS los gaps, resolverlos TODOS. No dejar ningún lead sin cubrir.
 
+### 2026-04-17 — Capacidades y autonomía
+- Hostinger: acceso SSH vía GitHub Actions (secrets SSH_HOST, SSH_USERNAME, SSH_PASSWORD, SSH_PORT). Puedo ejecutar comandos remotos, configurar crons, hacer deploys. NO pedirle al Jefe cosas que puedo hacer yo.
+- Make.com: acceso API (token en memoria de chat). Puedo listar/modificar escenarios.
+- Airtable: acceso API completo. Puedo crear tablas, campos, registros.
+- Quo/OpenPhone: API key para enviar SMS.
+- Telegram: bot token para alertas.
+- REGLA: si algo se puede automatizar o ejecutar directo, HACERLO. Nunca delegarle trabajo manual al Jefe.
+
 ---
 
 ## 📋 DEAL ANALYSIS LOG

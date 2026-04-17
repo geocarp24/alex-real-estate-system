@@ -62,3 +62,8 @@ jobs:
             define('ALEX_SECRET',  '${{ secrets.ALEX_SECRET }}');
             PHPEOF
             echo "config files written OK"
+
+            # Set up Fer stale contacts cron (daily 8:00 AM CST = 14:00 UTC)
+            CRON_CMD="0 14 * * * curl -s https://pinnaclegroupwi.com/Tools/fer_stale_cron.php > /dev/null 2>&1"
+            (crontab -l 2>/dev/null | grep -v fer_stale_cron; echo "$CRON_CMD") | crontab -
+            echo "fer_stale_cron configured OK"
