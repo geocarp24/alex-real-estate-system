@@ -26,6 +26,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && empty($_GET)) {
     exit;
 }
 
+// Reset conversation memory: fer_agent.php?reset=all or ?reset=19209340351
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['reset'])) {
+    require_once __DIR__ . '/lib/fer_conversations.php';
+    $r = $_GET['reset'];
+    if ($r === 'all') {
+        $dir = defined('FER_CONV_DIR') ? FER_CONV_DIR : __DIR__ . '/fer_conversations';
+        $c = 0;
+        foreach (glob($dir . '/*.json') ?: [] as $f) { @unlink($f); $c++; }
+        echo json_encode(['reset' => 'all', 'deleted' => $c]);
+    } else {
+        $phone = preg_replace('/[^0-9]/', '', $r);
+        $dir = defined('FER_CONV_DIR') ? FER_CONV_DIR : __DIR__ . '/fer_conversations';
+        $path = $dir . '/' . $phone . '.json';
+        $ok = is_file($path) ? @unlink($path) : false;
+        echo json_encode(['reset' => $phone, 'deleted' => $ok]);
+    }
+    exit;
+}
+
 // ── 1. Parse webhook body ───────────────────────────────────────
 $raw   = file_get_contents('php://input');
 $event = json_decode($raw, true);
