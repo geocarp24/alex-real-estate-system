@@ -1,7 +1,41 @@
 <?php
-// Fer diagnostic — temporary, delete after debugging
+// Fer diagnostic + conversation management
 header('Content-Type: application/json');
 require_once __DIR__ . '/config.php';
+
+// Reset conversation: fer_diag.php?reset=all or fer_diag.php?reset=19209340351
+$reset = $_GET['reset'] ?? '';
+if ($reset) {
+    $convDir = __DIR__ . '/fer_conversations';
+    if ($reset === 'all') {
+        $count = 0;
+        foreach (glob($convDir . '/*.json') ?: [] as $f) { @unlink($f); $count++; }
+        echo json_encode(['reset' => 'all', 'deleted' => $count]);
+        exit;
+    } else {
+        $phone = preg_replace('/[^0-9]/', '', $reset);
+        $path = $convDir . '/' . $phone . '.json';
+        if (is_file($path)) { @unlink($path); echo json_encode(['reset' => $phone, 'deleted' => true]); }
+        else { echo json_encode(['reset' => $phone, 'deleted' => false, 'not_found' => true]); }
+        exit;
+    }
+}
+
+// List conversations: fer_diag.php?list=1
+if (isset($_GET['list'])) {
+    $convDir = __DIR__ . '/fer_conversations';
+    $convos = [];
+    foreach (glob($convDir . '/*.json') ?: [] as $f) {
+        $d = json_decode(file_get_contents($f), true);
+        $convos[] = [
+            'phone' => $d['phone'] ?? basename($f, '.json'),
+            'msgs'  => $d['messageCount'] ?? 0,
+            'owner' => $d['isOwner'] ?? '?',
+        ];
+    }
+    echo json_encode(['conversations' => $convos]);
+    exit;
+}
 
 $checks = [
     'ANTHROPIC_API_KEY' => defined('ANTHROPIC_API_KEY') && strlen(ANTHROPIC_API_KEY) > 10,
