@@ -66,4 +66,9 @@ jobs:
             # Set up Fer stale contacts cron (daily 8:00 AM CST = 14:00 UTC)
             CRON_CMD="0 14 * * * curl -s https://pinnaclegroupwi.com/Tools/fer_stale_cron.php > /dev/null 2>&1"
             (crontab -l 2>/dev/null | grep -v fer_stale_cron; echo "$CRON_CMD") | crontab -
-            echo "fer_stale_cron configured OK"
+
+            # Set up First Contact SMS cron (every 15 min, time check is inside PHP)
+            FC_CMD="*/15 * * * * curl -s https://pinnaclegroupwi.com/Tools/fer_first_contact.php > /dev/null 2>&1"
+            (crontab -l 2>/dev/null | grep -v fer_first_contact; echo "$FC_CMD") | crontab -
+
+            echo "crons configured OK"
