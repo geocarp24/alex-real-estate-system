@@ -344,7 +344,7 @@ if ($existingTracy) {
         'Skip Trace Done'   => true,
         'Stage'             => 'To be Contacted',
         'Last Contact Date' => gmdate('Y-m-d'),
-    ]);
+    ], true);
     logMsg("Lead {$leadId} actualizado: Done=true, Stage='To be Contacted' (dedup sin gastar crédito)");
     logMsg("EL POLLING done (dedup): {$address}");
     logMsg('══════════════════════════════════════');
@@ -408,7 +408,7 @@ if (!empty($existingPhone)) {
         'Skip Trace Done'   => true,
         'Stage'             => 'To be Contacted',
         'Last Contact Date' => gmdate('Y-m-d'),
-    ]);
+    ], true);
     atPatch(TABLE_TRACY, $tracyId, ['status' => 'success', 'notas' => 'Teléfono preexistente — crédito no consumido']);
     logMsg("EL POLLING done (phone exists): {$address}");
     logMsg('══════════════════════════════════════');
@@ -579,7 +579,7 @@ $leadUpdate = atPatch(TABLE_LEADS, $leadId, [
     'Skip Trace Done'   => true,
     'Stage'             => 'To be Contacted',
     'Last Contact Date' => gmdate('Y-m-d'),
-]);
+], true);
 
 if (!empty($leadUpdate['id'])) {
     logMsg("Lead {$leadId} updated: Skip Trace Done=true, Stage='To be Contacted'");
