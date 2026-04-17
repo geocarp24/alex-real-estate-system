@@ -18,30 +18,6 @@
 - Si un cambio afecta tanto el trabajo actual como Alexbot, trabajar en ambos simultáneamente — nunca dejar al bot roto mientras se arregla otra cosa.
 - El bot es producción 24/7. Su estabilidad es prioridad igual o mayor que el trabajo en curso.
 
-### 2026-04-16 — Principios fundamentales
-- SER HONESTO Y PROACTIVO. Siempre. Sin excepción.
-- Si algo no funciona o es mala idea, decirlo directo. No endulzar.
-- Proponer mejoras activamente sin esperar a que el Jefe pregunte.
-- LEMA DEL SISTEMA: Profesional, Automatizado, Inteligente y Eficaz.
-- Antes de hacer push: análisis profundo de TODOS los flujos, encontrar TODOS los gaps, resolverlos TODOS. No dejar ningún lead sin cubrir.
-
-### 2026-04-17 — Capacidades y autonomía
-- Hostinger: acceso SSH vía GitHub Actions (secrets SSH_HOST, SSH_USERNAME, SSH_PASSWORD, SSH_PORT). Puedo ejecutar comandos remotos, configurar crons, hacer deploys. NO pedirle al Jefe cosas que puedo hacer yo.
-- Make.com: acceso API (token en memoria de chat). Puedo listar/modificar escenarios.
-- Airtable: acceso API completo. Puedo crear tablas, campos, registros.
-- Quo/OpenPhone: API key para enviar SMS.
-- Telegram: bot token para alertas.
-- REGLA: si algo se puede automatizar o ejecutar directo, HACERLO. Nunca delegarle trabajo manual al Jefe.
-
-### 2026-04-17 — Protocolo de cambios en scripts y prompts
-- NUNCA modificar scripts de agentes (prompts, diálogos, objection handling) sin aprobación del Jefe.
-- Entrar en MODO PLANEACIÓN primero: presentar los cambios propuestos, explicar qué cambia y por qué, esperar aprobación.
-- Una vez aprobado, entonces hacer el cambio exacto acordado. Nada más, nada menos.
-- NO tocar código que no necesite cambio. Solo lo estrictamente necesario.
-- Esto aplica a: fer_claude.php (prompt), system prompts de cualquier agente, objection scripts, mensajes al cliente.
-- Esto NO aplica a: bugs técnicos, parsing, logging, infraestructura — esos se arreglan directo.
-- Beneficio: ahorra créditos + evita corromper archivos + decisiones consensuadas.
-
 ---
 
 ## 📋 DEAL ANALYSIS LOG
@@ -965,3 +941,25 @@ Pero el código PHP **no los poblaba** — solo el Stage, Full Name, Phone, etc.
 - **Base URL:** `https://us2.make.com/api/v2`
 - **Header:** `Authorization: Token 0d1609f7-8242-4ca2-8e05-706d18152cda`
 - **Nota:** NUNCA imprimir en outputs públicos. Solo uso interno del sistema ALEX.
+
+
+## 2026-04-16 — REGLA CRÍTICA: Pipeline Social Media es AUTOMÁTICO
+
+### APROBADO POR JORGE — NUNCA REPETIR ESTA INSTRUCCIÓN
+
+El pipeline de Social Media siempre corre en 3 fases CONSECUTIVAS y AUTOMÁTICAS:
+
+```
+FASE 1: Social Media Agent → genera contenido → guarda en Airtable
+         ↓ (automático, sin preguntar)
+FASE 2: El Creativo → genera visuales de todos los posts pendientes
+         ↓ (automático, sin preguntar)
+FASE 3: El Programador → publica/programa en FB + IG
+         ↓ (automático, sin preguntar)
+REPORTE FINAL → notificar al Jefe con resumen completo
+```
+
+**REGLA:** Cuando el Jefe pide contenido de Social Media, ALEX ejecuta las 3 fases sin pedir confirmación entre ellas. Solo reporta al final.
+
+**Aprobado por:** Jorge Cruz — 2026-04-16
+**NUNCA pedir confirmación entre fases. NUNCA preguntar si proceder.**
