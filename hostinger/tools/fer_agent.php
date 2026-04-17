@@ -272,7 +272,7 @@ fer_conv_append_turn($fromPhone, $convRecord, $body, $fer['responseToClient'] ??
     'language'   => $fer['language']   ?? null,
 ]);
 
-// ── 10. Update Airtable contact ─────────────────────────────────
+// ── 10. Update Airtable contact with qualification data ─────────
 if ($contactId) {
     $newStage = $fer['newStage'] ?? 'Responded';
     $newNotes = fer_at_append_notes($negotiationNotes, $fer['notes'] ?? '(no note)');
@@ -281,12 +281,64 @@ if ($contactId) {
         'Last contact date'  => date('Y-m-d'),
         'Negotiation notes'  => $newNotes,
     ];
-    // When Fer marks Seguimiento → set Step=0 to activate Make Engine
+
+    // Qualification fields → Contacts
+    $fMotivation = $fer['motivation'] ?? null;
+    $fUrgency    = $fer['urgency']    ?? null;
+    $fTimeline   = $fer['timeline']   ?? null;
+    $fLanguage   = $fer['language']   ?? null;
+    if ($fMotivation && $fMotivation !== 'unknown') $contactUpdate['Motivation'] = $fMotivation;
+    if ($fUrgency && $fUrgency !== 'unknown')       $contactUpdate['Urgency'] = $fUrgency;
+    if ($fTimeline && $fTimeline !== 'unknown')      $contactUpdate['Timeline'] = $fTimeline;
+    if ($fLanguage)                                  $contactUpdate['Lenguage'] = $fLanguage;
+
+    // Financial fields → Contacts
+    if (!empty($fer['askingPrice'])) $contactUpdate['Asking Price'] = intval($fer['askingPrice']);
+    if (!empty($fer['lowestPrice'])) $contactUpdate['Lowest Price'] = intval($fer['lowestPrice']);
+    if (!empty($fer['amountOwed']))  $contactUpdate['Amount Owed']  = intval($fer['amountOwed']);
+
+    // Fer Score → Contacts
+    $ferScore = 0;
+    $fIsOwner = $fer['isOwner'] ?? $isOwner;
+    if ($fIsOwner === 'yes')                                 $ferScore += 3;
+    if ($fMotivation && $fMotivation !== 'unknown')          $ferScore += 2;
+    if ($fTimeline && $fTimeline !== 'unknown')               $ferScore += 2;
+    if ($fUrgency === 'hot')                                 $ferScore += 2;
+    elseif ($fUrgency === 'warm')                            $ferScore += 1;
+    $ferScore = min($ferScore, 10);
+    if ($ferScore > 0) $contactUpdate['Fer Score'] = $ferScore;
+
+    // When Fer marks Seguimiento → set Step=0 to activate Seguimiento Engine
     if ($newStage === 'Seguimiento' && $stage !== 'Seguimiento') {
         $contactUpdate['Seguimiento Step'] = 0;
         fer_log_info('seguimiento_activated', ['contact' => $contactId]);
     }
+
     fer_at_update_contact($contactId, $contactUpdate);
+}
+
+// ── 10b. Auto-create Lead when Fer qualifies (owner + motivation + escalate) ──
+if (!empty($fer['escalate']) && $contactId && ($fer['isOwner'] ?? $isOwner) === 'yes') {
+    $existingLead = $fields['Property Address'] ?? null;
+    // Only create if no Lead is linked yet
+    if (empty($existingLead)) {
+        $leadFields = [
+            'Address'          => $propertyAddress,
+            'City'             => $city,
+            'Estate'           => 'WI',
+            'Stage'            => 'Qualified by Fer',
+            'Lead Source'      => 'Fer AI - SMS',
+            'Dated Added'      => date('Y-m-d'),
+            'Contacts'         => [$contactId],
+        ];
+        if (!empty($fer['askingPrice'])) $leadFields['Asking Price'] = intval($fer['askingPrice']);
+        $leadRes = fer_at_request('POST', fer_at_url('tblxZz2EWIglOLnEd'), ['fields' => $leadFields, 'typecast' => true]);
+        if ($leadRes['ok']) {
+            fer_log_info('lead_auto_created', ['contact' => $contactId, 'lead' => $leadRes['data']['id'] ?? '?']);
+        } else {
+            fer_log_error('lead_auto_create_failed', ['contact' => $contactId, 'error' => $leadRes['error'] ?? '?']);
+        }
+    }
 }
 
 // ── 10b. Log full conversation to Fer Conversations table (QC) ──
