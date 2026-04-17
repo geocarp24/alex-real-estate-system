@@ -71,4 +71,8 @@ jobs:
             FC_CMD="*/15 * * * * curl -s https://pinnaclegroupwi.com/Tools/fer_first_contact.php > /dev/null 2>&1"
             (crontab -l 2>/dev/null | grep -v fer_first_contact; echo "$FC_CMD") | crontab -
 
+            # Set up Seguimiento Engine cron (daily 9:30 AM CST = 15:30 UTC)
+            SEG_CMD="30 15 * * * curl -s https://pinnaclegroupwi.com/Tools/fer_seguimiento.php > /dev/null 2>&1"
+            (crontab -l 2>/dev/null | grep -v fer_seguimiento; echo "$SEG_CMD") | crontab -
+
             echo "crons configured OK"
