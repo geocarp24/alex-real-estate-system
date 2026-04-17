@@ -261,8 +261,20 @@ function fer_claude_decide(array $ctx) {
         $text = $data['content'][0]['text'];
     }
 
-    $raw = trim(preg_replace('/\s*```$/', '', preg_replace('/^```(?:json)?\s*/i', '', trim($text))));
-    $fer = json_decode($raw, true);
+    // Strip markdown code fences (```json ... ```) — Claude sometimes wraps JSON
+    $cleaned = trim($text);
+    $cleaned = preg_replace('/^```(?:json)?\s*/si', '', $cleaned);
+    $cleaned = preg_replace('/\s*```\s*$/s', '', $cleaned);
+    $cleaned = trim($cleaned);
+
+    // Try to extract JSON object if there's extra text around it
+    if ($cleaned !== '' && $cleaned[0] !== '{') {
+        if (preg_match('/\{[\s\S]*\}/', $cleaned, $m)) {
+            $cleaned = $m[0];
+        }
+    }
+
+    $fer = json_decode($cleaned, true);
 
     if (!is_array($fer) || !isset($fer['responseToClient'])) {
         fer_log_warn('claude_parse_failed', ['sample' => substr($text, 0, 300)]);
