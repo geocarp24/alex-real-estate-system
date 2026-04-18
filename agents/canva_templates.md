@@ -9,10 +9,11 @@
 
 ```
 Colores:
-  Primario:    #0A1628  (azul marino oscuro)
+  Primario:    #0D3B2E  (verde oscuro money green)
   Secundario:  #C9A84C  (dorado)
   Fondo:       #FFFFFF  (blanco)
-  Texto:       #0A1628  (azul marino) o #FFFFFF sobre fondo oscuro
+  Texto:       #0D3B2E  (verde oscuro) o #FFFFFF sobre fondo oscuro
+  Alt fondo:   #1A1A1A  (negro suave, alterno T3)
 
 Tipografía:
   Títulos:     Montserrat Bold
