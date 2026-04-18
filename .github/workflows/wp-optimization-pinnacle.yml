@@ -51,16 +51,28 @@ jobs:
           echo "steps=$STEPS" >> "$GITHUB_OUTPUT"
           echo "Will run: $STEPS"
 
-      - name: Copy Pinnacle wp-optimization scripts to Hostinger
+      - name: Copy optimization scripts to Hostinger
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT }}
-          source: "hostinger/wp-optimization-pinnacle/**"
-          target: "/home/u433637438/wp-optimization-pinnacle-staging/"
-          strip_components: 2
+          source: "hostinger/wp-optimization-pinnacle/scripts/*"
+          target: /home/u433637438/wp-optimization-pinnacle-staging/scripts/
+          strip_components: 3
+          overwrite: true
+
+      - name: Copy MU-plugin to Hostinger
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "hostinger/wp-optimization-pinnacle/mu-plugins/*"
+          target: /home/u433637438/wp-optimization-pinnacle-staging/mu-plugins/
+          strip_components: 3
           overwrite: true
 
       - name: Execute optimization steps
