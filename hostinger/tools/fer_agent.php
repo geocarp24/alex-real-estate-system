@@ -255,6 +255,15 @@ if (!empty($fer['escalate'])) {
         'motivation'      => $fMotivation,
         'timeline'        => $fTimeline,
         'urgency'         => $fUrgency,
+        'askingPrice'     => $fer['askingPrice']     ?? null,
+        'lowestPrice'     => $fer['lowestPrice']     ?? null,
+        'amountOwed'      => $fer['amountOwed']      ?? null,
+        'vacant'          => $fer['vacant']           ?? null,
+        'repairEstimate'  => $fer['repairEstimate']   ?? null,
+        'otherDecisionMakers' => $fer['otherDecisionMakers'] ?? null,
+        'preferredContact'=> $fer['preferredContact'] ?? null,
+        'bestTimeToCall'  => $fer['bestTimeToCall']   ?? null,
+        'clientEmail'     => $fer['clientEmail']      ?? null,
         'clientMessage'   => $body,
         'ferResponse'     => $fer['responseToClient'] ?? '',
         'ferScore'        => $ferScore,
@@ -297,6 +306,17 @@ if ($contactId) {
     if (!empty($fer['lowestPrice'])) $contactUpdate['Lowest Price'] = intval($fer['lowestPrice']);
     if (!empty($fer['amountOwed']))  $contactUpdate['Amount Owed']  = intval($fer['amountOwed']);
 
+    // Property + contact preference fields → Contacts
+    $fVacant = $fer['vacant'] ?? null;
+    $fPreferred = $fer['preferredContact'] ?? null;
+    $fBestTime = $fer['bestTimeToCall'] ?? null;
+    $fEmail = $fer['clientEmail'] ?? null;
+    if ($fVacant && $fVacant !== 'unknown')       $contactUpdate['Occupied Status'] = ($fVacant === 'Vacant' ? 'Empty' : ($fVacant === 'Rented' ? 'Rented' : 'Owner Occupied'));
+    if ($fPreferred && $fPreferred !== 'unknown') $contactUpdate['Preferred contact method'] = $fPreferred;
+    if ($fBestTime && $fBestTime !== 'unknown')   $contactUpdate['Best time to call'] = $fBestTime;
+    if ($fEmail)                                  $contactUpdate['Email1'] = $fEmail;
+    if (!empty($fer['repairEstimate']))           $contactUpdate['Repair Estimate'] = intval($fer['repairEstimate']);
+
     // Fer Score → Contacts
     $ferScore = 0;
     $fIsOwner = $fer['isOwner'] ?? $isOwner;
@@ -317,27 +337,57 @@ if ($contactId) {
     fer_at_update_contact($contactId, $contactUpdate);
 }
 
-// ── 10b. Auto-create Lead when Fer qualifies (owner + motivation + escalate) ──
+// ── 10b. Auto-create Deal when Fer qualifies (owner + motivation + escalate) ──
 if (!empty($fer['escalate']) && $contactId && ($fer['isOwner'] ?? $isOwner) === 'yes') {
-    $existingLead = $fields['Property Address'] ?? null;
-    // Only create if no Lead is linked yet
-    if (empty($existingLead)) {
-        $leadFields = [
-            'Address'          => $propertyAddress,
-            'City'             => $city,
-            'Estate'           => 'WI',
-            'Stage'            => 'Qualified by Fer',
-            'Lead Source'      => 'Fer AI - SMS',
-            'Dated Added'      => date('Y-m-d'),
-            'Contacts'         => [$contactId],
-        ];
-        if (!empty($fer['askingPrice'])) $leadFields['Asking Price'] = intval($fer['askingPrice']);
-        $leadRes = fer_at_request('POST', fer_at_url('tblxZz2EWIglOLnEd'), ['fields' => $leadFields, 'typecast' => true]);
-        if ($leadRes['ok']) {
-            fer_log_info('lead_auto_created', ['contact' => $contactId, 'lead' => $leadRes['data']['id'] ?? '?']);
-        } else {
-            fer_log_error('lead_auto_create_failed', ['contact' => $contactId, 'error' => $leadRes['error'] ?? '?']);
-        }
+    // Build qualification summary
+    $fSummary = "Qualified by Fer AI on " . date('Y-m-d H:i') . "\n"
+        . "Owner: " . ($fer['isOwner'] ?? '?') . "\n"
+        . "Motivation: " . ($fer['motivation'] ?? '?') . "\n"
+        . "Timeline: " . ($fer['timeline'] ?? '?') . "\n"
+        . "Urgency: " . ($fer['urgency'] ?? '?') . "\n"
+        . "Asking: " . (!empty($fer['askingPrice']) ? '$' . number_format($fer['askingPrice']) : '?') . "\n"
+        . "Lowest: " . (!empty($fer['lowestPrice']) ? '$' . number_format($fer['lowestPrice']) : '?') . "\n"
+        . "Owed: " . (!empty($fer['amountOwed']) ? '$' . number_format($fer['amountOwed']) : '?') . "\n"
+        . "Vacant: " . ($fer['vacant'] ?? '?') . "\n"
+        . "Repairs: " . (!empty($fer['repairEstimate']) ? '$' . number_format($fer['repairEstimate']) : '?') . "\n"
+        . "Others involved: " . ($fer['otherDecisionMakers'] ?? 'None') . "\n"
+        . "Preferred contact: " . ($fer['preferredContact'] ?? '?') . "\n"
+        . "Best time: " . ($fer['bestTimeToCall'] ?? '?') . "\n"
+        . "Escalation reason: " . ($fer['escalateReason'] ?? '?');
+
+    $dealFields = [
+        'Property Address'        => $propertyAddress,
+        'Citi'                    => $city,
+        'Estate'                  => 'WI',
+        'Pipeline Stage'          => 'Qualified by Fer',
+        'Deal Source'             => 'Fer AI - SMS',
+        'Date Created'            => date('c'),
+        'Contacts'                => [$contactId],
+        'Seller Phone'            => $fromPhone,
+        'Seller Motivation'       => ($fer['motivation'] ?? '') . ' — ' . ($fer['escalateReason'] ?? ''),
+        'Fer Score'               => $ferScore ?? 0,
+        'Urgency'                 => $fer['urgency'] ?? null,
+        'Timeline'                => $fer['timeline'] ?? null,
+        'Fer Qualification Summary' => $fSummary,
+    ];
+    if (!empty($fer['askingPrice']))   $dealFields['Asking Price']   = intval($fer['askingPrice']);
+    if (!empty($fer['lowestPrice']))   $dealFields['Lowest Price']   = intval($fer['lowestPrice']);
+    if (!empty($fer['amountOwed']))    $dealFields['Amount Owed']    = intval($fer['amountOwed']);
+    if (!empty($fer['repairEstimate']))$dealFields['Est. Repairs']   = intval($fer['repairEstimate']);
+    if (!empty($fer['vacant']))        $dealFields['Vacant Status']  = $fer['vacant'];
+    if (!empty($fer['otherDecisionMakers'])) $dealFields['Other Decision Makers'] = $fer['otherDecisionMakers'];
+    if (!empty($fer['preferredContact']))    $dealFields['Preferred Contact'] = $fer['preferredContact'];
+    if (!empty($fer['bestTimeToCall']))      $dealFields['Best Time to Call'] = $fer['bestTimeToCall'];
+    if (!empty($fer['clientEmail']))         $dealFields['Seller Email'] = $fer['clientEmail'];
+
+    // Remove null values
+    $dealFields = array_filter($dealFields, function($v) { return $v !== null && $v !== ''; });
+
+    $dealRes = fer_at_request('POST', fer_at_url('tbliaEKxBHKBx7ZK2'), ['fields' => $dealFields, 'typecast' => true]);
+    if ($dealRes['ok']) {
+        fer_log_info('deal_auto_created', ['contact' => $contactId, 'deal' => $dealRes['data']['id'] ?? '?', 'score' => $ferScore ?? 0]);
+    } else {
+        fer_log_error('deal_auto_create_failed', ['contact' => $contactId, 'error' => $dealRes['error'] ?? '?']);
     }
 }
 

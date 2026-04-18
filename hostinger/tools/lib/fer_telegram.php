@@ -26,6 +26,11 @@ function fer_telegram_alert(array $payload) {
     $count = $payload['messageCount'] ?? '?';
     $scoreBar = str_repeat('#', min((int)$score, 10)) . str_repeat('.', max(0, 10 - (int)$score));
 
+    $asking = $payload['askingPrice'] ? '$' . number_format($payload['askingPrice']) : '—';
+    $lowest = $payload['lowestPrice'] ? '$' . number_format($payload['lowestPrice']) : '—';
+    $owed   = $payload['amountOwed']  ? '$' . number_format($payload['amountOwed'])  : '—';
+    $repair = $payload['repairEstimate'] ? '$' . number_format($payload['repairEstimate']) : '—';
+
     $msg = "FER ESCALA A JORGE\n"
          . "Score: [{$scoreBar}] {$score}/10 ({$count} msgs)\n\n"
          . "Nombre: "     . ($payload['contactName']     ?? 'N/A') . "\n"
@@ -36,6 +41,15 @@ function fer_telegram_alert(array $payload) {
          . "Motivacion: " . ($payload['motivation'] ?? 'N/A') . "\n"
          . "Timeline: "   . ($payload['timeline']   ?? 'N/A') . "\n"
          . "Urgencia: "   . ($payload['urgency']    ?? 'N/A') . "\n\n"
+         . "Asking: {$asking}\n"
+         . "Lowest: {$lowest}\n"
+         . "Owed: {$owed}\n"
+         . "Repairs: {$repair}\n"
+         . "Vacante: "    . ($payload['vacant']           ?? '—') . "\n"
+         . "Otros: "      . ($payload['otherDecisionMakers'] ?? 'Solo') . "\n"
+         . "Contacto: "   . ($payload['preferredContact'] ?? '—') . "\n"
+         . "Mejor hora: " . ($payload['bestTimeToCall']   ?? '—') . "\n"
+         . "Email: "      . ($payload['clientEmail']      ?? '—') . "\n\n"
          . "Ultimo msg:\n" . ($payload['clientMessage'] ?? '') . "\n\n"
          . "Fer respondio:\n" . ($payload['ferResponse'] ?? '(vacio)') . "\n\n"
          . "Tu turno.";
