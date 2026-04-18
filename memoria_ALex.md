@@ -18,6 +18,85 @@
 - Si un cambio afecta tanto el trabajo actual como Alexbot, trabajar en ambos simultáneamente — nunca dejar al bot roto mientras se arregla otra cosa.
 - El bot es producción 24/7. Su estabilidad es prioridad igual o mayor que el trabajo en curso.
 
+### 2026-04-16 — Principios fundamentales
+- SER HONESTO Y PROACTIVO. Siempre. Sin excepción.
+- Si algo no funciona o es mala idea, decirlo directo. No endulzar.
+- Proponer mejoras activamente sin esperar a que el Jefe pregunte.
+- LEMA DEL SISTEMA: Profesional, Automatizado, Inteligente y Eficaz.
+- Antes de hacer push: análisis profundo de TODOS los flujos, encontrar TODOS los gaps, resolverlos TODOS.
+
+### 2026-04-17 — Capacidades y autonomía
+- Hostinger: acceso SSH vía GitHub Actions. Puedo ejecutar comandos remotos, configurar crons, hacer deploys. NO pedirle al Jefe cosas que puedo hacer yo.
+- Make.com: acceso API (token: 856a1ce2-...). Puedo listar/modificar escenarios.
+- Airtable: acceso API completo. Puedo crear tablas, campos, registros.
+- Quo/OpenPhone: API key para enviar SMS.
+- Telegram: bot token para alertas (@Ferpinnaclebot).
+- REGLA: si algo se puede automatizar o ejecutar directo, HACERLO.
+
+### 2026-04-17 — Protocolo de cambios en scripts y prompts
+- NUNCA modificar scripts de agentes (prompts, diálogos, objection handling) sin aprobación del Jefe.
+- Entrar en MODO PLANEACIÓN primero: presentar cambios, explicar qué y por qué, esperar aprobación.
+- NO tocar código que no necesite cambio. Solo lo estrictamente necesario.
+- Aplica a: fer_claude.php, system prompts, objection scripts, mensajes al cliente.
+- NO aplica a: bugs técnicos, parsing, logging, infraestructura — esos se arreglan directo.
+
+---
+
+## FER AI RECEPTIONIST — Proyecto completo (2026-04-17/18)
+
+**Estado: EN PRODUCCIÓN**
+
+**Arquitectura:** Quo webhook → fer_agent.php → Claude Haiku/Sonnet → SMS + Telegram + Airtable
+
+**Archivos PHP en Hostinger (hostinger/tools/):**
+- `fer_agent.php` — orquestador principal, webhook receiver
+- `fer_first_contact.php` — cron 15min, rotación Phone1-4, 4 mensajes únicos bilingües
+- `fer_seguimiento.php` — cron diario 9:30AM, 24 toques SMS+Email, 12 meses
+- `fer_stale_cron.php` — cron diario 8AM, "Contacted" sin respuesta 5d → "Seguimiento"
+- `fer_morning_brief.php` — cron diario 8:30AM, resumen pipeline + health check → Telegram
+- `fer_diag.php` — diagnóstico + reset (requiere token=pinnacle2026)
+- `lib/fer_claude.php` — prompt + Claude API + auto-escalation Haiku→Sonnet
+- `lib/fer_conversations.php` — historial local por teléfono
+- `lib/fer_airtable.php` — Contacts + Fer Conversations + Deals
+- `lib/fer_quo.php` — SMS via Quo/OpenPhone
+- `lib/fer_telegram.php` — alertas a Jorge con Fer Score + datos completos
+- `lib/fer_logger.php` — logs JSONL
+- `lib/fer_deduplication.php` — dedup por messageId
+
+**Tablas Airtable:**
+- Leads: `tblxZz2EWIglOLnEd` — lista cruda de leads
+- Contacts: `tblacvw0Ss770x8l5` — CRM principal con campos de calificación
+- Deals: `tbliaEKxBHKBx7ZK2` — oportunidades reales, auto-creadas por Fer
+- Fer Conversations: `tbleausFNpHhqLfsm` — transcripciones completas (QC)
+- Tracy: `tbl6CJm4kYspOuTDB` — resultados skip trace
+- Notes & Activity: `tbleOBXJl7sDhwj5w` — historial
+
+**Flujo completo:**
+1. Jefe marca Lead "Review this Deal" → el_polling (5min) → Tracy skip trace → Contact
+2. fer_first_contact (15min, 9am-7pm) → SMS Phone1 → 24h → Phone2 → Phone3 → Phone4
+3. DNC: solo Phone1 empático, luego Seguimiento
+4. Cliente responde → Fer califica: owner, dirección, situación, timeline, amount owed, asking/lowest price, realtor math, win-win (3 strikes), vacant, repairs, decision makers, preferred contact, best time, email
+5. Escalation → Telegram con Fer Score + todos los datos → Deal auto-creado con datos de Lead + Fer
+6. Sin respuesta 5d → "Seguimiento" → Engine 24 toques → Step≥24 → Dead
+7. Cliente responde a follow-up → Fer retoma sin repetir → Stage "Negotiation"
+
+**Prompt reglas clave:** empathy first, no promesas falsas (sin tiempos específicos), price discovery (preguntar no negociar), 3 strikes en precio, bilingüe auto
+
+**Crons Hostinger:**
+- */15 * * * * → fer_first_contact.php
+- 0 14 * * * → fer_stale_cron.php
+- 30 15 * * * → fer_seguimiento.php
+- 30 14 * * * → fer_morning_brief.php
+
+**Make desactivados:** 4725930, 4738270, 4723767, 4656571, 4656574
+**Make activos (no críticos):** 4541469, 4501430, 4636455, 4408392
+
+**Secrets GitHub (Hostinger):** AIRTABLE_TOKEN, TRACERFY_TOKEN, ANTHROPIC_API_KEY, MAKE_API_TOKEN, QUO_API_KEY, FER_TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+
+**Para resetear conversación:** `fer_agent.php?token=pinnacle2026&reset=all` (o número específico)
+
+**Pipeline al cierre 2026-04-18:** 6 TBC, 2 Contacted, 16 Seguimiento, 0 Deals, todos los sistemas verdes
+
 ---
 
 ## 📋 DEAL ANALYSIS LOG
