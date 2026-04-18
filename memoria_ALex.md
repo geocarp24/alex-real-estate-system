@@ -88,8 +88,8 @@
 - 30 15 * * * → fer_seguimiento.php
 - 30 14 * * * → fer_morning_brief.php
 
-**Make desactivados:** 4725930, 4738270, 4723767, 4656571, 4656574
-**Make activos (no críticos):** 4541469, 4501430, 4636455, 4408392
+**Make eliminados (2026-04-18):** 4725930, 4738270, 4723767 (First Contact SMS v2), 4656571 (Seguimiento Engine), 4656574 (Seguimiento Cold) — reemplazados por crons PHP en Hostinger.
+**Make activos:** 4541469 (Deal Driven Import), 4501430 (Confirmation SMS Appointments), 4636455 (Social Media Ideas → Airtable), 4408392 (Website Leads)
 
 **Secrets GitHub (Hostinger):** AIRTABLE_TOKEN, TRACERFY_TOKEN, ANTHROPIC_API_KEY, MAKE_API_TOKEN, QUO_API_KEY, FER_TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 
