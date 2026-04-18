@@ -3,18 +3,10 @@ name: WP Optimization — Pinnacle Holdings (pinnaclegroupwi.com)
 on:
   workflow_dispatch:
     inputs:
-      steps:
-        description: 'Steps to run (comma list: 01,02,03 or "all")'
+      mode:
+        description: 'Mode: deploy-home | rollback | custom'
         required: true
-        default: '01,02,03'
-        type: string
-      pixel_id:
-        description: 'Meta Pixel ID (only used if step 04 is in the list)'
-        required: false
-        type: string
-      clarity_id:
-        description: 'Microsoft Clarity ID (only used if step 04 is in the list)'
-        required: false
+        default: 'deploy-home'
         type: string
   push:
     branches:
@@ -22,6 +14,7 @@ on:
     paths:
       - 'hostinger/wp-optimization-pinnacle/scripts/**'
       - 'hostinger/wp-optimization-pinnacle/mu-plugins/**'
+      - 'hostinger/wp-optimization-pinnacle/content/**'
       - '.github/workflows/wp-optimization-pinnacle.yml'
 
 concurrency:
@@ -30,35 +23,25 @@ concurrency:
 
 jobs:
   deploy:
-    name: Run WP-CLI optimizations on Hostinger
+    name: Deploy home page via SSH + GitHub API fetch
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout
+      - name: Checkout (for YAML context only)
         uses: actions/checkout@v4
 
-      - name: Resolve steps to run
-        id: resolve
-        run: |
-          STEPS="${{ github.event.inputs.steps }}"
-          if [ -z "$STEPS" ]; then
-            # Push event: run safe defaults (00 + 01 + 02 + 03). Tracking (04) never auto-runs.
-            STEPS="01,02,03"
-          fi
-          if [ "$STEPS" = "all" ]; then
-            STEPS="01,02,03,04"
-          fi
-          echo "steps=$STEPS" >> "$GITHUB_OUTPUT"
-          echo "Will run: $STEPS"
-
-      - name: Inline rollback via SSH (no SCP)
+      - name: Deploy home.html via SSH (no SCP, server-side curl)
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+          BRANCH: claude/remove-unused-make-scenarios-17mEX
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT }}
-          timeout: 60s
+          envs: GH_PAT,BRANCH
+          timeout: 120s
           command_timeout: 10m
           script: |
             set -uo pipefail
@@ -66,92 +49,75 @@ jobs:
             export BACKUP_DIR="$HOME/alex_backups/wp-optimization-pinnacle"
             export PATH="/usr/local/bin:$PATH"
 
-            echo "=== Pinnacle Holdings — EMERGENCY ROLLBACK ==="
-            echo "WP_PATH:    $WP_PATH"
-            echo "BACKUP_DIR: $BACKUP_DIR"
+            echo "=== Pinnacle WP — Home Deploy ==="
+            echo "WP_PATH: $WP_PATH"
             echo
 
-            if [ ! -d "$BACKUP_DIR" ]; then
-              echo "FATAL: backup dir does not exist"
+            mkdir -p "$BACKUP_DIR"
+            TS=$(date +%Y%m%d_%H%M%S)
+            SNAP="$BACKUP_DIR/pre-home-deploy_$TS"
+            mkdir -p "$SNAP"
+
+            HOME_PID=$(wp --path="$WP_PATH" option get page_on_front 2>/dev/null)
+            if [ -z "${HOME_PID:-}" ] || [ "$HOME_PID" = "0" ]; then
+              echo "FATAL: cannot determine home page ID"
+              exit 1
+            fi
+            echo "Home page ID: $HOME_PID"
+
+            echo "--- [1/5] Snapshot current home post_content ---"
+            CUR_SIZE=$(wp --path="$WP_PATH" post get "$HOME_PID" --field=post_content 2>/dev/null | tee "$SNAP/home_${HOME_PID}.html" | wc -c)
+            echo "  saved snapshot: $SNAP/home_${HOME_PID}.html (${CUR_SIZE}B)"
+
+            echo "--- [2/5] Fetch new home.html from GitHub (private repo via API) ---"
+            NEW_FILE="/tmp/pinnacle_home_new_$$.html"
+            curl -sS --fail \
+              -H "Authorization: Bearer $GH_PAT" \
+              -H "Accept: application/vnd.github.raw" \
+              "https://api.github.com/repos/geocarp24/alex-real-estate-system/contents/hostinger/wp-optimization-pinnacle/content/home.html?ref=$BRANCH" \
+              -o "$NEW_FILE"
+            if [ ! -s "$NEW_FILE" ]; then
+              echo "FATAL: fetched file is empty"
+              exit 1
+            fi
+            NEW_SIZE=$(wc -c < "$NEW_FILE")
+            echo "  fetched: $NEW_FILE (${NEW_SIZE}B)"
+
+            echo "--- [3/5] Validate block structure (balanced wp: comments) ---"
+            OPENS=$(grep -oE '<!-- wp:' "$NEW_FILE" | wc -l)
+            CLOSES=$(grep -oE '<!-- /wp:' "$NEW_FILE" | wc -l)
+            echo "  wp: open=$OPENS  close=$CLOSES"
+            if [ "$OPENS" != "$CLOSES" ]; then
+              echo "FATAL: block opens/closes mismatch — aborting before update"
               exit 1
             fi
 
-            echo "--- All backup snapshots found ---"
-            ls -la "$BACKUP_DIR"/ || true
-            echo
-
-            OLDEST=$(ls -1d "$BACKUP_DIR"/*/ 2>/dev/null | sort | head -1)
-            OLDEST="${OLDEST%/}"
-            if [ -z "$OLDEST" ]; then
-              echo "FATAL: no snapshot directories inside $BACKUP_DIR"
-              exit 1
-            fi
-            echo "Selected OLDEST snapshot: $OLDEST"
-            echo "--- Files in oldest snapshot ---"
-            ls -la "$OLDEST/" || true
-            echo
-
-            cd "$WP_PATH"
-
-            echo "--- Restoring pages from snapshot ---"
-            shopt -s nullglob
-            for f in "$OLDEST"/*.html; do
-              bname=$(basename "$f")
-              pid=$(echo "$bname" | grep -oE '[0-9]+' | tail -1)
-              label=$(echo "$bname" | sed -E 's/_[0-9]+\.html$//')
-              size=$(wc -c < "$f")
-              if [ -z "${pid:-}" ] || [ "$pid" = "0" ]; then
-                echo "  skip $bname (no pid)"
-                continue
-              fi
-              if [ "$size" -lt 200 ]; then
-                echo "  skip $bname (too small: ${size}B)"
-                continue
-              fi
-              if wp post update "$pid" --post_content=- < "$f" >/dev/null 2>&1; then
-                echo "  RESTORED $label (id=$pid) from $bname (${size}B)"
-              else
-                echo "  FAILED to restore $label (id=$pid)"
-              fi
-            done
-
-            echo
-            echo "--- Restoring astra-settings ---"
-            ASTRA_JSON="$OLDEST/astra-settings.json"
-            if [ -f "$ASTRA_JSON" ] && [ "$(wc -c < "$ASTRA_JSON")" -gt 10 ]; then
-              if wp option update astra-settings "$(cat "$ASTRA_JSON")" --format=json >/dev/null 2>&1; then
-                echo "  RESTORED astra-settings ($(wc -c < "$ASTRA_JSON")B)"
-              else
-                echo "  FAILED to restore astra-settings"
-              fi
+            echo "--- [4/5] Update home post_content (stdin pipe, no bash vars) ---"
+            if wp --path="$WP_PATH" post update "$HOME_PID" --post_content=- < "$NEW_FILE"; then
+              echo "  SUCCESS: wp post update returned 0"
             else
-              echo "  skip: astra-settings.json missing or empty"
+              echo "  FAILED: wp post update returned non-zero"
+              exit 1
             fi
 
-            echo
-            echo "--- Purging cache ---"
-            wp litespeed-purge all >/dev/null 2>&1 && echo "  LiteSpeed purged" \
-              || wp cache flush >/dev/null 2>&1 && echo "  WP cache flushed" \
+            echo "--- [5/5] Verify and purge cache ---"
+            VERIFY_SIZE=$(wp --path="$WP_PATH" post get "$HOME_PID" --field=post_content 2>/dev/null | wc -c)
+            echo "  new post_content size: ${VERIFY_SIZE}B (expected ~${NEW_SIZE}B)"
+            wp --path="$WP_PATH" litespeed-purge all >/dev/null 2>&1 && echo "  LiteSpeed purged" \
+              || wp --path="$WP_PATH" cache flush >/dev/null 2>&1 && echo "  WP cache flushed" \
               || echo "  no cache plugin"
 
+            rm -f "$NEW_FILE"
             echo
-            echo "--- Verifying restored content ---"
-            HOME_PID=$(wp option get page_on_front 2>/dev/null)
-            HOME_SIZE=$(wp post get "$HOME_PID" --field=post_content 2>/dev/null | wc -c)
-            echo "  home (id=$HOME_PID) post_content: ${HOME_SIZE}B"
-
-            echo
-            echo "=== ROLLBACK COMPLETE ==="
+            echo "=== HOME DEPLOYED ==="
+            echo "Rollback snapshot: $SNAP/home_${HOME_PID}.html"
 
       - name: Verify live site
         run: |
           sleep 5
-          echo "--- Checking <code> wrappers (expect 0) ---"
-          CODE_COUNT=$(curl -s https://pinnaclegroupwi.com/ | grep -oE '<code>[^<]+</code>' | wc -l)
-          echo "code wrappers: $CODE_COUNT"
-
-          echo "--- Checking hello-world redirect ---"
-          curl -sI https://pinnaclegroupwi.com/hello-world/ | head -2
-
-          echo "--- Checking brand palette hex values ---"
-          curl -s https://pinnaclegroupwi.com/ | grep -oE '#0D3B2E|#C9A84C' | sort -u || echo "(palette hex not found in HTML — may be in CSS)"
+          SIZE=$(curl -s https://pinnaclegroupwi.com/ | wc -c)
+          HAS_HERO=$(curl -s https://pinnaclegroupwi.com/ | grep -c 'We Buy Houses in Green Bay' || true)
+          HAS_FORM=$(curl -s https://pinnaclegroupwi.com/ | grep -c 'Get Your Free Cash Offer' || true)
+          echo "home size: ${SIZE}B"
+          echo "hero present: $HAS_HERO"
+          echo "CTA present: $HAS_FORM"
