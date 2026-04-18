@@ -120,29 +120,46 @@ if (!$wp_loaded) {
 
 // -------- Deferred App Password auth verification --------
 
+$auth_debug = [];
 if (!$auth_ok && isset($pending_basic_user)) {
-    // Manual verification (bypasses wp_is_application_passwords_available()
-    // which can return false outside REST context).
+    $auth_debug['user_input']     = $pending_basic_user;
+    $auth_debug['pass_len']       = strlen($pending_basic_pass);
+    $auth_debug['got_email']      = (bool) get_user_by('email', $pending_basic_user);
+    $auth_debug['got_login']      = (bool) get_user_by('login', $pending_basic_user);
+    $auth_debug['class_exists']   = class_exists('WP_Application_Passwords');
+    $auth_debug['wp_check_fn']    = function_exists('wp_check_password');
+
     $user = get_user_by('email', $pending_basic_user);
     if (!$user) {
         $user = get_user_by('login', $pending_basic_user);
     }
-    if ($user instanceof WP_User && user_can($user, 'manage_options') && class_exists('WP_Application_Passwords')) {
-        $cleaned_pass = str_replace(' ', '', $pending_basic_pass);
-        $hashed_passwords = WP_Application_Passwords::get_user_application_passwords($user->ID);
-        foreach ($hashed_passwords as $item) {
-            if (wp_check_password($cleaned_pass, $item['password'], $user->ID)) {
-                wp_set_current_user($user->ID);
-                $auth_ok     = true;
-                $auth_method = 'app-password';
-                break;
+    if ($user instanceof WP_User) {
+        $auth_debug['user_id']        = $user->ID;
+        $auth_debug['user_login']     = $user->user_login;
+        $auth_debug['manage_options'] = user_can($user, 'manage_options');
+        if (class_exists('WP_Application_Passwords')) {
+            $cleaned_pass = str_replace(' ', '', $pending_basic_pass);
+            $hashed_passwords = WP_Application_Passwords::get_user_application_passwords($user->ID);
+            $auth_debug['app_pass_count'] = is_array($hashed_passwords) ? count($hashed_passwords) : 0;
+            $auth_debug['checks'] = [];
+            if (is_array($hashed_passwords)) {
+                foreach ($hashed_passwords as $idx => $item) {
+                    $matched = wp_check_password($cleaned_pass, $item['password'], $user->ID);
+                    $auth_debug['checks'][] = ['idx' => $idx, 'name' => $item['name'] ?? '?', 'matched' => $matched];
+                    if ($matched && user_can($user, 'manage_options')) {
+                        wp_set_current_user($user->ID);
+                        $auth_ok     = true;
+                        $auth_method = 'app-password';
+                        break;
+                    }
+                }
             }
         }
     }
 }
 if (!$auth_ok) {
     http_response_code(403);
-    echo json_encode(['error' => 'unauthorized', 'hint' => 'use X-Alex-Secret header or Basic Auth with WP App Password']);
+    echo json_encode(['error' => 'unauthorized', 'hint' => 'check debug', 'debug' => $auth_debug]);
     exit;
 }
 
