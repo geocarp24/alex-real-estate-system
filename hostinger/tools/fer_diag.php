@@ -3,7 +3,15 @@
 header('Content-Type: application/json');
 require_once __DIR__ . '/config.php';
 
-// Reset conversation: fer_diag.php?reset=all or fer_diag.php?reset=19209340351
+// Authentication for destructive operations
+$token = $_GET['token'] ?? '';
+$needsAuth = isset($_GET['reset']) || isset($_GET['list']);
+if ($needsAuth && $token !== 'pinnacle2026') {
+    echo json_encode(['error' => 'unauthorized — add ?token=pinnacle2026']);
+    exit;
+}
+
+// Reset conversation: fer_diag.php?token=pinnacle2026&reset=all
 $reset = $_GET['reset'] ?? '';
 if ($reset) {
     $convDir = __DIR__ . '/fer_conversations';

@@ -26,8 +26,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && empty($_GET)) {
     exit;
 }
 
-// Reset conversation memory: fer_agent.php?reset=all or ?reset=19209340351
+// Reset conversation memory: fer_agent.php?token=pinnacle2026&reset=all
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['reset'])) {
+    if (($_GET['token'] ?? '') !== 'pinnacle2026') {
+        http_response_code(403);
+        echo json_encode(['error' => 'unauthorized']);
+        exit;
+    }
     require_once __DIR__ . '/lib/fer_conversations.php';
     $r = $_GET['reset'];
     if ($r === 'all') {

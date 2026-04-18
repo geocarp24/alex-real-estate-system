@@ -75,4 +75,8 @@ jobs:
             SEG_CMD="30 15 * * * curl -s https://pinnaclegroupwi.com/Tools/fer_seguimiento.php > /dev/null 2>&1"
             (crontab -l 2>/dev/null | grep -v fer_seguimiento; echo "$SEG_CMD") | crontab -
 
+            # Set up Morning Brief cron (daily 8:30 AM CST = 14:30 UTC)
+            MB_CMD="30 14 * * * curl -s https://pinnaclegroupwi.com/Tools/fer_morning_brief.php > /dev/null 2>&1"
+            (crontab -l 2>/dev/null | grep -v fer_morning_brief; echo "$MB_CMD") | crontab -
+
             echo "crons configured OK"
