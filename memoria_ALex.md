@@ -1022,6 +1022,50 @@ Pero el código PHP **no los poblaba** — solo el Stage, Full Name, Phone, etc.
 - **Nota:** NUNCA imprimir en outputs públicos. Solo uso interno del sistema ALEX.
 
 
+## 2026-04-18 — pinnaclegroupwi.com — ACCESO PROGRAMÁTICO PERMANENTE (CONFIDENCIAL)
+
+### Canal 1: WordPress REST API (Application Password) — PRIMARIO
+- **Endpoint base:** `https://pinnaclegroupwi.com/wp-json/wp/v2/`
+- **Auth method:** HTTP Basic
+- **Username:** `geocarpentryllc@gmail.com` (user ID 1, Administrator)
+- **Application Password:** `WvC5 TViT xjlS nN0o 2qru bgRq` (concatenar sin espacios para Basic Auth: `WvC5TViTxjlSnN0o2qrubgRq`)
+- **Header de auth:** `Authorization: Basic <base64(username:password_sin_espacios)>`
+- **Verificación rápida:** `curl -u "geocarpentryllc@gmail.com:WvC5TViTxjlSnN0o2qrubgRq" https://pinnaclegroupwi.com/wp-json/wp/v2/users/me` → HTTP 200
+- **IDs útiles:** Home page ID `1373`, Services `1400`, About-Us `1399`, FAQ `1401`, Contact `1402`. CF7 form id `1606`.
+- **Endpoints útiles:**
+  - `GET /pages` — listar páginas
+  - `GET /pages/<id>` — leer página
+  - `POST /pages/<id>` — actualizar `content`, `title`, `status`, `slug`
+  - `POST /pages` — crear nueva página
+  - `GET/POST /posts` — blog posts
+  - `GET/POST /media` — librería de medios
+  - `GET/POST /settings` — configuración del sitio
+- **Nota:** Token activado por Jorge 2026-04-18. NUNCA pedirlo de nuevo. NUNCA imprimirlo en outputs públicos.
+
+### Canal 2: PHP Bridge (X-Alex-Secret) — SECUNDARIO / SEO AGENTS
+- **Endpoint:** `https://pinnaclegroupwi.com/agents/pinnacle_wp_bridge.php`
+- **Auth:** header `X-Alex-Secret: $ALEX_SECRET` (configurado server-side via deploy-hostinger.yml)
+- **Method:** POST con body JSON `{"action": "...", ...}`
+- **Acciones:** ping, list_pages, list_posts, get_post, update_post, create_post, delete_post, get_post_meta, update_post_meta, get_option, update_option, purge_cache
+- **Logs:** `~/wp-bridge.log` en el servidor Hostinger
+- **Rate limit:** 60 req/min por IP
+- **Para usar desde scripts/CI:** secreto disponible solo en GH secrets como `ALEX_SECRET`
+- **Cuándo usar:** operaciones que necesitan WP-CLI hooks o lógica server-side compleja; canal de respaldo si REST API falla
+
+### Canal 3: SSH directo a Hostinger
+- **Host/User/Port/Pass:** en GH secrets `SSH_HOST`, `SSH_USERNAME`, `SSH_PASSWORD`, `SSH_PORT`
+- **Path WP:** `~/domains/pinnaclegroupwi.com/public_html`
+- **WP-CLI:** `/usr/local/bin/wp`
+- **PRECAUCIÓN:** SSH desde GitHub runners puede ser baneado por fail2ban tras múltiples intentos. Usar como ÚLTIMO recurso.
+
+### REGLAS DE ORO PARA MODIFICAR WP
+1. **NUNCA** pasar `post_content` largo por variables bash `$(...)` — corrupción garantizada en contenido Gutenberg.
+2. **SIEMPRE** vía REST API (`POST /wp/v2/pages/<id>`) o bridge action `update_post` con JSON body.
+3. **SIEMPRE** snapshot pre-cambio: `GET /pages/<id>` → guardar `content` antes de cualquier UPDATE.
+4. **SIEMPRE** validar bloques Gutenberg balanceados (count `<!-- wp:` == count `<!-- /wp:`) antes de escribir.
+5. **VERIFICAR** post-write leyendo el endpoint público y confirmando tamaño/keywords.
+
+
 ## 2026-04-16 — REGLA CRÍTICA: Pipeline Social Media es AUTOMÁTICO
 
 ### APROBADO POR JORGE — NUNCA REPETIR ESTA INSTRUCCIÓN
