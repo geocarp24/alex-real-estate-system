@@ -97,36 +97,13 @@ jobs:
             cd "$STAGE/scripts"
             chmod +x ./*.sh
 
-            echo "=== Pinnacle Holdings — WP Optimization ==="
+            echo "=== Pinnacle Holdings — EMERGENCY ROLLBACK MODE ==="
             echo "WP_PATH: $WP_PATH"
-            echo "Steps:   $STEPS"
+            echo "(Applying scripts is DISABLED until 01 is rewritten safely)"
             echo
 
-            echo "--- 00-backup.sh (always) ---"
-            ./00-backup.sh
-
-            IFS=',' read -ra STEP_LIST <<< "$STEPS"
-            for s in "${STEP_LIST[@]}"; do
-              s="$(echo "$s" | tr -d ' ')"
-              case "$s" in
-                01) echo "--- 01-fix-code-wrappers.sh ---";   ./01-fix-code-wrappers.sh ;;
-                02) echo "--- 02-delete-hello-world.sh ---";  ./02-delete-hello-world.sh ;;
-                03) echo "--- 03-apply-brand-palette.sh ---"; ./03-apply-brand-palette.sh ;;
-                04)
-                  echo "--- 04-install-tracking.sh ---"
-                  export PINNACLE_META_PIXEL_ID="${META_PIXEL_ID:-}"
-                  export PINNACLE_CLARITY_ID="${CLARITY_ID:-}"
-                  ./04-install-tracking.sh
-                  ;;
-                *)  echo "skip: unknown step '$s'" ;;
-              esac
-              echo
-            done
-
-            echo "--- Cache purge ---"
-            cd "$WP_PATH"
-            wp litespeed-purge all 2>/dev/null || wp cache flush 2>/dev/null || echo "no cache plugin"
-
+            echo "--- 99-rollback.sh ---"
+            ./99-rollback.sh
             echo
             echo "=== Done. ==="
 
