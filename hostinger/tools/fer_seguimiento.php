@@ -20,7 +20,39 @@ header('Content-Type: application/json');
 
 define('SEG_BASE', 'appfQbDA750Oihy9J');
 define('SEG_CONTACTS', 'tblacvw0Ss770x8l5');
-define('SEG_MAX_PER_RUN', 20);
+define('SEG_LEADS', 'tblxZz2EWIglOLnEd');
+define('SEG_MAX_PER_RUN', 8);
+define('SEG_SMS_DELAY_SECONDS', 15);  // Human-like pacing: avoid carrier rate-limit
+@set_time_limit(300);
+
+// Propagate a Contact.Stage change to every linked Lead record.
+function seg_sync_lead_stage($contactFields, $newStage) {
+    $linked = $contactFields['Property Address'] ?? [];
+    if (!is_array($linked) || empty($linked)) return;
+    foreach ($linked as $leadId) {
+        if (!is_string($leadId) || strlen($leadId) < 10) continue;
+        $url = 'https://api.airtable.com/v0/' . SEG_BASE . '/' . SEG_LEADS . '/' . rawurlencode($leadId);
+        $ch  = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CUSTOMREQUEST  => 'PATCH',
+            CURLOPT_POSTFIELDS     => json_encode(['fields' => ['Stage' => $newStage], 'typecast' => true]),
+            CURLOPT_HTTPHEADER     => [
+                'Authorization: Bearer ' . AIRTABLE_TOKEN,
+                'Content-Type: application/json',
+            ],
+            CURLOPT_TIMEOUT => 10,
+        ]);
+        $resp = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if ($code >= 200 && $code < 300) {
+            fer_log_info('seg_lead_synced', ['lead_id' => $leadId, 'new_stage' => $newStage]);
+        } else {
+            fer_log_error('seg_lead_sync_failed', ['lead_id' => $leadId, 'code' => $code]);
+        }
+    }
+}
 
 // Days until next follow-up per step
 function seg_days_for_step($step) {
@@ -201,10 +233,11 @@ $coldFormula = "AND({Stage}='Seguimiento',{Seguimiento Step}>=24)";
 $coldRes = seg_at('GET', seg_url('?' . http_build_query([
     'filterByFormula' => $coldFormula,
     'maxRecords'      => 50,
-    'fields[]'        => 'Full Name',
+    // Need full record (especially Property Address link) for Lead stage sync
 ])));
 foreach (($coldRes['data']['records'] ?? []) as $rec) {
     seg_at('PATCH', seg_url('/' . $rec['id']), ['fields' => ['Stage' => 'Dead']]);
+    seg_sync_lead_stage($rec['fields'] ?? [], 'Dead');
     fer_log_info('seg_cold_dead', ['id' => $rec['id'], 'name' => $rec['fields']['Full Name'] ?? '?']);
     $results['moved_dead']++;
 }
@@ -262,6 +295,11 @@ foreach (($res['data']['records'] ?? []) as $rec) {
         'Last contact date'  => $today,
         'Next follow up date'=> $nextDate,
     ]]);
+
+    // Human-like pacing — same reason as fer_first_contact
+    if (SEG_SMS_DELAY_SECONDS > 0) {
+        sleep(SEG_SMS_DELAY_SECONDS);
+    }
 }
 
 echo json_encode(array_merge(['ok' => true, 'date' => $today], $results));
