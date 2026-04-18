@@ -1,6 +1,9 @@
 <?php
 /**
- * pinnacle_wp_bridge.php — debug build
+ * pinnacle_wp_bridge.php
+ *
+ * HTTPS bridge for programmatic WordPress operations on pinnaclegroupwi.com.
+ * Dual auth: X-Alex-Secret header OR Basic Auth with WP Application Password.
  */
 
 declare(strict_types=1);
@@ -47,9 +50,6 @@ if (!$auth_ok) {
     }
 }
 
-$ip = $_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-$ip = preg_replace('/[^a-zA-Z0-9:.]/', '', explode(',', $ip)[0]);
-
 $wp_load_candidates = [
     dirname(__DIR__) . '/wp-load.php',
     '/home/u433637438/domains/pinnaclegroupwi.com/public_html/wp-load.php',
@@ -64,42 +64,30 @@ foreach ($wp_load_candidates as $cand) {
 }
 if (!$wp_loaded) {
     http_response_code(500);
-    echo json_encode(['error' => 'WordPress bootstrap failed', 'tried' => $wp_load_candidates]);
+    echo json_encode(['error' => 'WordPress bootstrap failed']);
     exit;
 }
 
-$auth_debug = [];
-if (!$auth_ok && isset($pending_basic_user)) {
-    $auth_debug['user_input']     = $pending_basic_user;
-    $auth_debug['pass_len']       = strlen($pending_basic_pass);
-    $auth_debug['got_email']      = (bool) get_user_by('email', $pending_basic_user);
-    $auth_debug['got_login']      = (bool) get_user_by('login', $pending_basic_user);
-    $auth_debug['class_exists']   = class_exists('WP_Application_Passwords');
-    $auth_debug['wp_check_fn']    = function_exists('wp_check_password');
+// -------- Deferred App Password auth (bypasses check_password filter) --------
 
-    $user = get_user_by('email', $pending_basic_user);
-    if (!$user) {
-        $user = get_user_by('login', $pending_basic_user);
-    }
-    if ($user instanceof WP_User) {
-        $auth_debug['user_id']        = $user->ID;
-        $auth_debug['user_login']     = $user->user_login;
-        $auth_debug['manage_options'] = user_can($user, 'manage_options');
-        if (class_exists('WP_Application_Passwords')) {
-            $cleaned_pass = str_replace(' ', '', $pending_basic_pass);
-            $hashed_passwords = WP_Application_Passwords::get_user_application_passwords($user->ID);
-            $auth_debug['app_pass_count'] = is_array($hashed_passwords) ? count($hashed_passwords) : 0;
-            $auth_debug['checks'] = [];
-            if (is_array($hashed_passwords)) {
-                foreach ($hashed_passwords as $idx => $item) {
-                    $matched = wp_check_password($cleaned_pass, $item['password'], $user->ID);
-                    $auth_debug['checks'][] = ['idx' => $idx, 'name' => $item['name'] ?? '?', 'matched' => $matched];
-                    if ($matched && user_can($user, 'manage_options')) {
-                        wp_set_current_user($user->ID);
-                        $auth_ok     = true;
-                        $auth_method = 'app-password';
-                        break;
-                    }
+if (!$auth_ok && isset($pending_basic_user)) {
+    $user = get_user_by('email', $pending_basic_user) ?: get_user_by('login', $pending_basic_user);
+    if ($user instanceof WP_User && user_can($user, 'manage_options') && class_exists('WP_Application_Passwords')) {
+        // Use PasswordHash directly to avoid the 'check_password' filter chain,
+        // which some security plugins short-circuit outside REST context.
+        if (!class_exists('PasswordHash', false)) {
+            require_once ABSPATH . WPINC . '/class-phpass.php';
+        }
+        $hasher = new PasswordHash(8, true);
+        $cleaned_pass = str_replace(' ', '', $pending_basic_pass);
+        $hashed_passwords = WP_Application_Passwords::get_user_application_passwords($user->ID);
+        if (is_array($hashed_passwords)) {
+            foreach ($hashed_passwords as $item) {
+                if ($hasher->CheckPassword($cleaned_pass, $item['password'])) {
+                    wp_set_current_user($user->ID);
+                    $auth_ok     = true;
+                    $auth_method = 'app-password';
+                    break;
                 }
             }
         }
@@ -107,9 +95,11 @@ if (!$auth_ok && isset($pending_basic_user)) {
 }
 if (!$auth_ok) {
     http_response_code(403);
-    echo json_encode(['error' => 'unauthorized', 'hint' => 'check debug', 'debug' => $auth_debug]);
+    echo json_encode(['error' => 'unauthorized', 'hint' => 'use X-Alex-Secret header or Basic Auth with WP App Password']);
     exit;
 }
+
+// -------- Request handling --------
 
 $raw = file_get_contents('php://input');
 $body = json_decode((string) $raw, true);
@@ -121,6 +111,9 @@ if (!is_array($body)) {
 $action = (string) ($body['action'] ?? '');
 $request_id = bin2hex(random_bytes(4));
 
+$log_file = (getenv('HOME') ?: '/tmp') . '/wp-bridge.log';
+@file_put_contents($log_file, sprintf("[%s] req=%s auth=%s action=%s size=%d\n", date('c'), $request_id, $auth_method, $action, strlen((string) $raw)), FILE_APPEND);
+
 $reply = function (array $data, int $code = 200) use ($request_id): void {
     http_response_code($code);
     $data['request_id'] = $request_id;
@@ -129,38 +122,122 @@ $reply = function (array $data, int $code = 200) use ($request_id): void {
 };
 
 switch ($action) {
+
     case 'ping':
-        $reply(['ok' => true, 'site_url' => get_site_url(), 'wp_version' => get_bloginfo('version'), 'auth' => $auth_method, 'time' => date('c')]);
-    case 'get_option':
-        $key = (string) ($body['key'] ?? '');
-        if ($key === '') { $reply(['error' => 'key required'], 400); }
-        $reply(['key' => $key, 'value' => get_option($key)]);
-    case 'update_option':
-        $key = (string) ($body['key'] ?? '');
-        $value = $body['value'] ?? '';
-        if ($key === '') { $reply(['error' => 'key required'], 400); }
-        $ok = update_option($key, $value);
-        $reply(['ok' => (bool) $ok, 'key' => $key]);
-    case 'update_post':
-        $id = (int) ($body['id'] ?? 0);
-        if ($id <= 0) { $reply(['error' => 'id required'], 400); }
-        $args = ['ID' => $id];
-        if (array_key_exists('content', $body)) { $args['post_content'] = (string) $body['content']; }
-        if (array_key_exists('title', $body))   { $args['post_title']   = (string) $body['title']; }
-        if (array_key_exists('status', $body))  { $args['post_status']  = (string) $body['status']; }
-        $result = wp_update_post($args, true);
-        if (is_wp_error($result)) { $reply(['error' => $result->get_error_message()], 500); }
-        $reply(['ok' => true, 'id' => $id]);
+        $reply([
+            'ok'         => true,
+            'site_url'   => get_site_url(),
+            'wp_version' => get_bloginfo('version'),
+            'theme'      => get_option('stylesheet'),
+            'php'        => PHP_VERSION,
+            'auth'       => $auth_method,
+            'time'       => date('c'),
+        ]);
+
+    case 'list_pages':
+        $pages = get_pages(['number' => 100, 'sort_column' => 'menu_order,post_title']);
+        $out = [];
+        foreach ($pages as $p) {
+            $out[] = ['id' => $p->ID, 'slug' => $p->post_name, 'title' => $p->post_title, 'status' => $p->post_status];
+        }
+        $reply(['count' => count($out), 'pages' => $out]);
+
+    case 'list_posts':
+        $args_in = (array) ($body['args'] ?? []);
+        $allowed = ['post_type', 'post_status', 'posts_per_page', 's', 'orderby', 'order'];
+        $args = array_intersect_key($args_in, array_flip($allowed));
+        $args['posts_per_page'] = min((int) ($args['posts_per_page'] ?? 20), 100);
+        $args['post_type']      = (string) ($args['post_type'] ?? 'post');
+        $args['post_status']    = (string) ($args['post_status'] ?? 'publish');
+        $q = new WP_Query($args);
+        $out = [];
+        foreach ($q->posts as $p) {
+            $out[] = ['id' => $p->ID, 'slug' => $p->post_name, 'title' => $p->post_title, 'status' => $p->post_status, 'type' => $p->post_type];
+        }
+        $reply(['count' => count($out), 'found' => (int) $q->found_posts, 'posts' => $out]);
+
     case 'get_post':
         $id = (int) ($body['id'] ?? 0);
         if ($id <= 0) { $reply(['error' => 'id required'], 400); }
         $post = get_post($id);
-        if (!$post) { $reply(['error' => 'post not found'], 404); }
-        $reply(['id' => $post->ID, 'content' => $post->post_content]);
+        if (!$post) { $reply(['error' => 'post not found', 'id' => $id], 404); }
+        $reply([
+            'id'           => $post->ID,
+            'title'        => $post->post_title,
+            'slug'         => $post->post_name,
+            'status'       => $post->post_status,
+            'type'         => $post->post_type,
+            'content'      => $post->post_content,
+            'content_size' => strlen($post->post_content),
+            'modified'     => $post->post_modified_gmt,
+        ]);
+
+    case 'update_post':
+        $id = (int) ($body['id'] ?? 0);
+        if ($id <= 0) { $reply(['error' => 'id required'], 400); }
+        $existing = get_post($id);
+        if (!$existing) { $reply(['error' => 'post not found', 'id' => $id], 404); }
+        $args = ['ID' => $id];
+        if (array_key_exists('content', $body)) { $args['post_content'] = (string) $body['content']; }
+        if (array_key_exists('title', $body))   { $args['post_title']   = (string) $body['title']; }
+        if (array_key_exists('status', $body))  { $args['post_status']  = (string) $body['status']; }
+        if (array_key_exists('slug', $body))    { $args['post_name']    = (string) $body['slug']; }
+        $result = wp_update_post($args, true);
+        if (is_wp_error($result)) { $reply(['error' => $result->get_error_message()], 500); }
+        $verify = get_post($id);
+        $reply(['ok' => true, 'id' => $id, 'new_content_size' => strlen($verify->post_content)]);
+
+    case 'create_post':
+        $args = [
+            'post_type'    => (string) ($body['post_type'] ?? 'page'),
+            'post_status'  => (string) ($body['status'] ?? 'draft'),
+            'post_title'   => (string) ($body['title'] ?? 'Untitled'),
+            'post_content' => (string) ($body['content'] ?? ''),
+            'post_name'    => (string) ($body['slug'] ?? ''),
+        ];
+        $id = wp_insert_post($args, true);
+        if (is_wp_error($id)) { $reply(['error' => $id->get_error_message()], 500); }
+        $reply(['ok' => true, 'id' => $id, 'permalink' => get_permalink($id)]);
+
+    case 'delete_post':
+        $id    = (int) ($body['id'] ?? 0);
+        $force = !empty($body['force']);
+        if ($id <= 0) { $reply(['error' => 'id required'], 400); }
+        $result = wp_delete_post($id, $force);
+        $reply(['ok' => (bool) $result, 'id' => $id, 'forced' => $force]);
+
+    case 'get_post_meta':
+        $id  = (int) ($body['id'] ?? 0);
+        $key = (string) ($body['key'] ?? '');
+        if ($id <= 0 || $key === '') { $reply(['error' => 'id and key required'], 400); }
+        $reply(['id' => $id, 'key' => $key, 'value' => get_post_meta($id, $key, true)]);
+
+    case 'update_post_meta':
+        $id    = (int) ($body['id'] ?? 0);
+        $key   = (string) ($body['key'] ?? '');
+        $value = $body['value'] ?? '';
+        if ($id <= 0 || $key === '') { $reply(['error' => 'id and key required'], 400); }
+        $ok = update_post_meta($id, $key, $value);
+        $reply(['ok' => (bool) $ok, 'id' => $id, 'key' => $key]);
+
+    case 'get_option':
+        $key = (string) ($body['key'] ?? '');
+        if ($key === '') { $reply(['error' => 'key required'], 400); }
+        $reply(['key' => $key, 'value' => get_option($key)]);
+
+    case 'update_option':
+        $key   = (string) ($body['key'] ?? '');
+        $value = $body['value'] ?? '';
+        if ($key === '') { $reply(['error' => 'key required'], 400); }
+        $ok = update_option($key, $value);
+        $reply(['ok' => (bool) $ok, 'key' => $key]);
+
     case 'purge_cache':
-        do_action('litespeed_purge_all');
-        if (function_exists('wp_cache_flush')) { wp_cache_flush(); }
-        $reply(['ok' => true]);
+        $purged = [];
+        if (function_exists('do_action')) { do_action('litespeed_purge_all'); $purged[] = 'litespeed'; }
+        if (function_exists('wp_cache_flush')) { wp_cache_flush(); $purged[] = 'wp_cache'; }
+        $reply(['ok' => true, 'purged' => $purged]);
+
     default:
         $reply(['error' => 'unknown action', 'action' => $action], 400);
 }
