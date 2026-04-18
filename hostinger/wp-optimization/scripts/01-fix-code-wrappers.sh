@@ -38,7 +38,7 @@ for slug in "${SLUGS[@]}"; do
 
   tmpfile="$(mktemp)"
   printf '%s' "$cleaned" > "$tmpfile"
-  wp post update "$pid" --post_content="$(cat "$tmpfile")"
+  wp post update "$pid" --post_content=- < "$tmpfile"
   rm -f "$tmpfile"
 
   echo "fixed: $label (id=$pid) — stripped $before_count <code> wrappers (remaining: $after_count)"

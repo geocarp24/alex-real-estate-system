@@ -1,0 +1,132 @@
+name: WP Optimization — Pinnacle
+
+on:
+  workflow_dispatch:
+    inputs:
+      steps:
+        description: 'Steps to run (comma list: 01,02,03 or "all")'
+        required: true
+        default: '01,02,03'
+        type: string
+      pixel_id:
+        description: 'Meta Pixel ID (only used if step 04 is in the list)'
+        required: false
+        type: string
+      clarity_id:
+        description: 'Microsoft Clarity ID (only used if step 04 is in the list)'
+        required: false
+        type: string
+  push:
+    branches:
+      - claude/remove-unused-make-scenarios-17mEX
+    paths:
+      - 'hostinger/wp-optimization/scripts/**'
+      - 'hostinger/wp-optimization/mu-plugins/**'
+      - '.github/workflows/wp-optimization.yml'
+
+concurrency:
+  group: wp-optimization-pinnacle
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Run WP-CLI optimizations on Hostinger
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve steps to run
+        id: resolve
+        run: |
+          STEPS="${{ github.event.inputs.steps }}"
+          if [ -z "$STEPS" ]; then
+            # Push event: run safe defaults (00 + 01 + 02 + 03). Tracking (04) never auto-runs.
+            STEPS="01,02,03"
+          fi
+          if [ "$STEPS" = "all" ]; then
+            STEPS="01,02,03,04"
+          fi
+          echo "steps=$STEPS" >> "$GITHUB_OUTPUT"
+          echo "Will run: $STEPS"
+
+      - name: Copy wp-optimization scripts to Hostinger
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "hostinger/wp-optimization/**"
+          target: "/home/u433637438/wp-optimization-staging/"
+          strip_components: 2
+          overwrite: true
+
+      - name: Execute optimization steps
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          STEPS: ${{ steps.resolve.outputs.steps }}
+          META_PIXEL_ID: ${{ github.event.inputs.pixel_id }}
+          CLARITY_ID: ${{ github.event.inputs.clarity_id }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          envs: STEPS,META_PIXEL_ID,CLARITY_ID
+          command_timeout: 10m
+          script: |
+            set -euo pipefail
+            STAGE="$HOME/wp-optimization-staging"
+            export WP_PATH="$HOME/domains/pinnaclegroupwi.com/public_html"
+            export PATH="/usr/local/bin:$PATH"
+
+            cd "$STAGE/scripts"
+            chmod +x ./*.sh
+
+            echo "=== Hostinger WP Optimization ==="
+            echo "WP_PATH: $WP_PATH"
+            echo "Steps:   $STEPS"
+            echo
+
+            echo "--- 00-backup.sh (always) ---"
+            ./00-backup.sh
+
+            IFS=',' read -ra STEP_LIST <<< "$STEPS"
+            for s in "${STEP_LIST[@]}"; do
+              s="$(echo "$s" | tr -d ' ')"
+              case "$s" in
+                01) echo "--- 01-fix-code-wrappers.sh ---";   ./01-fix-code-wrappers.sh ;;
+                02) echo "--- 02-delete-hello-world.sh ---";  ./02-delete-hello-world.sh ;;
+                03) echo "--- 03-apply-brand-palette.sh ---"; ./03-apply-brand-palette.sh ;;
+                04)
+                  echo "--- 04-install-tracking.sh ---"
+                  export PINNACLE_META_PIXEL_ID="${META_PIXEL_ID:-}"
+                  export PINNACLE_CLARITY_ID="${CLARITY_ID:-}"
+                  ./04-install-tracking.sh
+                  ;;
+                *)  echo "skip: unknown step '$s'" ;;
+              esac
+              echo
+            done
+
+            echo "--- Cache purge ---"
+            cd "$WP_PATH"
+            wp litespeed-purge all 2>/dev/null || wp cache flush 2>/dev/null || echo "no cache plugin"
+
+            echo
+            echo "=== Done. ==="
+
+      - name: Verify live site
+        run: |
+          sleep 5
+          echo "--- Checking <code> wrappers (expect 0) ---"
+          CODE_COUNT=$(curl -s https://pinnaclegroupwi.com/ | grep -oE '<code>[^<]+</code>' | wc -l)
+          echo "code wrappers: $CODE_COUNT"
+
+          echo "--- Checking hello-world redirect ---"
+          curl -sI https://pinnaclegroupwi.com/hello-world/ | head -2
+
+          echo "--- Checking brand palette hex values ---"
+          curl -s https://pinnaclegroupwi.com/ | grep -oE '#0D3B2E|#C9A84C' | sort -u || echo "(palette hex not found in HTML — may be in CSS)"
