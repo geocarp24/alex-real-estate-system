@@ -51,61 +51,97 @@ jobs:
           echo "steps=$STEPS" >> "$GITHUB_OUTPUT"
           echo "Will run: $STEPS"
 
-      - name: Copy optimization scripts to Hostinger
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: ${{ secrets.SSH_PORT }}
-          source: "hostinger/wp-optimization-pinnacle/scripts/*"
-          target: /home/u433637438/wp-optimization-pinnacle-staging/scripts/
-          strip_components: 3
-          overwrite: true
-
-      - name: Copy MU-plugin to Hostinger
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: ${{ secrets.SSH_PORT }}
-          source: "hostinger/wp-optimization-pinnacle/mu-plugins/*"
-          target: /home/u433637438/wp-optimization-pinnacle-staging/mu-plugins/
-          strip_components: 3
-          overwrite: true
-
-      - name: Execute optimization steps
+      - name: Inline rollback via SSH (no SCP)
         uses: appleboy/ssh-action@v1.0.3
-        env:
-          STEPS: ${{ steps.resolve.outputs.steps }}
-          META_PIXEL_ID: ${{ github.event.inputs.pixel_id }}
-          CLARITY_ID: ${{ github.event.inputs.clarity_id }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT }}
-          envs: STEPS,META_PIXEL_ID,CLARITY_ID
+          timeout: 60s
           command_timeout: 10m
           script: |
             set -uo pipefail
-            STAGE="$HOME/wp-optimization-pinnacle-staging"
             export WP_PATH="$HOME/domains/pinnaclegroupwi.com/public_html"
+            export BACKUP_DIR="$HOME/alex_backups/wp-optimization-pinnacle"
             export PATH="/usr/local/bin:$PATH"
 
-            cd "$STAGE/scripts"
-            chmod +x ./*.sh
-
-            echo "=== Pinnacle Holdings — EMERGENCY ROLLBACK MODE ==="
-            echo "WP_PATH: $WP_PATH"
-            echo "(Applying scripts is DISABLED until 01 is rewritten safely)"
+            echo "=== Pinnacle Holdings — EMERGENCY ROLLBACK ==="
+            echo "WP_PATH:    $WP_PATH"
+            echo "BACKUP_DIR: $BACKUP_DIR"
             echo
 
-            echo "--- 99-rollback.sh ---"
-            ./99-rollback.sh
+            if [ ! -d "$BACKUP_DIR" ]; then
+              echo "FATAL: backup dir does not exist"
+              exit 1
+            fi
+
+            echo "--- All backup snapshots found ---"
+            ls -la "$BACKUP_DIR"/ || true
             echo
-            echo "=== Done. ==="
+
+            OLDEST=$(ls -1d "$BACKUP_DIR"/*/ 2>/dev/null | sort | head -1)
+            OLDEST="${OLDEST%/}"
+            if [ -z "$OLDEST" ]; then
+              echo "FATAL: no snapshot directories inside $BACKUP_DIR"
+              exit 1
+            fi
+            echo "Selected OLDEST snapshot: $OLDEST"
+            echo "--- Files in oldest snapshot ---"
+            ls -la "$OLDEST/" || true
+            echo
+
+            cd "$WP_PATH"
+
+            echo "--- Restoring pages from snapshot ---"
+            shopt -s nullglob
+            for f in "$OLDEST"/*.html; do
+              bname=$(basename "$f")
+              pid=$(echo "$bname" | grep -oE '[0-9]+' | tail -1)
+              label=$(echo "$bname" | sed -E 's/_[0-9]+\.html$//')
+              size=$(wc -c < "$f")
+              if [ -z "${pid:-}" ] || [ "$pid" = "0" ]; then
+                echo "  skip $bname (no pid)"
+                continue
+              fi
+              if [ "$size" -lt 200 ]; then
+                echo "  skip $bname (too small: ${size}B)"
+                continue
+              fi
+              if wp post update "$pid" --post_content=- < "$f" >/dev/null 2>&1; then
+                echo "  RESTORED $label (id=$pid) from $bname (${size}B)"
+              else
+                echo "  FAILED to restore $label (id=$pid)"
+              fi
+            done
+
+            echo
+            echo "--- Restoring astra-settings ---"
+            ASTRA_JSON="$OLDEST/astra-settings.json"
+            if [ -f "$ASTRA_JSON" ] && [ "$(wc -c < "$ASTRA_JSON")" -gt 10 ]; then
+              if wp option update astra-settings "$(cat "$ASTRA_JSON")" --format=json >/dev/null 2>&1; then
+                echo "  RESTORED astra-settings ($(wc -c < "$ASTRA_JSON")B)"
+              else
+                echo "  FAILED to restore astra-settings"
+              fi
+            else
+              echo "  skip: astra-settings.json missing or empty"
+            fi
+
+            echo
+            echo "--- Purging cache ---"
+            wp litespeed-purge all >/dev/null 2>&1 && echo "  LiteSpeed purged" \
+              || wp cache flush >/dev/null 2>&1 && echo "  WP cache flushed" \
+              || echo "  no cache plugin"
+
+            echo
+            echo "--- Verifying restored content ---"
+            HOME_PID=$(wp option get page_on_front 2>/dev/null)
+            HOME_SIZE=$(wp post get "$HOME_PID" --field=post_content 2>/dev/null | wc -c)
+            echo "  home (id=$HOME_PID) post_content: ${HOME_SIZE}B"
+
+            echo
+            echo "=== ROLLBACK COMPLETE ==="
 
       - name: Verify live site
         run: |
