@@ -56,10 +56,27 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
 }
 
 $received_secret = (string) ($_SERVER['HTTP_X_ALEX_SECRET'] ?? '');
-if (!hash_equals($secret, $received_secret)) {
-    http_response_code(403);
-    echo json_encode(['error' => 'unauthorized']);
-    exit;
+$auth_ok         = hash_equals($secret, $received_secret);
+$auth_method     = $auth_ok ? 'x-alex-secret' : '';
+
+// Fallback: WordPress Application Password basic auth (user must have manage_options)
+if (!$auth_ok) {
+    $authz = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
+    if (stripos($authz, 'Basic ') === 0) {
+        $decoded = base64_decode(substr($authz, 6));
+        if ($decoded !== false && strpos($decoded, ':') !== false) {
+            [$u, $p] = explode(':', $decoded, 2);
+            // Need WP loaded to call wp_authenticate_application_password
+            // Defer verification until after bootstrap below (set a flag)
+            $pending_basic_user = $u;
+            $pending_basic_pass = $p;
+        }
+    }
+    if (!isset($pending_basic_user)) {
+        http_response_code(403);
+        echo json_encode(['error' => 'unauthorized']);
+        exit;
+    }
 }
 
 // -------- Rate limit (soft, file-based) --------
@@ -101,6 +118,22 @@ if (!$wp_loaded) {
     exit;
 }
 
+// -------- Deferred App Password auth verification --------
+
+if (!$auth_ok && isset($pending_basic_user)) {
+    $user = wp_authenticate_application_password(null, $pending_basic_user, $pending_basic_pass);
+    if (!is_wp_error($user) && $user instanceof WP_User && user_can($user, 'manage_options')) {
+        wp_set_current_user($user->ID);
+        $auth_ok     = true;
+        $auth_method = 'app-password';
+    }
+}
+if (!$auth_ok) {
+    http_response_code(403);
+    echo json_encode(['error' => 'unauthorized', 'hint' => 'use X-Alex-Secret header or Basic Auth with WP App Password']);
+    exit;
+}
+
 // -------- Parse request --------
 
 $raw = file_get_contents('php://input');
@@ -115,13 +148,14 @@ $request_id = bin2hex(random_bytes(4));
 
 // Logging helper
 $log_file = (getenv('HOME') ?: '/tmp') . '/wp-bridge.log';
-$log = function (string $level, string $msg, array $ctx = []) use ($log_file, $request_id, $ip, $action): void {
+$log = function (string $level, string $msg, array $ctx = []) use ($log_file, $request_id, $ip, $action, $auth_method): void {
     $line = sprintf(
-        "[%s] %s req=%s ip=%s action=%s msg=%s ctx=%s\n",
+        "[%s] %s req=%s ip=%s auth=%s action=%s msg=%s ctx=%s\n",
         date('c'),
         $level,
         $request_id,
         $ip,
+        $auth_method,
         $action,
         $msg,
         json_encode($ctx, JSON_UNESCAPED_SLASHES)
