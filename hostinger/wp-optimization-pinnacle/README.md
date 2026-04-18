@@ -42,12 +42,12 @@ The scripts assume:
 sshpass -p "$HOSTINGER_SSH_PASS" ssh -p 65002 u433637438@156.67.74.243
 
 # 2. Pull the latest scripts (one-shot via curl, no clone needed)
-mkdir -p ~/wp-optimization && cd ~/wp-optimization
+mkdir -p ~/wp-optimization-pinnacle && cd ~/wp-optimization-pinnacle
 for f in 00-backup.sh 01-fix-code-wrappers.sh 02-delete-hello-world.sh 03-apply-brand-palette.sh 04-install-tracking.sh 99-run-quickwins.sh; do
-  curl -sSL "https://raw.githubusercontent.com/geocarp24/alex-real-estate-system/claude/remove-unused-make-scenarios-17mEX/hostinger/wp-optimization/scripts/$f" -o "$f"
+  curl -sSL "https://raw.githubusercontent.com/geocarp24/alex-real-estate-system/claude/remove-unused-make-scenarios-17mEX/hostinger/wp-optimization-pinnacle/scripts/$f" -o "$f"
   chmod +x "$f"
 done
-mkdir -p mu-plugins && curl -sSL "https://raw.githubusercontent.com/geocarp24/alex-real-estate-system/claude/remove-unused-make-scenarios-17mEX/hostinger/wp-optimization/mu-plugins/pinnacle-tracking.php" -o mu-plugins/pinnacle-tracking.php
+mkdir -p mu-plugins && curl -sSL "https://raw.githubusercontent.com/geocarp24/alex-real-estate-system/claude/remove-unused-make-scenarios-17mEX/hostinger/wp-optimization-pinnacle/mu-plugins/pinnacle-tracking.php" -o mu-plugins/pinnacle-tracking.php
 
 # 3. Set tracking IDs (get them from Meta Business + clarity.microsoft.com)
 export PINNACLE_META_PIXEL_ID="REPLACE_WITH_REAL_PIXEL_ID"
@@ -76,7 +76,7 @@ PINNACLE_META_PIXEL_ID=... PINNACLE_CLARITY_ID=... ./04-install-tracking.sh
 
 ## Rollback
 
-Backups land at `~/alex_backups/wp-optimization/<TIMESTAMP>/` and contain:
+Backups land at `~/alex_backups/wp-optimization-pinnacle/<TIMESTAMP>/` and contain:
 - `db.sql` — full DB dump
 - `home_<pid>.html`, `services_<pid>.html`, `about-us_<pid>.html` — pre-change post_content
 - `astra-settings.json` — pre-change theme settings
@@ -84,19 +84,19 @@ Backups land at `~/alex_backups/wp-optimization/<TIMESTAMP>/` and contain:
 ### Full rollback (DB)
 ```bash
 cd ~/domains/pinnaclegroupwi.com/public_html
-wp db import ~/alex_backups/wp-optimization/<TIMESTAMP>/db.sql
+wp db import ~/alex_backups/wp-optimization-pinnacle/<TIMESTAMP>/db.sql
 ```
 
 ### Rollback only the brand palette
 ```bash
 cd ~/domains/pinnaclegroupwi.com/public_html
-wp option update astra-settings "$(cat ~/alex_backups/wp-optimization/<TIMESTAMP>/astra-settings.json)" --format=json
+wp option update astra-settings "$(cat ~/alex_backups/wp-optimization-pinnacle/<TIMESTAMP>/astra-settings.json)" --format=json
 ```
 
 ### Rollback only one page
 ```bash
 cd ~/domains/pinnaclegroupwi.com/public_html
-wp post update <PAGE_ID> --post_content="$(cat ~/alex_backups/wp-optimization/<TIMESTAMP>/home_<PAGE_ID>.html)"
+wp post update <PAGE_ID> --post_content="$(cat ~/alex_backups/wp-optimization-pinnacle/<TIMESTAMP>/home_<PAGE_ID>.html)"
 ```
 
 ### Remove tracking

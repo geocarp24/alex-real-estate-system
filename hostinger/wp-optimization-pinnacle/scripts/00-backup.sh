@@ -6,7 +6,7 @@
 set -euo pipefail
 
 WP_PATH="${WP_PATH:-$HOME/domains/pinnaclegroupwi.com/public_html}"
-BACKUP_DIR="${BACKUP_DIR:-$HOME/alex_backups/wp-optimization}"
+BACKUP_DIR="${BACKUP_DIR:-$HOME/alex_backups/wp-optimization-pinnacle}"
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 BACKUP_PATH="$BACKUP_DIR/$TIMESTAMP"
 

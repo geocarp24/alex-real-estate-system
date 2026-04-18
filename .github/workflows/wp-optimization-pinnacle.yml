@@ -1,4 +1,4 @@
-name: WP Optimization — Pinnacle
+name: WP Optimization — Pinnacle Holdings (pinnaclegroupwi.com)
 
 on:
   workflow_dispatch:
@@ -20,12 +20,12 @@ on:
     branches:
       - claude/remove-unused-make-scenarios-17mEX
     paths:
-      - 'hostinger/wp-optimization/scripts/**'
-      - 'hostinger/wp-optimization/mu-plugins/**'
-      - '.github/workflows/wp-optimization.yml'
+      - 'hostinger/wp-optimization-pinnacle/scripts/**'
+      - 'hostinger/wp-optimization-pinnacle/mu-plugins/**'
+      - '.github/workflows/wp-optimization-pinnacle.yml'
 
 concurrency:
-  group: wp-optimization-pinnacle
+  group: wp-optimization-pinnacle-holdings
   cancel-in-progress: false
 
 jobs:
@@ -51,15 +51,15 @@ jobs:
           echo "steps=$STEPS" >> "$GITHUB_OUTPUT"
           echo "Will run: $STEPS"
 
-      - name: Copy wp-optimization scripts to Hostinger
+      - name: Copy Pinnacle wp-optimization scripts to Hostinger
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT }}
-          source: "hostinger/wp-optimization/**"
-          target: "/home/u433637438/wp-optimization-staging/"
+          source: "hostinger/wp-optimization-pinnacle/**"
+          target: "/home/u433637438/wp-optimization-pinnacle-staging/"
           strip_components: 2
           overwrite: true
 
@@ -78,14 +78,14 @@ jobs:
           command_timeout: 10m
           script: |
             set -euo pipefail
-            STAGE="$HOME/wp-optimization-staging"
+            STAGE="$HOME/wp-optimization-pinnacle-staging"
             export WP_PATH="$HOME/domains/pinnaclegroupwi.com/public_html"
             export PATH="/usr/local/bin:$PATH"
 
             cd "$STAGE/scripts"
             chmod +x ./*.sh
 
-            echo "=== Hostinger WP Optimization ==="
+            echo "=== Pinnacle Holdings — WP Optimization ==="
             echo "WP_PATH: $WP_PATH"
             echo "Steps:   $STEPS"
             echo
