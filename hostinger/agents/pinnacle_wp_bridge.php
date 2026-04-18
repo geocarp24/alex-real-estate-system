@@ -65,8 +65,7 @@ if (!$auth_ok) {
         $decoded = base64_decode(substr($authz, 6));
         if ($decoded !== false && strpos($decoded, ':') !== false) {
             [$u, $p] = explode(':', $decoded, 2);
-            // Need WP loaded to call wp_authenticate_application_password
-            // Defer verification until after bootstrap below (set a flag)
+            // Defer verification until after WP bootstrap
             $pending_basic_user = $u;
             $pending_basic_pass = $p;
         }
@@ -120,11 +119,23 @@ if (!$wp_loaded) {
 // -------- Deferred App Password auth verification --------
 
 if (!$auth_ok && isset($pending_basic_user)) {
-    $user = wp_authenticate_application_password(null, $pending_basic_user, $pending_basic_pass);
-    if (!is_wp_error($user) && $user instanceof WP_User && user_can($user, 'manage_options')) {
-        wp_set_current_user($user->ID);
-        $auth_ok     = true;
-        $auth_method = 'app-password';
+    // Manual verification (bypasses wp_is_application_passwords_available()
+    // which can return false outside REST context).
+    $user = get_user_by('email', $pending_basic_user);
+    if (!$user) {
+        $user = get_user_by('login', $pending_basic_user);
+    }
+    if ($user instanceof WP_User && user_can($user, 'manage_options') && class_exists('WP_Application_Passwords')) {
+        $cleaned_pass = str_replace(' ', '', $pending_basic_pass);
+        $hashed_passwords = WP_Application_Passwords::get_user_application_passwords($user->ID);
+        foreach ($hashed_passwords as $item) {
+            if (wp_check_password($cleaned_pass, $item['password'], $user->ID)) {
+                wp_set_current_user($user->ID);
+                $auth_ok     = true;
+                $auth_method = 'app-password';
+                break;
+            }
+        }
     }
 }
 if (!$auth_ok) {
