@@ -1058,6 +1058,15 @@ Pero el código PHP **no los poblaba** — solo el Stage, Full Name, Phone, etc.
 - **WP-CLI:** `/usr/local/bin/wp`
 - **PRECAUCIÓN:** SSH desde GitHub runners puede ser baneado por fail2ban tras múltiples intentos. Usar como ÚLTIMO recurso.
 
+### Google Maps / Places API (pinnaclegroupwi.com)
+- **API Key:** `AIzaSyAQSG8R3GLg6gwLo2F7oxFSJzSPeL9NwDE` (Jorge, 2026-04-18)
+- **APIs habilitadas:** Places API (New), Maps JavaScript API
+- **Restricciones:** HTTP referrer = pinnaclegroupwi.com (browser-side OK), no server-side desde IPs sin referer
+- **Uso:** address autocomplete en el formulario web multi-step
+- **Endpoint NEW (browser JS):** `https://maps.googleapis.com/maps/api/js?key=...&libraries=places`
+- **Endpoint NEW (server POST):** `https://places.googleapis.com/v1/places:autocomplete` con `X-Goog-Api-Key` header
+- **NUNCA** pedir de nuevo. NUNCA commit en repo público sin restricciones de referrer.
+
 ### REGLAS DE ORO PARA MODIFICAR WP
 1. **NUNCA** pasar `post_content` largo por variables bash `$(...)` — corrupción garantizada en contenido Gutenberg.
 2. **SIEMPRE** vía REST API (`POST /wp/v2/pages/<id>`) o bridge action `update_post` con JSON body.
