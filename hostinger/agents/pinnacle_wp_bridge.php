@@ -68,22 +68,32 @@ if (!$wp_loaded) {
     exit;
 }
 
-// -------- Deferred App Password auth (bypasses check_password filter) --------
+// -------- Deferred App Password auth --------
+// Handles both bcrypt ($2y$) (WP 6.8+) and phpass ($P$) (legacy) hash formats.
+// Bypasses wp_check_password to avoid check_password filter interference.
 
 if (!$auth_ok && isset($pending_basic_user)) {
     $user = get_user_by('email', $pending_basic_user) ?: get_user_by('login', $pending_basic_user);
     if ($user instanceof WP_User && user_can($user, 'manage_options') && class_exists('WP_Application_Passwords')) {
-        // Use PasswordHash directly to avoid the 'check_password' filter chain,
-        // which some security plugins short-circuit outside REST context.
-        if (!class_exists('PasswordHash', false)) {
-            require_once ABSPATH . WPINC . '/class-phpass.php';
-        }
-        $hasher = new PasswordHash(8, true);
         $cleaned_pass = str_replace(' ', '', $pending_basic_pass);
         $hashed_passwords = WP_Application_Passwords::get_user_application_passwords($user->ID);
         if (is_array($hashed_passwords)) {
             foreach ($hashed_passwords as $item) {
-                if ($hasher->CheckPassword($cleaned_pass, $item['password'])) {
+                $stored = $item['password'];
+                $matched = false;
+                // Try bcrypt first (WP 6.8+)
+                if (strlen($stored) >= 60 && str_starts_with($stored, '$2')) {
+                    $matched = password_verify($cleaned_pass, $stored);
+                }
+                // Fall back to phpass portable hash
+                if (!$matched && str_starts_with($stored, '$P$')) {
+                    if (!class_exists('PasswordHash', false)) {
+                        require_once ABSPATH . WPINC . '/class-phpass.php';
+                    }
+                    $hasher = new PasswordHash(8, true);
+                    $matched = $hasher->CheckPassword($cleaned_pass, $stored);
+                }
+                if ($matched) {
                     wp_set_current_user($user->ID);
                     $auth_ok     = true;
                     $auth_method = 'app-password';
