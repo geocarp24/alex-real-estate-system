@@ -355,10 +355,22 @@ if (!empty($fer['escalate']) && $contactId && ($fer['isOwner'] ?? $isOwner) === 
         . "Best time: " . ($fer['bestTimeToCall'] ?? '?') . "\n"
         . "Escalation reason: " . ($fer['escalateReason'] ?? '?');
 
+    // Pull property data from linked Lead
+    $leadData = [];
+    $linkedLeadIds = $fields['Property Address'] ?? [];
+    if (!empty($linkedLeadIds) && is_array($linkedLeadIds)) {
+        $leadId = $linkedLeadIds[0];
+        $leadRes = fer_at_request('GET', fer_at_url('tblxZz2EWIglOLnEd', '/' . $leadId));
+        if ($leadRes['ok']) {
+            $leadData = $leadRes['data']['fields'] ?? [];
+        }
+    }
+
     $dealFields = [
         'Property Address'        => $propertyAddress,
-        'Citi'                    => $city,
-        'Estate'                  => 'WI',
+        'Citi'                    => $leadData['City'] ?? $city,
+        'Estate'                  => $leadData['Estate'] ?? 'WI',
+        'Zip Code'                => $leadData['Zip Code'] ?? null,
         'Pipeline Stage'          => 'Qualified by Fer',
         'Deal Source'             => 'Fer AI - SMS',
         'Date Created'            => date('c'),
@@ -369,7 +381,22 @@ if (!empty($fer['escalate']) && $contactId && ($fer['isOwner'] ?? $isOwner) === 
         'Urgency'                 => $fer['urgency'] ?? null,
         'Timeline'                => $fer['timeline'] ?? null,
         'Fer Qualification Summary' => $fSummary,
+        // Property data from Lead
+        'ARV'                     => $leadData['ARV'] ?? null,
+        'Total Pending Loans Balance' => $leadData['Equity'] ?? null,
     ];
+
+    // Lead financial data
+    if (!empty($leadData['Max Offer']))     $dealFields['Max Allowable Offer (MAO)'] = null; // formula field, skip
+    if (!empty($leadData['Last Sale Price'])) $fSummary .= "\nLast Sale Price: $" . number_format($leadData['Last Sale Price']);
+    if (!empty($leadData['Foreclosure Stage'])) $fSummary .= "\nForeclosure Stage: " . $leadData['Foreclosure Stage'];
+    $dealFields['Fer Qualification Summary'] = $fSummary;
+
+    // Zillow/Redfin links from Lead
+    if (!empty($leadData['Zillow Url']))  $dealFields['Zillow Link'] = $leadData['Zillow Url'];
+    if (!empty($leadData['Redfin Url']))  $dealFields['Redfin Link'] = $leadData['Redfin Url'];
+
+    // Fer qualification data
     if (!empty($fer['askingPrice']))   $dealFields['Asking Price']   = intval($fer['askingPrice']);
     if (!empty($fer['lowestPrice']))   $dealFields['Lowest Price']   = intval($fer['lowestPrice']);
     if (!empty($fer['amountOwed']))    $dealFields['Amount Owed']    = intval($fer['amountOwed']);
