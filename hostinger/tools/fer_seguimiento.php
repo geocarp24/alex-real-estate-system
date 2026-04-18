@@ -20,16 +20,48 @@ header('Content-Type: application/json');
 
 define('SEG_BASE', 'appfQbDA750Oihy9J');
 define('SEG_CONTACTS', 'tblacvw0Ss770x8l5');
-define('SEG_MAX_PER_RUN', 20);
+define('SEG_LEADS', 'tblxZz2EWIglOLnEd');
+define('SEG_MAX_PER_RUN', 8);
+define('SEG_SMS_DELAY_SECONDS', 15);
+@set_time_limit(300);
+
+// Propagate a Contact.Stage change to every linked Lead record.
+function seg_sync_lead_stage($contactFields, $newStage) {
+    $linked = $contactFields['Property Address'] ?? [];
+    if (!is_array($linked) || empty($linked)) return;
+    foreach ($linked as $leadId) {
+        if (!is_string($leadId) || strlen($leadId) < 10) continue;
+        $url = 'https://api.airtable.com/v0/' . SEG_BASE . '/' . SEG_LEADS . '/' . rawurlencode($leadId);
+        $ch  = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CUSTOMREQUEST  => 'PATCH',
+            CURLOPT_POSTFIELDS     => json_encode(['fields' => ['Stage' => $newStage], 'typecast' => true]),
+            CURLOPT_HTTPHEADER     => [
+                'Authorization: Bearer ' . AIRTABLE_TOKEN,
+                'Content-Type: application/json',
+            ],
+            CURLOPT_TIMEOUT => 10,
+        ]);
+        $resp = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if ($code >= 200 && $code < 300) {
+            fer_log_info('seg_lead_synced', ['lead_id' => $leadId, 'new_stage' => $newStage]);
+        } else {
+            fer_log_error('seg_lead_sync_failed', ['lead_id' => $leadId, 'code' => $code]);
+        }
+    }
+}
 
 // Days until next follow-up per step
 function seg_days_for_step($step) {
     $schedule = [
-        0=>2, 1=>4, 2=>7, 3=>7, 4=>7,       // Month 1: days 1,3,7,14,21 (5 touches)
-        5=>14, 6=>14, 7=>14, 8=>14, 9=>14,   // Month 2-3: bi-weekly (5 touches)
-        10=>14, 11=>14, 12=>14, 13=>14, 14=>14, // Month 4-6: bi-weekly (5 touches)
-        15=>21, 16=>21, 17=>21, 18=>21, 19=>21, // Month 7-9: every 3 weeks (5 touches)
-        20=>30, 21=>30, 22=>30, 23=>30,       // Month 10-12: monthly (4 touches)
+        0=>2, 1=>4, 2=>7, 3=>7, 4=>7,
+        5=>14, 6=>14, 7=>14, 8=>14, 9=>14,
+        10=>14, 11=>14, 12=>14, 13=>14, 14=>14,
+        15=>21, 16=>21, 17=>21, 18=>21, 19=>21,
+        20=>30, 21=>30, 22=>30, 23=>30,
     ];
     return $schedule[$step] ?? 30;
 }
@@ -40,31 +72,26 @@ function seg_sms($step, $name, $lang) {
     $p = '(920) 777-9886';
 
     $en = [
-        // Month 1: Intensive — different angles
         "Hey {$name}, this is Jorge — local buyer in Wisconsin. Sent you info about your property. Not a pitch, just a question. Hope you're doing well!",
         "Hey {$name}, Jorge here — just making sure you got my message. No pressure at all. Hope you're having a good week!",
         "Quick note {$name} — just a reminder, you don't need to fix anything to sell. Jorge buys as-is. Questions? {$p}",
         "{$name}, Jorge here. Just checking in — still interested in exploring your options? A quick YES or NO works. {$p}",
         "Hi {$name}, last message for a bit — if now isn't the right time, I completely understand. I'm here whenever you're ready. - Jorge {$p}",
-        // Month 2-3: Value-driven
         "{$name}, quick update — properties in your area are moving. Want to know what yours could be worth? - Jorge {$p}",
         "Hey {$name}, Jorge here. Just wanted you to know — no commissions, no agent fees, no repairs on your end. That's how I work. {$p}",
         "{$name}, sometimes timing is everything. If your situation has changed, I'm just a text away. - Jorge",
         "Hi {$name} — I help homeowners in all kinds of situations. Divorce, inheritance, financial pressure — no judgment, just solutions. {$p}",
         "{$name}, just a friendly check-in from Jorge. No pitch — just wanted to see how things are going with your property.",
-        // Month 4-6: Market context
         "Hey {$name}, market update: some homeowners in your area are selling off-market to avoid the hassle. Curious? {$p}",
         "{$name}, Jorge here. If you've been thinking about selling but don't know where to start — that's exactly where I help. {$p}",
         "Quick question {$name} — if you could sell your property with zero repairs and zero fees, would that interest you? - Jorge",
         "Hi {$name}, just circling back. I buy properties in your area and yours still interests me. No rush — just keeping the door open. {$p}",
         "{$name}, selling doesn't have to be stressful. Jorge handles everything — paperwork, timeline, closing. Just a thought. {$p}",
-        // Month 7-9: Gentle check-ins
         "Hey {$name}, been a while — Jorge here. Just checking if anything has changed with your property situation. No pressure. {$p}",
         "{$name}, quick note — I'm still buying in your area. If you ever want to chat, I'm here. - Jorge {$p}",
         "Hi {$name}, hope you're well. If you know anyone looking to sell their property quickly, send them my way? - Jorge {$p}",
         "{$name}, sometimes the right time comes when you least expect it. If that day comes, I'm one text away. - Jorge",
         "Hey {$name} — not trying to be a bother, just genuinely interested in helping if you ever need it. Take care. {$p}",
-        // Month 10-12: Final touches
         "{$name}, it's been a while since we connected. If your situation has changed, I'd love to hear from you. - Jorge {$p}",
         "Hi {$name}, Jorge here one more time. Your property still caught my eye. If you're open to a conversation, I'm here. {$p}",
         "{$name}, this is my second to last message — I don't want to overstay my welcome. But if you ever need a fast, fair solution, call me. {$p}",
@@ -72,31 +99,26 @@ function seg_sms($step, $name, $lang) {
     ];
 
     $es = [
-        // Mes 1: Intensivo
         "Hola {$name}, soy Jorge — comprador local en Wisconsin. Te envié info sobre tu propiedad. No es presión, solo una pregunta. ¡Espero que estés bien!",
         "Hola {$name}, Jorge de nuevo — solo asegurarme que recibiste mi mensaje. Sin presión. ¡Que tengas buena semana!",
         "Nota rápida {$name} — recuerda, no necesitas arreglar nada para vender. Jorge compra como está. ¿Preguntas? {$p}",
         "{$name}, soy Jorge. Solo chequeo — ¿todavía interesado en explorar tus opciones? Un SÍ o NO funciona. {$p}",
         "Hola {$name}, último mensaje por un rato — si no es buen momento, lo entiendo. Aquí estoy cuando quieras. - Jorge {$p}",
-        // Mes 2-3: Valor
         "{$name}, actualización — propiedades en tu zona se están moviendo. ¿Quieres saber cuánto podría valer la tuya? - Jorge {$p}",
         "Hola {$name}, soy Jorge. Solo recordarte — sin comisiones, sin agentes, sin reparaciones de tu parte. Así trabajo. {$p}",
         "{$name}, a veces el momento lo es todo. Si tu situación cambió, estoy a un mensaje de distancia. - Jorge",
         "Hola {$name} — ayudo a propietarios en todo tipo de situaciones. Divorcio, herencia, presión financiera — sin juicios, solo soluciones. {$p}",
         "{$name}, solo un saludo de Jorge. Sin pitch — solo quería saber cómo van las cosas con tu propiedad.",
-        // Mes 4-6: Contexto
         "Hola {$name}, algunos propietarios en tu zona están vendiendo directamente para evitar complicaciones. ¿Te interesa? {$p}",
         "{$name}, soy Jorge. Si has pensado en vender pero no sabes por dónde empezar — exactamente ahí es donde ayudo. {$p}",
         "Pregunta rápida {$name} — si pudieras vender tu propiedad sin reparaciones y sin comisiones, ¿te interesaría? - Jorge",
         "Hola {$name}, vuelvo a contactarte. Sigo comprando en tu zona y tu propiedad me interesa. Sin prisa. {$p}",
         "{$name}, vender no tiene que ser estresante. Jorge se encarga de todo — papeles, tiempos, cierre. Solo una idea. {$p}",
-        // Mes 7-9: Check-ins
         "Hola {$name}, ha pasado un tiempo — soy Jorge. Solo chequeando si algo cambió con tu propiedad. Sin presión. {$p}",
         "{$name}, nota rápida — sigo comprando en tu zona. Si algún día quieres platicar, aquí estoy. - Jorge {$p}",
         "Hola {$name}, espero que estés bien. Si conoces a alguien que quiera vender rápido, mándamelo. - Jorge {$p}",
         "{$name}, a veces el momento correcto llega cuando menos lo esperas. Si ese día llega, estoy a un mensaje. - Jorge",
         "Hola {$name} — no quiero molestar, solo genuinamente interesado en ayudar si algún día lo necesitas. Cuídate. {$p}",
-        // Mes 10-12: Finales
         "{$name}, ha pasado un buen tiempo. Si tu situación cambió, me encantaría saber de ti. - Jorge {$p}",
         "Hola {$name}, Jorge una vez más. Tu propiedad me sigue interesando. Si estás abierto a una conversación, aquí estoy. {$p}",
         "{$name}, este es mi penúltimo mensaje — no quiero abusar. Pero si algún día necesitas una solución rápida y justa, llámame. {$p}",
@@ -107,12 +129,9 @@ function seg_sms($step, $name, $lang) {
     return $msgs[$step] ?? $msgs[count($msgs) - 1];
 }
 
-// ── Email subject + body ────────────────────────────────────────
 function seg_email($step, $name, $address, $lang) {
     $name = $name ? explode(' ', $name)[0] : 'there';
     $addr = $address ?: 'your property';
-
-    // Rotate between 4 email themes
     $theme = $step % 4;
 
     if ($lang === 'Spanish') {
@@ -146,7 +165,6 @@ function seg_email($step, $name, $address, $lang) {
     return ['subject' => $subjects[$theme], 'body' => $bodies[$theme]];
 }
 
-// ── Airtable helpers ────────────────────────────────────────────
 function seg_at($method, $url, $body = null) {
     $ch = curl_init($url);
     $opts = [
@@ -175,7 +193,6 @@ function seg_phone_e164($raw) {
     return '';
 }
 
-// ── Send email via send_notification.php ─────────────────────────
 function seg_send_email($to, $subject, $body) {
     if (!$to) return false;
     $ch = curl_init('https://pinnaclegroupwi.com/Tools/send_notification.php');
@@ -201,10 +218,10 @@ $coldFormula = "AND({Stage}='Seguimiento',{Seguimiento Step}>=24)";
 $coldRes = seg_at('GET', seg_url('?' . http_build_query([
     'filterByFormula' => $coldFormula,
     'maxRecords'      => 50,
-    'fields[]'        => 'Full Name',
 ])));
 foreach (($coldRes['data']['records'] ?? []) as $rec) {
     seg_at('PATCH', seg_url('/' . $rec['id']), ['fields' => ['Stage' => 'Dead']]);
+    seg_sync_lead_stage($rec['fields'] ?? [], 'Dead');
     fer_log_info('seg_cold_dead', ['id' => $rec['id'], 'name' => $rec['fields']['Full Name'] ?? '?']);
     $results['moved_dead']++;
 }
@@ -225,13 +242,11 @@ foreach (($res['data']['records'] ?? []) as $rec) {
     $phone1  = seg_phone_e164($f['Phone1'] ?? '');
     $email1  = $f['Email1'] ?? '';
 
-    // Property address from lookup
     $propLookup = $f['Property Address (from Property Address)'] ?? null;
     $address = '';
     if (is_array($propLookup) && !empty($propLookup)) $address = $propLookup[0];
     elseif (is_string($propLookup)) $address = $propLookup;
 
-    // Send SMS
     if ($phone1) {
         $msg = seg_sms($step, $name, $lang);
         $smsResult = fer_quo_send_sms($phone1, $msg);
@@ -244,7 +259,6 @@ foreach (($res['data']['records'] ?? []) as $rec) {
         }
     }
 
-    // Send Email (every other step to avoid overload)
     if ($email1 && $step % 2 === 0) {
         $emailData = seg_email($step, $name, $address, $lang);
         $emailOk = seg_send_email($email1, $emailData['subject'], $emailData['body']);
@@ -254,7 +268,6 @@ foreach (($res['data']['records'] ?? []) as $rec) {
         }
     }
 
-    // Update contact: Step++, Next follow up date, Last contact date
     $nextDays = seg_days_for_step($step);
     $nextDate = date('Y-m-d', strtotime("+{$nextDays} days"));
     seg_at('PATCH', seg_url('/' . $id), ['fields' => [
@@ -262,6 +275,10 @@ foreach (($res['data']['records'] ?? []) as $rec) {
         'Last contact date'  => $today,
         'Next follow up date'=> $nextDate,
     ]]);
+
+    if (SEG_SMS_DELAY_SECONDS > 0) {
+        sleep(SEG_SMS_DELAY_SECONDS);
+    }
 }
 
 echo json_encode(array_merge(['ok' => true, 'date' => $today], $results));
