@@ -89,7 +89,7 @@ jobs:
           envs: STEPS,META_PIXEL_ID,CLARITY_ID
           command_timeout: 10m
           script: |
-            set -euo pipefail
+            set -uo pipefail
             STAGE="$HOME/wp-optimization-pinnacle-staging"
             export WP_PATH="$HOME/domains/pinnaclegroupwi.com/public_html"
             export PATH="/usr/local/bin:$PATH"

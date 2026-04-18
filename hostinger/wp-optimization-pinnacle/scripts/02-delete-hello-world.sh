@@ -1,32 +1,34 @@
 #!/usr/bin/env bash
 # 02-delete-hello-world.sh
 # Trashes the default "hello-world" posts and adds 301 redirects to home.
-# Requires the "Redirection" plugin OR appends to .htaccess as fallback.
+# Uses .htaccess for redirects (works with or without the Redirection plugin).
 
-set -euo pipefail
+set -uo pipefail
 
 WP_PATH="${WP_PATH:-$HOME/domains/pinnaclegroupwi.com/public_html}"
 cd "$WP_PATH"
 
-declare -a SLUGS=("hello-world" "hello-world-2")
-
-for slug in "${SLUGS[@]}"; do
+for slug in hello-world hello-world-2; do
   pid=$(wp post list --post_type=post --name="$slug" --post_status=any --field=ID 2>/dev/null | head -1)
-  if [ -z "$pid" ]; then
+  if [ -z "${pid:-}" ] || [ "$pid" = "0" ]; then
     echo "skip: $slug (not found)"
     continue
   fi
-  wp post delete "$pid" --force
-  echo "deleted: $slug (id=$pid)"
+  if wp post delete "$pid" --force >/dev/null 2>&1; then
+    echo "deleted: $slug (id=$pid)"
+  else
+    echo "ERROR: wp post delete failed for $slug (id=$pid)"
+  fi
 done
 
-# Add 301 redirects via .htaccess if Redirection plugin is not present
-if ! wp plugin is-installed redirection 2>/dev/null; then
-  HTACCESS="$WP_PATH/.htaccess"
-  if [ -f "$HTACCESS" ] && ! grep -q "# PINNACLE_REDIRECTS" "$HTACCESS"; then
+HTACCESS="$WP_PATH/.htaccess"
+if [ -f "$HTACCESS" ]; then
+  if grep -q "# PINNACLE_REDIRECTS" "$HTACCESS" 2>/dev/null; then
+    echo "skip: .htaccess redirects already present"
+  else
     cat >> "$HTACCESS" <<'EOF'
 
-# PINNACLE_REDIRECTS — added by wp-optimization/02-delete-hello-world.sh
+# PINNACLE_REDIRECTS
 <IfModule mod_rewrite.c>
 RewriteEngine On
 RewriteRule ^hello-world/?$ / [R=301,L]
@@ -35,14 +37,11 @@ RewriteRule ^hello-world-2/?$ / [R=301,L]
 # /PINNACLE_REDIRECTS
 EOF
     echo "appended 301 redirects to .htaccess"
-  else
-    echo "skip: .htaccess redirects already present or file missing"
   fi
 else
-  wp redirection add --source=/hello-world/ --target=/ --type=301 2>/dev/null || true
-  wp redirection add --source=/hello-world-2/ --target=/ --type=301 2>/dev/null || true
-  echo "added redirects via Redirection plugin"
+  echo "WARN: .htaccess not found at $HTACCESS — skipping redirects"
 fi
 
 echo
-echo "OK. Verify with: curl -sI https://pinnaclegroupwi.com/hello-world/ | head -3"
+echo "OK. Verify with: curl -sI https://pinnaclegroupwi.com/hello-world/"
+exit 0
