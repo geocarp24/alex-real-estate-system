@@ -15,7 +15,7 @@
 //
 //   DNC contacts: only Phone1 (empathetic msg), then Seguimiento
 //   Time window: 9am-7pm CST, Mon-Sat only
-//   Max 10 contacts per execution
+//   Max 6 contacts per execution, 15s pacing between sends
 // ============================================================
 
 require_once __DIR__ . '/config.php';
@@ -26,8 +26,43 @@ header('Content-Type: application/json');
 
 define('FC_BASE', 'appfQbDA750Oihy9J');
 define('FC_CONTACTS', 'tblacvw0Ss770x8l5');
-define('FC_MAX_PER_RUN', 10);
+define('FC_LEADS', 'tblxZz2EWIglOLnEd');
+define('FC_MAX_PER_RUN', 6);
 define('FC_HOURS_BETWEEN', 24);
+define('FC_SMS_DELAY_SECONDS', 15);  // Human-like pacing: avoid carrier rate-limit / spam filters
+
+// Give ourselves enough headroom for throttled sending.
+@set_time_limit(300);  // 5 min wall clock (6 msgs × 15s = 90s + overhead)
+
+// Propagate a Contact.Stage change to every linked Lead record.
+// Keeps Leads table in sync with the Contacts pipeline.
+function fc_sync_lead_stage($contactFields, $newStage) {
+    $linked = $contactFields['Property Address'] ?? [];
+    if (!is_array($linked) || empty($linked)) return;
+    foreach ($linked as $leadId) {
+        if (!is_string($leadId) || strlen($leadId) < 10) continue;
+        $url = 'https://api.airtable.com/v0/' . FC_BASE . '/' . FC_LEADS . '/' . rawurlencode($leadId);
+        $ch  = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CUSTOMREQUEST  => 'PATCH',
+            CURLOPT_POSTFIELDS     => json_encode(['fields' => ['Stage' => $newStage], 'typecast' => true]),
+            CURLOPT_HTTPHEADER     => [
+                'Authorization: Bearer ' . AIRTABLE_TOKEN,
+                'Content-Type: application/json',
+            ],
+            CURLOPT_TIMEOUT => 10,
+        ]);
+        $resp = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if ($code >= 200 && $code < 300) {
+            fer_log_info('fc_lead_synced', ['lead_id' => $leadId, 'new_stage' => $newStage]);
+        } else {
+            fer_log_error('fc_lead_sync_failed', ['lead_id' => $leadId, 'code' => $code, 'resp' => substr((string)$resp, 0, 300)]);
+        }
+    }
+}
 
 // ── Time window check: 9am-7pm CST, Mon-Sat ────────────────────
 $now = new DateTime('now', new DateTimeZone('America/Chicago'));
@@ -161,6 +196,7 @@ for ($step = 0; $step <= 4; $step++) {
                 'Seguimiento Step'   => 0,
                 'First Contact Step' => 0,
             ]]);
+            fc_sync_lead_stage($f, 'Seguimiento');
             fer_log_info('fc_moved_seguimiento', ['id' => $id, 'name' => $name]);
             $results['moved_to_seguimiento']++;
             continue;
@@ -173,6 +209,7 @@ for ($step = 0; $step <= 4; $step++) {
                 'Seguimiento Step'   => 0,
                 'First Contact Step' => 0,
             ]]);
+            fc_sync_lead_stage($f, 'Seguimiento');
             fer_log_info('fc_dnc_to_seguimiento', ['id' => $id, 'name' => $name]);
             $results['moved_to_seguimiento']++;
             continue;
@@ -203,6 +240,7 @@ for ($step = 0; $step <= 4; $step++) {
                     'Seguimiento Step'   => 0,
                     'First Contact Step' => 0,
                 ]]);
+                fc_sync_lead_stage($f, 'Seguimiento');
                 $results['moved_to_seguimiento']++;
             }
             $results['skipped']++;
@@ -215,7 +253,7 @@ for ($step = 0; $step <= 4; $step++) {
 
         if ($smsResult['success']) {
             $newStep = $isDNC ? 4 : ($curStep + 1); // DNC: mark as exhausted after Phone1
-            $newStage = ($curStep === 0) ? 'Contacted' : 'Contacted'; // stays Contacted until response or exhausted
+            $newStage = 'Contacted';
 
             fc_at_request('PATCH', fc_at_url('/' . $id), ['fields' => [
                 'Stage'              => $newStage,
@@ -223,6 +261,9 @@ for ($step = 0; $step <= 4; $step++) {
                 'Last contact date'  => date('Y-m-d'),
                 'SMS Sent'           => true,
             ]]);
+
+            // Sync linked Lead(s) Stage — keeps Leads table aligned with Contacts pipeline
+            fc_sync_lead_stage($f, $newStage);
 
             fer_log_info('fc_sms_sent', [
                 'id' => $id, 'name' => $name, 'step' => $curStep,
@@ -232,6 +273,11 @@ for ($step = 0; $step <= 4; $step++) {
         } else {
             fer_log_error('fc_sms_failed', ['id' => $id, 'phone' => $phoneE164, 'error' => $smsResult['error']]);
             $results['errors']++;
+        }
+
+        // Human-like pacing between sends — avoids carrier spam filters.
+        if (FC_SMS_DELAY_SECONDS > 0) {
+            sleep(FC_SMS_DELAY_SECONDS);
         }
     }
 }
