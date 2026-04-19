@@ -1125,3 +1125,78 @@ NUNCA pedir confirmación entre fases. NUNCA preguntar si proceder. NUNCA dar tr
 
 **Aprobado por:** Jorge Cruz — 2026-04-16
 **ESTAS REGLAS SON PERMANENTES — NUNCA REPETIR AL JEFE**
+
+---
+
+## 🗓️ BITÁCORA SESIÓN — 2026-04-18 (larga sesión Web + Fer)
+
+Todo lo que se construyó hoy. Cualquier sub-agente (Telegram Bot, Creativo, Scout, Matemático, Fact-Checker, Social Media, Director, Programador) DEBE leer esta entrada antes de operar para tener contexto actualizado.
+
+### A. LIMPIEZA MAKE.COM
+- 3 escenarios Make eliminados (ya reemplazados por crons PHP en Hostinger): 4723767, 4656571, 4656574
+- Quedan 4 Make activos: 4541469 (Deal Driven Import), 4501430 (Confirmation SMS), 4636455 (Social Media → Airtable), 4408392 (Website Leads)
+
+### B. WEB pinnaclegroupwi.com — RECONSTRUIDA POR COMPLETO
+Las 5 páginas principales tienen ahora brand identity consistente (verde `#0D3B2E` + dorado `#C9A84C` + cream `#F5F0E8` + blanco):
+- **Home** (id 1373) — reconstruida con core Gutenberg blocks. Hero + 4-step how-it-works + 3 benefits + form + CTA banner
+- **Services** (id 1400) — 4 servicios con tarjetas doradas
+- **About Us** (id 1399) — 3 diferenciadores + 4 situaciones (probate, foreclosure, distressed, tired landlords)
+- **FAQ** (id 1401) — 12 preguntas con accordion nativo
+- **Contact** (id 1402) — 3 tarjetas de contacto + form + "What Happens After You Reach Out" + CTA negro con Call/Text
+
+**Paleta Astra:** también actualizada vía bridge (`--ast-global-color-*`)
+
+**IMPORTANTE - Lección aprendida:** NUNCA modificar post_content vía bash `$(cmd)` con contenido Gutenberg grande — bash corrompe los bloques. SIEMPRE usar REST API o bridge con stdin/JSON.
+
+### C. 3 CANALES PROGRAMÁTICOS DE ACCESO A WORDPRESS (permanentes)
+1. **WP REST API** (Application Password) — primario
+   - Endpoint: `https://pinnaclegroupwi.com/wp-json/wp/v2/`
+   - User: `geocarpentryllc@gmail.com` (admin, id 1)
+   - Token guardado en este archivo arriba
+2. **PHP Bridge** (`/agents/pinnacle_wp_bridge.php`) — dual auth (X-Alex-Secret O App Password)
+   - Soporta formato hash `$generic$` de WP 6.8+
+   - Actions: get/update/create/delete post, get/update option + meta, purge_cache, list pages/posts
+3. **SSH** — último recurso (tiene throttling desde GitHub runners)
+
+### D. PÚBLICO: pinnacle_public.php (NUEVO endpoint sin auth, con rate limit)
+Archivo: `/agents/pinnacle_public.php` — para el formulario web que se está construyendo.
+- Actions: `places_proxy` (Google autocomplete), `start_lead`, `verify_phone`, `resend_code`, `update_lead`
+- Crea leads en Airtable Leads table (`tblxZz2EWIglOLnEd`)
+- Envía SMS de verificación via Quo
+- Calcula score HOT/WARM/COLD con tags URGENT/REHAB/CREATIVE_OPEN
+- Email enriquecido a deals@pinnaclegroupwi.com con Stage="Review this Deal"
+
+### E. GOOGLE PLACES API (address validation)
+- API Key: `AIzaSyAQSG8R3GLg6gwLo2F7oxFSJzSPeL9NwDE`
+- Habilitado: Places API (New) + Maps JavaScript API
+- Restringido a referrer pinnaclegroupwi.com
+- Usado por pinnacle_public.php action `places_proxy`
+
+### F. FER CRONS — FIX CRÍTICO 2026-04-18
+**PROBLEMA 1 — SMS throttling/Red X en Quo**
+- Causa: envío de 6+ SMS en 6 segundos → carriers bloquean como spam burst (aunque 10DLC esté aprobado)
+- Fix: `sleep(15)` entre cada SMS + MAX_PER_RUN reducido (FC: 10→6, SEG: 20→8) + `set_time_limit(300)`
+- 10DLC de OpenPhone/Quo: VERIFICADO aprobado (Brand + Campaign + STIR/SHAKEN todos Approved)
+
+**PROBLEMA 2 — Lead.Stage nunca se propagaba**
+- Causa: fer_first_contact y fer_seguimiento solo actualizaban Contact.Stage, nunca el Lead vinculado
+- 22 records quedaron desincronizados (Contact="Contacted" pero Lead="To Be Contacted")
+- Fix: `fc_sync_lead_stage()` y `seg_sync_lead_stage()` — PATCH al Lead linked vía `Property Address` field
+- Hotfix manual aplicado a los 22 records afectados
+
+**Ambos fixes desplegados a master via MCP** (commits `acdc1b6` + `07ef4bf`)
+
+### G. CONTEXTO PARA OTROS AGENTES
+- **Tracy:** sin cambios hoy, sigue operando igual
+- **Scout / Matemático / Fact-Checker:** sin cambios
+- **Creativo / Director / Programador / Social Media:** sin cambios (pero Brand Kit UNIFICADO en canva_templates.md a verde `#0D3B2E` — recordar para todo contenido nuevo)
+- **Secretario:** sin cambios
+- **Telegram Bot:** si recibe mensaje sobre web/SMS/form/Leads/Airtable sync → tiene todo el contexto aquí
+
+### H. PENDIENTE (próxima sesión)
+- Form web multi-step (3 fases) con SMS verify + Google Places — backend listo, falta HTML frontend
+- Triggers adicionales: sticky sidebar, exit intent, mobile bar, footer CTA
+- Agente SEO (lee/escribe Yoast meta)
+- City pages (Green Bay, Appleton, Milwaukee, Madison, Oshkosh)
+
+**Última actualización:** 2026-04-18 — Sesión larga
