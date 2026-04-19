@@ -21,8 +21,24 @@
 ### 2026-04-19 — CREDENCIALES Y PERSISTENCIA ENTRE SESIONES
 - El sandbox de Claude Code Web NO persiste `.env` ni variables entre sesiones — solo lo que está en el repo.
 - ALEX_SECRET, WP App Password, SSH Pass de Hostinger viven en GitHub Secrets / VPS / Hostinger — NO en este sandbox.
-- **Solución acordada:** Cuando Jorge me da una credencial, la guardo en `agents/.env.sandbox` (ya en `.gitignore`) Y referencio su ubicación canónica en `memoria_ALex.md` para que la próxima sesión sepa pedirla solo si el archivo no existe.
+- **Solución acordada:** Cuando Jorge me da una credencial, la guardo en `.env.sandbox` (ya en `.gitignore`) Y referencio su ubicación canónica en `memoria_ALex.md` para que la próxima sesión sepa pedirla solo si el archivo no existe.
 - **NUNCA pegar valores reales de credenciales en `memoria_ALex.md`** (ese archivo va a GitHub público).
+
+### 2026-04-19 — WP BRIDGE PINNACLE — ACCESO CONFIRMADO
+- **Endpoint:** `https://agents.pinnaclegroupwi.com/pinnacle_wp_bridge.php`
+- **Método auth preferido:** Basic Auth con WP Application Password
+- **Usuario WP (admin):** `geocarpentryllc@gmail.com` (NO `deals@pinnaclegroupwi.com`, NO `grocarpentryllc...`)
+- **App Password:** guardada en `.env.sandbox` como `PINNACLE_WP_APP_PASSWORD`
+- **Verificación rápida:**
+  ```bash
+  source .env.sandbox && CLEAN_PASS=$(echo "$PINNACLE_WP_APP_PASSWORD" | tr -d ' ')
+  curl -s -X POST "https://agents.pinnaclegroupwi.com/pinnacle_wp_bridge.php" \
+    -u "${PINNACLE_WP_USER}:${CLEAN_PASS}" -H "Content-Type: application/json" \
+    -d '{"action":"ping"}'
+  ```
+- **Acciones disponibles:** ping | list_pages | list_posts | get_post | update_post | create_post | delete_post | get_post_meta | update_post_meta | get_option | update_option | purge_cache
+- **WP version:** 6.9.4 | Theme: astra | PHP: 8.3.30
+- **Auto-test al inicio de sesión:** revisar `.env.sandbox` existe; si no, pedir a Jorge UNA SOLA VEZ. Si sí, hacer ping para confirmar que sigue válido.
 
 ### 2026-04-16 — Comunicación
 - Respuestas cortas y simples. Evitar lenguaje técnico innecesario.
