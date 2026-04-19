@@ -34,8 +34,32 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd \"c:/Users/Admin/OneDrive/Documents/Claude for real estate\" && git add -A && git diff --cached --quiet || git commit -m \"auto: save $(date +\"%Y-%m-%d %H:%M:%S\")\" && git push 2>/dev/null || true",
-            "statusMessage": "Guardando versión en GitHub...",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && git add -A && (git diff --cached --quiet || (git -c user.email=alex@pinnaclegroupwi.com -c user.name=ALEX commit -m \"auto: save $(date +'%Y-%m-%d %H:%M:%S')\" && git push origin HEAD 2>/dev/null)) || true",
+            "statusMessage": "Auto-backup -> GitHub...",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && git add -A && (git diff --cached --quiet || (git -c user.email=alex@pinnaclegroupwi.com -c user.name=ALEX commit -m \"checkpoint: session start $(date +'%Y-%m-%d %H:%M:%S')\" && git push origin HEAD 2>/dev/null)) || true",
+            "statusMessage": "Session-start checkpoint",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && git add -A && (git diff --cached --quiet || (git -c user.email=alex@pinnaclegroupwi.com -c user.name=ALEX commit -m \"checkpoint: turn end $(date +'%Y-%m-%d %H:%M:%S')\" && git push origin HEAD 2>/dev/null)) || true",
+            "statusMessage": "Turn-end checkpoint",
             "async": true
           }
         ]

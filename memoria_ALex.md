@@ -7,6 +7,23 @@
 
 ## REGLAS DEL JEFE (aplican a TODOS los agentes, siempre)
 
+### 2026-04-19 — AUTO-BACKUP DE SESIÓN (CRÍTICO — APROBADO POR JORGE)
+- **OBLIGATORIO:** Backup automático cada 15 min Y después de CADA cambio (commit + push a GitHub).
+- Mecanismo activo: PostToolUse hook en `.claude/settings.local.json` corre tras cada `Write|Edit` y hace `git add -A && git commit -m "auto: ..." && git push`.
+- **Mecanismo manual obligatorio cuando trabajo:** después de cada milestone (cada 10–15 min de actividad real), escribir un breve checkpoint en `memoria_ALex.md` con:
+  - Estado actual del trabajo
+  - Próximo paso
+  - Bloqueadores / decisiones pendientes
+  - Credenciales/IDs/URLs descubiertos en la sesión
+- **Razón:** Cada sesión nueva en Claude Code Web arranca con container limpio. Lo que NO esté en el repo Git, se PIERDE. Cero excepciones.
+- **Costo de no hacerlo:** créditos gastados en repetir investigación que ya hice antes.
+
+### 2026-04-19 — CREDENCIALES Y PERSISTENCIA ENTRE SESIONES
+- El sandbox de Claude Code Web NO persiste `.env` ni variables entre sesiones — solo lo que está en el repo.
+- ALEX_SECRET, WP App Password, SSH Pass de Hostinger viven en GitHub Secrets / VPS / Hostinger — NO en este sandbox.
+- **Solución acordada:** Cuando Jorge me da una credencial, la guardo en `agents/.env.sandbox` (ya en `.gitignore`) Y referencio su ubicación canónica en `memoria_ALex.md` para que la próxima sesión sepa pedirla solo si el archivo no existe.
+- **NUNCA pegar valores reales de credenciales en `memoria_ALex.md`** (ese archivo va a GitHub público).
+
 ### 2026-04-16 — Comunicación
 - Respuestas cortas y simples. Evitar lenguaje técnico innecesario.
 - No pedir confirmación repetida. Si el Jefe dice "procede", procede.
