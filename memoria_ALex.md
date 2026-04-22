@@ -1285,3 +1285,33 @@ GitHub Secrets actualizados via libsodium sealed boxes (pynacl).
 
 **Aprobado por:** Jorge Cruz — 2026-04-22
 **Documentación de la sesión:** completa, pusheada a GitHub `claude/whats-going-on-LFo6h`.
+
+
+---
+
+## 2026-04-22 — REGLAS PERMANENTES (aprobadas por Jorge, nunca olvidar)
+
+### R1. SURGICAL EDITS — nunca reescribir archivos enteros
+**Regla:** Cuando exista un archivo, usar el tool `Edit` con `old_string`/`new_string` chirúrgicos. NUNCA usar `Write` para sobreescribir completo salvo que el archivo sea nuevo.
+Cuando se toca una página o módulo existente, modificar SOLO las líneas necesarias. Nunca regenerar HTML/CSS/PHP completos "mientras estoy ahí".
+El riesgo: regenerar pierde cambios anteriores de otras sesiones y crea "regresiones fantasma" donde el Jefe ve formato viejo.
+
+### R2. LUZ VERDE PERMANENTE (Pinnacle public stack)
+Jorge otorga autorización permanente para: merge claude→master + push a master + deploy workflow trigger + purge_cache + bump ?v= params, en el contexto del stack público de Pinnacle (form, chatbot, site CTAs, contact page, MU-plugins, bridges).
+NO pedir confirmación antes de hacer estos deploys — ejecutar y reportar.
+Sigue aplicando pausa obligatoria para: finanzas reales, eliminación irreversible de registros, comunicaciones externas en nombre del Jefe, credenciales.
+
+### R3. VERIFICACIÓN POST-DEPLOY SIEMPRE
+Después de cada deploy:
+1. Fetch la URL pública con `curl -H "Cache-Control: no-cache"`
+2. Confirmar que los elementos clave están presentes (grep por strings distintivos)
+3. Si algo no se ve: diagnosticar primero DB vs cache vs browser, NO reescribir preventivamente
+
+### R4. SKILLS — activarlos cuando corresponde
+Tener 340+ skills instalados no sirve si no se invocan. Para tareas de código:
+- `verification-before-completion` — antes de declarar "listo"
+- `simplify` — después de cambios, revisar si se puede simplificar
+- `systematic-debugging` — ante cualquier bug o comportamiento inesperado
+- `focused-fix` — para fixes quirúrgicos end-to-end
+
+**Aprobado por:** Jorge Cruz — 2026-04-22
