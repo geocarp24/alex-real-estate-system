@@ -37,6 +37,17 @@ jobs:
           target: /home/u433637438/domains/pinnaclegroupwi.com/public_html/agents/
           strip_components: 2
 
+      - name: Deploy WP MU-plugins via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "hostinger/mu-plugins/*"
+          target: /home/u433637438/domains/pinnaclegroupwi.com/public_html/wp-content/mu-plugins/
+          strip_components: 2
+
       - name: Write config files via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:

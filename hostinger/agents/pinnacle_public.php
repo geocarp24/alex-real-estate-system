@@ -303,6 +303,104 @@ function pp_fer_brain(array $ctx): array {
     return ['ok' => true, 'msg' => trim($text), 'warning' => ''];
 }
 
+// --- Helper: Claude call for Fer-Chat-Mode (multi-turn chat widget) ---
+function pp_chat_brain(array $history, string $lang): array {
+    $key = defined('ANTHROPIC_API_KEY') ? ANTHROPIC_API_KEY : (string) getenv('ANTHROPIC_API_KEY');
+    if (!$key) return ['ok' => false, 'err' => 'ANTHROPIC_API_KEY missing'];
+    $lang = $lang === 'es' ? 'es' : 'en';
+    $sys  = "You are Fer, the bilingual AI assistant for Pinnacle Holdings — a Wisconsin real estate cash buyer. You chat with sellers visiting pinnaclegroupwi.com.\n\n"
+          . "TONE: warm but professional. Empathetic first, concise second. Mix both — never pushy.\n"
+          . "LANGUAGE: always respond in " . ($lang==='es'?'Spanish':'English') . ". If the user switches language mid-chat, follow them.\n\n"
+          . "YOUR JOB in this chat widget:\n"
+          . "1. Greet warmly and ask what you can help with.\n"
+          . "2. If they want to sell a property, collect: property address, condition (move-in ready / needs work / distressed), timeline, rough asking price, and contact info (name + phone + email).\n"
+          . "3. For long qualifications (more than 3-4 quick exchanges), suggest: 'To save you time, we have a 2-minute form that captures everything at /get-my-offer/. Want to use that instead?' — but only ONCE, don't pressure.\n"
+          . "4. If user is just asking general questions (what do you buy, how fast, fees, etc.) — answer concisely and end with a soft offer to continue.\n\n"
+          . "RULES (hard):\n"
+          . "- NEVER promise specific timelines, dollar amounts, or outcomes.\n"
+          . "- NEVER claim the deal will close fast / will be high offer without qualifiers.\n"
+          . "- NEVER fabricate information about Pinnacle (no fake team members, no fake offices outside 735 E Walnut St Suite 3 Green Bay WI).\n"
+          . "- If asked something off-topic or hostile, politely redirect.\n"
+          . "- Max 60 words per reply. Use simple language.\n\n"
+          . "COMPANY FACTS you may reference:\n"
+          . "- Pinnacle Holdings Group LLC, Wisconsin-based real estate investors\n"
+          . "- We buy any condition, any situation (foreclosure, inherited, damaged, rented, vacant)\n"
+          . "- Phone: (920) 777-9886 · Email: deals@pinnaclegroupwi.com\n"
+          . "- Office: 735 E Walnut St Suite 3, Green Bay WI\n"
+          . "- Cash offers, no repairs, no realtor fees\n\n"
+          . "ESCALATION — When you have collected name + phone + address, append a JSON tag at the very end of your message on its own line:\n"
+          . '<escalate>{"name":"...","phone":"...","email":"...","address":"...","summary":"1-line summary"}</escalate>' . "\n"
+          . "The frontend parses this tag out before displaying to the user. Without the escalate tag, keep chatting.";
+
+    // Build Anthropic messages array from history
+    $messages = [];
+    foreach ($history as $h) {
+        $r = ($h['role'] ?? 'user') === 'assistant' ? 'assistant' : 'user';
+        $c = (string) ($h['content'] ?? '');
+        if ($c === '') continue;
+        $messages[] = ['role' => $r, 'content' => $c];
+    }
+    if (empty($messages)) {
+        $messages[] = ['role' => 'user', 'content' => 'Hi'];
+    }
+
+    $body = [
+        'model'      => 'claude-haiku-4-5-20251001',
+        'max_tokens' => 300,
+        'system'     => $sys,
+        'messages'   => $messages,
+    ];
+    $ch = curl_init('https://api.anthropic.com/v1/messages');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => json_encode($body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+        CURLOPT_TIMEOUT        => 20,
+        CURLOPT_HTTPHEADER     => [
+            'x-api-key: ' . $key,
+            'anthropic-version: 2023-06-01',
+            'content-type: application/json',
+        ],
+    ]);
+    $resp = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($code < 200 || $code >= 300) return ['ok' => false, 'err' => 'claude http ' . $code, 'body' => substr((string)$resp, 0, 300)];
+    $d = json_decode((string) $resp, true) ?: [];
+    $text = $d['content'][0]['text'] ?? '';
+    // Extract <escalate>{...}</escalate> tag if present
+    $escalate = null;
+    if (preg_match('/<escalate>\s*(\{[\s\S]*?\})\s*<\/escalate>/', $text, $m)) {
+        $parsed = json_decode($m[1], true);
+        if (is_array($parsed)) $escalate = $parsed;
+        $text = trim(str_replace($m[0], '', $text));
+    }
+    return ['ok' => true, 'reply' => trim($text), 'escalate' => $escalate];
+}
+
+// --- Helper: send Telegram alert for chatbot escalation ---
+function pp_chat_notify_telegram(array $esc, string $session_id): void {
+    $tg_token = defined('TELEGRAM_BOT_TOKEN') ? TELEGRAM_BOT_TOKEN : (string) getenv('TELEGRAM_BOT_TOKEN');
+    $tg_chat  = defined('TELEGRAM_CHAT_ID')  ? TELEGRAM_CHAT_ID  : (string) getenv('TELEGRAM_CHAT_ID');
+    if (!$tg_token || !$tg_chat) return;
+    $msg = "💬 *NEW CHATBOT LEAD*\n\n"
+         . '*Name:* ' . ($esc['name'] ?? '—') . "\n"
+         . '*Phone:* `' . ($esc['phone'] ?? '—') . "`\n"
+         . '*Email:* ' . ($esc['email'] ?? '—') . "\n"
+         . '*Address:* ' . ($esc['address'] ?? '—') . "\n"
+         . '*Summary:* ' . ($esc['summary'] ?? '—') . "\n"
+         . "\n_Session:_ `" . substr($session_id, 0, 12) . "`";
+    $ch = curl_init('https://api.telegram.org/bot' . $tg_token . '/sendMessage');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => json_encode(['chat_id'=>$tg_chat, 'text'=>$msg, 'parse_mode'=>'Markdown']),
+        CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+        CURLOPT_TIMEOUT        => 8,
+    ]);
+    curl_exec($ch); curl_close($ch);
+}
+
 // -------- Actions --------
 
 // --- Helper: search Airtable Leads by phone (primary) or address (fallback) ---
@@ -437,6 +535,60 @@ switch ($action) {
             }
         }
         $reply(['suggestions' => $sugg]);
+    }
+
+    case 'chat_message': {
+        // Fer-Chat-Mode — multi-turn chat widget on the website
+        $session_id = (string) ($body['session_id'] ?? '');
+        if ($session_id === '') $session_id = bin2hex(random_bytes(8));
+        $lang       = (string) ($body['lang'] ?? 'en');
+        $history    = (array)  ($body['history'] ?? []);
+        // Cap history to last 20 turns to keep tokens + cost predictable
+        if (count($history) > 20) $history = array_slice($history, -20);
+        $r = pp_chat_brain($history, $lang);
+        if (!$r['ok']) {
+            $log('warn', 'chat_brain fail', ['err' => $r['err'] ?? '']);
+            $reply([
+                'ok' => true,
+                'session_id' => $session_id,
+                'reply' => $lang === 'es'
+                    ? 'Disculpa, tuve un problema técnico. ¿Puedes intentar de nuevo?'
+                    : 'Sorry, I hit a quick hiccup. Can you try once more?',
+                'escalate' => null,
+            ]);
+        }
+        // If the brain requested escalation, create an Airtable Lead + Telegram alert
+        $created_lead = null;
+        if (is_array($r['escalate'] ?? null)) {
+            $esc = $r['escalate'];
+            $fields = [
+                'Address'     => (string) ($esc['address'] ?? ''),
+                'Stage'       => 'New Lead',
+                'Lead Source' => 'Website Form',   // existing option (no new dict additions)
+                'Dated Added' => date('Y-m-d'),
+                'Recomendation' => "=== CHATBOT LEAD ===\n"
+                     . "Name:    " . ($esc['name'] ?? '') . "\n"
+                     . "Phone:   " . ($esc['phone'] ?? '') . "\n"
+                     . "Email:   " . ($esc['email'] ?? '') . "\n"
+                     . "Address: " . ($esc['address'] ?? '') . "\n"
+                     . "Summary: " . ($esc['summary'] ?? '') . "\n\n"
+                     . "Transcript (last 8):\n"
+                     . implode("\n", array_map(function($h){
+                         return '  [' . ($h['role'] ?? '?') . '] ' . substr((string)($h['content'] ?? ''), 0, 200);
+                     }, array_slice($history, -8))),
+            ];
+            $at = pp_airtable_create($fields);
+            if ($at['ok']) $created_lead = $at['record']['id'] ?? null;
+            pp_chat_notify_telegram($esc, $session_id);
+            $log('info', 'chat escalation', ['lead_id' => $created_lead]);
+        }
+        $reply([
+            'ok' => true,
+            'session_id' => $session_id,
+            'reply' => $r['reply'],
+            'escalate' => $r['escalate'],
+            'lead_id' => $created_lead,
+        ]);
     }
 
     case 'form_brain': {
