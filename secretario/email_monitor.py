@@ -82,6 +82,7 @@ def init_db():
             message_id TEXT UNIQUE,
             fecha TEXT,
             remitente TEXT,
+            reply_to TEXT,
             asunto TEXT,
             categoria TEXT,
             resumen TEXT,
@@ -95,7 +96,7 @@ def init_db():
         )
     """)
     # Migrar tabla existente si le faltan los campos nuevos
-    for col, col_def in [("is_tracerfy", "INTEGER DEFAULT 0"), ("archived_date", "TEXT")]:
+    for col, col_def in [("is_tracerfy", "INTEGER DEFAULT 0"), ("archived_date", "TEXT"), ("reply_to", "TEXT")]:
         try:
             c.execute(f"ALTER TABLE emails_procesados ADD COLUMN {col} {col_def}")
             log.info(f"Columna '{col}' agregada a emails_procesados")
@@ -117,10 +118,10 @@ def guardar_email(data: dict) -> int:
     c = conn.cursor()
     c.execute("""
         INSERT OR IGNORE INTO emails_procesados
-        (message_id, fecha, remitente, asunto, categoria, resumen, respuesta_sugerida)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        (message_id, fecha, remitente, reply_to, asunto, categoria, resumen, respuesta_sugerida)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     """, (
-        data["message_id"], data["fecha"], data["remitente"],
+        data["message_id"], data["fecha"], data["remitente"], data.get("reply_to", ""),
         data["asunto"], data["categoria"], data["resumen"],
         data.get("respuesta_sugerida", "")
     ))
@@ -271,6 +272,7 @@ def leer_emails_no_leidos() -> list:
 
             message_id = msg.get("Message-ID", f"no-id-{num.decode()}")
             remitente   = decode_str(msg.get("From", ""))
+            reply_to    = decode_str(msg.get("Reply-To", ""))
             asunto      = decode_str(msg.get("Subject", "(sin asunto)"))
             fecha       = msg.get("Date", "")
             cuerpo      = get_email_body(msg)
@@ -278,6 +280,7 @@ def leer_emails_no_leidos() -> list:
             emails.append({
                 "message_id": message_id,
                 "remitente":  remitente,
+                "reply_to":   reply_to,
                 "asunto":     asunto,
                 "fecha":      fecha,
                 "cuerpo":     cuerpo,
@@ -582,12 +585,16 @@ Para responder con otro texto: `/responder {db_id} tu mensaje aquí`"""
 # SMTP — ENVIAR RESPUESTA
 # ─────────────────────────────────────────────
 def enviar_respuesta_email(destinatario: str, asunto: str, cuerpo: str) -> bool:
-    """Envía email de respuesta via SMTP."""
+    """Envía email de respuesta via SMTP.
+    FROM + Reply-To se fuerzan a la cuenta autenticada (deals@...) para evitar
+    rebotes por 'wordpress@' u otras cuentas que no existen en el servidor."""
     try:
         msg = MIMEMultipart()
-        msg["From"]    = EMAIL_ADDRESS
-        msg["To"]      = destinatario
-        msg["Subject"] = f"Re: {asunto}" if not asunto.startswith("Re:") else asunto
+        # Friendly display name + forced FROM (must exist on Hostinger)
+        msg["From"]      = f"Pinnacle Holdings <{EMAIL_ADDRESS}>"
+        msg["Reply-To"]  = EMAIL_ADDRESS
+        msg["To"]        = destinatario
+        msg["Subject"]   = f"Re: {asunto}" if not asunto.startswith("Re:") else asunto
 
         firma = """
 
@@ -695,38 +702,100 @@ def procesar_emails():
 # ─────────────────────────────────────────────
 # RESPONDER EMAIL (llamado desde bot Telegram)
 # ─────────────────────────────────────────────
+def _extract_email_addr(raw: str) -> str:
+    """Extrae 'foo@bar.com' de '"Name" <foo@bar.com>' o devuelve raw limpio."""
+    if not raw: return ""
+    raw = raw.strip()
+    if "<" in raw and ">" in raw:
+        return raw.split("<")[1].split(">")[0].strip()
+    if "@" in raw:
+        # remove surrounding text/quotes, keep only email
+        import re
+        m = re.search(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", raw)
+        if m: return m.group(0).lower()
+    return ""
+
+def _is_system_sender(addr: str) -> bool:
+    """Detecta remitentes genéricos del sistema que NO deben recibir respuesta."""
+    if not addr: return True
+    a = addr.lower()
+    blocklist = [
+        "wordpress@", "no-reply@", "noreply@", "mailer-daemon@", "mail-daemon@",
+        "postmaster@", "donotreply@", "bounce@", "bounces@", "mail@wordpress",
+    ]
+    return any(a.startswith(p) or p in a for p in blocklist)
+
+def _extract_email_from_body(body: str) -> str:
+    """Busca un email del cliente embebido en el cuerpo (ej: WP CF7 'Email: foo@bar.com')."""
+    if not body: return ""
+    import re
+    # Patrones comunes de formularios WP
+    patterns = [
+        r"(?:Email|E-?mail|Correo)\s*[:\-]\s*([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})",
+        r"reply[- ]?to\s*[:\-]\s*([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})",
+        r"from\s*[:\-]\s*([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})",
+    ]
+    for pat in patterns:
+        m = re.search(pat, body, re.IGNORECASE)
+        if m:
+            addr = m.group(1).lower()
+            if not _is_system_sender(addr):
+                return addr
+    # Cualquier email en el body que no sea sistema
+    all_emails = re.findall(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", body)
+    for addr in all_emails:
+        a = addr.lower()
+        if (not _is_system_sender(a)
+            and not a.endswith("@pinnaclegroupwi.com")
+            and not a.endswith("@geocarpentry.com")):
+            return a
+    return ""
+
 def responder_email_aprobado(db_id: int, texto_personalizado: str | None = None) -> tuple[bool, str]:
     """
     Envía respuesta a un email con aprobación del Jefe.
-    db_id: ID del email en la DB local
-    texto_personalizado: si None, usa la respuesta sugerida por Claude
+    Orden de resolución del destinatario:
+      1) Reply-To del email original (si no es sistema)
+      2) From del email original (si no es sistema)
+      3) Email embebido en el cuerpo (ej: WP CF7 "Email: foo@bar.com")
     """
     em = get_email_by_db_id(db_id)
     if not em:
         return False, f"No encontré email con ID {db_id}"
-
     if em.get("respondido"):
         return False, f"Este email ya fue respondido el {em.get('fecha')}"
 
-    # Email destino — extraer del campo remitente
-    remitente_raw = em.get("remitente", "")
-    email_dest = ""
-    if "<" in remitente_raw and ">" in remitente_raw:
-        email_dest = remitente_raw.split("<")[1].split(">")[0].strip()
-    elif "@" in remitente_raw:
-        email_dest = remitente_raw.strip()
+    # 1) Reply-To
+    email_dest = _extract_email_addr(em.get("reply_to", ""))
+    if email_dest and _is_system_sender(email_dest):
+        email_dest = ""
+    # 2) From
+    if not email_dest:
+        cand = _extract_email_addr(em.get("remitente", ""))
+        if cand and not _is_system_sender(cand):
+            email_dest = cand
+    # 3) Body scan (WP CF7 puts "Email: client@example.com" in body)
+    source = "reply_to" if em.get("reply_to") and _extract_email_addr(em.get("reply_to","")) == email_dest else ("from" if email_dest else "")
+    if not email_dest:
+        email_dest = _extract_email_from_body(em.get("cuerpo", ""))
+        if email_dest: source = "body"
 
     if not email_dest:
-        return False, f"No pude extraer email destino de: {remitente_raw}"
+        return False, (
+            f"No pude resolver email del cliente.\n"
+            f"From: {em.get('remitente','')}\n"
+            f"Reply-To: {em.get('reply_to','')}\n"
+            f"Usa: /responder {db_id} <email> <mensaje>"
+        )
 
     cuerpo = texto_personalizado if texto_personalizado else em.get("respuesta_sugerida", "")
     if not cuerpo:
-        return False, "No hay texto de respuesta. Usa: /responder {db_id} tu mensaje"
+        return False, f"No hay texto de respuesta. Usa: /responder {db_id} tu mensaje"
 
     ok = enviar_respuesta_email(email_dest, em.get("asunto", ""), cuerpo)
     if ok:
         marcar_respondido(db_id, cuerpo)
-        return True, f"Email enviado a {email_dest}"
+        return True, f"Email enviado a {email_dest} (resuelto por {source})"
     else:
         return False, f"Error al enviar a {email_dest}. Revisa credenciales SMTP."
 

@@ -72,12 +72,20 @@
 #pnf-root .pnf-resend { color:var(--pnf-green); font-size:13px; font-weight:600; background:none; border:0; cursor:pointer; text-decoration:underline; margin-top:4px; }
 #pnf-root .pnf-resend:disabled { color:var(--pnf-muted); cursor:not-allowed; text-decoration:none; }
 
+/* FER ACK (empathic messages between screens) */
+#pnf-root .pnf-ack { display:flex; gap:10px; align-items:flex-start; background:linear-gradient(135deg,#FAF7EF 0%,#F5F0E8 100%); border-left:3px solid var(--pnf-gold); padding:12px 14px; border-radius:10px; margin:0 0 16px; color:var(--pnf-ink); font-size:14px; line-height:1.45; animation:pnfFade .4s ease; }
+#pnf-root .pnf-ack-icon { font-size:18px; line-height:1.2; flex-shrink:0; }
+
 /* SUCCESS SCREEN */
 #pnf-root .pnf-success { text-align:center; padding:24px 12px; }
 #pnf-root .pnf-success-icon { width:72px; height:72px; margin:0 auto 16px; background:var(--pnf-green); color:var(--pnf-gold); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:38px; }
 #pnf-root .pnf-success h2 { font-size:28px; color:var(--pnf-ink); margin:0 0 12px; }
 #pnf-root .pnf-success p { color:var(--pnf-muted); font-size:16px; line-height:1.5; margin:0 0 20px; }
 #pnf-root .pnf-success .pnf-score { display:inline-block; padding:8px 18px; background:var(--pnf-gold); color:var(--pnf-green); border-radius:999px; font-weight:700; font-size:14px; letter-spacing:.5px; }
+#pnf-root .pnf-ok-actions { display:flex; gap:10px; justify-content:center; align-items:center; margin-top:28px; flex-wrap:wrap; }
+#pnf-root .pnf-ok-home { text-decoration:none; display:inline-block; }
+#pnf-root .pnf-ok-close { background:transparent; border:1.5px solid #E5DFD4; color:var(--pnf-muted); padding:12px 22px; border-radius:999px; font-size:14px; font-weight:600; cursor:pointer; }
+#pnf-root .pnf-ok-close:hover { background:#F5F0E8; color:var(--pnf-ink); }
 
 /* HONEYPOT (hidden anti-bot) */
 #pnf-root .pnf-hp { position:absolute !important; left:-10000px !important; top:auto !important; width:1px !important; height:1px !important; overflow:hidden !important; }

@@ -250,7 +250,254 @@ function pp_compute_score(array $phase1, array $phase2, array $phase3): array {
     return ['score' => $score, 'heat' => $heat, 'labels' => $labels];
 }
 
+// --- Helper: Claude call for Fer-Form-Mode brain ---
+function pp_fer_brain(array $ctx): array {
+    $key = defined('ANTHROPIC_API_KEY') ? ANTHROPIC_API_KEY : (string) getenv('ANTHROPIC_API_KEY');
+    if (!$key) return ['ok' => false, 'err' => 'ANTHROPIC_API_KEY missing'];
+    $lang = ($ctx['lang'] ?? 'en') === 'es' ? 'es' : 'en';
+    // System prompt — Fer-Form-Mode
+    $sys  = "You are Fer, a warm-but-professional bilingual AI receptionist for Pinnacle Holdings, a Wisconsin real estate cash buyer. You're embedded inside a web form that a home seller is filling out.\n\n"
+          . "Your job is to provide ONE very short acknowledgment (max 1 sentence, ~12 words) between questions that:\n"
+          . "- Feels human, not robotic\n"
+          . "- Mixes empathy + professionalism (no pushy sales tone)\n"
+          . "- Acknowledges their specific situation when relevant (urgency, distress, inheritance, foreclosure)\n"
+          . "- NEVER promises specific outcomes, timelines, or dollar amounts\n"
+          . "- NEVER asks follow-up questions — the form does that\n"
+          . "- Adapts language: respond in " . ($lang === 'es' ? 'Spanish' : 'English') . "\n\n"
+          . "You also detect inconsistencies (e.g. 'Distressed' property + 'Highest cash offer' priority — that combo is unusual; gently flag it).\n\n"
+          . "Output JSON only: {\"msg\": \"<short acknowledgment>\", \"warning\": \"<optional inconsistency note or empty>\"}";
+    $user_msg = "Current screen: " . ($ctx['current'] ?? '—') . "\n"
+              . "Last answer: " . ($ctx['last_field'] ?? '—') . " = " . ($ctx['last_value'] ?? '—') . "\n"
+              . "All answers so far: " . json_encode($ctx['data'] ?? [], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    $body = [
+        'model'      => 'claude-haiku-4-5-20251001',
+        'max_tokens' => 150,
+        'system'     => $sys,
+        'messages'   => [['role' => 'user', 'content' => $user_msg]],
+    ];
+    $ch = curl_init('https://api.anthropic.com/v1/messages');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => json_encode($body),
+        CURLOPT_TIMEOUT        => 12,
+        CURLOPT_HTTPHEADER     => [
+            'x-api-key: ' . $key,
+            'anthropic-version: 2023-06-01',
+            'content-type: application/json',
+        ],
+    ]);
+    $resp = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($code < 200 || $code >= 300) return ['ok' => false, 'err' => 'claude http ' . $code];
+    $d = json_decode((string) $resp, true) ?: [];
+    $text = $d['content'][0]['text'] ?? '';
+    // Try to parse JSON from text (Claude sometimes wraps in prose)
+    if (preg_match('/\{[\s\S]*\}/', $text, $m)) {
+        $parsed = json_decode($m[0], true);
+        if (is_array($parsed)) {
+            return ['ok' => true, 'msg' => (string) ($parsed['msg'] ?? ''), 'warning' => (string) ($parsed['warning'] ?? '')];
+        }
+    }
+    return ['ok' => true, 'msg' => trim($text), 'warning' => ''];
+}
+
+// --- Helper: Claude call for Fer-Chat-Mode (multi-turn chat widget) ---
+function pp_chat_brain(array $history, string $lang): array {
+    $key = defined('ANTHROPIC_API_KEY') ? ANTHROPIC_API_KEY : (string) getenv('ANTHROPIC_API_KEY');
+    if (!$key) return ['ok' => false, 'err' => 'ANTHROPIC_API_KEY missing'];
+    $lang = $lang === 'es' ? 'es' : 'en';
+    $sys  = "You are Fer, the bilingual AI assistant for Pinnacle Holdings — a Wisconsin real estate cash buyer. You chat with sellers visiting pinnaclegroupwi.com.\n\n"
+          . "TONE: warm but professional. Empathetic first, concise second. Mix both — never pushy.\n"
+          . "LANGUAGE: always respond in " . ($lang==='es'?'Spanish':'English') . ". If the user switches language mid-chat, follow them.\n\n"
+          . "YOUR JOB in this chat widget:\n"
+          . "1. Greet warmly and ask what you can help with.\n"
+          . "2. If they want to sell a property, collect: property address, condition (move-in ready / needs work / distressed), timeline, rough asking price, and contact info (name + phone + email).\n"
+          . "3. For long qualifications (more than 3-4 quick exchanges), suggest: 'To save you time, we have a 2-minute form that captures everything at /get-my-offer/. Want to use that instead?' — but only ONCE, don't pressure.\n"
+          . "4. If user is just asking general questions (what do you buy, how fast, fees, etc.) — answer concisely and end with a soft offer to continue.\n\n"
+          . "RULES (hard):\n"
+          . "- NEVER promise specific timelines, dollar amounts, or outcomes.\n"
+          . "- NEVER claim the deal will close fast / will be high offer without qualifiers.\n"
+          . "- NEVER fabricate information about Pinnacle (no fake team members, no fake offices outside 735 E Walnut St Suite 3 Green Bay WI).\n"
+          . "- If asked something off-topic or hostile, politely redirect.\n"
+          . "- Max 60 words per reply. Use simple language.\n\n"
+          . "COMPANY FACTS you may reference:\n"
+          . "- Pinnacle Holdings Group LLC, Wisconsin-based real estate investors\n"
+          . "- We buy any condition, any situation (foreclosure, inherited, damaged, rented, vacant)\n"
+          . "- Phone: (920) 777-9886 · Email: deals@pinnaclegroupwi.com\n"
+          . "- Office: 735 E Walnut St Suite 3, Green Bay WI\n"
+          . "- Cash offers, no repairs, no realtor fees\n\n"
+          . "ESCALATION — When you have collected name + phone + address, append a JSON tag at the very end of your message on its own line:\n"
+          . '<escalate>{"name":"...","phone":"...","email":"...","address":"...","summary":"1-line summary"}</escalate>' . "\n"
+          . "The frontend parses this tag out before displaying to the user. Without the escalate tag, keep chatting.";
+
+    // Build Anthropic messages array from history
+    $messages = [];
+    foreach ($history as $h) {
+        $r = ($h['role'] ?? 'user') === 'assistant' ? 'assistant' : 'user';
+        $c = (string) ($h['content'] ?? '');
+        if ($c === '') continue;
+        $messages[] = ['role' => $r, 'content' => $c];
+    }
+    if (empty($messages)) {
+        $messages[] = ['role' => 'user', 'content' => 'Hi'];
+    }
+
+    $body = [
+        'model'      => 'claude-haiku-4-5-20251001',
+        'max_tokens' => 300,
+        'system'     => $sys,
+        'messages'   => $messages,
+    ];
+    $ch = curl_init('https://api.anthropic.com/v1/messages');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => json_encode($body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+        CURLOPT_TIMEOUT        => 20,
+        CURLOPT_HTTPHEADER     => [
+            'x-api-key: ' . $key,
+            'anthropic-version: 2023-06-01',
+            'content-type: application/json',
+        ],
+    ]);
+    $resp = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($code < 200 || $code >= 300) return ['ok' => false, 'err' => 'claude http ' . $code, 'body' => substr((string)$resp, 0, 300)];
+    $d = json_decode((string) $resp, true) ?: [];
+    $text = $d['content'][0]['text'] ?? '';
+    // Extract <escalate>{...}</escalate> tag if present
+    $escalate = null;
+    if (preg_match('/<escalate>\s*(\{[\s\S]*?\})\s*<\/escalate>/', $text, $m)) {
+        $parsed = json_decode($m[1], true);
+        if (is_array($parsed)) $escalate = $parsed;
+        $text = trim(str_replace($m[0], '', $text));
+    }
+    return ['ok' => true, 'reply' => trim($text), 'escalate' => $escalate];
+}
+
+// --- Helper: send Telegram alert for chatbot escalation ---
+function pp_chat_notify_telegram(array $esc, string $session_id): void {
+    $tg_token = defined('TELEGRAM_BOT_TOKEN') ? TELEGRAM_BOT_TOKEN : (string) getenv('TELEGRAM_BOT_TOKEN');
+    $tg_chat  = defined('TELEGRAM_CHAT_ID')  ? TELEGRAM_CHAT_ID  : (string) getenv('TELEGRAM_CHAT_ID');
+    if (!$tg_token || !$tg_chat) return;
+    $msg = "💬 *NEW CHATBOT LEAD*\n\n"
+         . '*Name:* ' . ($esc['name'] ?? '—') . "\n"
+         . '*Phone:* `' . ($esc['phone'] ?? '—') . "`\n"
+         . '*Email:* ' . ($esc['email'] ?? '—') . "\n"
+         . '*Address:* ' . ($esc['address'] ?? '—') . "\n"
+         . '*Summary:* ' . ($esc['summary'] ?? '—') . "\n"
+         . "\n_Session:_ `" . substr($session_id, 0, 12) . "`";
+    $ch = curl_init('https://api.telegram.org/bot' . $tg_token . '/sendMessage');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => json_encode(['chat_id'=>$tg_chat, 'text'=>$msg, 'parse_mode'=>'Markdown']),
+        CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+        CURLOPT_TIMEOUT        => 8,
+    ]);
+    curl_exec($ch); curl_close($ch);
+}
+
 // -------- Actions --------
+
+// --- Helper: search Airtable Leads by phone (primary) or address (fallback) ---
+function pp_airtable_find_existing(string $phone_e164, string $address): array {
+    if (!defined('AIRTABLE_TOKEN')) return ['found' => false];
+    $phone_digits = preg_replace('/\D+/', '', $phone_e164);
+    $addr_norm = strtolower(trim(preg_replace('/\s+/', ' ', $address)));
+
+    // Primary: look up Contacts table by phone digits (contacts link to leads via Property Address)
+    $contacts_url = 'https://api.airtable.com/v0/' . AIRTABLE_BASE_ID . '/tblacvw0Ss770x8l5'
+                  . '?filterByFormula=' . rawurlencode("OR(FIND('$phone_digits',{Phone1}&''),FIND('$phone_digits',{Phone2}&''),FIND('$phone_digits',{Phone3}&''),FIND('$phone_digits',{Phone4}&''))")
+                  . '&maxRecords=3';
+    $ch = curl_init($contacts_url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER     => ['Authorization: Bearer ' . AIRTABLE_TOKEN],
+        CURLOPT_TIMEOUT        => 15,
+    ]);
+    $resp = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($code >= 200 && $code < 300) {
+        $data = json_decode((string) $resp, true) ?: [];
+        foreach (($data['records'] ?? []) as $rec) {
+            $f = $rec['fields'] ?? [];
+            $linked_leads = $f['Property Address'] ?? ($f['Leads 2'] ?? []);
+            if (is_array($linked_leads) && count($linked_leads) > 0) {
+                return [
+                    'found'      => true,
+                    'match_by'   => 'phone',
+                    'contact_id' => $rec['id'],
+                    'lead_id'    => $linked_leads[0],
+                    'name'       => $f['Full Name'] ?? '',
+                    'email'      => $f['Email1'] ?? '',
+                ];
+            }
+        }
+    }
+
+    // Fallback: lookup Leads by Address (normalized)
+    $leads_url = 'https://api.airtable.com/v0/' . AIRTABLE_BASE_ID . '/' . AIRTABLE_LEADS_TABLE
+               . '?filterByFormula=' . rawurlencode("LOWER({Address})='" . addslashes($addr_norm) . "'")
+               . '&maxRecords=3';
+    $ch = curl_init($leads_url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER     => ['Authorization: Bearer ' . AIRTABLE_TOKEN],
+        CURLOPT_TIMEOUT        => 15,
+    ]);
+    $resp = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($code >= 200 && $code < 300) {
+        $data = json_decode((string) $resp, true) ?: [];
+        $recs = $data['records'] ?? [];
+        if (count($recs) > 0) {
+            $r0 = $recs[0];
+            return [
+                'found'    => true,
+                'match_by' => 'address',
+                'lead_id'  => $r0['id'],
+                'stage'    => $r0['fields']['Stage'] ?? '',
+            ];
+        }
+    }
+    return ['found' => false];
+}
+
+// --- Helper: fetch Lead + stage classification ---
+function pp_airtable_get_lead(string $lead_id): array {
+    if (!defined('AIRTABLE_TOKEN')) return ['ok' => false];
+    $url = 'https://api.airtable.com/v0/' . AIRTABLE_BASE_ID . '/' . AIRTABLE_LEADS_TABLE . '/' . rawurlencode($lead_id);
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER     => ['Authorization: Bearer ' . AIRTABLE_TOKEN],
+        CURLOPT_TIMEOUT        => 15,
+    ]);
+    $resp = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($code < 200 || $code >= 300) return ['ok' => false, 'code' => $code];
+    $data = json_decode((string) $resp, true) ?: [];
+    $f = $data['fields'] ?? [];
+    $stage = (string) ($f['Stage'] ?? '');
+    $ACTIVE  = ['New Lead', 'Review this Deal', 'To be Contacted', 'To Be Contacted', 'Contacted', 'Seguimiento', 'Appointment Set', 'Offer Sent', 'Under Contract', 'Closing'];
+    $CLOSED  = ['Done Deal', 'Dead'];
+    $status  = in_array($stage, $ACTIVE, true) ? 'active' : (in_array($stage, $CLOSED, true) ? 'closed' : 'other');
+    return [
+        'ok'      => true,
+        'id'      => $data['id'] ?? $lead_id,
+        'fields'  => $f,
+        'stage'   => $stage,
+        'status'  => $status,
+        'address' => (string) ($f['Address'] ?? ''),
+    ];
+}
 
 switch ($action) {
 
@@ -290,6 +537,122 @@ switch ($action) {
         $reply(['suggestions' => $sugg]);
     }
 
+    case 'chat_message': {
+        // Fer-Chat-Mode — multi-turn chat widget on the website
+        $session_id = (string) ($body['session_id'] ?? '');
+        if ($session_id === '') $session_id = bin2hex(random_bytes(8));
+        $lang       = (string) ($body['lang'] ?? 'en');
+        $history    = (array)  ($body['history'] ?? []);
+        // Cap history to last 20 turns to keep tokens + cost predictable
+        if (count($history) > 20) $history = array_slice($history, -20);
+        $r = pp_chat_brain($history, $lang);
+        if (!$r['ok']) {
+            $log('warn', 'chat_brain fail', ['err' => $r['err'] ?? '']);
+            $reply([
+                'ok' => true,
+                'session_id' => $session_id,
+                'reply' => $lang === 'es'
+                    ? 'Disculpa, tuve un problema técnico. ¿Puedes intentar de nuevo?'
+                    : 'Sorry, I hit a quick hiccup. Can you try once more?',
+                'escalate' => null,
+            ]);
+        }
+        // If the brain requested escalation, create an Airtable Lead + Telegram alert
+        $created_lead = null;
+        if (is_array($r['escalate'] ?? null)) {
+            $esc = $r['escalate'];
+            $fields = [
+                'Address'     => (string) ($esc['address'] ?? ''),
+                'Stage'       => 'New Lead',
+                'Lead Source' => 'Website Form',   // existing option (no new dict additions)
+                'Dated Added' => date('Y-m-d'),
+                'Recomendation' => "=== CHATBOT LEAD ===\n"
+                     . "Name:    " . ($esc['name'] ?? '') . "\n"
+                     . "Phone:   " . ($esc['phone'] ?? '') . "\n"
+                     . "Email:   " . ($esc['email'] ?? '') . "\n"
+                     . "Address: " . ($esc['address'] ?? '') . "\n"
+                     . "Summary: " . ($esc['summary'] ?? '') . "\n\n"
+                     . "Transcript (last 8):\n"
+                     . implode("\n", array_map(function($h){
+                         return '  [' . ($h['role'] ?? '?') . '] ' . substr((string)($h['content'] ?? ''), 0, 200);
+                     }, array_slice($history, -8))),
+            ];
+            $at = pp_airtable_create($fields);
+            if ($at['ok']) $created_lead = $at['record']['id'] ?? null;
+            pp_chat_notify_telegram($esc, $session_id);
+            $log('info', 'chat escalation', ['lead_id' => $created_lead]);
+        }
+        $reply([
+            'ok' => true,
+            'session_id' => $session_id,
+            'reply' => $r['reply'],
+            'escalate' => $r['escalate'],
+            'lead_id' => $created_lead,
+        ]);
+    }
+
+    case 'form_brain': {
+        // Fer-Form-Mode — empathetic acknowledgments between screens.
+        // Rate limit: Haiku call only when something interesting happened
+        // (condition, timeline, issues, priority). Other answers get a noop.
+        $last_field = (string) ($body['last_field'] ?? '');
+        $last_value = (string) ($body['last_value'] ?? '');
+        $trigger_fields = ['condition', 'timeline', 'priority', 'occupancy', 'issues'];
+        if (!in_array($last_field, $trigger_fields, true)) {
+            $reply(['ok' => true, 'msg' => '', 'warning' => '']);
+        }
+        $ctx = [
+            'lang'       => (string) ($body['lang'] ?? 'en'),
+            'current'    => (string) ($body['current'] ?? ''),
+            'last_field' => $last_field,
+            'last_value' => $last_value,
+            'data'       => (array) ($body['data'] ?? []),
+        ];
+        $result = pp_fer_brain($ctx);
+        if (!$result['ok']) {
+            $log('warn', 'fer_brain fail', ['err' => $result['err'] ?? '']);
+            $reply(['ok' => true, 'msg' => '', 'warning' => '']); // never block the form
+        }
+        $reply(['ok' => true, 'msg' => $result['msg'], 'warning' => $result['warning']]);
+    }
+
+    case 'lookup_existing': {
+        // Check if client has a prior lead BEFORE creating a new one.
+        // Primary: phone match via Contacts.Phone1-4. Fallback: Address match on Leads.
+        $phone = trim((string) ($body['phone'] ?? ''));
+        $address = trim((string) ($body['address'] ?? ''));
+        $phone_e164 = pp_normalize_phone($phone);
+        if ($phone_e164 === '' && $address === '') {
+            $reply(['found' => false, 'reason' => 'missing phone and address']);
+        }
+        $match = pp_airtable_find_existing($phone_e164, $address);
+        if (!$match['found']) {
+            $reply(['found' => false]);
+        }
+        // Enrich with Lead stage/status
+        $lead_id = (string) ($match['lead_id'] ?? '');
+        $lead_info = pp_airtable_get_lead($lead_id);
+        if (!$lead_info['ok']) {
+            $reply(['found' => false, 'reason' => 'lead not readable']);
+        }
+        // Decide UX path based on stage
+        $stage  = $lead_info['stage'];
+        $status = $lead_info['status'];
+        $f = $lead_info['fields'];
+        $summary = [
+            'lead_id'  => $lead_id,
+            'match_by' => $match['match_by'],
+            'address'  => $lead_info['address'],
+            'stage'    => $stage,
+            'status'   => $status,
+            // echo back lightly masked contact info for UI prefill
+            'name'     => (string) ($match['name'] ?? ''),
+            'email'    => (string) ($match['email'] ?? ''),
+        ];
+        $log('info', 'lookup_existing hit', ['lead_id' => $lead_id, 'stage' => $stage, 'match_by' => $match['match_by']]);
+        $reply(['found' => true] + $summary);
+    }
+
     case 'start_lead': {
         if (!empty($body['website'] ?? '')) { $log('warn', 'honeypot filled'); $reply(['error' => 'invalid submission'], 400); }
         $elapsed = (int) ($body['elapsed_ms'] ?? 0);
@@ -315,21 +678,46 @@ switch ($action) {
         $state = (string) ($body['state'] ?? 'WI');
         $zip   = (string) ($body['zip']   ?? '');
 
-        $at = pp_airtable_create([
-            'Address'     => $address,
-            'City'        => $city,
-            'Estate'      => $state,
-            'Zip Code'    => $zip !== '' ? (int) $zip : null,
-            'Stage'       => 'New Lead',
-            'Lead Source' => 'Website Form',
-            'Dated Added' => date('Y-m-d'),
-        ]);
-        if (!$at['ok']) {
-            $log('error', 'airtable create failed', ['code' => $at['code'] ?? 0, 'body' => $at['record'] ?? []]);
-            $reply(['error' => 'temporary failure, please try again'], 500);
+        // If reopen_lead_id is provided (returning client chose "update my info"),
+        // reuse that Lead instead of creating a new one. Refresh fields + mark for re-review.
+        $reopen_lead_id = trim((string) ($body['reopen_lead_id'] ?? ''));
+        $lead_id = '';
+        $is_reopen = false;
+        if ($reopen_lead_id !== '') {
+            $existing = pp_airtable_get_lead($reopen_lead_id);
+            if ($existing['ok']) {
+                $update_fields = [
+                    'Address'     => $address,
+                    'City'        => $city,
+                    'Estate'      => $state,
+                    'Zip Code'    => $zip !== '' ? (int) $zip : null,
+                    'Stage'       => 'Review this Deal',
+                    'Last Contact Date' => date('Y-m-d'),
+                ];
+                pp_airtable_update($reopen_lead_id, $update_fields);
+                $lead_id = $reopen_lead_id;
+                $is_reopen = true;
+                $log('info', 'lead reopened', ['lead_id' => $lead_id, 'prev_stage' => $existing['stage']]);
+            }
         }
-        $lead_id = $at['record']['id'] ?? '';
-        if ($lead_id === '') $reply(['error' => 'lead creation failed'], 500);
+
+        if ($lead_id === '') {
+            $at = pp_airtable_create([
+                'Address'     => $address,
+                'City'        => $city,
+                'Estate'      => $state,
+                'Zip Code'    => $zip !== '' ? (int) $zip : null,
+                'Stage'       => 'New Lead',
+                'Lead Source' => 'Website Form',
+                'Dated Added' => date('Y-m-d'),
+            ]);
+            if (!$at['ok']) {
+                $log('error', 'airtable create failed', ['code' => $at['code'] ?? 0, 'body' => $at['record'] ?? []]);
+                $reply(['error' => 'temporary failure, please try again'], 500);
+            }
+            $lead_id = $at['record']['id'] ?? '';
+            if ($lead_id === '') $reply(['error' => 'lead creation failed'], 500);
+        }
 
         $code          = sprintf('%06d', random_int(0, 999999));
         $session_token = bin2hex(random_bytes(16));
@@ -349,7 +737,7 @@ switch ($action) {
             'created'   => time(),
             'last_sent' => time(),
         ];
-        set_transient(pp_lead_session_key($lead_id), $session, 1800);
+        set_transient(pp_lead_session_key($lead_id), $session, 7200);
 
         $first = explode(' ', $name)[0];
         $sms = "Hi $first, your Pinnacle Holdings verification code is $code. It expires in 10 min. Reply STOP to opt out.";
@@ -359,13 +747,14 @@ switch ($action) {
             $reply(['error' => 'could not send verification code — please check your phone number'], 500);
         }
 
-        $log('info', 'lead started', ['lead_id' => $lead_id]);
+        $log('info', 'lead started', ['lead_id' => $lead_id, 'is_reopen' => $is_reopen]);
         $reply([
             'ok'            => true,
             'lead_id'       => $lead_id,
             'session_token' => $session_token,
             'phone_masked'  => '(' . substr($phone_e164, 2, 3) . ') ' . substr($phone_e164, 5, 3) . '-****',
             'ttl_seconds'   => 600,
+            'is_reopen'     => $is_reopen,
         ]);
     }
 
@@ -383,7 +772,7 @@ switch ($action) {
             $reply(['error' => 'incorrect code'], 400);
         }
         $session['verified'] = true;
-        set_transient(pp_lead_session_key($lead_id), $session, 1800);
+        set_transient(pp_lead_session_key($lead_id), $session, 7200);
         pp_airtable_update($lead_id, ['Stage' => 'New Lead']);
         $log('info', 'phone verified', ['lead_id' => $lead_id]);
         $reply(['ok' => true, 'verified' => true]);
@@ -401,7 +790,7 @@ switch ($action) {
         }
         $session['code']      = sprintf('%06d', random_int(0, 999999));
         $session['last_sent'] = time();
-        set_transient(pp_lead_session_key($lead_id), $session, 1800);
+        set_transient(pp_lead_session_key($lead_id), $session, 7200);
         $first = explode(' ', (string) $session['name'])[0];
         $sent  = pp_send_sms($session['phone'], "Hi $first, your new Pinnacle Holdings code is " . $session['code'] . ". Expires in 10 min.");
         if (!$sent['ok']) $reply(['error' => 'SMS failed'], 500);
@@ -413,7 +802,7 @@ switch ($action) {
         $token   = (string) ($body['session_token'] ?? '');
         $session = get_transient(pp_lead_session_key($lead_id));
         if (!is_array($session) || !hash_equals((string) ($session['token'] ?? ''), $token)) {
-            $reply(['error' => 'invalid session'], 403);
+            $reply(['error' => 'invalid session — please start over'], 403);
         }
         if (!($session['verified'] ?? false)) {
             $reply(['error' => 'phone not verified yet'], 403);
@@ -424,9 +813,21 @@ switch ($action) {
 
         $score = pp_compute_score([], $phase2, $phase3);
 
-        $update = [
-            'Stage' => 'Review this Deal',
+        // Map form property_type to Airtable Property Type valid options
+        $ptype_map = [
+            'Single Family' => 'Single Family',
+            'Duplex/Triplex' => 'Multi-Family',
+            'Multi-Family' => 'Multi-Family',
+            'Mobile Home'  => 'Manufactured ',
+            'Land'         => 'Vacant Land',
         ];
+        $airtable_ptype = $ptype_map[$session['ptype']] ?? 'Other';
+
+        // Normalize beds/baths (e.g., "5+" -> 5)
+        $beds  = (int) preg_replace('/\D+/', '', (string) ($phase2['beds']  ?? '0'));
+        $baths = (int) preg_replace('/\D+/', '', (string) ($phase2['baths'] ?? '0'));
+        $ask   = (int) preg_replace('/\D+/', '', (string) ($phase3['asking_price'] ?? '0'));
+
         $notes_parts = [
             '=== CONTACT ===',
             'Name:     ' . $session['name'],
@@ -453,20 +854,75 @@ switch ($action) {
             'Score: ' . $score['score'] . '/10 (' . $score['heat'] . ')',
             'Tags:  ' . implode(', ', $score['labels'] ?: ['—']),
         ];
+
+        // Write ALL structured data to Airtable record (not just Stage)
+        $update = [
+            'Stage'          => 'Review this Deal',
+            'Property Type'  => $airtable_ptype,
+            'Bedrooms'       => $beds,
+            'Bathroom'       => $baths,
+            'Asking Price'   => $ask,
+            'Recomendation'  => implode("\n", $notes_parts),
+        ];
         pp_airtable_update($lead_id, $update);
 
         $heat_emoji = $score['heat'] === 'HOT' ? '🔥' : ($score['heat'] === 'WARM' ? '🌡️' : '❄️');
-        $subject = sprintf(
-            '%s %s LEAD | %s | %s',
-            $heat_emoji,
-            $score['heat'],
-            (string) ($phase3['timeline'] ?? 'no-timeline'),
-            $session['address']
-        );
-        $body_text = "Pinnacle Holdings — New Web Lead\n\n" . implode("\n", $notes_parts) . "\n\n" .
-                     "Airtable: https://airtable.com/" . AIRTABLE_BASE_ID . '/' . AIRTABLE_LEADS_TABLE . '/' . $lead_id . "\n" .
-                     "Call Assistant: https://pinnaclegroupwi.com/Tools/Pinnacle_Call_Assistant.html?recordId=$lead_id\n";
-        wp_mail(PINNACLE_NOTIFY_EMAIL, $subject, $body_text);
+        $airtable_link = 'https://airtable.com/' . AIRTABLE_BASE_ID . '/' . AIRTABLE_LEADS_TABLE . '/' . $lead_id;
+        $call_link = 'https://pinnaclegroupwi.com/Tools/Pinnacle_Call_Assistant.html?recordId=' . $lead_id;
+
+        // Direct Telegram notification to the boss (no email dependency)
+        $tg_token = defined('TELEGRAM_BOT_TOKEN') ? TELEGRAM_BOT_TOKEN : (string) getenv('TELEGRAM_BOT_TOKEN');
+        $tg_chat  = defined('TELEGRAM_CHAT_ID')  ? TELEGRAM_CHAT_ID  : (string) getenv('TELEGRAM_CHAT_ID');
+        if ($tg_token && $tg_chat) {
+            $tg_text = $heat_emoji . ' *NEW WEB LEAD — ' . $score['heat'] . '*  Score ' . $score['score'] . "/10\n\n"
+                     . '*Name:* ' . $session['name'] . "\n"
+                     . '*Phone:* `' . $session['phone'] . "`\n"
+                     . '*Email:* ' . $session['email'] . "\n"
+                     . '*Address:* ' . $session['address'] . "\n\n"
+                     . '*Timeline:* ' . ($phase3['timeline'] ?? '—') . "\n"
+                     . '*Asking:* $' . ($phase3['asking_price'] ?? '—') . '   *Owed:* $' . ($phase3['amount_owed'] ?? '—') . "\n"
+                     . '*Condition:* ' . ($phase2['condition'] ?? '—') . "\n"
+                     . '*Priority:* ' . ($phase3['priority'] ?? '—') . '   *Payment pref:* ' . ($phase3['payment_pref'] ?? '—') . "\n\n"
+                     . '[Airtable record](' . $airtable_link . ") · [Call Assistant](" . $call_link . ')';
+            $ch = curl_init('https://api.telegram.org/bot' . $tg_token . '/sendMessage');
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST           => true,
+                CURLOPT_POSTFIELDS     => json_encode([
+                    'chat_id'    => $tg_chat,
+                    'text'       => $tg_text,
+                    'parse_mode' => 'Markdown',
+                    'disable_web_page_preview' => true,
+                ]),
+                CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+                CURLOPT_TIMEOUT        => 10,
+            ]);
+            $tg_resp = curl_exec($ch);
+            $tg_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            $log('info', 'telegram sent', ['code' => $tg_code]);
+        } else {
+            $log('warn', 'telegram creds missing');
+        }
+
+        // Email backup (to deals@ which feeds Secretario)
+        $subject = sprintf('%s %s LEAD | %s | %s', $heat_emoji, $score['heat'], (string) ($phase3['timeline'] ?? 'no-timeline'), $session['address']);
+        $body_text = "Pinnacle Holdings — New Web Lead\n\n" . implode("\n", $notes_parts) . "\n\n"
+                   . 'Airtable: ' . $airtable_link . "\n"
+                   . 'Call Assistant: ' . $call_link . "\n";
+        @wp_mail(PINNACLE_NOTIFY_EMAIL, $subject, $body_text);
+
+        // Confirmation SMS to the seller (the client who just finished the form)
+        $first_name = explode(' ', (string) $session['name'])[0] ?: 'there';
+        $is_es = (strtolower(substr((string) $session['name'], -1)) === '' ? false : true); // unreliable; send bilingual
+        $confirm_sms = "Hi $first_name, Pinnacle Holdings received your request. We're reviewing "
+                     . $session['address'] . " and will call you within 24 hours with your cash offer. "
+                     . "Questions? Reply here. / En espanol: Recibimos tu solicitud, te llamamos en 24h.";
+        @pp_send_sms($session['phone'], $confirm_sms);
+
+        // Extend transient TTL for potential re-submit (from 30min to 2h)
+        $session['finalized_at'] = time();
+        set_transient(pp_lead_session_key($lead_id), $session, 7200);
 
         $log('info', 'lead finalized', ['lead_id' => $lead_id, 'score' => $score['score'], 'heat' => $score['heat']]);
         $reply(['ok' => true, 'lead_id' => $lead_id, 'score' => $score['score'], 'heat' => $score['heat']]);

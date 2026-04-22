@@ -18,6 +18,8 @@
       property_type:"",
       name:"", email:"", phone_raw:"",
       lead_id:"", session_token:"",
+      reopen_lead_id:"",                    // set when returning client chooses "update"
+      existing_match:null,                  // lookup_existing payload (name/stage/etc.)
       condition:"", roof:"", beds:"", baths:"", occupancy:"", issues:"",
       timeline:"", priority:"", asking_price:"", payment_pref:"", amount_owed:""
     },
@@ -52,6 +54,7 @@
   function renderProgress(){
     var idx = ORDER.indexOf(state.current);
     if (state.current === "ok") { $("#pnf-progress-bar").style.width = "100%"; $("#pnf-step-count").textContent = ""; return; }
+    if (idx < 0) { $("#pnf-step-count").textContent = ""; return; } // off-flow screens (e.g. s_returning)
     var pct = Math.round(((idx+1)/STEP_TOTAL)*100);
     $("#pnf-progress-bar").style.width = pct + "%";
     $("#pnf-step-count").textContent = t("step_of",{n:idx+1,t:STEP_TOTAL});
@@ -64,6 +67,9 @@
     next.classList.add("is-active");
     state.current = id;
     renderProgress();
+    // Persist snapshot (fire-and-forget)
+    if (id === "ok") { try { localStorage.removeItem("pnf_session"); } catch(e){} }
+    else saveSession();
     // back button visibility
     var back = $("#pnf-screen-"+id+" .pnf-back");
     if (back) back.hidden = (state.history.length === 0);
@@ -71,6 +77,41 @@
     var f = next.querySelector("input, textarea, button.pnf-card, button.pnf-chip");
     if (f) setTimeout(function(){ try { f.focus(); } catch(e){} }, 60);
   }
+
+  // ---- Session persistence (localStorage) ----
+  var SESSION_KEY = "pnf_session";
+  var SESSION_TTL_MS = 2 * 60 * 60 * 1000; // 2h — matches WP transient
+  function saveSession(){
+    try {
+      var payload = {
+        data: state.data,
+        current: state.current,
+        history: state.history,
+        lang: state.lang,
+        saved_at: Date.now()
+      };
+      localStorage.setItem(SESSION_KEY, JSON.stringify(payload));
+    } catch(e){ /* storage full / private browsing — silent */ }
+  }
+  function loadSession(){
+    try {
+      var raw = localStorage.getItem(SESSION_KEY); if (!raw) return null;
+      var p = JSON.parse(raw);
+      if (!p || typeof p !== "object") return null;
+      if (!p.saved_at || (Date.now() - p.saved_at) > SESSION_TTL_MS) { localStorage.removeItem(SESSION_KEY); return null; }
+      if (!p.current || p.current === "s1" || p.current === "ok") return null; // nothing useful to resume
+      return p;
+    } catch(e){ return null; }
+  }
+  function clearSession(){ try { localStorage.removeItem(SESSION_KEY); } catch(e){} }
+  function restoreFromSession(p){
+    try {
+      if (p.data) Object.keys(p.data).forEach(function(k){ state.data[k] = p.data[k]; });
+      if (Array.isArray(p.history)) state.history = p.history.slice();
+      if (p.lang) state.lang = p.lang;
+    } catch(e){}
+  }
+  window.PNF_SESSION = { load: loadSession, clear: clearSession, restore: restoreFromSession };
 
   function goTo(id){
     if (state.current !== id) state.history.push(state.current);
@@ -129,6 +170,11 @@
   function submitFinal(){
     if (state.submitting) return;
     state.submitting = true;
+    var resetBtn = function(){
+      var scrId = state.current;
+      var nxt = $("#pnf-screen-"+scrId+" .pnf-next");
+      if (nxt){ nxt.disabled = false; nxt.textContent = t("next"); }
+    };
     api("update_lead", {
       lead_id: state.data.lead_id,
       session_token: state.data.session_token,
@@ -141,20 +187,82 @@
         state.data.heat = resp.heat;
         goTo("ok");
       } else {
-        alert((resp && resp.error) || t("err_generic"));
+        var msg = (resp && resp.error) ? resp.error : t("err_generic");
+        setError(state.current, msg);
+        resetBtn();
       }
-    }).catch(function(){ state.submitting = false; alert(t("err_generic")); });
+    }).catch(function(e){
+      state.submitting = false;
+      setError(state.current, t("err_generic") + " ("+(e && e.message ? e.message : "network")+")");
+      resetBtn();
+    });
   }
   window.PNF_SUBMIT = submitFinal;
 
-  // ---- Boot ----
+  // ---- Fer-Form-Mode brain (acknowledgments between screens) ----
+  var pendingAck = null; // {msg, warning, expires}
+  function brainFire(field, value){
+    // Fire-and-forget; response cached in pendingAck for the NEXT screen
+    api("form_brain", {
+      lang: state.lang,
+      current: state.current,
+      last_field: field,
+      last_value: value,
+      data: state.data
+    }).then(function(r){
+      if (r && (r.msg || r.warning)) {
+        pendingAck = { msg: r.msg || "", warning: r.warning || "", expires: Date.now() + 15000 };
+        renderAck();
+      }
+    }).catch(function(){ /* silent — ack is best-effort */ });
+  }
+  function renderAck(){
+    if (!pendingAck) return;
+    if (Date.now() > pendingAck.expires) { pendingAck = null; return; }
+    var current = $("#pnf-screen-"+state.current);
+    if (!current) return;
+    var existing = current.querySelector(".pnf-ack");
+    if (existing) existing.remove();
+    var msg = pendingAck.msg; var warn = pendingAck.warning;
+    if (!msg && !warn) return;
+    var html = '<div class="pnf-ack"><span class="pnf-ack-icon">'+(warn?"⚠️":"💬")+'</span><span>'+(warn?warn:msg)+'</span></div>';
+    var host = current.querySelector(".pnf-question");
+    if (host && host.parentNode) host.parentNode.insertBefore((function(){ var d=document.createElement("div"); d.innerHTML=html; return d.firstElementChild; })(), host);
+    // Consume (show once)
+    pendingAck = null;
+  }
+  window.PNF_BRAIN = { fire: brainFire, render: renderAck };
+
+  // Hook: render ack whenever a screen becomes active (called after show())
+  var _origShow = show;
+  // Note: saveSession already wraps show; we piggyback via an observer here.
   document.addEventListener("DOMContentLoaded", function(){
-    // Lang buttons
+    // MutationObserver to catch is-active toggles on screens
+    var stage = document.getElementById("pnf-stage");
+    if (!stage || !window.MutationObserver) return;
+    var mo = new MutationObserver(function(muts){
+      muts.forEach(function(m){
+        if (m.type === "attributes" && m.target.classList && m.target.classList.contains("is-active")) {
+          renderAck();
+        }
+      });
+    });
+    // Observe after mountAll runs
+    setTimeout(function(){
+      $all("#pnf-root .pnf-screen").forEach(function(s){ mo.observe(s, {attributes:true, attributeFilter:["class"]}); });
+    }, 500);
+  });
+
+  // ---- Boot hooks (called by screens.js AFTER mountAll) ----
+  window.PNF_CORE_INIT = function(){
     $all("#pnf-root .pnf-lang button").forEach(function(b){
       b.addEventListener("click", function(){ setLang(b.getAttribute("data-lang")); });
     });
     setLang(state.lang);
-    // First screen
-    show("s1");
-  });
+  };
+  window.PNF_SHOW_FIRST = function(){
+    var resumable = loadSession();
+    if (resumable) { show("s_resume"); }
+    else { show("s1"); }
+  };
 })();

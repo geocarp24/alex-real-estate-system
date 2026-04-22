@@ -5,6 +5,7 @@ on:
     branches: [master]
     paths:
       - 'telegram_bot/**'
+      - 'secretario/**'
       - '.github/workflows/deploy-vps-bot.yml'
   workflow_dispatch:   # allows manual trigger from GitHub UI
 
@@ -57,7 +58,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
           port: ${{ secrets.VPS_PORT }}
-          source: "telegram_bot/alex_bot.py,telegram_bot/telegram_memory.md,agents/,memoria_ALex.md"
+          source: "telegram_bot/alex_bot.py,telegram_bot/telegram_memory.md,agents/,memoria_ALex.md,secretario/email_monitor.py,secretario/calendar_manager.py,secretario/auth_google.py,secretario/requirements.txt,secretario/secretario-email.service"
           target: /opt/alex-bot/
 
       - name: Write .env and create systemd service
@@ -114,3 +115,13 @@ jobs:
             systemctl status alex-bot --no-pager
             echo "=== LAST 50 LOG LINES ==="
             journalctl -u alex-bot -n 50 --no-pager
+
+            # Restart El Secretario email monitor if the service exists
+            if systemctl list-unit-files | grep -q '^secretario-email\.service'; then
+              echo "=== RESTARTING secretario-email ==="
+              systemctl restart secretario-email
+              sleep 3
+              systemctl status secretario-email --no-pager | head -10 || true
+            else
+              echo "secretario-email.service not installed — skipping restart"
+            fi

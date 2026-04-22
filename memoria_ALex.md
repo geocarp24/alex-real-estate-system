@@ -7,38 +7,20 @@
 
 ## REGLAS DEL JEFE (aplican a TODOS los agentes, siempre)
 
-### 2026-04-19 — AUTO-BACKUP DE SESIÓN (CRÍTICO — APROBADO POR JORGE)
-- **OBLIGATORIO:** Backup automático cada 15 min Y después de CADA cambio (commit + push a GitHub).
-- Mecanismo activo: PostToolUse hook en `.claude/settings.local.json` corre tras cada `Write|Edit` y hace `git add -A && git commit -m "auto: ..." && git push`.
-- **Mecanismo manual obligatorio cuando trabajo:** después de cada milestone (cada 10–15 min de actividad real), escribir un breve checkpoint en `memoria_ALex.md` con:
-  - Estado actual del trabajo
-  - Próximo paso
-  - Bloqueadores / decisiones pendientes
-  - Credenciales/IDs/URLs descubiertos en la sesión
-- **Razón:** Cada sesión nueva en Claude Code Web arranca con container limpio. Lo que NO esté en el repo Git, se PIERDE. Cero excepciones.
-- **Costo de no hacerlo:** créditos gastados en repetir investigación que ya hice antes.
-
-### 2026-04-19 — CREDENCIALES Y PERSISTENCIA ENTRE SESIONES
-- El sandbox de Claude Code Web NO persiste `.env` ni variables entre sesiones — solo lo que está en el repo.
-- ALEX_SECRET, WP App Password, SSH Pass de Hostinger viven en GitHub Secrets / VPS / Hostinger — NO en este sandbox.
-- **Solución acordada:** Cuando Jorge me da una credencial, la guardo en `.env.sandbox` (ya en `.gitignore`) Y referencio su ubicación canónica en `memoria_ALex.md` para que la próxima sesión sepa pedirla solo si el archivo no existe.
-- **NUNCA pegar valores reales de credenciales en `memoria_ALex.md`** (ese archivo va a GitHub público).
-
-### 2026-04-19 — WP BRIDGE PINNACLE — ACCESO CONFIRMADO
-- **Endpoint:** `https://agents.pinnaclegroupwi.com/pinnacle_wp_bridge.php`
-- **Método auth preferido:** Basic Auth con WP Application Password
-- **Usuario WP (admin):** `geocarpentryllc@gmail.com` (NO `deals@pinnaclegroupwi.com`, NO `grocarpentryllc...`)
-- **App Password:** guardada en `.env.sandbox` como `PINNACLE_WP_APP_PASSWORD`
-- **Verificación rápida:**
-  ```bash
-  source .env.sandbox && CLEAN_PASS=$(echo "$PINNACLE_WP_APP_PASSWORD" | tr -d ' ')
-  curl -s -X POST "https://agents.pinnaclegroupwi.com/pinnacle_wp_bridge.php" \
-    -u "${PINNACLE_WP_USER}:${CLEAN_PASS}" -H "Content-Type: application/json" \
-    -d '{"action":"ping"}'
-  ```
-- **Acciones disponibles:** ping | list_pages | list_posts | get_post | update_post | create_post | delete_post | get_post_meta | update_post_meta | get_option | update_option | purge_cache
-- **WP version:** 6.9.4 | Theme: astra | PHP: 8.3.30
-- **Auto-test al inicio de sesión:** revisar `.env.sandbox` existe; si no, pedir a Jorge UNA SOLA VEZ. Si sí, hacer ping para confirmar que sigue válido.
+### 2026-04-22 — PROTOCOLO DE EJECUCIÓN (NO NEGOCIABLE — APROBADO POR JORGE)
+- **Documento:** `agents/PROTOCOLO_EJECUCION.md` — leer al inicio de cada sesión junto con esta memoria.
+- **Aplica a:** toda operación no trivial (WP, Airtable, VPS, Hostinger, integraciones, scripts de agentes).
+- **7 fases obligatorias:**
+  1. Carga de contexto (memoria + shared_conversation + protocolo + credenciales)
+  2. Diagnóstico antes de acción (leer estado actual, nunca suponer)
+  3. Backup obligatorio antes de cambios destructivos (commit + push a `backups/`)
+  4. División de tareas grandes (< 300 líneas por archivo, Write al disco, nunca inline grande)
+  5. Deploy seguro (test local → draft/staging → preview al Jefe → publish → purge cache)
+  6. Verificación post-deploy (HTTP 200 + contenido esperado + flujo E2E + logs limpios)
+  7. Auto-backup + checkpoint cada 15 min en memoria
+- **Errores ya costaron créditos, no repetir** (stream timeout, WAF 403, credenciales perdidas, home rota, etc.) — lista completa en `PROTOCOLO_EJECUCION.md`.
+- **Checklist obligatorio** antes de cada tarea — si falta algo, no arrancar.
+- **Al iniciar sesión, confirmar:** "Protocolo cargado. Listo para operar según Fases 1–7."
 
 ### 2026-04-16 — Comunicación
 - Respuestas cortas y simples. Evitar lenguaje técnico innecesario.
