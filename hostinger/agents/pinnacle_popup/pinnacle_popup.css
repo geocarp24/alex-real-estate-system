@@ -1,0 +1,51 @@
+/* Pinnacle Email Capture Popup — brand #0D3B2E + #C9A84C */
+#pnp-backdrop { position:fixed; inset:0; background:rgba(13,59,46,.55); backdrop-filter:blur(3px); z-index:999997; display:flex; align-items:center; justify-content:center; padding:20px; animation:pnpFade .3s ease; }
+#pnp-backdrop[hidden] { display:none !important; }
+@keyframes pnpFade { from { opacity:0; } to { opacity:1; } }
+
+.pnp-modal { background:#FFFFFF; border-radius:20px; box-shadow:0 30px 80px rgba(0,0,0,.4); width:100%; max-width:460px; overflow:hidden; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; position:relative; animation:pnpSlide .4s cubic-bezier(.2,.8,.2,1); }
+@keyframes pnpSlide { from { opacity:0; transform:translateY(30px) scale(.96); } to { opacity:1; transform:translateY(0) scale(1); } }
+
+.pnp-close { position:absolute; top:12px; right:14px; width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,.25); color:#FFFFFF; border:0; font-size:20px; line-height:1; cursor:pointer; z-index:2; transition:background .15s ease; }
+.pnp-close:hover { background:rgba(255,255,255,.5); color:#0D3B2E; }
+
+.pnp-hero { background:linear-gradient(135deg,#0D3B2E 0%,#1A4E3C 100%); color:#FFFFFF; padding:32px 28px 24px; text-align:center; position:relative; }
+.pnp-badge { display:inline-block; background:#C9A84C; color:#0D3B2E; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; padding:4px 12px; border-radius:999px; margin-bottom:14px; }
+.pnp-headline { font-size:24px; font-weight:800; line-height:1.25; letter-spacing:-0.01em; margin:0 0 8px; color:#FFFFFF; }
+.pnp-subhead { font-size:14px; line-height:1.5; opacity:.92; color:#F5F0E8; margin:0; }
+
+.pnp-body { padding:22px 28px 24px; }
+.pnp-form { display:flex; flex-direction:column; gap:10px; }
+.pnp-input { width:100%; border:2px solid #E5DFD4; border-radius:12px; padding:13px 16px; font-size:15px; font-family:inherit; color:#0D3B2E; background:#FFFFFF; outline:none; transition:border-color .15s ease; }
+.pnp-input:focus { border-color:#C9A84C; }
+.pnp-input.pnp-err { border-color:#D32F2F; }
+.pnp-error-msg { color:#D32F2F; font-size:12.5px; margin:-4px 2px 0; min-height:16px; }
+
+.pnp-cta { background:#C9A84C; color:#0D3B2E; border:0; border-radius:12px; padding:14px; font-size:15px; font-weight:800; letter-spacing:.01em; cursor:pointer; font-family:inherit; transition:background .15s ease, transform .1s ease; }
+.pnp-cta:hover:not(:disabled) { background:#B7933F; }
+.pnp-cta:active:not(:disabled) { transform:scale(.98); }
+.pnp-cta:disabled { opacity:.55; cursor:not-allowed; }
+
+.pnp-footer { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:12px; font-size:12px; color:#6B6455; }
+.pnp-trust { display:flex; align-items:center; gap:6px; }
+.pnp-trust::before { content:"🔒"; font-size:12px; }
+.pnp-decline { color:#6B6455; background:transparent; border:0; text-decoration:underline; cursor:pointer; font-family:inherit; font-size:12px; padding:4px; }
+.pnp-decline:hover { color:#0D3B2E; }
+
+/* Honeypot field - hidden from users, bots fill it */
+.pnp-hp { position:absolute; left:-9999px; opacity:0; pointer-events:none; }
+
+/* Success state */
+.pnp-success { padding:32px 28px; text-align:center; }
+.pnp-success-icon { width:56px; height:56px; border-radius:50%; background:#0D3B2E; color:#C9A84C; display:inline-flex; align-items:center; justify-content:center; font-size:28px; font-weight:800; margin-bottom:14px; }
+.pnp-success-title { font-size:20px; font-weight:800; color:#0D3B2E; margin:0 0 8px; }
+.pnp-success-msg { font-size:14px; line-height:1.5; color:#6B6455; margin:0 0 18px; }
+.pnp-success-close { background:#0D3B2E; color:#FFFFFF; border:0; border-radius:10px; padding:10px 20px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; }
+.pnp-success-close:hover { background:#1A4E3C; }
+
+@media (max-width:480px) {
+  .pnp-modal { max-width:100%; border-radius:16px; }
+  .pnp-hero { padding:26px 20px 20px; }
+  .pnp-headline { font-size:21px; }
+  .pnp-body { padding:18px 20px 20px; }
+}
