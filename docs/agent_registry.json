@@ -1,0 +1,237 @@
+{
+  "schema_version": "1.0",
+  "updated": "2026-04-22",
+  "description": "Machine-readable registry of all ALEX system agents. Used by dashboard generators, health-check scripts, and future multi-tenant orchestration.",
+  "agents": [
+    {
+      "id": "alex",
+      "tier": "orchestrator",
+      "role": "Orquestador maestro + punto de contacto con el Jefe",
+      "prompt_file": "CLAUDE.md",
+      "default_model": "claude-sonnet-4-6",
+      "escalation_models": ["claude-opus-4-7"],
+      "downgrade_models": ["claude-haiku-4-5-20251001"],
+      "runs_on": ["claude-code", "telegram-bot", "claude-ai"],
+      "reports_to": "jefe",
+      "invokes": ["scout", "matematico", "fact-checker", "tracy", "social_media", "creativo", "director", "programador", "secretario", "planificador"],
+      "tools": ["Read", "Write", "Bash", "Agent", "skills", "all_bridges"],
+      "credentials": ["ANTHROPIC_API_KEY", "AIRTABLE_TOKEN", "BRIDGE_SECRETS"],
+      "status": "production",
+      "language": "es"
+    },
+    {
+      "id": "scout",
+      "tier": "sub_agent_deal",
+      "role": "Investigador de mercado y riesgo",
+      "prompt_file": "agents/scout.md",
+      "memory_file": "agents/memoria_scout.md",
+      "default_model": "claude-sonnet-4-6",
+      "runs_on": ["claude-code-subagent"],
+      "reports_to": "alex",
+      "invocation": "Agent tool with scout.md + property data",
+      "output_schema": "JSON: market_trend, comps, demand, risks, crime",
+      "credentials": ["AIRTABLE_TOKEN"],
+      "status": "production"
+    },
+    {
+      "id": "matematico",
+      "tier": "sub_agent_deal",
+      "role": "Underwriter financiero",
+      "prompt_file": "agents/matematico.md",
+      "memory_file": "agents/memoria_matematico.md",
+      "default_model": "claude-sonnet-4-6",
+      "runs_on": ["claude-code-subagent"],
+      "reports_to": "alex",
+      "invocation": "Agent tool after scout (or in parallel if data available)",
+      "output_schema": "JSON: purchase_price, ARV, rehab, total_investment, profit, ROI, cap_rate",
+      "credentials": [],
+      "rules": ["ciego al mercado", "solo matemática pura", "zero optimismo"],
+      "status": "production"
+    },
+    {
+      "id": "fact-checker",
+      "tier": "sub_agent_deal",
+      "role": "QA + Confidence Score",
+      "prompt_file": "agents/fact-checker.md",
+      "memory_file": "agents/memoria_fact_checker.md",
+      "default_model": "claude-sonnet-4-6",
+      "escalation_models": ["claude-opus-4-7"],
+      "runs_on": ["claude-code-subagent"],
+      "reports_to": "alex",
+      "invocation": "always after scout + matematico",
+      "output_schema": "JSON: confidence_score (1-10), veredicto, notas",
+      "credentials": [],
+      "status": "production"
+    },
+    {
+      "id": "tracy",
+      "tier": "sub_agent_deal",
+      "role": "Skip Tracer + Contact Writer",
+      "prompt_file": "agents/tracy.md",
+      "memory_file": "agents/memoria_tracy.md",
+      "default_model": "claude-haiku-4-5-20251001",
+      "runs_on": ["hostinger-php"],
+      "reports_to": "airtable_tracy_contacts",
+      "invocation": "Triggered by el_polling.php on Lead stage change",
+      "credentials": ["TRACERFY_TOKEN", "AIRTABLE_TOKEN"],
+      "associated_scripts": ["el_polling.php", "el_chismoso.php", "cleanup_duplicates.php", "backfill_links.php"],
+      "status": "production"
+    },
+    {
+      "id": "fer",
+      "tier": "autonomous_operator",
+      "role": "AI Receptionist — bilingual SMS lead qualification",
+      "prompt_file": "hostinger/tools/lib/fer_claude.php",
+      "default_model": "claude-haiku-4-5-20251001",
+      "escalation_models": ["claude-sonnet-4-6"],
+      "runs_on": ["hostinger-php"],
+      "reports_to": "telegram_jefe + airtable_deals",
+      "invocation": "webhook from Quo/OpenPhone on SMS reply",
+      "credentials": ["QUO_API_KEY", "ANTHROPIC_API_KEY", "AIRTABLE_TOKEN", "FER_TELEGRAM_BOT_TOKEN"],
+      "cron_schedules": {
+        "fer_first_contact": "*/15 * * * *",
+        "fer_seguimiento":    "30 15 * * *",
+        "fer_stale_cron":      "0 14 * * *",
+        "fer_morning_brief":  "30 14 * * *"
+      },
+      "status": "production",
+      "pipeline_state": {"tbc": 6, "contacted": 2, "seguimiento": 16, "deals": 0}
+    },
+    {
+      "id": "telegram_bot",
+      "tier": "autonomous_operator",
+      "role": "Jefe's mobile interface to ALEX",
+      "file": "telegram_bot/alex_bot.py",
+      "default_model": "claude-sonnet-4-6",
+      "downgrade_models": ["claude-haiku-4-5-20251001"],
+      "runs_on": ["vps:187.77.215.146:/opt/alex-bot/"],
+      "service": "systemd alex-bot.service",
+      "reports_to": "jefe",
+      "credentials": ["FER_TELEGRAM_BOT_TOKEN", "ANTHROPIC_API_KEY", "AIRTABLE_TOKEN", "BRIDGE_URL", "ALEX_SECRET"],
+      "status": "production"
+    },
+    {
+      "id": "secretario",
+      "tier": "autonomous_operator",
+      "role": "Email monitor for deals@pinnaclegroupwi.com",
+      "prompt_file": "agents/secretario.md",
+      "file": "secretario/email_monitor.py",
+      "default_model": "claude-haiku-4-5-20251001",
+      "runs_on": ["vps"],
+      "service": "systemd secretario-email.service",
+      "reports_to": "telegram_jefe + airtable_leads",
+      "frequency": "every 5 min IMAP poll",
+      "classification": ["LEAD", "URGENTE", "RUTINARIO", "SPAM"],
+      "credentials": ["SECRETARIO_EMAIL", "SECRETARIO_PASSWORD", "IMAP_HOST", "SMTP_HOST", "ANTHROPIC_API_KEY"],
+      "special_rules": ["Tracerfy emails auto-archive to Archive folder, auto-delete >30d"],
+      "status": "production"
+    },
+    {
+      "id": "planificador",
+      "tier": "autonomous_operator",
+      "role": "Google Calendar manager for Pinnacle",
+      "file": "secretario/calendar_manager.py",
+      "default_model": "claude-haiku-4-5-20251001",
+      "runs_on": ["vps cron alexuser"],
+      "reports_to": "telegram_jefe",
+      "frequency": "morning brief 8am CST + reminders every 15min",
+      "credentials": ["Google service account alex-calendar-agent@pinnacle-alex-bot"],
+      "telegram_commands": ["/agenda", "/agenda semana", "/cita"],
+      "status": "production"
+    },
+    {
+      "id": "social_media",
+      "tier": "sub_agent_social",
+      "role": "Content ideas generator EN/ES + visual prompts",
+      "prompt_file": "agents/social_media.md",
+      "memory_file": "agents/memoria_social_media.md",
+      "default_model": "claude-sonnet-4-6",
+      "runs_on": ["claude-code-subagent", "telegram-bot"],
+      "output_target": "airtable base appU9s3kGkVpdrJkw table tblAj0Pkj1jW4p5Ld",
+      "brand_compliance": {"logo": "pinnacle", "colors": ["#0D3B2E", "#C9A84C", "#FFFFFF"]},
+      "status": "production"
+    },
+    {
+      "id": "creativo",
+      "tier": "sub_agent_social",
+      "role": "Generates carousels/images via Blotato",
+      "prompt_file": "agents/creativo.md",
+      "default_model": "claude-haiku-4-5-20251001",
+      "runs_on": ["claude-code-subagent"],
+      "input_filter": "records with Visual_Prompt set and visual_url empty, non-Reel",
+      "blotato_template": "53cfec04-2500-41cf-8cc1-ba670d2c341a",
+      "themes": ["T1 Dark Premium", "T2 White Clean", "T3 Gold & Black", "T4 Soft Cream", "T5 Vibrant Blue"],
+      "credentials": ["BLOTATO_API_KEY", "AIRTABLE_TOKEN"],
+      "status": "production"
+    },
+    {
+      "id": "director",
+      "tier": "sub_agent_social",
+      "role": "Generates Reels/videos via Blotato",
+      "prompt_file": "agents/director.md",
+      "default_model": "claude-sonnet-4-6",
+      "runs_on": ["claude-code-subagent"],
+      "input_filter": "records of type Reel or Video",
+      "credentials": ["BLOTATO_API_KEY", "AIRTABLE_TOKEN"],
+      "status": "production"
+    },
+    {
+      "id": "programador",
+      "tier": "sub_agent_social",
+      "role": "Publishes/schedules posts to FB + IG via Blotato",
+      "prompt_file": "agents/programador.md",
+      "default_model": "claude-haiku-4-5-20251001",
+      "runs_on": ["claude-code-subagent"],
+      "input_filter": "records with visual_url and empty Blotato_Post_IDs",
+      "blotato_accounts": {"fb": 25638, "fb_page": 965320503341457, "ig": 39285, "ig_handle": "pinnacle.groupwi"},
+      "slots": "Tue/Thu/Sat 10am-12pm CST",
+      "credentials": ["BLOTATO_API_KEY", "AIRTABLE_TOKEN"],
+      "status": "production"
+    }
+  ],
+  "workers": [
+    {"id": "el_polling",    "file": "hostinger/tools/el_polling.php",    "cron": "*/5 * * * *",  "purpose": "Detect 'Review this Deal' leads and trigger Tracy"},
+    {"id": "el_chismoso",   "file": "hostinger/tools/el_chismoso.php",   "cron": "webhook",      "purpose": "Tracerfy webhook receiver, writes Contacts"},
+    {"id": "fer_first_contact",  "file": "hostinger/tools/fer_first_contact.php",  "cron": "*/15 * * * *",  "purpose": "Phone1-4 rotation SMS bilingual"},
+    {"id": "fer_seguimiento",    "file": "hostinger/tools/fer_seguimiento.php",    "cron": "30 15 * * *",   "purpose": "24-touch follow-up engine"},
+    {"id": "fer_stale_cron",      "file": "hostinger/tools/fer_stale_cron.php",      "cron": "0 14 * * *",    "purpose": "Move 'Contacted' no-reply 5d to 'Seguimiento'"},
+    {"id": "fer_morning_brief",  "file": "hostinger/tools/fer_morning_brief.php",  "cron": "30 14 * * *",   "purpose": "Pipeline summary + health check to Telegram"}
+  ],
+  "bridges": [
+    {"id": "pinnacle_wp_bridge",  "url": "https://agents.pinnaclegroupwi.com/pinnacle_wp_bridge.php",  "auth": "X-Alex-Secret OR Basic+App Password",  "actions": ["ping", "list_pages", "list_posts", "get_post", "update_post", "create_post", "delete_post", "get_post_meta", "update_post_meta", "get_option", "update_option", "purge_cache"]},
+    {"id": "pinnacle_public",     "url": "https://pinnaclegroupwi.com/agents/pinnacle_public.php",     "auth": "rate-limit + honeypot + time-check", "actions": ["places_proxy", "start_lead", "verify_phone", "resend_code", "update_lead"]},
+    {"id": "github_bridge",        "url": "https://agents.pinnaclegroupwi.com/github_bridge.php",       "auth": "X-Alex-Secret",  "actions": ["read_file"]},
+    {"id": "github_write",         "url": "https://agents.pinnaclegroupwi.com/github_write.php",        "auth": "X-Alex-Secret + GH_PAT",  "actions": ["write_file"]}
+  ],
+  "airtable_bases": [
+    {
+      "id": "appfQbDA750Oihy9J",
+      "name": "CRM Pinnacle",
+      "tables": {
+        "Leads": "tblxZz2EWIglOLnEd",
+        "Contacts": "tblacvw0Ss770x8l5",
+        "Deals": "tbliaEKxBHKBx7ZK2",
+        "Tracy": "tbl6CJm4kYspOuTDB",
+        "Fer Conversations": "tbleausFNpHhqLfsm",
+        "Notes & Activity": "tbleOBXJl7sDhwj5w"
+      }
+    },
+    {
+      "id": "appU9s3kGkVpdrJkw",
+      "name": "Social Media Pinnacle",
+      "tables": {
+        "Content Ideas": "tblAj0Pkj1jW4p5Ld"
+      }
+    }
+  ],
+  "external_apis": [
+    {"name": "Anthropic Claude", "models": ["opus-4-7", "sonnet-4-6", "haiku-4-5-20251001"], "usage": "all IA agents"},
+    {"name": "Tracerfy", "usage": "skip trace"},
+    {"name": "Quo/OpenPhone", "usage": "SMS + voice"},
+    {"name": "Blotato", "usage": "FB + IG publishing"},
+    {"name": "Google Places", "usage": "address autocomplete"},
+    {"name": "Google Calendar", "usage": "scheduling"},
+    {"name": "Airtable", "usage": "CRM + social DB"},
+    {"name": "Make.com", "usage": "legacy automations (mostly replaced)"}
+  ]
+}
