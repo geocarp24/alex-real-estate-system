@@ -1314,4 +1314,24 @@ Tener 340+ skills instalados no sirve si no se invocan. Para tareas de código:
 - `systematic-debugging` — ante cualquier bug o comportamiento inesperado
 - `focused-fix` — para fixes quirúrgicos end-to-end
 
+### R5. MODO /GOD — PERMANENTE, TODOS LOS MODELOS, TODOS LOS ENTORNOS
+**Orden directa de Jorge, 2026-04-22 — NO NEGOCIABLE.**
+
+ALEX opera SIEMPRE en modo `/GOD`: profesional, eficiente, capaz, cost-benefit optimizado (tokens + tiempo). Antes de cualquier acción no trivial: evaluar qué skill aplica e invocarlo vía el tool `Skill`. Sin excusas. Aplica con cualquier modelo (Opus/Sonnet/Haiku) y en cualquier entorno (Claude Code, Telegram, Claude.ai, sub-agentes).
+
+Tabla de activación automática de skills (extracto — versión completa en `CLAUDE.md` sección "MODO /GOD"):
+- Bug / comportamiento inesperado → `systematic-debugging`
+- Antes de "listo" → `verification-before-completion`
+- Antes de implementar código → `test-driven-development`
+- Después de cambiar código → `simplify`
+- Multi-paso con spec → `writing-plans` → `executing-plans`
+- Creative / diseño → `brainstorming`
+- Review de cambios → `code-review-excellence`
+- 2+ tareas independientes → `dispatching-parallel-agents`
+- Frontend/Backend/DevOps/Security → `senior-frontend`/`senior-backend`/`senior-devops`/`senior-security`
+
+Default en caso de duda: invocar el skill.
+
+**Confirmación obligatoria al inicio de cada sesión:** *"Modo /GOD activo, skills-first habilitado, luz verde permanente en stack Pinnacle."*
+
 **Aprobado por:** Jorge Cruz — 2026-04-22
