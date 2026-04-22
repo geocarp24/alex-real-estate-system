@@ -928,6 +928,116 @@ switch ($action) {
         $reply(['ok' => true, 'lead_id' => $lead_id, 'score' => $score['score'], 'heat' => $score['heat']]);
     }
 
+    case 'subscribe_email': {
+        $email      = trim((string) ($body['email'] ?? ''));
+        $lang       = ($body['lang'] ?? 'en') === 'es' ? 'es' : 'en';
+        $source     = substr((string) ($body['source'] ?? '/'), 0, 200);
+        $honeypot   = (string) ($body['honeypot'] ?? '');
+        $elapsed_ms = (int) ($body['elapsed_ms'] ?? 0);
+
+        // Anti-spam: honeypot must be empty + minimum human time
+        if ($honeypot !== '' || $elapsed_ms < 1200) {
+            $log('warn', 'popup subscribe blocked', ['hp' => $honeypot !== '', 'ms' => $elapsed_ms]);
+            // Return fake success so bots don't learn
+            $reply(['ok' => true]);
+        }
+
+        $v = pp_email_valid($email);
+        if (!$v['ok']) {
+            $reply(['ok' => false, 'error' => 'invalid_email'], 400);
+        }
+        $email_norm = strtolower($v['email']);
+
+        // Rate limit per IP: max 5 subscribes per hour
+        $ip_key = 'pp_rl_sub_' . md5($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+        $count  = (int) (get_transient($ip_key) ?: 0);
+        if ($count >= 5) {
+            $reply(['ok' => false, 'error' => 'rate_limited'], 429);
+        }
+        set_transient($ip_key, $count + 1, 3600);
+
+        // Insert into Contacts (newsletter subscriber minimal shape)
+        $ok = false;
+        $record_id = '';
+        if (defined('AIRTABLE_TOKEN')) {
+            $url = 'https://api.airtable.com/v0/' . AIRTABLE_BASE_ID . '/tblacvw0Ss770x8l5';
+            $payload = ['fields' => [
+                'Email1'    => $email_norm,
+                'Full Name' => 'Newsletter Subscriber',
+                'Notes'     => 'Source: ' . $source . ' | Lang: ' . $lang . ' | Subscribed: ' . gmdate('Y-m-d H:i') . ' UTC',
+            ], 'typecast' => true];
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST           => true,
+                CURLOPT_POSTFIELDS     => json_encode($payload),
+                CURLOPT_HTTPHEADER     => [
+                    'Authorization: Bearer ' . AIRTABLE_TOKEN,
+                    'Content-Type: application/json',
+                ],
+                CURLOPT_TIMEOUT        => 15,
+            ]);
+            $resp = curl_exec($ch);
+            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            if ($code >= 200 && $code < 300) {
+                $ok  = true;
+                $data = json_decode((string) $resp, true) ?: [];
+                $record_id = $data['id'] ?? '';
+            } else {
+                $log('warn', 'airtable subscribe failed', ['code' => $code, 'resp' => substr((string) $resp, 0, 200)]);
+                // Retry without 'Notes' in case the field does not exist
+                if (strpos((string) $resp, 'UNKNOWN_FIELD_NAME') !== false) {
+                    $payload['fields'] = ['Email1' => $email_norm, 'Full Name' => 'Newsletter Subscriber'];
+                    $ch = curl_init($url);
+                    curl_setopt_array($ch, [
+                        CURLOPT_RETURNTRANSFER => true,
+                        CURLOPT_POST           => true,
+                        CURLOPT_POSTFIELDS     => json_encode($payload),
+                        CURLOPT_HTTPHEADER     => [
+                            'Authorization: Bearer ' . AIRTABLE_TOKEN,
+                            'Content-Type: application/json',
+                        ],
+                        CURLOPT_TIMEOUT        => 15,
+                    ]);
+                    $resp2 = curl_exec($ch);
+                    $code2 = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                    curl_close($ch);
+                    if ($code2 >= 200 && $code2 < 300) {
+                        $ok = true;
+                        $data2 = json_decode((string) $resp2, true) ?: [];
+                        $record_id = $data2['id'] ?? '';
+                    }
+                }
+            }
+        }
+
+        // Telegram notification regardless of airtable outcome (so Jorge always sees it)
+        if (defined('TELEGRAM_BOT_TOKEN') && defined('TELEGRAM_CHAT_ID')) {
+            $msg = "📬 *New newsletter subscriber*\n"
+                 . "• Email: `" . $email_norm . "`\n"
+                 . "• Lang: " . strtoupper($lang) . "\n"
+                 . "• Source: " . $source . "\n"
+                 . "• Airtable: " . ($ok ? ($record_id ?: 'created') : 'failed');
+            $ch = curl_init('https://api.telegram.org/bot' . TELEGRAM_BOT_TOKEN . '/sendMessage');
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST           => true,
+                CURLOPT_POSTFIELDS     => http_build_query([
+                    'chat_id'    => TELEGRAM_CHAT_ID,
+                    'text'       => $msg,
+                    'parse_mode' => 'Markdown',
+                ]),
+                CURLOPT_TIMEOUT        => 8,
+            ]);
+            curl_exec($ch);
+            curl_close($ch);
+        }
+
+        $log('info', 'newsletter subscribe', ['email' => $email_norm, 'ok' => $ok, 'rec' => $record_id, 'src' => $source]);
+        $reply(['ok' => true]);
+    }
+
     default:
         $reply(['error' => 'unknown action', 'action' => $action], 400);
 }
