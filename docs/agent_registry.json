@@ -187,6 +187,45 @@
       "slots": "Tue/Thu/Sat 10am-12pm CST",
       "credentials": ["BLOTATO_API_KEY", "AIRTABLE_TOKEN"],
       "status": "production"
+    },
+    {
+      "id": "pinnacle_form",
+      "tier": "public_frontend",
+      "role": "Multi-step lead-capture webform on /get-my-offer/",
+      "frontend_files": [
+        "hostinger/agents/pinnacle_form/pinnacle_form.css",
+        "hostinger/agents/pinnacle_form/pinnacle_form_i18n.js",
+        "hostinger/agents/pinnacle_form/pinnacle_form_screens.js",
+        "hostinger/agents/pinnacle_form/pinnacle_form_core.js"
+      ],
+      "backend_endpoint": "/agents/pinnacle_public.php",
+      "backend_actions_used": ["places_proxy", "start_lead", "verify_phone", "resend_code", "update_lead", "lookup_existing", "form_brain"],
+      "screens": "18 main + s_resume + s_returning + ok",
+      "languages": ["en", "es"],
+      "session_persistence": "WP transients 2h + localStorage 2h",
+      "dedup": "phone (Contacts.Phone1-4) with address fallback",
+      "ack_model": "claude-haiku-4-5-20251001",
+      "deploy": "SCP via deploy-hostinger.yml",
+      "status": "production"
+    },
+    {
+      "id": "pinnacle_chat",
+      "tier": "public_frontend",
+      "role": "Floating Fer-style chatbot on every front-end page (excluded from /get-my-offer/)",
+      "frontend_files": [
+        "hostinger/agents/pinnacle_chat/pinnacle_chat.css",
+        "hostinger/agents/pinnacle_chat/pinnacle_chat.js"
+      ],
+      "loader": "hostinger/mu-plugins/pinnacle-chat-loader.php",
+      "backend_endpoint": "/agents/pinnacle_public.php",
+      "backend_action": "chat_message",
+      "public_api": ["window.PinnacleChat.open()", "window.PinnacleChat.close()", "window.PinnacleChat.reset()"],
+      "languages": ["en", "es"],
+      "session_persistence": "localStorage 2h (key pnf_chat)",
+      "chat_model": "claude-sonnet-4-6",
+      "escalation": "extracts <escalate>{...}</escalate> JSON tag from reply, creates Lead in Airtable + Telegram alert",
+      "deploy": "SCP via deploy-hostinger.yml + MU-plugins step",
+      "status": "production"
     }
   ],
   "workers": [
