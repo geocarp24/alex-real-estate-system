@@ -7,6 +7,21 @@
 
 ## REGLAS DEL JEFE (aplican a TODOS los agentes, siempre)
 
+### 2026-04-22 — PROTOCOLO DE EJECUCIÓN (NO NEGOCIABLE — APROBADO POR JORGE)
+- **Documento:** `agents/PROTOCOLO_EJECUCION.md` — leer al inicio de cada sesión junto con esta memoria.
+- **Aplica a:** toda operación no trivial (WP, Airtable, VPS, Hostinger, integraciones, scripts de agentes).
+- **7 fases obligatorias:**
+  1. Carga de contexto (memoria + shared_conversation + protocolo + credenciales)
+  2. Diagnóstico antes de acción (leer estado actual, nunca suponer)
+  3. Backup obligatorio antes de cambios destructivos (commit + push a `backups/`)
+  4. División de tareas grandes (< 300 líneas por archivo, Write al disco, nunca inline grande)
+  5. Deploy seguro (test local → draft/staging → preview al Jefe → publish → purge cache)
+  6. Verificación post-deploy (HTTP 200 + contenido esperado + flujo E2E + logs limpios)
+  7. Auto-backup + checkpoint cada 15 min en memoria
+- **Errores ya costaron créditos, no repetir** (stream timeout, WAF 403, credenciales perdidas, home rota, etc.) — lista completa en `PROTOCOLO_EJECUCION.md`.
+- **Checklist obligatorio** antes de cada tarea — si falta algo, no arrancar.
+- **Al iniciar sesión, confirmar:** "Protocolo cargado. Listo para operar según Fases 1–7."
+
 ### 2026-04-16 — Comunicación
 - Respuestas cortas y simples. Evitar lenguaje técnico innecesario.
 - No pedir confirmación repetida. Si el Jefe dice "procede", procede.
