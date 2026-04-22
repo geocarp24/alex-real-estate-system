@@ -1390,3 +1390,38 @@ Reglas permanentes grabadas en esta sesión:
 - R6 Skill de memoria always-on toda la vida
 
 Todo pusheado a `origin/master` + `origin/claude/whats-going-on-LFo6h` + documentación completa en `docs/` + backup en `backups/session_2026-04-22_221627/`.
+
+---
+
+## 2026-04-22 — EMAIL CAPTURE POPUP (nuevo componente, stack público)
+
+Nuevo módulo pinnaclegroupwi.com para crecer lista de emails.
+
+**Trigger:** 5s después del page load.
+**Scope:** todas las páginas frontend EXCEPTO `/get-my-offer/` (skip por MU-plugin filter) y mobile <480px (skip por JS).
+**Frequency cap:** 30 días cool-down tras dismiss + jamás reaparece si ya se suscribió (`localStorage.pnf_popup_subscribed=1`).
+
+**Archivos:**
+- `hostinger/agents/pinnacle_popup/pinnacle_popup.css` — modal centrado + backdrop blur + brand colors
+- `hostinger/agents/pinnacle_popup/pinnacle_popup.js` — timer, bilingüe EN/ES, honeypot + elapsed_ms, success state
+- `hostinger/mu-plugins/pinnacle-popup-loader.php` — enqueue con `filemtime(ABSPATH . 'agents/pinnacle_popup/...')` para cache-busting
+- `hostinger/agents/pinnacle_public.php` — nueva action **`subscribe_email`** con:
+  - Anti-spam: honeypot + elapsed_ms >= 1200ms
+  - Email validation via `pp_email_valid()`
+  - Rate limit: 5 subs/hora por IP
+  - Airtable Contacts insert (fields: `Email1` + `Full Name="Newsletter Subscriber"` + `Notes=source/lang/date`, con typecast:true). Fallback sin `Notes` si field no existe.
+  - Telegram notification a Jorge con email + lang + source
+  - Siempre devuelve `{ok:true}` (bots obtienen fake-success para no aprender)
+
+**Copy EN:** "Want a head start on the next deal?" + "Off-market opportunities + Wisconsin market insights, twice a month. No spam — unsubscribe anytime." + CTA "Send Me Deals" + decline "No thanks"
+**Copy ES:** "¿Quieres adelantarte al próximo deal?" + "Oportunidades off-market + análisis del mercado de Wisconsin, dos veces al mes. Sin spam — cancela cuando quieras." + CTA "Envíenme Deals" + decline "No, gracias"
+
+**Verificado en producción:**
+- ✅ Home page enqueue tags con `?ver=1.0.1776902039`
+- ✅ `/get-my-offer/` excluido (0 matches)
+- ✅ Bot submission (elapsed_ms=100) devuelve fake-success (no crea record)
+- ✅ Submission legítima (elapsed_ms=5000) crea record en Airtable Contacts + notifica Telegram
+- ✅ Email inválido rechazado con `{ok:false, error:"invalid_email"}`
+- ✅ Test records de QA limpiados de Airtable
+
+**Skills invocados:** `popup-cro` (UX pattern + copy + anti-annoyance rules).
