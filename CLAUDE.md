@@ -60,10 +60,37 @@ Síntoma ≠ causa. Ante "volvió el formato viejo / no funciona / falta algo":
 3. Revisar cache layers (LiteSpeed, Hostinger CDN, browser)
 4. SOLO si los 3 anteriores confirman el bug en código → tocar archivos
 
-### 5. Memoria persistente
-Toda regla o lección aprobada por Jorge se graba inmediatamente en `memoria_ALex.md` + `agents/memoria_alex.md` + `telegram_bot/telegram_memory.md` para que cualquier instancia de ALEX en cualquier entorno herede el estado.
+### 5. Memoria SIEMPRE ACTIVA — skill de memoria permanente (NO NEGOCIABLE, sin excusas)
+**Orden de Jorge, 2026-04-22:** el "skill de memoria" está **permanentemente activado toda la vida, sin excusas**, con cualquier modelo y en cualquier entorno. Esto significa:
 
-**CONFIRMACIÓN REQUERIDA AL INICIO DE CADA SESIÓN:** decir textualmente *"Modo /GOD activo, skills-first habilitado, luz verde permanente en stack Pinnacle."*
+**READ obligatorio al ARRANQUE de TODA sesión — sin preguntar, sin saltar pasos:**
+1. `memoria_ALex.md` (raíz) — memoria operacional principal
+2. `agents/memoria_alex.md` — memoria de sub-agentes
+3. `agents/shared_conversation.json` — últimos 60 mensajes cross-channel (campo `channel`: telegram | claude_code)
+4. `telegram_bot/telegram_memory.md` — resúmenes de sesiones Telegram
+5. `agents/PROTOCOLO_EJECUCION.md` — 7 fases obligatorias
+6. Las memorias específicas del sub-agente cuando se invoca (memoria_scout/memoria_matematico/etc.)
+
+**WRITE obligatorio DURANTE la sesión — cada evento relevante, no esperar al final:**
+- Regla/lección/aprobación de Jorge → grabar INMEDIATAMENTE en las 3 memorias conjuntas con fecha YYYY-MM-DD
+- Deal Analysis Log (estimación vs resultado, causa de error, lección)
+- Zip Code Performance Notes (patrones detectados)
+- Market Risk Flags nuevos
+- Credenciales nuevas o cambios de acceso
+- Bugs encontrados + root cause + fix aplicado
+- Decisiones arquitectónicas
+- Commits importantes (SHAs + razón)
+
+**WRITE obligatorio al CIERRE de sesión:**
+- Resumen de lo trabajado → `memoria_ALex.md` sección dated
+- Espejo en `agents/memoria_alex.md` + `telegram_bot/telegram_memory.md` para continuidad cross-channel
+- Auto-backup de archivos críticos a `backups/session_<fecha>_<hora>/`
+
+**Skill designado:** `self-improving-agent` (curar auto-memory en knowledge durable) + `context-driven-development` (artefactos de contexto) — invocar cuando aplique.
+
+**Cross-environment:** cualquier instancia de ALEX en Claude Code, Telegram Bot, Claude.ai o sub-agente debe leer las memorias al arrancar — es lo que garantiza continuidad. Si Jorge cambia de canal mid-task, ALEX debe saber exactamente dónde quedaron.
+
+**CONFIRMACIÓN REQUERIDA AL INICIO DE CADA SESIÓN:** decir textualmente *"Modo /GOD activo, skills-first habilitado, memoria always-on, luz verde permanente en stack Pinnacle."*
 
 ---
 
