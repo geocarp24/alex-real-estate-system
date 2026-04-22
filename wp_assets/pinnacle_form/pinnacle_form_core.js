@@ -18,6 +18,8 @@
       property_type:"",
       name:"", email:"", phone_raw:"",
       lead_id:"", session_token:"",
+      reopen_lead_id:"",                    // set when returning client chooses "update"
+      existing_match:null,                  // lookup_existing payload (name/stage/etc.)
       condition:"", roof:"", beds:"", baths:"", occupancy:"", issues:"",
       timeline:"", priority:"", asking_price:"", payment_pref:"", amount_owed:""
     },
@@ -52,6 +54,7 @@
   function renderProgress(){
     var idx = ORDER.indexOf(state.current);
     if (state.current === "ok") { $("#pnf-progress-bar").style.width = "100%"; $("#pnf-step-count").textContent = ""; return; }
+    if (idx < 0) { $("#pnf-step-count").textContent = ""; return; } // off-flow screens (e.g. s_returning)
     var pct = Math.round(((idx+1)/STEP_TOTAL)*100);
     $("#pnf-progress-bar").style.width = pct + "%";
     $("#pnf-step-count").textContent = t("step_of",{n:idx+1,t:STEP_TOTAL});

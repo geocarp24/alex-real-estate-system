@@ -141,20 +141,100 @@
 
   builders.s3 = function(){ return textScreen("s3","s3_eyebrow","s3_q","s3_hint","s3_ph","name","s4"); };
   builders.s4 = function(){ return textScreen("s4",null,"s4_q","s4_hint","s4_ph","email","s5",{type:"email",inputmode:"email",validate:function(v){ return V.email(v)?true:"err_email"; }}); };
+  // Helper: send start_lead (with optional reopen_lead_id) and advance to s6
+  function startLeadAndGo(nxt, navigateTo){
+    nxt.disabled = true; nxt.innerHTML = t("sending")+'<span class="pnf-spinner"></span>';
+    return api("start_lead",{
+      name: st.data.name, email: st.data.email, phone: st.data.phone_raw,
+      address: st.data.address, place_id: st.data.place_id,
+      property_type: st.data.property_type, city: st.data.city, state: st.data.state, zip: st.data.zip,
+      reopen_lead_id: st.data.reopen_lead_id || "",
+      elapsed_ms: Date.now() - st.pageLoadedAt, website: ""
+    }).then(function(r){
+      nxt.disabled = false; nxt.textContent = t("next");
+      if (r && r.ok){
+        st.data.lead_id = r.lead_id; st.data.session_token = r.session_token;
+        st.data.phone_masked = r.phone_masked; st.data.is_reopen = !!r.is_reopen;
+        if (navigateTo) go(navigateTo);
+        return true;
+      }
+      setErr(st.current, (r && r.error) || t("err_generic")); return false;
+    }).catch(function(){ nxt.disabled = false; nxt.textContent = t("next"); setErr(st.current, t("err_generic")); return false; });
+  }
+  window.PNF_START_LEAD = startLeadAndGo;
+
   builders.s5 = function(){
     return textScreen("s5",null,"s5_q","s5_hint","s5_ph","phone_raw","s6",{type:"tel",inputmode:"tel",validate:function(v){ return V.phone(v)?true:"err_phone"; },
       onNext:function(v, nxt){
+        // Save phone to state first
+        st.data.phone_raw = v;
+        // Step 1: lookup_existing — check if returning client
         nxt.disabled = true; nxt.innerHTML = t("sending")+'<span class="pnf-spinner"></span>';
-        return api("start_lead",{
-          name: st.data.name, email: st.data.email, phone: v, address: st.data.address, place_id: st.data.place_id,
-          property_type: st.data.property_type, city: st.data.city, state: st.data.state, zip: st.data.zip,
-          elapsed_ms: Date.now() - st.pageLoadedAt, website: ""
-        }).then(function(r){
-          nxt.disabled = false; nxt.textContent = t("next");
-          if (r && r.ok){ st.data.lead_id = r.lead_id; st.data.session_token = r.session_token; st.data.phone_masked = r.phone_masked; return true; }
-          setErr("s5", (r && r.error) || t("err_generic")); return false;
-        }).catch(function(){ nxt.disabled = false; nxt.textContent = t("next"); setErr("s5", t("err_generic")); return false; });
+        return api("lookup_existing",{phone:v, address: st.data.address}).then(function(lookup){
+          if (lookup && lookup.found){
+            // Returning client → show s_returning, do NOT auto-advance to s6
+            nxt.disabled = false; nxt.textContent = t("next");
+            st.data.existing_match = lookup;
+            go("s_returning");
+            return false; // tell textScreen we already navigated
+          }
+          // No match → standard new-lead flow
+          return startLeadAndGo(nxt, null).then(function(ok){ return ok; });
+        }).catch(function(){
+          // If lookup fails, fall back to standard new-lead flow (don't block user)
+          return startLeadAndGo(nxt, null).then(function(ok){ return ok; });
+        });
       } });
+  };
+
+  // S_RETURNING — shown when lookup_existing finds a prior lead for this phone/address
+  builders.s_returning = function(){
+    var m = st.data.existing_match || {};
+    var first = (m.name || st.data.name || "").split(" ")[0] || "";
+    var stage = m.stage || "—";
+    var addr = m.address || st.data.address;
+    var html =
+      '<p class="pnf-eyebrow">'+t("ret_eyebrow")+'</p>'+
+      '<h2 class="pnf-question">'+t(first ? "ret_q_named" : "ret_q_anon",{name:first})+'</h2>'+
+      '<p class="pnf-hint">'+t("ret_hint",{address:addr,stage:stage})+'</p>'+
+      '<div class="pnf-cards">'+
+        '<button type="button" class="pnf-card" data-action="update">'+
+          '<span class="pnf-emoji">✏️</span>'+
+          '<span><span>'+t("ret_update")+'</span><span class="pnf-sub">'+t("ret_update_sub")+'</span></span>'+
+        '</button>'+
+        '<a class="pnf-card" href="tel:+19207779886" data-action="call" style="text-decoration:none">'+
+          '<span class="pnf-emoji">📞</span>'+
+          '<span><span>'+t("ret_call")+'</span><span class="pnf-sub">'+t("ret_call_sub")+'</span></span>'+
+        '</a>'+
+        '<button type="button" class="pnf-card" data-action="new">'+
+          '<span class="pnf-emoji">🆕</span>'+
+          '<span><span>'+t("ret_new")+'</span><span class="pnf-sub">'+t("ret_new_sub")+'</span></span>'+
+        '</button>'+
+      '</div>'+
+      '<p class="pnf-error-msg"></p>'+
+      navRow(false);
+    var scr = el('<section id="pnf-screen-s_returning" class="pnf-screen">'+html+'</section>');
+    var updateBtn = scr.querySelector('[data-action="update"]');
+    var newBtn    = scr.querySelector('[data-action="new"]');
+    if (updateBtn) updateBtn.addEventListener("click", function(){
+      st.data.reopen_lead_id = m.lead_id || "";
+      var spinner = '<span class="pnf-spinner"></span>';
+      updateBtn.innerHTML = '<span class="pnf-emoji">⏳</span><span><span>'+t("sending")+'</span></span>';
+      startLeadAndGo({disabled:false, innerHTML:"", textContent:""}, "s6").catch(function(){
+        updateBtn.innerHTML = '<span class="pnf-emoji">✏️</span><span><span>'+t("ret_update")+'</span><span class="pnf-sub">'+t("ret_update_sub")+'</span></span>';
+        setErr("s_returning", t("err_generic"));
+      });
+    });
+    if (newBtn) newBtn.addEventListener("click", function(){
+      st.data.reopen_lead_id = ""; // force new lead
+      newBtn.innerHTML = '<span class="pnf-emoji">⏳</span><span><span>'+t("sending")+'</span></span>';
+      startLeadAndGo({disabled:false, innerHTML:"", textContent:""}, "s6").catch(function(){
+        newBtn.innerHTML = '<span class="pnf-emoji">🆕</span><span><span>'+t("ret_new")+'</span><span class="pnf-sub">'+t("ret_new_sub")+'</span></span>';
+        setErr("s_returning", t("err_generic"));
+      });
+    });
+    wireNav(scr);
+    return scr;
   };
 
   // S6 SMS verify
@@ -299,7 +379,7 @@
     var stage = document.getElementById("pnf-stage");
     if (!stage) return;
     stage.innerHTML = "";
-    ["s1","s2","s3","s4","s5","s6","s7","s8","s9","s10","s11","s12","s13","s14","s15","s16","s17","ok"]
+    ["s1","s2","s3","s4","s5","s_returning","s6","s7","s8","s9","s10","s11","s12","s13","s14","s15","s16","s17","ok"]
       .forEach(function(id){ stage.appendChild(builders[id]()); });
   }
   window.PNF_SCREENS = { rerender: mountAll };
