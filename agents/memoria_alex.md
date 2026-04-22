@@ -102,4 +102,23 @@ Ver `agents/protocolo_seguro.md` para reglas completas.
 
 ---
 
-*Última actualización: 2026-03-30*
+## 2026-04-22 — Pinnacle public stack cerrado
+
+Componentes en producción:
+- `/get-my-offer/` webform 18 pantallas (EN/ES, dedup, returning-user, session resume 2h, Fer brain acks)
+- Chatbot floating Fer-style en todas las páginas excepto el form (`pinnacle_chat.{css,js}` + MU-plugin loader)
+- Contact page rediseñada con 5 métodos (phone, email, visit, online form, chat)
+- Site-wide CTAs apuntando a `/get-my-offer/`
+- Email reply bug corregido (3-tier resolution: Reply-To > From > body scan + system-sender blocklist)
+
+Backend `hostinger/agents/pinnacle_public.php` expone acciones: `places_proxy`, `start_lead`, `verify_phone`, `resend_code`, `update_lead`, `lookup_existing` (NUEVO), `form_brain` (NUEVO), `chat_message` (NUEVO).
+
+Modelos: Haiku 4.5 para acks/empáticas, Sonnet 4.6 para chat, Opus 4.7 para análisis de deals.
+
+Protocolo de 7 fases en `agents/PROTOCOLO_EJECUCION.md` cargado al inicio de cada sesión.
+
+Detalle completo en `memoria_ALex.md` raíz, sección 2026-04-22.
+
+---
+
+*Última actualización: 2026-04-22*
