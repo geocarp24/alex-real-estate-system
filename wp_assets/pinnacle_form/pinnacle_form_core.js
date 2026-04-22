@@ -67,6 +67,9 @@
     next.classList.add("is-active");
     state.current = id;
     renderProgress();
+    // Persist snapshot (fire-and-forget)
+    if (id === "ok") { try { localStorage.removeItem("pnf_session"); } catch(e){} }
+    else saveSession();
     // back button visibility
     var back = $("#pnf-screen-"+id+" .pnf-back");
     if (back) back.hidden = (state.history.length === 0);
@@ -74,6 +77,41 @@
     var f = next.querySelector("input, textarea, button.pnf-card, button.pnf-chip");
     if (f) setTimeout(function(){ try { f.focus(); } catch(e){} }, 60);
   }
+
+  // ---- Session persistence (localStorage) ----
+  var SESSION_KEY = "pnf_session";
+  var SESSION_TTL_MS = 2 * 60 * 60 * 1000; // 2h — matches WP transient
+  function saveSession(){
+    try {
+      var payload = {
+        data: state.data,
+        current: state.current,
+        history: state.history,
+        lang: state.lang,
+        saved_at: Date.now()
+      };
+      localStorage.setItem(SESSION_KEY, JSON.stringify(payload));
+    } catch(e){ /* storage full / private browsing — silent */ }
+  }
+  function loadSession(){
+    try {
+      var raw = localStorage.getItem(SESSION_KEY); if (!raw) return null;
+      var p = JSON.parse(raw);
+      if (!p || typeof p !== "object") return null;
+      if (!p.saved_at || (Date.now() - p.saved_at) > SESSION_TTL_MS) { localStorage.removeItem(SESSION_KEY); return null; }
+      if (!p.current || p.current === "s1" || p.current === "ok") return null; // nothing useful to resume
+      return p;
+    } catch(e){ return null; }
+  }
+  function clearSession(){ try { localStorage.removeItem(SESSION_KEY); } catch(e){} }
+  function restoreFromSession(p){
+    try {
+      if (p.data) Object.keys(p.data).forEach(function(k){ state.data[k] = p.data[k]; });
+      if (Array.isArray(p.history)) state.history = p.history.slice();
+      if (p.lang) state.lang = p.lang;
+    } catch(e){}
+  }
+  window.PNF_SESSION = { load: loadSession, clear: clearSession, restore: restoreFromSession };
 
   function goTo(id){
     if (state.current !== id) state.history.push(state.current);
@@ -168,5 +206,9 @@
     });
     setLang(state.lang);
   };
-  window.PNF_SHOW_FIRST = function(){ show("s1"); };
+  window.PNF_SHOW_FIRST = function(){
+    var resumable = loadSession();
+    if (resumable) { show("s_resume"); }
+    else { show("s1"); }
+  };
 })();

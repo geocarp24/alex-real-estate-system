@@ -187,6 +187,35 @@
       } });
   };
 
+  // S_RESUME — shown on load if localStorage has an in-progress session
+  builders.s_resume = function(){
+    var html =
+      '<p class="pnf-eyebrow">'+t("res_eyebrow")+'</p>'+
+      '<h2 class="pnf-question">'+t("res_q")+'</h2>'+
+      '<p class="pnf-hint">'+t("res_hint")+'</p>'+
+      '<div class="pnf-cards">'+
+        '<button type="button" class="pnf-card" data-action="continue">'+
+          '<span class="pnf-emoji">▶️</span>'+
+          '<span><span>'+t("res_continue")+'</span><span class="pnf-sub">'+t("res_continue_sub")+'</span></span>'+
+        '</button>'+
+        '<button type="button" class="pnf-card" data-action="restart">'+
+          '<span class="pnf-emoji">🔄</span>'+
+          '<span><span>'+t("res_restart")+'</span><span class="pnf-sub">'+t("res_restart_sub")+'</span></span>'+
+        '</button>'+
+      '</div>';
+    var scr = el('<section id="pnf-screen-s_resume" class="pnf-screen">'+html+'</section>');
+    scr.querySelector('[data-action="continue"]').addEventListener("click", function(){
+      var p = window.PNF_SESSION.load();
+      if (p && p.current) { window.PNF_SESSION.restore(p); go(p.current); }
+      else { go("s1"); }
+    });
+    scr.querySelector('[data-action="restart"]').addEventListener("click", function(){
+      window.PNF_SESSION.clear();
+      go("s1");
+    });
+    return scr;
+  };
+
   // S_RETURNING — shown when lookup_existing finds a prior lead for this phone/address
   builders.s_returning = function(){
     var m = st.data.existing_match || {};
@@ -379,7 +408,7 @@
     var stage = document.getElementById("pnf-stage");
     if (!stage) return;
     stage.innerHTML = "";
-    ["s1","s2","s3","s4","s5","s_returning","s6","s7","s8","s9","s10","s11","s12","s13","s14","s15","s16","s17","ok"]
+    ["s_resume","s1","s2","s3","s4","s5","s_returning","s6","s7","s8","s9","s10","s11","s12","s13","s14","s15","s16","s17","ok"]
       .forEach(function(id){ stage.appendChild(builders[id]()); });
   }
   window.PNF_SCREENS = { rerender: mountAll };

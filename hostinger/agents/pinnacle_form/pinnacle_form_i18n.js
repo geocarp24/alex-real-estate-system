@@ -111,6 +111,14 @@ window.PNF_I18N = {
     s17_hint: "Optional. Leave blank if none.",
     s17_ph: "e.g. 85,000",
 
+    res_eyebrow: "WELCOME BACK",
+    res_q: "Continue where you left off?",
+    res_hint: "We saved your progress. You can pick up where you stopped or start a fresh request.",
+    res_continue: "Continue",
+    res_continue_sub: "Resume from where you stopped",
+    res_restart: "Start over",
+    res_restart_sub: "Clear everything and start a new request",
+
     ret_eyebrow: "WE KNOW YOU",
     ret_q_named: "Welcome back, {name}!",
     ret_q_anon: "Welcome back!",
@@ -245,6 +253,14 @@ window.PNF_I18N = {
     s17_q: "¿Hay algún saldo pendiente (hipoteca, liens)?",
     s17_hint: "Opcional. Déjalo vacío si no hay.",
     s17_ph: "ej. 85,000",
+
+    res_eyebrow: "BIENVENIDO DE VUELTA",
+    res_q: "¿Continuamos donde te quedaste?",
+    res_hint: "Guardamos tu progreso. Puedes retomar donde paraste o empezar de cero.",
+    res_continue: "Continuar",
+    res_continue_sub: "Retomar donde me quedé",
+    res_restart: "Empezar de nuevo",
+    res_restart_sub: "Borrar todo y empezar una solicitud nueva",
 
     ret_eyebrow: "TE RECONOCEMOS",
     ret_q_named: "¡Bienvenido de nuevo, {name}!",
