@@ -943,10 +943,10 @@ switch ($action) {
         }
 
         $v = pp_email_valid($email);
-        if (!$v['ok']) {
-            $reply(['ok' => false, 'error' => 'invalid_email'], 400);
+        if (!($v[0] ?? false)) {
+            $reply(['ok' => false, 'error' => 'invalid_email', 'reason' => $v[1] ?? ''], 400);
         }
-        $email_norm = strtolower($v['email']);
+        $email_norm = strtolower(trim($email));
 
         // Rate limit per IP: max 5 subscribes per hour
         $ip_key = 'pp_rl_sub_' . md5($_SERVER['REMOTE_ADDR'] ?? 'unknown');
