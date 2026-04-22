@@ -1365,3 +1365,28 @@ El "skill de memoria" está permanentemente activado en cualquier modelo y cualq
 **Cross-environment:** cualquier instancia (Claude Code, Telegram, Claude.ai, sub-agentes) lee las memorias al arrancar → continuidad garantizada entre canales.
 
 **Aprobado por:** Jorge Cruz — 2026-04-22
+
+---
+
+## 2026-04-22 — CIERRE DE SESIÓN (confirmación del Jefe)
+
+Jorge confirma: **"la página y los bots y todo lo demás están perfectos ahora."**
+
+Estado final verificado en producción:
+- ✅ Webform `/get-my-offer/` — 18 pantallas, bilingüe, dedup, session resume, Fer brain
+- ✅ Chatbot floating — bubble 72px + halo fucsia pulsante + dot fucsia (aprobado visualmente por Jorge)
+- ✅ MU-plugin con `filemtime(ABSPATH . ...)` correcto — cache-busting funcional
+- ✅ Contact page — Five Ways to Reach Us (Call / Email / Visit / Online Form / Live Chatbot)
+- ✅ Site-wide CTAs apuntando a `/get-my-offer/`
+- ✅ Email reply bug corregido en VPS
+- ✅ Cache LiteSpeed + Hostinger CDN purgados, live sirviendo HTML nuevo
+
+Reglas permanentes grabadas en esta sesión:
+- R1 Surgical edits (nunca regenerar archivos completos)
+- R2 Luz verde permanente stack Pinnacle
+- R3 Verify post-deploy siempre
+- R4 Skills activos cuando corresponde
+- R5 Modo /GOD permanente todos los modelos/entornos
+- R6 Skill de memoria always-on toda la vida
+
+Todo pusheado a `origin/master` + `origin/claude/whats-going-on-LFo6h` + documentación completa en `docs/` + backup en `backups/session_2026-04-22_221627/`.
