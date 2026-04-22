@@ -280,7 +280,17 @@
       '<h2>'+t("ok_title")+'</h2>'+
       '<p>'+t("ok_msg",{name: st.data.name.split(" ")[0] || ""})+'</p>'+
       '<div class="pnf-score">'+t("ok_score",{score: st.data.score||"—"})+'</div>'+
+      '<div class="pnf-ok-actions">'+
+        '<a href="/" class="pnf-next pnf-ok-home">'+t("ok_home")+'</a>'+
+        '<button type="button" class="pnf-ok-close">'+t("ok_close")+'</button>'+
+      '</div>'+
       '</div></section>');
+    var closeBtn = scr.querySelector(".pnf-ok-close");
+    if (closeBtn) closeBtn.addEventListener("click", function(){
+      // Try to close tab (works if window was opened via script); else go home
+      window.close();
+      setTimeout(function(){ window.location.href = "/"; }, 300);
+    });
     return scr;
   };
 
