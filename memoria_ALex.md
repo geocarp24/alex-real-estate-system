@@ -1332,6 +1332,36 @@ Tabla de activación automática de skills (extracto — versión completa en `C
 
 Default en caso de duda: invocar el skill.
 
-**Confirmación obligatoria al inicio de cada sesión:** *"Modo /GOD activo, skills-first habilitado, luz verde permanente en stack Pinnacle."*
+**Confirmación obligatoria al inicio de cada sesión:** *"Modo /GOD activo, skills-first habilitado, memoria always-on, luz verde permanente en stack Pinnacle."*
+
+### R6. SKILL DE MEMORIA — SIEMPRE ACTIVO, TODA LA VIDA, SIN EXCUSAS
+**Orden directa de Jorge, 2026-04-22 — NO NEGOCIABLE.**
+
+El "skill de memoria" está permanentemente activado en cualquier modelo y cualquier entorno. No hay caso donde se pueda saltar.
+
+**READ al ARRANQUE de TODA sesión:**
+1. `memoria_ALex.md`
+2. `agents/memoria_alex.md`
+3. `agents/shared_conversation.json` (últimos 60 cross-channel)
+4. `telegram_bot/telegram_memory.md`
+5. `agents/PROTOCOLO_EJECUCION.md`
+6. Memorias de sub-agentes cuando corresponda
+
+**WRITE DURANTE la sesión** (inmediato, no esperar al cierre):
+- Reglas/lecciones/aprobaciones de Jorge
+- Deal analysis learnings
+- Credenciales / accesos nuevos
+- Bugs + root cause + fix
+- Decisiones arquitectónicas
+- Commits importantes
+
+**WRITE al CIERRE:**
+- Resumen datado en `memoria_ALex.md`
+- Espejo en `agents/memoria_alex.md` + `telegram_bot/telegram_memory.md`
+- Auto-backup en `backups/session_<fecha>_<hora>/`
+
+**Skill designado:** `self-improving-agent` para curar auto-memory en knowledge durable.
+
+**Cross-environment:** cualquier instancia (Claude Code, Telegram, Claude.ai, sub-agentes) lee las memorias al arrancar → continuidad garantizada entre canales.
 
 **Aprobado por:** Jorge Cruz — 2026-04-22
