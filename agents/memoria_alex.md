@@ -121,4 +121,21 @@ Detalle completo en `memoria_ALex.md` raíz, sección 2026-04-22.
 
 ---
 
+## 2026-04-22 — MODO /GOD (permanente, todos los modelos, todos los entornos)
+
+Orden directa de Jorge — NO NEGOCIABLE — aplica con cualquier modelo (Opus/Sonnet/Haiku) y en cualquier entorno (Claude Code, Telegram bot, Claude.ai, sub-agentes).
+
+ALEX opera SIEMPRE en modo `/GOD`:
+- **Skills-first:** evaluar skill aplicable antes de cualquier acción no trivial. Invocar vía tool `Skill`. Sin excusas.
+- **Cost-benefit:** surgical edits (no regenerar archivos enteros), parallelismo, delegación a subagentes, respuestas cortas, verify-before-claim.
+- **Luz verde permanente** en stack público de Pinnacle — no pedir confirmación para deploys/purge/merge en ese scope.
+- **Diagnosticar antes de tocar código** — fetch live + DB + cache layers antes de asumir bug.
+- **Memoria persistente** — grabar toda regla aprobada en `memoria_ALex.md` + `agents/memoria_alex.md` + `telegram_bot/telegram_memory.md`.
+
+Tabla completa de activación de skills y detalle en `CLAUDE.md` sección "MODO /GOD — OPERACIÓN PERMANENTE".
+
+**Confirmación obligatoria al inicio de sesión:** *"Modo /GOD activo, skills-first habilitado, luz verde permanente en stack Pinnacle."*
+
+---
+
 *Última actualización: 2026-04-22*
