@@ -252,6 +252,102 @@ function pp_compute_score(array $phase1, array $phase2, array $phase3): array {
 
 // -------- Actions --------
 
+// --- Helper: search Airtable Leads by phone (primary) or address (fallback) ---
+function pp_airtable_find_existing(string $phone_e164, string $address): array {
+    if (!defined('AIRTABLE_TOKEN')) return ['found' => false];
+    $phone_digits = preg_replace('/\D+/', '', $phone_e164);
+    $addr_norm = strtolower(trim(preg_replace('/\s+/', ' ', $address)));
+
+    // Primary: look up Contacts table by phone digits (contacts link to leads via Property Address)
+    $contacts_url = 'https://api.airtable.com/v0/' . AIRTABLE_BASE_ID . '/tblacvw0Ss770x8l5'
+                  . '?filterByFormula=' . rawurlencode("OR(FIND('$phone_digits',{Phone1}&''),FIND('$phone_digits',{Phone2}&''),FIND('$phone_digits',{Phone3}&''),FIND('$phone_digits',{Phone4}&''))")
+                  . '&maxRecords=3';
+    $ch = curl_init($contacts_url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER     => ['Authorization: Bearer ' . AIRTABLE_TOKEN],
+        CURLOPT_TIMEOUT        => 15,
+    ]);
+    $resp = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($code >= 200 && $code < 300) {
+        $data = json_decode((string) $resp, true) ?: [];
+        foreach (($data['records'] ?? []) as $rec) {
+            $f = $rec['fields'] ?? [];
+            $linked_leads = $f['Property Address'] ?? ($f['Leads 2'] ?? []);
+            if (is_array($linked_leads) && count($linked_leads) > 0) {
+                return [
+                    'found'      => true,
+                    'match_by'   => 'phone',
+                    'contact_id' => $rec['id'],
+                    'lead_id'    => $linked_leads[0],
+                    'name'       => $f['Full Name'] ?? '',
+                    'email'      => $f['Email1'] ?? '',
+                ];
+            }
+        }
+    }
+
+    // Fallback: lookup Leads by Address (normalized)
+    $leads_url = 'https://api.airtable.com/v0/' . AIRTABLE_BASE_ID . '/' . AIRTABLE_LEADS_TABLE
+               . '?filterByFormula=' . rawurlencode("LOWER({Address})='" . addslashes($addr_norm) . "'")
+               . '&maxRecords=3';
+    $ch = curl_init($leads_url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER     => ['Authorization: Bearer ' . AIRTABLE_TOKEN],
+        CURLOPT_TIMEOUT        => 15,
+    ]);
+    $resp = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($code >= 200 && $code < 300) {
+        $data = json_decode((string) $resp, true) ?: [];
+        $recs = $data['records'] ?? [];
+        if (count($recs) > 0) {
+            $r0 = $recs[0];
+            return [
+                'found'    => true,
+                'match_by' => 'address',
+                'lead_id'  => $r0['id'],
+                'stage'    => $r0['fields']['Stage'] ?? '',
+            ];
+        }
+    }
+    return ['found' => false];
+}
+
+// --- Helper: fetch Lead + stage classification ---
+function pp_airtable_get_lead(string $lead_id): array {
+    if (!defined('AIRTABLE_TOKEN')) return ['ok' => false];
+    $url = 'https://api.airtable.com/v0/' . AIRTABLE_BASE_ID . '/' . AIRTABLE_LEADS_TABLE . '/' . rawurlencode($lead_id);
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER     => ['Authorization: Bearer ' . AIRTABLE_TOKEN],
+        CURLOPT_TIMEOUT        => 15,
+    ]);
+    $resp = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($code < 200 || $code >= 300) return ['ok' => false, 'code' => $code];
+    $data = json_decode((string) $resp, true) ?: [];
+    $f = $data['fields'] ?? [];
+    $stage = (string) ($f['Stage'] ?? '');
+    $ACTIVE  = ['New Lead', 'Review this Deal', 'To be Contacted', 'To Be Contacted', 'Contacted', 'Seguimiento', 'Appointment Set', 'Offer Sent', 'Under Contract', 'Closing'];
+    $CLOSED  = ['Done Deal', 'Dead'];
+    $status  = in_array($stage, $ACTIVE, true) ? 'active' : (in_array($stage, $CLOSED, true) ? 'closed' : 'other');
+    return [
+        'ok'      => true,
+        'id'      => $data['id'] ?? $lead_id,
+        'fields'  => $f,
+        'stage'   => $stage,
+        'status'  => $status,
+        'address' => (string) ($f['Address'] ?? ''),
+    ];
+}
+
 switch ($action) {
 
     case 'places_proxy': {
@@ -290,6 +386,43 @@ switch ($action) {
         $reply(['suggestions' => $sugg]);
     }
 
+    case 'lookup_existing': {
+        // Check if client has a prior lead BEFORE creating a new one.
+        // Primary: phone match via Contacts.Phone1-4. Fallback: Address match on Leads.
+        $phone = trim((string) ($body['phone'] ?? ''));
+        $address = trim((string) ($body['address'] ?? ''));
+        $phone_e164 = pp_normalize_phone($phone);
+        if ($phone_e164 === '' && $address === '') {
+            $reply(['found' => false, 'reason' => 'missing phone and address']);
+        }
+        $match = pp_airtable_find_existing($phone_e164, $address);
+        if (!$match['found']) {
+            $reply(['found' => false]);
+        }
+        // Enrich with Lead stage/status
+        $lead_id = (string) ($match['lead_id'] ?? '');
+        $lead_info = pp_airtable_get_lead($lead_id);
+        if (!$lead_info['ok']) {
+            $reply(['found' => false, 'reason' => 'lead not readable']);
+        }
+        // Decide UX path based on stage
+        $stage  = $lead_info['stage'];
+        $status = $lead_info['status'];
+        $f = $lead_info['fields'];
+        $summary = [
+            'lead_id'  => $lead_id,
+            'match_by' => $match['match_by'],
+            'address'  => $lead_info['address'],
+            'stage'    => $stage,
+            'status'   => $status,
+            // echo back lightly masked contact info for UI prefill
+            'name'     => (string) ($match['name'] ?? ''),
+            'email'    => (string) ($match['email'] ?? ''),
+        ];
+        $log('info', 'lookup_existing hit', ['lead_id' => $lead_id, 'stage' => $stage, 'match_by' => $match['match_by']]);
+        $reply(['found' => true] + $summary);
+    }
+
     case 'start_lead': {
         if (!empty($body['website'] ?? '')) { $log('warn', 'honeypot filled'); $reply(['error' => 'invalid submission'], 400); }
         $elapsed = (int) ($body['elapsed_ms'] ?? 0);
@@ -315,21 +448,46 @@ switch ($action) {
         $state = (string) ($body['state'] ?? 'WI');
         $zip   = (string) ($body['zip']   ?? '');
 
-        $at = pp_airtable_create([
-            'Address'     => $address,
-            'City'        => $city,
-            'Estate'      => $state,
-            'Zip Code'    => $zip !== '' ? (int) $zip : null,
-            'Stage'       => 'New Lead',
-            'Lead Source' => 'Website Form',
-            'Dated Added' => date('Y-m-d'),
-        ]);
-        if (!$at['ok']) {
-            $log('error', 'airtable create failed', ['code' => $at['code'] ?? 0, 'body' => $at['record'] ?? []]);
-            $reply(['error' => 'temporary failure, please try again'], 500);
+        // If reopen_lead_id is provided (returning client chose "update my info"),
+        // reuse that Lead instead of creating a new one. Refresh fields + mark for re-review.
+        $reopen_lead_id = trim((string) ($body['reopen_lead_id'] ?? ''));
+        $lead_id = '';
+        $is_reopen = false;
+        if ($reopen_lead_id !== '') {
+            $existing = pp_airtable_get_lead($reopen_lead_id);
+            if ($existing['ok']) {
+                $update_fields = [
+                    'Address'     => $address,
+                    'City'        => $city,
+                    'Estate'      => $state,
+                    'Zip Code'    => $zip !== '' ? (int) $zip : null,
+                    'Stage'       => 'Review this Deal',
+                    'Last Contact Date' => date('Y-m-d'),
+                ];
+                pp_airtable_update($reopen_lead_id, $update_fields);
+                $lead_id = $reopen_lead_id;
+                $is_reopen = true;
+                $log('info', 'lead reopened', ['lead_id' => $lead_id, 'prev_stage' => $existing['stage']]);
+            }
         }
-        $lead_id = $at['record']['id'] ?? '';
-        if ($lead_id === '') $reply(['error' => 'lead creation failed'], 500);
+
+        if ($lead_id === '') {
+            $at = pp_airtable_create([
+                'Address'     => $address,
+                'City'        => $city,
+                'Estate'      => $state,
+                'Zip Code'    => $zip !== '' ? (int) $zip : null,
+                'Stage'       => 'New Lead',
+                'Lead Source' => 'Website Form',
+                'Dated Added' => date('Y-m-d'),
+            ]);
+            if (!$at['ok']) {
+                $log('error', 'airtable create failed', ['code' => $at['code'] ?? 0, 'body' => $at['record'] ?? []]);
+                $reply(['error' => 'temporary failure, please try again'], 500);
+            }
+            $lead_id = $at['record']['id'] ?? '';
+            if ($lead_id === '') $reply(['error' => 'lead creation failed'], 500);
+        }
 
         $code          = sprintf('%06d', random_int(0, 999999));
         $session_token = bin2hex(random_bytes(16));
@@ -359,13 +517,14 @@ switch ($action) {
             $reply(['error' => 'could not send verification code — please check your phone number'], 500);
         }
 
-        $log('info', 'lead started', ['lead_id' => $lead_id]);
+        $log('info', 'lead started', ['lead_id' => $lead_id, 'is_reopen' => $is_reopen]);
         $reply([
             'ok'            => true,
             'lead_id'       => $lead_id,
             'session_token' => $session_token,
             'phone_masked'  => '(' . substr($phone_e164, 2, 3) . ') ' . substr($phone_e164, 5, 3) . '-****',
             'ttl_seconds'   => 600,
+            'is_reopen'     => $is_reopen,
         ]);
     }
 
