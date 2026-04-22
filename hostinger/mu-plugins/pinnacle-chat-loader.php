@@ -16,7 +16,7 @@ add_action('wp_enqueue_scripts', function () {
     // Don't load on the form itself — user is already engaged with structured flow
     if (is_page('get-my-offer')) return;
 
-    $ver = '1.0.' . @filemtime(__DIR__ . '/../agents/pinnacle_chat/pinnacle_chat.js');
+    $ver = '1.0.' . @filemtime(ABSPATH . 'agents/pinnacle_chat/pinnacle_chat.js');
 
     wp_enqueue_style(
         'pinnacle-chat',
