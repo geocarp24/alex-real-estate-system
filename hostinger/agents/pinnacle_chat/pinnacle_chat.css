@@ -2,11 +2,12 @@
 #pnc-root { position:fixed; right:20px; bottom:20px; z-index:999998; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
 #pnc-root *, #pnc-root *::before, #pnc-root *::after { box-sizing:border-box; }
 
-.pnc-bubble { width:60px; height:60px; border-radius:50%; background:linear-gradient(135deg,#0D3B2E 0%,#1A4E3C 100%); color:#C9A84C; border:0; cursor:pointer; box-shadow:0 8px 24px rgba(13,59,46,.35); display:flex; align-items:center; justify-content:center; font-size:26px; position:relative; transition:transform .2s ease, box-shadow .2s ease; }
-.pnc-bubble:hover { transform:scale(1.08); box-shadow:0 12px 32px rgba(13,59,46,.5); }
-.pnc-bubble-icon { line-height:1; }
-.pnc-bubble-dot { position:absolute; top:8px; right:8px; width:10px; height:10px; background:#C9A84C; border-radius:50%; border:2px solid #FFFFFF; animation:pncPulse 2s ease-in-out infinite; }
-@keyframes pncPulse { 0%,100% { transform:scale(1); opacity:1; } 50% { transform:scale(1.3); opacity:.75; } }
+.pnc-bubble { width:72px; height:72px; border-radius:50%; background:linear-gradient(135deg,#0D3B2E 0%,#1A4E3C 100%); color:#C9A84C; border:3px solid #FFFFFF; cursor:pointer; box-shadow:0 10px 32px rgba(13,59,46,.45), 0 0 0 0 rgba(232,62,140,.55); display:flex; align-items:center; justify-content:center; font-size:34px; position:relative; transition:transform .2s ease, box-shadow .2s ease; animation:pncHalo 2.2s ease-in-out infinite; }
+.pnc-bubble:hover { transform:scale(1.08); box-shadow:0 14px 40px rgba(13,59,46,.55), 0 0 0 14px rgba(232,62,140,.25); animation-play-state:paused; }
+.pnc-bubble-icon { line-height:1; filter:drop-shadow(0 1px 2px rgba(0,0,0,.25)); }
+.pnc-bubble-dot { position:absolute; top:6px; right:6px; width:16px; height:16px; background:#E83E8C; border-radius:50%; border:3px solid #FFFFFF; box-shadow:0 2px 6px rgba(232,62,140,.5); animation:pncPulse 1.4s ease-in-out infinite; }
+@keyframes pncPulse { 0%,100% { transform:scale(1); opacity:1; } 50% { transform:scale(1.4); opacity:.75; } }
+@keyframes pncHalo { 0% { box-shadow:0 10px 32px rgba(13,59,46,.45), 0 0 0 0 rgba(232,62,140,.55); } 70% { box-shadow:0 10px 32px rgba(13,59,46,.45), 0 0 0 20px rgba(232,62,140,0); } 100% { box-shadow:0 10px 32px rgba(13,59,46,.45), 0 0 0 0 rgba(232,62,140,0); } }
 
 #pnc-root.pnc-open .pnc-bubble { transform:scale(0); opacity:0; pointer-events:none; }
 
