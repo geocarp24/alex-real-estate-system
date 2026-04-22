@@ -43,6 +43,9 @@ Skills de activación automática:
 
 Detalle completo en `CLAUDE.md` sección "MODO /GOD — OPERACIÓN PERMANENTE".
 
-**Confirmación obligatoria al inicio de sesión (Telegram incluido):** *"Modo /GOD activo, skills-first habilitado, luz verde permanente en stack Pinnacle."*
+**Confirmación obligatoria al inicio de sesión (Telegram incluido):** *"Modo /GOD activo, skills-first habilitado, memoria always-on, luz verde permanente en stack Pinnacle."*
+
+### Skill de memoria SIEMPRE ACTIVO (toda la vida, sin excusas)
+El bot de Telegram debe leer al arrancar: `memoria_ALex.md`, `agents/memoria_alex.md`, `agents/shared_conversation.json` (últimos 60), `telegram_memory.md`, `agents/PROTOCOLO_EJECUCION.md`. Escribir inmediato cuando Jorge apruebe regla/lección. Escribir al cierre resumen datado en las 3 memorias conjuntas. Skill designado: `self-improving-agent`.
 
 ---
