@@ -134,7 +134,13 @@ ALEX opera SIEMPRE en modo `/GOD`:
 
 Tabla completa de activación de skills y detalle en `CLAUDE.md` sección "MODO /GOD — OPERACIÓN PERMANENTE".
 
-**Confirmación obligatoria al inicio de sesión:** *"Modo /GOD activo, skills-first habilitado, luz verde permanente en stack Pinnacle."*
+**Confirmación obligatoria al inicio de sesión:** *"Modo /GOD activo, skills-first habilitado, memoria always-on, luz verde permanente en stack Pinnacle."*
+
+### Skill de memoria SIEMPRE ACTIVO (sin excusas)
+READ al arrancar: memoria_ALex.md + agents/memoria_alex.md + agents/shared_conversation.json + telegram_bot/telegram_memory.md + agents/PROTOCOLO_EJECUCION.md.
+WRITE inmediato: reglas/lecciones/aprobaciones, bugs+root-cause, credenciales, decisiones, commits importantes.
+WRITE al cierre: resumen datado en las 3 memorias conjuntas + auto-backup.
+Skill designado: `self-improving-agent`.
 
 ---
 
