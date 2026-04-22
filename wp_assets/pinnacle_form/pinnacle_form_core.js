@@ -129,6 +129,11 @@
   function submitFinal(){
     if (state.submitting) return;
     state.submitting = true;
+    var resetBtn = function(){
+      var scrId = state.current;
+      var nxt = $("#pnf-screen-"+scrId+" .pnf-next");
+      if (nxt){ nxt.disabled = false; nxt.textContent = t("next"); }
+    };
     api("update_lead", {
       lead_id: state.data.lead_id,
       session_token: state.data.session_token,
@@ -141,9 +146,15 @@
         state.data.heat = resp.heat;
         goTo("ok");
       } else {
-        alert((resp && resp.error) || t("err_generic"));
+        var msg = (resp && resp.error) ? resp.error : t("err_generic");
+        setError(state.current, msg);
+        resetBtn();
       }
-    }).catch(function(){ state.submitting = false; alert(t("err_generic")); });
+    }).catch(function(e){
+      state.submitting = false;
+      setError(state.current, t("err_generic") + " ("+(e && e.message ? e.message : "network")+")");
+      resetBtn();
+    });
   }
   window.PNF_SUBMIT = submitFinal;
 

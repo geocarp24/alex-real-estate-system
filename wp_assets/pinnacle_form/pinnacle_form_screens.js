@@ -63,7 +63,7 @@
 
   // S1 Address with autocomplete
   builders.s1 = function(){
-    var html = header(null,"s1_eyebrow","")+ // eyebrow only at top
+    var html =
       '<p class="pnf-eyebrow">'+t("s1_eyebrow")+'</p>'+
       '<h2 class="pnf-question">'+t("s1_q")+'</h2>'+
       '<p class="pnf-hint">'+t("s1_hint")+'</p>'+
