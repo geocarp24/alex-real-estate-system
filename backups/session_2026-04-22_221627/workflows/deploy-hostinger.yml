@@ -1,0 +1,93 @@
+name: Deploy to Hostinger via SSH
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'hostinger/**'
+      - '.github/workflows/deploy-hostinger.yml'
+
+jobs:
+  deploy:
+    name: SSH Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy Tools PHP files via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "hostinger/tools/*"
+          target: /home/u433637438/domains/pinnaclegroupwi.com/public_html/Tools/
+          strip_components: 2
+
+      - name: Deploy Agents PHP files via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "hostinger/agents/*"
+          target: /home/u433637438/domains/pinnaclegroupwi.com/public_html/agents/
+          strip_components: 2
+
+      - name: Deploy WP MU-plugins via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "hostinger/mu-plugins/*"
+          target: /home/u433637438/domains/pinnaclegroupwi.com/public_html/wp-content/mu-plugins/
+          strip_components: 2
+
+      - name: Write config files via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            cat > /home/u433637438/domains/pinnaclegroupwi.com/public_html/Tools/config.php << 'PHPEOF'
+            <?php
+            define('AIRTABLE_TOKEN',    '${{ secrets.AIRTABLE_TOKEN }}');
+            define('TRACERFY_TOKEN',    '${{ secrets.TRACERFY_TOKEN }}');
+            define('ANTHROPIC_API_KEY', '${{ secrets.ANTHROPIC_API_KEY }}');
+            define('MAKE_API_TOKEN',    '${{ secrets.MAKE_API_TOKEN }}');
+            define('QUO_API_KEY',       '${{ secrets.QUO_API_KEY }}');
+            define('TELEGRAM_BOT_TOKEN','${{ secrets.FER_TELEGRAM_BOT_TOKEN }}');
+            define('TELEGRAM_CHAT_ID',  '${{ secrets.TELEGRAM_CHAT_ID }}');
+            PHPEOF
+
+            cat > /home/u433637438/domains/pinnaclegroupwi.com/public_html/agents/alex_config.php << 'PHPEOF'
+            <?php
+            define('GITHUB_TOKEN', '${{ secrets.GH_PAT }}');
+            define('ALEX_SECRET',  '${{ secrets.ALEX_SECRET }}');
+            PHPEOF
+            echo "config files written OK"
+
+            # Set up Fer stale contacts cron (daily 8:00 AM CST = 14:00 UTC)
+            CRON_CMD="0 14 * * * curl -s https://pinnaclegroupwi.com/Tools/fer_stale_cron.php > /dev/null 2>&1"
+            (crontab -l 2>/dev/null | grep -v fer_stale_cron; echo "$CRON_CMD") | crontab -
+
+            # Set up First Contact SMS cron (every 15 min, time check is inside PHP)
+            FC_CMD="*/15 * * * * curl -s https://pinnaclegroupwi.com/Tools/fer_first_contact.php > /dev/null 2>&1"
+            (crontab -l 2>/dev/null | grep -v fer_first_contact; echo "$FC_CMD") | crontab -
+
+            # Set up Seguimiento Engine cron (daily 9:30 AM CST = 15:30 UTC)
+            SEG_CMD="30 15 * * * curl -s https://pinnaclegroupwi.com/Tools/fer_seguimiento.php > /dev/null 2>&1"
+            (crontab -l 2>/dev/null | grep -v fer_seguimiento; echo "$SEG_CMD") | crontab -
+
+            # Set up Morning Brief cron (daily 8:30 AM CST = 14:30 UTC)
+            MB_CMD="30 14 * * * curl -s https://pinnaclegroupwi.com/Tools/fer_morning_brief.php > /dev/null 2>&1"
+            (crontab -l 2>/dev/null | grep -v fer_morning_brief; echo "$MB_CMD") | crontab -
+
+            echo "crons configured OK"
