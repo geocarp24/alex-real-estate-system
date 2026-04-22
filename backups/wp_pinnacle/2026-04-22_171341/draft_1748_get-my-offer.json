@@ -1,0 +1,11 @@
+{
+  "id": 1748,
+  "title": "Get My Cash Offer",
+  "slug": "get-my-offer",
+  "status": "draft",
+  "type": "page",
+  "content": "<!-- Pinnacle Get My Cash Offer — multi-step form. Assets in /agents/pinnacle_form/ -->\n<link rel=\"stylesheet\" href=\"/agents/pinnacle_form/pinnacle_form.css?v=1\" />\n<div id=\"pnf-root\">\n  <div class=\"pnf-top\">\n    <div class=\"pnf-lang\" role=\"group\" aria-label=\"Language\">\n      <button type=\"button\" data-lang=\"en\">EN</button>\n      <button type=\"button\" data-lang=\"es\">ES</button>\n    </div>\n    <div class=\"pnf-progress\" aria-hidden=\"true\"><div class=\"pnf-progress-bar\" id=\"pnf-progress-bar\"></div></div>\n    <span class=\"pnf-step-count\" id=\"pnf-step-count\"></span>\n  </div>\n  <div class=\"pnf-stage\" id=\"pnf-stage\" aria-live=\"polite\"></div>\n</div>\n<script src=\"/agents/pinnacle_form/pinnacle_form_i18n.js?v=1\" defer></script>\n<script src=\"/agents/pinnacle_form/pinnacle_form_core.js?v=1\" defer></script>\n<script src=\"/agents/pinnacle_form/pinnacle_form_screens.js?v=1\" defer></script>",
+  "content_size": 887,
+  "modified": "2026-04-21 03:11:19",
+  "request_id": "4d529161"
+}
