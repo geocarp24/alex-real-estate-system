@@ -23,3 +23,26 @@ Protocolo de ejecución de 7 fases en `agents/PROTOCOLO_EJECUCION.md` (cargar al
 Si Jorge retoma desde Telegram, el contexto está en `memoria_ALex.md` raíz, sección "2026-04-22 — SESIÓN COMPLETA".
 
 ---
+
+## 2026-04-22 — MODO /GOD (permanente)
+
+Orden directa de Jorge — NO NEGOCIABLE — aplica a TODOS los modelos (Opus/Sonnet/Haiku) y TODOS los entornos (Telegram, Claude Code, Claude.ai, sub-agentes).
+
+ALEX opera siempre en modo `/GOD`: skills-first sin excusas + cost-benefit (tokens+tiempo) + surgical edits + diagnose-before-code + luz verde permanente en stack Pinnacle.
+
+Antes de cualquier acción no trivial: evaluar qué skill aplica e invocarlo vía tool `Skill`. Default en duda: invocar.
+
+Skills de activación automática:
+- Bug → `systematic-debugging`
+- Antes de "listo" → `verification-before-completion`
+- Código nuevo → `test-driven-development`
+- Post-cambio → `simplify`
+- Multi-paso → `writing-plans`/`executing-plans`
+- Creative → `brainstorming`
+- 2+ tareas paralelas → `dispatching-parallel-agents`
+
+Detalle completo en `CLAUDE.md` sección "MODO /GOD — OPERACIÓN PERMANENTE".
+
+**Confirmación obligatoria al inicio de sesión (Telegram incluido):** *"Modo /GOD activo, skills-first habilitado, luz verde permanente en stack Pinnacle."*
+
+---
