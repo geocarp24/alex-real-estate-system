@@ -199,7 +199,7 @@
   ],
   "bridges": [
     {"id": "pinnacle_wp_bridge",  "url": "https://agents.pinnaclegroupwi.com/pinnacle_wp_bridge.php",  "auth": "X-Alex-Secret OR Basic+App Password",  "actions": ["ping", "list_pages", "list_posts", "get_post", "update_post", "create_post", "delete_post", "get_post_meta", "update_post_meta", "get_option", "update_option", "purge_cache"]},
-    {"id": "pinnacle_public",     "url": "https://pinnaclegroupwi.com/agents/pinnacle_public.php",     "auth": "rate-limit + honeypot + time-check", "actions": ["places_proxy", "start_lead", "verify_phone", "resend_code", "update_lead"]},
+    {"id": "pinnacle_public",     "url": "https://pinnaclegroupwi.com/agents/pinnacle_public.php",     "auth": "rate-limit + honeypot + time-check", "actions": ["places_proxy", "start_lead", "verify_phone", "resend_code", "update_lead", "lookup_existing", "form_brain", "chat_message"]},
     {"id": "github_bridge",        "url": "https://agents.pinnaclegroupwi.com/github_bridge.php",       "auth": "X-Alex-Secret",  "actions": ["read_file"]},
     {"id": "github_write",         "url": "https://agents.pinnaclegroupwi.com/github_write.php",        "auth": "X-Alex-Secret + GH_PAT",  "actions": ["write_file"]}
   ],
