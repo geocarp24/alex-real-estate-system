@@ -222,9 +222,35 @@
 | Bridge | Función | Auth | Ubicación |
 |---|---|---|---|
 | `pinnacle_wp_bridge.php` | Operaciones admin WP (create/update posts, options, cache) | Dual: `X-Alex-Secret` OR Basic Auth App Password | `hostinger/agents/` |
-| `pinnacle_public.php` | Backend form público (places, SMS verify, lead create) | Rate limit + honeypot + time check | `hostinger/agents/` |
+| `pinnacle_public.php` | Backend público: form (places/SMS/lead) + chatbot + dedup + acks | Rate limit + honeypot + time check | `hostinger/agents/` |
 | `github_bridge.php` | Lee archivos desde GitHub para memoria compartida | `X-Alex-Secret` | `hostinger/agents/` |
 | `github_write.php` | Escribe archivos a GitHub vía API | `X-Alex-Secret` + `GH_PAT` | `hostinger/agents/` |
+
+### Acciones expuestas por `pinnacle_public.php`
+
+| Acción | Para qué | Modelo IA |
+|---|---|---|
+| `places_proxy` | Google Places autocomplete passthrough | — |
+| `start_lead` | Crea Lead en Airtable + envía OTP via Twilio | — |
+| `verify_phone` | Valida OTP del SMS | — |
+| `resend_code` | Re-envía OTP (15s pacing) | — |
+| `update_lead` | Actualiza campos del Lead (cada paso del form) | — |
+| `lookup_existing` | Dedup por phone (Contacts.Phone1-4) con fallback address | — |
+| `form_brain` | Micro-acks empáticos estilo Fer entre pantallas | Haiku 4.5 |
+| `chat_message` | Backend del chatbot floating widget + escalación auto | Sonnet 4.6 |
+
+---
+
+## 🌐 PUBLIC FRONTEND COMPONENTS
+
+| Componente | Archivos | Loader | Endpoint |
+|---|---|---|---|
+| `pinnacle_form` | `hostinger/agents/pinnacle_form/{css,i18n,screens,core}.js` | WP page id 1748 (`/get-my-offer/`) | `pinnacle_public.php` (8 acciones) |
+| `pinnacle_chat` | `hostinger/agents/pinnacle_chat/{css,js}` | `hostinger/mu-plugins/pinnacle-chat-loader.php` (auto, todas las páginas excepto `/get-my-offer/`) | `pinnacle_public.php` action `chat_message` |
+
+**Sesión:** ambos persisten en `localStorage` con TTL 2h (`pnf_session` form / `pnf_chat` chatbot). El form también persiste en WP transients server-side 2h.
+
+**API pública del chatbot (usable desde botones del Contact page):** `window.PinnacleChat.{open(), close(), reset()}`
 
 ---
 
