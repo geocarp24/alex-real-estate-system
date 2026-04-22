@@ -42,7 +42,10 @@
       c.addEventListener("click", function(){
         $$(".pnf-card", scr).forEach(function(x){ x.classList.remove("is-selected"); });
         c.classList.add("is-selected");
-        st.data[field] = c.getAttribute("data-val");
+        var val = c.getAttribute("data-val");
+        st.data[field] = val;
+        // Kick Fer brain in parallel (non-blocking) for specific trigger fields
+        if (window.PNF_BRAIN) window.PNF_BRAIN.fire(field, val);
         setTimeout(function(){ go(nextId); }, 180);
       });
     });

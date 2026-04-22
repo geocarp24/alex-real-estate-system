@@ -199,6 +199,60 @@
   }
   window.PNF_SUBMIT = submitFinal;
 
+  // ---- Fer-Form-Mode brain (acknowledgments between screens) ----
+  var pendingAck = null; // {msg, warning, expires}
+  function brainFire(field, value){
+    // Fire-and-forget; response cached in pendingAck for the NEXT screen
+    api("form_brain", {
+      lang: state.lang,
+      current: state.current,
+      last_field: field,
+      last_value: value,
+      data: state.data
+    }).then(function(r){
+      if (r && (r.msg || r.warning)) {
+        pendingAck = { msg: r.msg || "", warning: r.warning || "", expires: Date.now() + 15000 };
+        renderAck();
+      }
+    }).catch(function(){ /* silent — ack is best-effort */ });
+  }
+  function renderAck(){
+    if (!pendingAck) return;
+    if (Date.now() > pendingAck.expires) { pendingAck = null; return; }
+    var current = $("#pnf-screen-"+state.current);
+    if (!current) return;
+    var existing = current.querySelector(".pnf-ack");
+    if (existing) existing.remove();
+    var msg = pendingAck.msg; var warn = pendingAck.warning;
+    if (!msg && !warn) return;
+    var html = '<div class="pnf-ack"><span class="pnf-ack-icon">'+(warn?"⚠️":"💬")+'</span><span>'+(warn?warn:msg)+'</span></div>';
+    var host = current.querySelector(".pnf-question");
+    if (host && host.parentNode) host.parentNode.insertBefore((function(){ var d=document.createElement("div"); d.innerHTML=html; return d.firstElementChild; })(), host);
+    // Consume (show once)
+    pendingAck = null;
+  }
+  window.PNF_BRAIN = { fire: brainFire, render: renderAck };
+
+  // Hook: render ack whenever a screen becomes active (called after show())
+  var _origShow = show;
+  // Note: saveSession already wraps show; we piggyback via an observer here.
+  document.addEventListener("DOMContentLoaded", function(){
+    // MutationObserver to catch is-active toggles on screens
+    var stage = document.getElementById("pnf-stage");
+    if (!stage || !window.MutationObserver) return;
+    var mo = new MutationObserver(function(muts){
+      muts.forEach(function(m){
+        if (m.type === "attributes" && m.target.classList && m.target.classList.contains("is-active")) {
+          renderAck();
+        }
+      });
+    });
+    // Observe after mountAll runs
+    setTimeout(function(){
+      $all("#pnf-root .pnf-screen").forEach(function(s){ mo.observe(s, {attributes:true, attributeFilter:["class"]}); });
+    }, 500);
+  });
+
   // ---- Boot hooks (called by screens.js AFTER mountAll) ----
   window.PNF_CORE_INIT = function(){
     $all("#pnf-root .pnf-lang button").forEach(function(b){

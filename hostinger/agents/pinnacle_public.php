@@ -250,6 +250,59 @@ function pp_compute_score(array $phase1, array $phase2, array $phase3): array {
     return ['score' => $score, 'heat' => $heat, 'labels' => $labels];
 }
 
+// --- Helper: Claude call for Fer-Form-Mode brain ---
+function pp_fer_brain(array $ctx): array {
+    $key = defined('ANTHROPIC_API_KEY') ? ANTHROPIC_API_KEY : (string) getenv('ANTHROPIC_API_KEY');
+    if (!$key) return ['ok' => false, 'err' => 'ANTHROPIC_API_KEY missing'];
+    $lang = ($ctx['lang'] ?? 'en') === 'es' ? 'es' : 'en';
+    // System prompt — Fer-Form-Mode
+    $sys  = "You are Fer, a warm-but-professional bilingual AI receptionist for Pinnacle Holdings, a Wisconsin real estate cash buyer. You're embedded inside a web form that a home seller is filling out.\n\n"
+          . "Your job is to provide ONE very short acknowledgment (max 1 sentence, ~12 words) between questions that:\n"
+          . "- Feels human, not robotic\n"
+          . "- Mixes empathy + professionalism (no pushy sales tone)\n"
+          . "- Acknowledges their specific situation when relevant (urgency, distress, inheritance, foreclosure)\n"
+          . "- NEVER promises specific outcomes, timelines, or dollar amounts\n"
+          . "- NEVER asks follow-up questions — the form does that\n"
+          . "- Adapts language: respond in " . ($lang === 'es' ? 'Spanish' : 'English') . "\n\n"
+          . "You also detect inconsistencies (e.g. 'Distressed' property + 'Highest cash offer' priority — that combo is unusual; gently flag it).\n\n"
+          . "Output JSON only: {\"msg\": \"<short acknowledgment>\", \"warning\": \"<optional inconsistency note or empty>\"}";
+    $user_msg = "Current screen: " . ($ctx['current'] ?? '—') . "\n"
+              . "Last answer: " . ($ctx['last_field'] ?? '—') . " = " . ($ctx['last_value'] ?? '—') . "\n"
+              . "All answers so far: " . json_encode($ctx['data'] ?? [], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    $body = [
+        'model'      => 'claude-haiku-4-5-20251001',
+        'max_tokens' => 150,
+        'system'     => $sys,
+        'messages'   => [['role' => 'user', 'content' => $user_msg]],
+    ];
+    $ch = curl_init('https://api.anthropic.com/v1/messages');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => json_encode($body),
+        CURLOPT_TIMEOUT        => 12,
+        CURLOPT_HTTPHEADER     => [
+            'x-api-key: ' . $key,
+            'anthropic-version: 2023-06-01',
+            'content-type: application/json',
+        ],
+    ]);
+    $resp = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($code < 200 || $code >= 300) return ['ok' => false, 'err' => 'claude http ' . $code];
+    $d = json_decode((string) $resp, true) ?: [];
+    $text = $d['content'][0]['text'] ?? '';
+    // Try to parse JSON from text (Claude sometimes wraps in prose)
+    if (preg_match('/\{[\s\S]*\}/', $text, $m)) {
+        $parsed = json_decode($m[0], true);
+        if (is_array($parsed)) {
+            return ['ok' => true, 'msg' => (string) ($parsed['msg'] ?? ''), 'warning' => (string) ($parsed['warning'] ?? '')];
+        }
+    }
+    return ['ok' => true, 'msg' => trim($text), 'warning' => ''];
+}
+
 // -------- Actions --------
 
 // --- Helper: search Airtable Leads by phone (primary) or address (fallback) ---
@@ -384,6 +437,31 @@ switch ($action) {
             }
         }
         $reply(['suggestions' => $sugg]);
+    }
+
+    case 'form_brain': {
+        // Fer-Form-Mode — empathetic acknowledgments between screens.
+        // Rate limit: Haiku call only when something interesting happened
+        // (condition, timeline, issues, priority). Other answers get a noop.
+        $last_field = (string) ($body['last_field'] ?? '');
+        $last_value = (string) ($body['last_value'] ?? '');
+        $trigger_fields = ['condition', 'timeline', 'priority', 'occupancy', 'issues'];
+        if (!in_array($last_field, $trigger_fields, true)) {
+            $reply(['ok' => true, 'msg' => '', 'warning' => '']);
+        }
+        $ctx = [
+            'lang'       => (string) ($body['lang'] ?? 'en'),
+            'current'    => (string) ($body['current'] ?? ''),
+            'last_field' => $last_field,
+            'last_value' => $last_value,
+            'data'       => (array) ($body['data'] ?? []),
+        ];
+        $result = pp_fer_brain($ctx);
+        if (!$result['ok']) {
+            $log('warn', 'fer_brain fail', ['err' => $result['err'] ?? '']);
+            $reply(['ok' => true, 'msg' => '', 'warning' => '']); // never block the form
+        }
+        $reply(['ok' => true, 'msg' => $result['msg'], 'warning' => $result['warning']]);
     }
 
     case 'lookup_existing': {

@@ -72,6 +72,10 @@
 #pnf-root .pnf-resend { color:var(--pnf-green); font-size:13px; font-weight:600; background:none; border:0; cursor:pointer; text-decoration:underline; margin-top:4px; }
 #pnf-root .pnf-resend:disabled { color:var(--pnf-muted); cursor:not-allowed; text-decoration:none; }
 
+/* FER ACK (empathic messages between screens) */
+#pnf-root .pnf-ack { display:flex; gap:10px; align-items:flex-start; background:linear-gradient(135deg,#FAF7EF 0%,#F5F0E8 100%); border-left:3px solid var(--pnf-gold); padding:12px 14px; border-radius:10px; margin:0 0 16px; color:var(--pnf-ink); font-size:14px; line-height:1.45; animation:pnfFade .4s ease; }
+#pnf-root .pnf-ack-icon { font-size:18px; line-height:1.2; flex-shrink:0; }
+
 /* SUCCESS SCREEN */
 #pnf-root .pnf-success { text-align:center; padding:24px 12px; }
 #pnf-root .pnf-success-icon { width:72px; height:72px; margin:0 auto 16px; background:var(--pnf-green); color:var(--pnf-gold); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:38px; }
