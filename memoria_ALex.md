@@ -1087,3 +1087,201 @@ NUNCA pedir confirmación entre fases. NUNCA preguntar si proceder. NUNCA dar tr
 
 **Aprobado por:** Jorge Cruz — 2026-04-16
 **ESTAS REGLAS SON PERMANENTES — NUNCA REPETIR AL JEFE**
+
+
+---
+
+## 2026-04-22 — SESIÓN COMPLETA: WEBFORM + CHATBOT + CONTACT REDESIGN + EMAIL FIX
+
+Sesión maratón. Cierre de Pinnacle Holdings public-facing stack. Aprobado por Jorge.
+
+### A. Webform "Get My Cash Offer" (typeform-style multi-step)
+
+**Página:** `/get-my-offer/` (WP page id `1748`).
+
+**Stack frontend** (servido vía WP page + static assets en `/agents/pinnacle_form/`):
+- `pinnacle_form.css` — brand `#0D3B2E` + `#C9A84C`, mobile-first
+- `pinnacle_form_i18n.js` — diccionario EN+ES (s1–s17 + `ok` + `s_resume` + `s_returning`)
+- `pinnacle_form_screens.js` — 18 pantallas + builders; `startLeadAndGo()` con soporte `reopen_lead_id`
+- `pinnacle_form_core.js` — state machine con back-stack, `PNF_BRAIN.fire()`, `PNF_SESSION.{load,clear,restore}` (localStorage 2h TTL), `PNF_CORE_INIT` + `PNF_SHOW_FIRST` invocados desde screens.js tras `mountAll`
+- Cargados desde `wp_assets/pinnacle_form/` (mirror) deployados via SCP a `/home/u433637438/.../public_html/agents/pinnacle_form/`
+- Cache busting: `?v=<filemtime>` en URLs del WP page content
+
+**Stack backend** (`hostinger/agents/pinnacle_public.php`, ~600 líneas):
+
+Acciones expuestas vía POST JSON:
+- `places_proxy` — Google Places autocomplete passthrough (server-side API key)
+- `start_lead` — crea Lead en Airtable, manda OTP por SMS via Twilio
+- `verify_phone` — valida OTP, marca Lead como verificado
+- `resend_code` — re-envía OTP (15s pacing)
+- `update_lead` — actualiza campos del Lead (cada paso del form)
+- `lookup_existing` — **NUEVO** — dedup por phone (Contacts.Phone1-4) con fallback a address; devuelve `{exists, lead_id, contact_id, last_stage}` para flujo returning-user
+- `form_brain` — **NUEVO** — micro-acks empáticos estilo Fer; usa Haiku 4.5 con prompt corto basado en el campo recién contestado
+- `chat_message` — **NUEVO** — backend del chatbot floating widget
+
+Helpers críticos:
+- `pp_normalize_phone($raw)` → E.164 (+1XXXXXXXXXX)
+- `pp_email_valid($email)` → filter_var + DNS check
+- `pp_send_sms($to_e164, $msg)` → Twilio API, con retry 1×
+- `pp_airtable_create / pp_airtable_update / pp_airtable_find_existing / pp_airtable_get_lead`
+- `pp_compute_score($fields)` → score interno 0-100 (motivation × condition × timeline × equity)
+- `pp_fer_brain($context, $field, $value)` → llama Anthropic Haiku 4.5, devuelve `{ack: "string corta empática"}`
+- `pp_chat_brain($history, $lang)` → llama Anthropic Sonnet 4.6, system prompt incluye `<escalate>{...}</escalate>` JSON tag para detectar handoff a humano
+- `pp_chat_notify_telegram($summary)` → alerta a TELEGRAM_CHAT_ID cuando chatbot escala
+
+**Persistencia de sesión:**
+- WP transients con TTL **2h** (subido desde 30min): `set_transient(pp_lead_session_key($lead_id), $session, 7200);`
+- localStorage navegador: `pnf_session` (form), `pnf_chat` (chatbot), ambos 2h TTL
+
+**Dedup logic (returning-user UX):**
+1. Tras validar phone (s_phone), backend corre `pp_airtable_find_existing(phone, address?)`
+2. Si match exacto por phone → muestra `s_returning` con 3 opciones: **Update existing** | **Get callback** | **Start new request**
+3. Si match parcial por address → soft prompt opcional, no bloquea
+4. `reopen_lead_id` permite continuar desde último stage guardado
+
+### B. Chatbot Fer-style (floating widget en TODAS las páginas excepto el form)
+
+**Frontend:**
+- `hostinger/agents/pinnacle_chat/pinnacle_chat.css` — burbuja redonda 60×60 esquina inferior-derecha, gradient verde + dot dorado pulsante
+- `hostinger/agents/pinnacle_chat/pinnacle_chat.js` — self-contained, sin deps externas
+- API pública: `window.PinnacleChat.{open(), close(), reset()}` (usable desde botones del Contact page)
+- Estado en `localStorage["pnf_chat"]` con TTL 2h
+- POST a `/agents/pinnacle_public.php` action=`chat_message` con `{session_id, lang, history}`
+- Idioma auto-detectado (`navigator.language`) EN/ES; greeting + UI bilingüe
+
+**Loader (MU-plugin auto-activado):**
+- `hostinger/mu-plugins/pinnacle-chat-loader.php`
+- Enqueue solo en frontend (`!is_admin()`)
+- Skip en `is_page('get-my-offer')` (cliente ya está en flujo estructurado)
+- Cache bust: `$ver = '1.0.' . filemtime(.../pinnacle_chat.js)`
+
+**Bug crítico resuelto:** CSS `display:flex` overrideaba `hidden` attribute → panel interceptaba clicks aunque "oculto". Fix: `.pnc-panel[hidden] { display:none !important; }`
+
+**Escalación automática:** Si `pp_chat_brain` detecta intent caliente (vender pronto, lead motivado), inserta tag `<escalate>{summary, contact_info}</escalate>` en respuesta. Backend extrae, crea Lead en Airtable + alerta Telegram, y muestra mensaje "✓ Got it! A Pinnacle team member will reach out within 24 hours."
+
+### C. Site-wide CTA redirect
+
+Todos los botones "Get My Free Offer" del sitio ahora apuntan a `/get-my-offer/` (antes apuntaban a `/contact/`).
+
+Páginas actualizadas (vía WP REST API + bridge):
+- About Us (id 1399) — 1 CTA
+- Services (id 1400) — 2 CTAs
+- Home (id 1373) — already pointed correctly
+
+Backups en `backups/wp_pinnacle/cta_fix_2026-04-22_213500/{1399,1400}_*.{before,after}.html`
+
+### D. Contact Page redesign — "Five Ways to Reach Us"
+
+Página id `1402`. Reemplazó la versión vieja con CF7 form embebido.
+
+5 cards en grid responsivo:
+1. **Phone** — `tel:+19204428287`
+2. **Email** — `mailto:deals@pinnaclegroupwi.com`
+3. **Visit** — Google Maps link a oficina
+4. **Online Form** — `/get-my-offer/` (CTA prominente)
+5. **Chat With Us** — botón que llama `window.PinnacleChat.open()`
+
+CF7 form removido completamente. Página rebuild con Gutenberg blocks (wp:cover hero + wp:columns para los 5 cards).
+
+Backup: `backups/wp_pinnacle/contact_five_ways_2026-04-22_214000/`
+
+### E. Email reply recipient bug fix (`secretario/email_monitor.py`)
+
+**Bug:** Respuestas a inquiries del CF7 viejo iban a `wordpress@pinnaclegroupwi.com` (mailbox no existe → bounce). El cliente real estaba en Reply-To header o dentro del body como "Email: foo@bar.com".
+
+**Fix (3-tier resolution chain):**
+1. `_extract_email_addr(raw)` — parsea formato `Name <foo@bar.com>`
+2. `_is_system_sender(addr)` — blocklist: `wordpress@`, `no-reply@`, `mailer-daemon@`, etc.
+3. `_extract_email_from_body(body)` — regex scan `/Email:\s*(\S+@\S+)/i`
+
+```python
+def responder_email_aprobado(db_id, texto_personalizado):
+    # 1. Try Reply-To header
+    # 2. Else try From (if not system sender)
+    # 3. Else scan body
+    # Fallback: alert to Telegram, mark as needs-manual
+
+def enviar_respuesta_email():
+    msg["From"] = f"Pinnacle Holdings <{EMAIL_ADDRESS}>"
+    msg["Reply-To"] = EMAIL_ADDRESS  # forzado a deals@
+```
+
+**Deploy:** Workflow `deploy-vps-bot.yml` actualizado para incluir `secretario/**` en paths trigger + SCP source + post-deploy `systemctl restart secretario-email.service`.
+
+### F. Documentación completa generada (`docs/`)
+
+- `ARCHITECTURE.md` — diagrama de capas (frontend WP / static assets / PHP backend / VPS bot / external APIs)
+- `AGENT_REGISTRY.md` + `agent_registry.json` — registro estructurado de los 7 sub-agentes + nuevos componentes pinnacle_form, pinnacle_chat
+- `TASK_MATRIX.md` — quién hace qué + handoffs + no-dos
+- `COST_OPTIMIZATION.md` — tabla de modelos por operación (Haiku para acks, Sonnet para chat, Opus para análisis)
+- `SCALABILITY.md` — multi-tenant architecture para SaaS futuro
+- `COMMERCIALIZATION.md` (master index) + 3 sub-docs:
+  - `01_pricing_model.md` — tiers Starter/Growth/Pro/Enterprise + perf fee
+  - `02_product_packaging.md` — feature matrix + onboarding 60-90d
+  - `03_go_to_market.md` — segments + channels + 90-day launch plan + sales playbook
+
+### G. PROTOCOLO DE EJECUCION (no negociable)
+
+`agents/PROTOCOLO_EJECUCION.md` — 7 fases obligatorias para toda operación no trivial:
+
+1. **Context load** — leer memoria, shared_conversation, archivos del módulo
+2. **Diagnose before act** — identificar root cause antes de tocar nada
+3. **Backup before destructive** — snapshot a `backups/<area>/<fecha>_<accion>/{before,after}/`
+4. **Split large tasks** — máximo 300 líneas por archivo / 1 commit lógico
+5. **Safe deploy** — draft → preview → publish → purge cache
+6. **Verify post-deploy** — fetch URL pública, validar elementos clave
+7. **Auto-backup + checkpoints** — cada 15min de trabajo, snapshot de estado
+
+Cargado al inicio de cada sesión junto con `memoria_ALex.md`.
+
+### H. Skills + auto-backup hooks instalados
+
+- 165+ skills community instalados (superpowers + wshobson/agents)
+- Hooks PreToolUse/PostToolUse en `.claude/settings.json` para auto-backup en cada Write/Edit
+- Session start/stop checkpoints
+
+### I. Credenciales activas (referencia rápida — NO IMPRIMIR)
+
+Almacenadas en `.env.sandbox` (chmod 600, gitignored) y como GitHub Secrets:
+- `PINNACLE_WP_USER` / `PINNACLE_WP_APP_PASSWORD` — bridge WP REST API
+- `GOOGLE_PLACES_API_KEY` — autocomplete del form
+- `GITHUB_SUPER_TOKEN` — gestión de Actions/secrets vía API
+- `HOSTINGER_SSH_HOST/PORT/USER/PASSWORD` — SCP deploys
+- `ANTHROPIC_API_KEY` — Haiku/Sonnet/Opus
+- `TWILIO_*` — SMS OTP
+- `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` — alertas
+
+GitHub Secrets actualizados via libsodium sealed boxes (pynacl).
+
+### J. Lecciones grabadas
+
+1. **WAF/ModSecurity bloquea `<script>` en POST a WP**. Solución: deploy JS como archivos estáticos vía SCP, referenciar con `<script src="...">`.
+2. **LiteSpeed static cache es independiente del WP cache**. `wp_cache_flush()` no lo purga. Usar `?v=<timestamp>` cache-busting en assets.
+3. **DOMContentLoaded order matters** entre core.js + screens.js. Patrón: exponer `INIT` + `SHOW_FIRST` desde core, llamar tras `mountAll` en screens.
+4. **HTML `hidden` attribute pierde contra CSS `display:flex`**. Siempre `[hidden] { display:none !important; }` en componentes flex.
+5. **`origin/master` vs local `master`** — siempre fetch antes de comparar; local master puede estar décadas atrás.
+6. **DNS cache overflow en Hostinger** = throttling transitorio, no error real. Esperar + retry con backoff.
+
+### K. Estado del sitio al cierre de sesión
+
+- ✅ Webform deployado y funcional (E2E verified)
+- ✅ Chatbot deployado en TODAS las páginas excepto `/get-my-offer/`
+- ✅ Site-wide CTAs apuntando a `/get-my-offer/`
+- ✅ Contact page con 5 métodos
+- ✅ Email reply bug arreglado en VPS
+- ⚠ Cache LiteSpeed posiblemente sirviendo HTML viejo a algunos visitantes — bumpear `?v=` periódicamente y/o purgar via panel Hostinger
+
+**Commits clave de la sesión** (rama `master` / `deploy-pnf`):
+- `d635613` feat(pinnacle_public): P1 dedup backend — lookup_existing + reopen_lead_id
+- `d1b18c8` feat(pinnacle_form): P2 returning-user flow
+- `da7f782` feat(pinnacle_form): P3 localStorage session resume
+- `cb34568` feat(pinnacle_form): P4 Fer-Form-Mode brain — empathic micro-acks
+- `daaf395` fix(secretario): resolve email reply recipient correctly
+- `c0cd1e4` ci(vps-bot): deploy secretario/ + restart secretario-email service
+- `d12ab79` feat(wp): redirect site-wide offer CTAs to /get-my-offer/
+- `c69ac30` feat(contact-page): 5 contact methods + remove old CF7 form
+- `82c15e5` feat(chatbot): Fer-style floating chat widget on all pages
+- `23c2a25` fix(chatbot): panel[hidden] needs !important to override display:flex
+
+**Aprobado por:** Jorge Cruz — 2026-04-22
+**Documentación de la sesión:** completa, pusheada a GitHub `claude/whats-going-on-LFo6h`.
