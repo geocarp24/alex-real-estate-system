@@ -130,6 +130,7 @@ jobs:
           ANALISTA_TRIGGER:         "gha"
           ESPIA_TRIGGER:            "gha"
           AUDITOR_TRIGGER:          "gha"
+          REMITENTE_TRIGGER:        "gha"
         run: |
           node agents/${{ steps.job.outputs.agent }}/${{ steps.job.outputs.agent }}.mjs \
             --tenant pinnacle \
