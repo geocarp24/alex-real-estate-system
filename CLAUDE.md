@@ -39,8 +39,18 @@ Antes de ejecutar cualquier acción no trivial, evaluar qué skill aplica e invo
 | DevOps / CI/CD / deploys | `senior-devops` / `deployment-pipeline-design` |
 | Seguridad / pen test / auditoría | `senior-security` / `security-review` |
 | A11y / WCAG | `a11y-audit` / `accessibility-compliance` |
+| Cualquier UI/página/componente nuevo | `responsive-design` + `mobile-ios-design` (MOBILE-FIRST) |
 
 Si ninguno de la tabla aplica pero hay un skill cuya descripción matchea la tarea, invocarlo. **Default: en caso de duda, invocar el skill.**
+
+### 1b. MOBILE-FIRST — PRIORIDAD #1 PERMANENTE (orden directa de Jorge 2026-04-23)
+Todo el trabajo de Pinnacle (popups, formularios, páginas, chatbot, emails, creatives, CTAs, imágenes, cualquier componente) debe diseñarse y probarse **mobile-first**. El mobile es mayoría del tráfico en real estate — homeowners buscan "sell my house fast" desde el celular.
+- NUNCA excluir mobile por viewport sin consultar al Jefe
+- CSS base para mobile, media queries hacia desktop (no al revés)
+- Tap targets ≥ 44px, thumbs-zone friendly, no hover-dependent UX
+- Test en mobile viewport PRIMERO, desktop después
+- Diagnóstico de "no funciona" → probar en mobile antes que en desktop
+- Performance-first en mobile: imágenes optimizadas, lazy-load, mínimo JS bloqueante
 
 ### 2. Cost-benefit en tokens y tiempo
 - **Surgical edits only:** `Edit` con `old_string`/`new_string` chirúrgicos. NUNCA `Write` para regenerar archivos existentes (pérdida de cambios previos = regresión fantasma).
