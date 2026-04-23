@@ -1667,10 +1667,13 @@ Cada nuevo skill de Phase 2 (marketing, SEO, ads, etc.) tiene su **sub-agente de
 | **El Posicionador** | SEO monitor | Claude SEO (siguiente queue) | Diario health check + semanal deep audit | pendiente install + build |
 | **El Cazador** | Ads performance | Claude ADS (último queue) | Diario monitoring de spend + CTR + ROAS | pendiente install + build |
 
-**Default pattern para cada always-on sub-agente:**
-- **Diario 8 AM CST:** quick health check → Telegram brief si todo OK, alerta si hay issue
+**Default pattern para cada always-on sub-agente (cadencia aprobada por Jorge 2026-04-23):**
+- **Cada 3 días 8 AM CST:** quick health check → Telegram brief si todo OK, alerta si hay issue
 - **Semanal lunes 9 AM CST:** deep audit → genera reporte PDF/MD → guarda en Airtable + link en Telegram
 - **On-demand:** Jorge o ALEX piden análisis puntual
+
+**Nombres aprobados por Jorge 2026-04-23:** El Oráculo, El Mercader, El Posicionador, El Cazador.
+**Orden de construcción aprobado:** Oráculo (smoke test) → Mercader (skill ya instalado) → buscar/instalar Claude SEO + Posicionador → buscar/instalar Claude ADS + Cazador.
 
 **R9 se complementa con R6 (memoria) + R7 (mobile-first) + R8 (SaaS-ready) — los sub-agentes siguen todas las reglas anteriores.**
 
