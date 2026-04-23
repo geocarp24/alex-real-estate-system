@@ -138,8 +138,19 @@ async function runInfrastructureChecks(cfg) {
 }
 
 async function runPipelineChecks(cfg) {
-  const r = await airtableFetch(cfg, "contacts_table_id", "pageSize=100&fields%5B%5D=Stage&fields%5B%5D=Last%20contact%20date&fields%5B%5D=First%20Contact%20Step&fields%5B%5D=Seguimiento%20Step&fields%5B%5D=Next%20follow%20up%20date&fields%5B%5D=Full%20Name&fields%5B%5D=Do%20not%20contact");
-  const recs = r.records || [];
+  // Paginate to fetch ALL contacts (Airtable maxes 100/page via offset).
+  // Cap at 5 pages (500 contacts) so heartbeat stays fast. Deep mode uses full pagination.
+  const maxPages = 5;
+  const baseParams = "pageSize=100&fields%5B%5D=Stage&fields%5B%5D=Last%20contact%20date&fields%5B%5D=First%20Contact%20Step&fields%5B%5D=Seguimiento%20Step&fields%5B%5D=Next%20follow%20up%20date&fields%5B%5D=Full%20Name&fields%5B%5D=Do%20not%20contact";
+  const recs = [];
+  let offset = null;
+  for (let p = 0; p < maxPages; p++) {
+    const params = offset ? `${baseParams}&offset=${encodeURIComponent(offset)}` : baseParams;
+    const r = await airtableFetch(cfg, "contacts_table_id", params);
+    recs.push(...(r.records || []));
+    offset = r.offset;
+    if (!offset) break;
+  }
   const today = new Date();
   const buckets = { New: 0, "To Be Contacted": 0, Contacted: 0, Seguimiento: 0, Dead: 0, other: 0 };
   const ghosts = [];
