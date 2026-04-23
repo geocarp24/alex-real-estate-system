@@ -14,6 +14,27 @@ Complementa a El Posicionador (`maps_deep` read-only audit) con la capa de EJECU
 | `cartografo.mjs` | Node orchestrator — procesa GMB_Queue Airtable → Telegram approval → MCP call *(v1 scaffold)* |
 | `secrets/.gitignore` | Never commit OAuth JSON |
 
+## Status 2026-04-23
+
+- ✅ OAuth flow completo (Jorge 2026-04-23 desde PC)
+- ✅ Access token + refresh token guardados en `secrets/pinnacle_gbp_oauth.json`
+- ✅ MCP server tools wire-up end-to-end: `gbp_list_accounts`, `gbp_list_locations`, `gbp_get_location`, `gbp_list_reviews`, `gbp_list_insights`, `gbp_publish_post`, `gbp_respond_review`, `gbp_answer_qa`
+- ⚠️ **Quota bloqueando operaciones reales**: proyecto `pinnacle-alex-bot` está en modo Testing con default `1 req/min` — HTTP 429 en calls secuenciales
+
+### Solución quota (Jorge en Google Cloud Console)
+
+**Opción A (recomendada):** Solicitar aumento de quota gratis
+1. https://console.cloud.google.com/apis/api/mybusinessbusinessinformation.googleapis.com/quotas?project=pinnacle-alex-bot
+2. Selecciona "Requests per minute" → click lápiz (Edit)
+3. Pedir `300` requests/min (estándar Google, se aprueba automático en minutos)
+4. Repite para `mybusinessaccountmanagement.googleapis.com` y `mybusiness.googleapis.com`
+
+**Opción B:** Publicar app a Production (más complejo, requiere OAuth verification si usas scopes sensibles — `business.manage` NO es sensible, podría aprobarse en auto)
+
+### Upload photo — único stub pendiente
+
+`gbp_upload_photo()` todavía stub porque requiere POST multipart de bytes (no simple JSON). Implementar cuando se necesite en próxima iteración.
+
 ## El plan de 5 pasos para deploy
 
 ### Paso 1 — Google Cloud setup (15 min, JORGE hace esto)
