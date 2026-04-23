@@ -48,4 +48,7 @@ Detalle completo en `CLAUDE.md` sección "MODO /GOD — OPERACIÓN PERMANENTE".
 ### Skill de memoria SIEMPRE ACTIVO (toda la vida, sin excusas)
 El bot de Telegram debe leer al arrancar: `memoria_ALex.md`, `agents/memoria_alex.md`, `agents/shared_conversation.json` (últimos 60), `telegram_memory.md`, `agents/PROTOCOLO_EJECUCION.md`. Escribir inmediato cuando Jorge apruebe regla/lección. Escribir al cierre resumen datado en las 3 memorias conjuntas. Skill designado: `self-improving-agent`.
 
+### MOBILE-FIRST — PRIORIDAD #1 PERMANENTE (2026-04-23)
+Todo el trabajo de Pinnacle se optimiza mobile-first como prioridad #1. Mayor tráfico web hoy = mobile. Aplica a popups, formularios, páginas, chatbot, emails, social creatives, CTAs, imágenes, cualquier componente nuevo. NUNCA excluir mobile por viewport sin consultar al Jefe. Test mobile PRIMERO, desktop después. Detalle completo en `memoria_ALex.md` regla R7 y `CLAUDE.md` sección 1b.
+
 ---
