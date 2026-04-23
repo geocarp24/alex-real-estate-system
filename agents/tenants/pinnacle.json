@@ -30,9 +30,12 @@
   },
 
   "airtable": {
-    "base_id":   "appU9s3kGkVpdrJkw",
-    "table_id":  "",
-    "token_env": "AIRTABLE_TOKEN"
+    "base_id":       "appU9s3kGkVpdrJkw",
+    "table_id":      "",
+    "seo_table_id":  "",
+    "ads_table_id":  "",
+    "oracle_table_id": "",
+    "token_env":     "AIRTABLE_TOKEN"
   },
 
   "telegram": {
