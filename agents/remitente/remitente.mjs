@@ -569,15 +569,19 @@ async function main() {
 
   await mkdir(OUTPUT_DIR, { recursive: true });
 
-  if (args.mode === "seed_templates")       await modeSeedTemplates(cfg);
-  else if (args.mode === "draft_campaign")  await modeDraftCampaign(cfg, args);
-  else if (args.mode === "weekly_report")   await modeWeeklyReport(cfg);
+  if (args.mode === "seed_templates")        await modeSeedTemplates(cfg);
+  else if (args.mode === "draft_campaign")   await modeDraftCampaign(cfg, args);
+  else if (args.mode === "process_welcome")  await modeProcessWelcome(cfg);
+  else if (args.mode === "process_drip")     await modeProcessDrip(cfg);
+  else if (args.mode === "schedule_send")    await modeScheduleSend(cfg, args);
+  else if (args.mode === "weekly_report")    await modeWeeklyReport(cfg);
   else if (args.mode === "on_demand") {
     // alias for draft_campaign + auto-schedule scheduled_at=now+5min
     await modeDraftCampaign(cfg, args);
   }
   else {
-    console.error(`[remitente] mode ${args.mode} not yet implemented in this scaffold — see SKILL.md for v2 plan.`);
+    console.error(`[remitente] mode ${args.mode} unknown`);
+    process.exit(2);
   }
 }
 
