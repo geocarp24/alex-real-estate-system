@@ -153,8 +153,8 @@ async function fetchLeads(cfg, args) {
       `filterByFormula=${encodeURIComponent(`OR(${clauses})`)}&maxRecords=25`);
     return q.records || [];
   }
-  // score_batch: pull leads not yet scored or stale
-  const all = await airtableFetch(cfg, "leads_table_id", "maxRecords=50&sort[0][field]=Created&sort[0][direction]=desc");
+  // score_batch: pull leads not yet scored or stale (Leads table uses "Dated Added")
+  const all = await airtableFetch(cfg, "leads_table_id", "maxRecords=50&sort[0][field]=Dated%20Added&sort[0][direction]=desc");
   return (all.records || []).slice(0, 25);
 }
 
