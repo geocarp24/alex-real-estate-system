@@ -15,7 +15,13 @@ def http_post(path, body):
         with urllib.request.urlopen(req, timeout=30) as r:
             return r.status, json.loads(r.read())
     except urllib.error.HTTPError as e:
-        return e.code, json.loads(e.read().decode())
+        raw = e.read().decode() if hasattr(e, "read") else ""
+        try:
+            return e.code, json.loads(raw)
+        except Exception:
+            return e.code, {"raw_error": raw[:500]}
+    except Exception as e:
+        return 0, {"exception": str(e)[:300]}
 
 def text(n, d=""):   return {"name": n, "type": "singleLineText",  "description": d}
 def long(n, d=""):   return {"name": n, "type": "multilineText",   "description": d}
