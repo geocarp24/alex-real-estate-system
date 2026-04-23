@@ -1,0 +1,76 @@
+# Tenant Configuration Template
+# Copy this file to <tenant_slug>.yaml and fill in values for each client.
+# El Mercader + El Posicionador + El Cazador + future sub-agents all read these.
+# SaaS multi-tenant per rule R8 — NO hardcoded tenant data in code.
+
+tenant_id: ""              # unique slug, lowercase, no spaces: "pinnacle", "acme_homes"
+tenant_name: ""            # display name: "Pinnacle Holdings Group LLC"
+industry: "real-estate"    # matches claude-ads industry templates (real-estate, saas, ecommerce, local-service, ...)
+primary_language: "en"     # en | es | both
+markets:                   # geographic markets the tenant operates in
+  - state: "WI"
+    cities: ["Milwaukee", "Madison", "Green Bay"]
+
+# --- Website & brand ---
+website: ""                # https://example.com (PRIMARY site)
+secondary_sites: []        # optional: [https://blog.example.com, ...]
+brand:
+  primary_color: "#000000"
+  secondary_color: "#FFFFFF"
+  accent_color: "#CC0000"
+  logo_url: ""
+  phone: ""
+  email: ""
+
+# --- Competitors (audited alongside main site) ---
+competitors: []            # [{name: "...", url: "..."}]
+
+# --- Schedules (cron format; UTC) ---
+schedules:
+  quick_health: "0 14 */3 * *"    # every 3 days at 08:00 CST (14:00 UTC) — per R9
+  deep_audit:   "0 15 * * 1"      # Mondays 09:00 CST (15:00 UTC) — per R9
+
+# --- Airtable (where audit results are persisted) ---
+airtable:
+  base_id: ""                      # appXXXX
+  table_id: ""                     # tblXXXX for Marketing_Audits
+  token_env: "AIRTABLE_TOKEN"      # env var name — tokens NEVER hardcoded
+
+# --- Telegram (where alerts are sent) ---
+telegram:
+  chat_id_env: "TELEGRAM_CHAT_ID"
+  bot_token_env: "TELEGRAM_BOT_TOKEN"
+
+# --- Claude CLI subprocess config ---
+claude:
+  binary_path: "claude"            # absolute path if not on PATH (e.g. /opt/node22/bin/claude)
+  model: "claude-sonnet-4-6"       # default model for audits — Sonnet for cost/depth tradeoff
+
+# --- Alert thresholds (0-100 scoring from /market audit) ---
+alert_thresholds:
+  critical_score: 50               # below this → Telegram alert with 🚨
+  warn_score: 70                   # below this → Telegram alert with ⚠️
+
+# --- Skills invoked per run type ---
+# Each sub-agent picks its subset from this list.
+skills:
+  quick_health:                    # El Mercader every-3-days
+    - "market-quick"
+  deep_audit:                      # El Mercader weekly
+    - "market-audit"
+    - "market-competitors"
+  seo_health:                      # El Posicionador every-3-days (future)
+    - "seo-audit"
+  seo_deep:                        # El Posicionador weekly (future)
+    - "seo-audit"
+    - "seo-local"
+    - "seo-maps"
+  ads_health:                      # El Cazador daily (future)
+    - "ads-quick"
+  ads_deep:                        # El Cazador weekly (future)
+    - "ads-audit"
+
+# --- Output retention ---
+output:
+  retain_reports_days: 90          # keep MD/PDF reports for audit trail
+  upload_pdfs_to: "airtable"       # airtable | s3 | hostinger (where PDFs get stored for Telegram share)
