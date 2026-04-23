@@ -22,8 +22,10 @@ define('SEG_BASE', 'appfQbDA750Oihy9J');
 define('SEG_CONTACTS', 'tblacvw0Ss770x8l5');
 define('SEG_LEADS', 'tblxZz2EWIglOLnEd');
 define('SEG_MAX_PER_RUN', 8);
-define('SEG_SMS_DELAY_SECONDS', 15);
+define('SEG_SMS_DELAY_SECONDS', 5);  // Pacing between sends. 5s keeps total runtime <50s for 8 msgs so a 60s cron invoker does not time out.
+@ignore_user_abort(true);
 @set_time_limit(300);
+@ini_set('max_execution_time', 300);
 
 // Propagate a Contact.Stage change to every linked Lead record.
 function seg_sync_lead_stage($contactFields, $newStage) {
