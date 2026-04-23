@@ -1655,6 +1655,36 @@ Jorge aprobó proceder con la queue de Phase 2. Primer item: marketing skills.
 **Repo:** `zubair-trabzada/ai-marketing-claude`
 **Status queue:** Marketing ✅ — Siguiente: Claude SEO (buscar especialista SEO para complementar `/market seo` del suite general)
 
+### 2026-04-23 — WhatsApp AgentKit: clonado + PAUSADO por Jorge
+
+Repo `onehundredfortyfive-southernbaptist487/whatsapp-agentkit` clonado en `/home/user/whatsapp-agentkit/`. Licencia MIT, built for LATAM. Providers soportados: Whapi.cloud / Meta Cloud API / Twilio.
+
+**NO ejecuté `/build-agent`** — Jorge pausó para retomar después.
+
+**3 decisiones arquitecturales pendientes** (bloquean el build cuando retomemos):
+1. **Camino A** (nuevo sub-agente WhatsApp) vs **Camino B** (extender Fer con canal WhatsApp). Mi recomendación fue B — una sola voz, contact unification, mejor SaaS bundle.
+2. **Si A:** nombre del sub-agente (propuestas: Isa / El Conversador / El Embajador).
+3. **Provider para arrancar:** Whapi.cloud (sandbox gratis) / Meta Cloud API (pro pero verificación Meta) / Twilio (intermedio).
+
+Ya analicé todo, cuando Jorge elija las 3 respuestas ejecuto en ~30 min (Camino A) o ~1-2 días (Camino B).
+
+### 2026-04-23 — Estado global de la queue Phase 2 (snapshot operativo)
+
+| Item | Estado | Pendiente |
+|---|---|---|
+| MiroFish skill | ✅ instalado + doctor OK | El Oráculo sub-agent: deferred a deploy VPS standalone (falla en nesting Claude CLI inline) |
+| ai-marketing-claude skill | ✅ instalado + 14 skills + 5 parallel subagents + reportlab OK | El Mercader sub-agent: pendiente build (cron + Airtable + Telegram) |
+| WhatsApp AgentKit | ✅ clonado | **PAUSADO POR JORGE**, 3 decisiones arquitecturales pendientes |
+| Claude SEO skill | ⏳ no buscado | Queue: buscar + evaluar + instalar + build El Posicionador |
+| Claude ADS skill | ⏳ no buscado | Queue: buscar + evaluar + instalar + build El Cazador |
+
+**Decisiones de Jorge pendientes** (bloquean construcción):
+1. Oráculo — ¿deployamos en VPS o pospone hasta Phase 3? (arquitectura decidida, falta luz verde al wiring)
+2. WhatsApp — 3 decisiones (Camino A/B, nombre si A, provider)
+3. Mercader — luz verde para arrancar build (skill listo, falta el orchestrator)
+
+**Próximo paso natural** (si Jorge lo habilita): continuar la queue con **Claude SEO** — buscar skill, evaluar, instalar, diseñar El Posicionador.
+
 ### R9. SUB-AGENTES DEDICADOS ALWAYS-ON POR DOMINIO (2026-04-23)
 **Orden directa de Jorge — NO NEGOCIABLE.**
 
