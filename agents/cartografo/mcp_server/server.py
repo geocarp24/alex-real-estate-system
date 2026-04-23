@@ -467,8 +467,12 @@ def gbp_respond_review(
         return {"ok": False, "error": "APPROVAL_REQUIRED"}
     if len(reply_text) > 4096:
         return {"ok": False, "error": "REPLY_TOO_LONG"}
-    _audit("gbp_respond_review", {"review_name": review_name, "reply_text": reply_text[:200]}, None, None, approved_by)
-    return {"ok": False, "error": "STUB_NOT_IMPLEMENTED", "action_taken": "audit_logged"}
+    url = f"https://mybusiness.googleapis.com/v4/{review_name}/reply"
+    code, resp = _gbp_call("PUT", url, body={"comment": reply_text})
+    _audit("gbp_respond_review", {"review_name": review_name, "reply_text": reply_text[:200]}, resp, code, approved_by)
+    if code not in (200, 201):
+        return {"ok": False, "http": code, "error": resp, "action_taken": "audit_logged"}
+    return {"ok": True, "reply": resp, "action_taken": "reply_posted"}
 
 @mcp.tool()
 @_guard("gbp_upload_photo")
