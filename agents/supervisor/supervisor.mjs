@@ -239,7 +239,10 @@ async function autoRepair(cfg, pipeline, dryRun) {
 // ──────────────────────────────────────────────────────────────
 // SCORING
 // ──────────────────────────────────────────────────────────────
-function scoreHealth(infra, pipeline) {
+function scoreHealth(infra, pipeline, cfg) {
+  const sv = cfg?.supervisor || {};
+  const newBacklogThreshold = sv.backlog_new_warn_threshold ?? 500;
+  const newBacklogCritThreshold = sv.backlog_new_critical_threshold ?? 2000;
   const checks = [
     infra.cron_first_contact_ok,
     infra.cron_seguimiento_ok,
