@@ -1685,6 +1685,41 @@ Ya analicé todo, cuando Jorge elija las 3 respuestas ejecuto en ~30 min (Camino
 
 **Próximo paso natural** (si Jorge lo habilita): continuar la queue con **Claude SEO** — buscar skill, evaluar, instalar, diseñar El Posicionador.
 
+### 2026-04-23 — SEO + ADS + skill-creator instalados
+
+**SEO — `AgriciDaniel/claude-seo` v1.9.0** (MIT ✓)
+- Ubicación: `/root/.claude/skills/seo/` + sub-skills en `/root/.claude/skills/seo-*/`
+- 20+ slash commands: `/seo audit`, `/seo page`, `/seo technical`, `/seo geo` (AI Overviews + ChatGPT search + Perplexity), `/seo content`, `/seo schema`, `/seo local`, `/seo maps` (crítico para Pinnacle WI), `/seo images`, `/seo sitemap`, `/seo hreflang`, `/seo backlinks`, `/seo ecommerce`, `/seo drift`, `/seo google` (Search Console + PageSpeed), `/seo dataforseo`, `/seo firecrawl`, `/seo image-gen`, `/seo cluster`, `/seo plan`, `/seo sxo`, `/seo competitor-pages`, `/seo programmatic`
+- Python 3.11 ✓ + Playwright (opcional) + venv propio en `/root/.claude/skills/seo/.venv`
+- MCP servers opcionales (DataForSEO, Firecrawl, Banana) para live data
+- Google APIs opcionales (PageSpeed, GSC, GA4, CrUX)
+
+**ADS — `AgriciDaniel/claude-ads` v1.5.1** (MIT ✓)
+- Ubicación: `/root/.claude/skills/ads/` + sub-skills en `/root/.claude/skills/ads-*/`
+- 20+ slash commands: `/ads audit`, `/ads plan <industry>`, `/ads google` (80 checks), `/ads meta` (50 checks), `/ads youtube`, `/ads linkedin`, `/ads tiktok`, `/ads microsoft`, `/ads apple`, `/ads creative`, `/ads landing`, `/ads budget`, `/ads competitor`, `/ads math`, `/ads test`, `/ads plan`, `/ads dna`, `/ads generate` (requires banana-claude), `/ads photoshoot`, `/ads create`
+- **12 industry templates INCLUYE real-estate** ← perfecto para Pinnacle + SaaS a otros investors
+- 6 audit subagents + 4 creative subagents
+- 25 RAG reference files
+- Local-first: NO envía data externamente sin configuración explícita de MCP
+- Trabaja con exports/screenshots de dashboards — no necesita login a cuentas de ads para empezar
+
+**skill-creator — `anthropics/skills`** (oficial Anthropic)
+- Ubicación: `/root/.claude/skills/skill-creator/` (248KB)
+- Propósito: crear, editar, optimizar skills propios con el estándar oficial de Anthropic
+- Incluye: SKILL.md + agents/ + scripts/ + eval-viewer/ + references/ + assets/
+- Uso para Pinnacle: construir El Oráculo, El Mercader, El Posicionador, El Cazador como skills formales con evals cuantitativos antes de producción
+- Workflow: draft → test prompts → eval results → iterate → benchmark
+
+**Complementariedad del trío SEO + ADS + skill-creator:**
+- **SEO + ADS del mismo autor** = arquitectura unificada. Cross-reference: `/seo competitor-pages` feeds `/ads competitor`, `/seo plan` feeds `/ads plan`, `/seo content` drives copy for `/ads copy`.
+- **skill-creator oficial** = plantilla estándar para wrappear SEO + ADS en sub-agentes tenant-aware (El Posicionador, El Cazador) cuando pasemos a construcción.
+
+**R9 siguiente paso** (cuando Jorge habilite): usar `skill-creator` para armar formalmente:
+- **El Oráculo** (cuando destrabemos VPS deploy) — wrapper de MiroFish
+- **El Mercader** — wrapper de `/market audit` + cron semanal → Airtable + Telegram
+- **El Posicionador** — wrapper de `/seo audit` + cron cada 3 días → Airtable + Telegram
+- **El Cazador** — wrapper de `/ads audit` + cron diario → Airtable + Telegram
+
 ### 2026-04-23 — gstack instalado (Garry Tan's Claude Code setup)
 
 Jorge pidió "gistak" = **gstack** (typo de autocorrect). Confirmado + instalado.
