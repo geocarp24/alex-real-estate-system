@@ -1425,3 +1425,19 @@ Nuevo módulo pinnaclegroupwi.com para crecer lista de emails.
 - ✅ Test records de QA limpiados de Airtable
 
 **Skills invocados:** `popup-cro` (UX pattern + copy + anti-annoyance rules).
+
+### Fix de audiencia 2026-04-23 — popup reorientado a homeowners
+
+Copy inicial habló al público equivocado (inversionistas: "off-market deals"). Pinnacle compra a homeowners en distress, no vende deals a investors. Jorge detectó el error — audiencia y nicho mal planteados.
+
+**Re-framing correcto:**
+- Audiencia: homeowners Wisconsin con situaciones de presión (pre-foreclosure, probate, herencia, taxes atrasados, mudanza, rental cansado)
+- Propuesta: lead magnet educativo (guías gratis + pros/cons de cada opción de venta + market updates mensuales)
+- Efecto esperado: mayor opt-in + lista caliente de homeowners investigando → warm pipeline hacia `/get-my-offer/`
+
+**Copy final EN:** Badge "Wisconsin Homeowners" | Headline "Thinking about selling? Know your options first." | Subhead sobre foreclosure/inherited/back taxes/fast sale + monthly Wisconsin market updates | CTA "Send Me Free Guides"
+**Copy final ES:** Badge "Dueños de Casa en Wisconsin" | Headline "¿Pensando en vender? Conoce tus opciones primero." | Subhead equivalente | CTA "Recibir Guías Gratis"
+
+**Lección:** ante cualquier componente de marketing, validar AUDIENCIA (quién) y PROPUESTA DE VALOR (qué obtiene) antes de escribir copy. El error fue asumir "deals" = lenguaje universal — en real estate, "deals" pertenece al lado investor, no al lado homeowner.
+
+**Pendiente operacional para Jorge:** el popup promete "first guide" en el success message. Hace falta configurar un email real (Mailchimp/Beehiiv/Convertkit) que mande la guía de bienvenida automáticamente cuando llega un nuevo subscriber a Airtable Contacts. Sin eso, el promise queda sin cumplir.
