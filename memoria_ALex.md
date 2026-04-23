@@ -2005,6 +2005,62 @@ OAuth callback PHP shipped y live (`https://pinnaclegroupwi.com/agents/oauth_gbp
 
 Todas con schemas documentados en los SKILL.md respectivos. Zero external dependencies (cero SaaS servicios de email/marketing/SEO).
 
+### 2026-04-23 — Cierre de día: popup mirror + DNS diagnostic + El Cazador shipped
+
+**Popup mirror:** surgical edit a `pinnacle_public.php` action=`subscribe_email` — ahora cada subscribe del popup además de escribir a Contacts también escribe/actualiza `Email_Subscribers` con status=Active + source=popup + HMAC unsubscribe_token. Re-subscribe detection: si el email ya existía y había sido Unsubscribed, se re-activa a Active. Syntax OK, auto-committed + auto-pushed. Telegram notif ahora reporta ambos Airtable writes (Contacts + Email_Subscribers).
+
+**DNS diagnostic deliverability** (`dns.google/resolve`):
+- ✅ SPF: `v=spf1 include:_spf.mail.hostinger.com ~all` — ya configurado
+- ⚠️ DMARC: `v=DMARC1; p=none` — existe pero mínimo, falta `rua=`
+- ❌ DKIM: NO existe (probé selectors: default, hostingermail1, hostingermail2, google, selector1, selector2, k1, s1, dkim — todos vacíos)
+
+Limitación honestamente reportada a Jorge: **no puedo configurar DKIM/DMARC desde este sandbox** (requiere Hostinger hPanel UI o DNS manager, no expuesto por las APIs que tengo). Jorge hace 2 taps desde Hostinger mobile app: (1) Email deliverability → Enable DKIM; (2) DNS zone editor → update `_dmarc` TXT con `rua=mailto:deals@pinnaclegroupwi.com`. Sin DKIM, Gmail/Yahoo mandan al spam.
+
+**El Cazador v1 SHIPPED** — 5to y último sub-agente del plantel R9 core.
+
+Archivos:
+- `agents/cazador/SKILL.md` — Anthropic frontmatter + 3 modes + Ad_Performance schema + alert rules + data levels (1/2/3)
+- `agents/cazador/cazador.mjs` — Node orchestrator (chmod +x), 3 modes: `ads_health` (cada 3 días), `ads_deep` (lunes semanal, wraps `/ads audit` 250+ checks 7 platforms), `on_demand` (con `--platform` + `--data` opcional)
+- `agents/cazador/README.md` — deploy guide + data levels + alert thresholds
+- `agents/_setup/create_ad_tables.py` — creó `Ad_Performance` table `tblxkMmNmwlrNnkmX`
+- `pinnacle.json` actualizado con `ads_table_id`
+
+**Budget waste sentinel** hard-coded: si `spend_last_7d` > $100 + `conversions_7d` == 0 → Telegram 🚨 `CRITICAL` inmediato con "pause recommended".
+
+**Level 1 input funcional sin data:** analiza landing page CRO + competitive intel vía `/ads landing` + `/ads competitor` + `/ads dna`. Útil para Pinnacle ahora que aún no arrancó paid traffic. Level 2 (métricas pegadas) y Level 3 (CSV exports) cuando Jorge empiece a invertir en Meta/Google Ads.
+
+**Estado PLANTEL R9 COMPLETO al cierre 2026-04-23:**
+
+| Sub-agente | Dominio | Status |
+|---|---|---|
+| **El Oráculo** | Predicción/simulación pre-launch (MiroFish) | Skill ✅, deploy VPS diferido (nested Claude CLI issue) |
+| **El Mercader** | Marketing ops audits | v1 DRAFT ✅ |
+| **El Posicionador** | SEO monitor (incluye `maps_deep` cada 3 días) | v1 DRAFT ✅ |
+| **El Escriba** | Content writer (sub-sub-agente bajo Posicionador) | v1 DRAFT ✅ |
+| **El Remitente** | Email marketing (Airtable-native) | v1 SHIPPED ✅ |
+| **El Cartógrafo** | GMB write-side (MCP server + anti-ban guardrails) | v1 SCAFFOLD ✅ (OAuth paused hasta laptop) |
+| **El Cazador** | Ads audit + spend tracking | v1 SHIPPED ✅ |
+| **Fer (existente)** | Outbound SMS + now review requests via `fer_review_request.php` | ✅ actualizado |
+
+**11 Airtable tables totales** (4 CRM + 5 R9 + 4 email + 1 ads + 1 auditoría GMB + 1 GMB queue — 15, contando GMB = 16 realmente):
+- Core CRM: Contacts, Leads, Deals, Notes & Activity
+- R9 audits: Marketing_Audits, SEO_Audits, Content_Queue, Ad_Performance, GMB_Queue, GMB_Audit_Log
+- Email stack: Email_Subscribers, Email_Templates, Email_Campaigns, Email_Events
+- Legacy: Tracy, Fer Conversations (en base CRM)
+
+**Patrón compartido 5 instancias** (Mercader + Posicionador + Escriba + Remitente + Cazador). Cada uno ~300-400 líneas. Refactor a `agents/_shared/` ahora con ROI muy positivo pero aplazado — no bloquea nada. Siguiente iteración.
+
+**TODO stack de Jorge (pendientes de acción humana):**
+
+1. **Deliverability (10 min mobile):** DKIM toggle en Hostinger hPanel + DMARC upgrade con `rua=`
+2. **Google Cloud OAuth (laptop, 5 min):** completar Test User setup para El Cartógrafo — scaffold listo
+3. **Cron entries:** agregar al `deploy-hostinger.yml` workflow las 4 entries (Mercader/Posicionador/Escriba/Remitente/Cazador por separado, o consolidado en un cron runner)
+4. **claude login en host:** una vez decidido host cron (Hostinger PHP wrapper vs VPS), autenticar claude CLI ahí
+5. **Popup → Email_Subscribers:** el edit ya está pusheado, se deploya en próxima SCP. **Smoke test recomendado:** suscribir un email de prueba en el popup + verificar que aparezca en Email_Subscribers table con status=Active
+6. **Seed templates:** una vez deliverability lista, correr `node agents/remitente/remitente.mjs --tenant pinnacle --mode seed_templates` para crear los 4 templates base en Email_Templates
+
+**Cleanup opcional:** `_test_delete_me` (tblSYqybnImkJGsDQ) sigue en Pinnacle CRM como leftover del primer probe — Jorge puede borrar desde Airtable UI.
+
 ### 2026-04-23 — NotebookLM skill instalado (Google NotebookLM wrapper)
 
 **Repo:** `proyecto26/notebooklm-ai-plugin` (MIT ✓)
