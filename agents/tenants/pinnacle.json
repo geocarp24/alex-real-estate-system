@@ -114,6 +114,14 @@
     "email_templates_table_id":   "tbljcO5b5i2SZs3ze",
     "email_campaigns_table_id":   "tblBJAtH3k1IVhqqc",
     "email_events_table_id":      "tblTNKwwXZTBXymOD",
+    "lead_scores_table_id":        "tbl9JjYf4v8Yy9fPm",
+    "weekly_dashboards_table_id":  "tblIt71QqU7iZCKpT",
+    "competitor_intel_table_id":   "tblMSWcdvKtP62hBR",
+    "compliance_audits_table_id":  "tblZjJIHQm7LmudA6",
+    "leads_table_id":              "tblxZz2EWIglOLnEd",
+    "contacts_table_id":           "tblacvw0Ss770x8l5",
+    "deals_table_id":              "tbliaEKxBHKBx7ZK2",
+    "notes_table_id":              "tbleOBXJl7sDhwj5w",
     "token_env":               "AIRTABLE_TOKEN"
   },
 
