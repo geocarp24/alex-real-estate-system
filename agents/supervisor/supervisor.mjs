@@ -277,11 +277,13 @@ function scoreHealth(infra, pipeline, cfg) {
   if (!infra.cron_seguimiento_ok)   warnings.push("fer_seguimiento.php endpoint no responde a HEAD");
 
   // Time-window aware: only flag stale log if currently within 9am-7pm CT
+  // AND there's actual work waiting (contacts_tbc > 0 or Contacted stale). Otherwise cron is running empty = OK.
   const nowCT = new Date().toLocaleString("en-US", { timeZone: "America/Chicago", hour: "numeric", hour12: false });
   const hrCT = parseInt(nowCT);
   const inWindow = hrCT >= 9 && hrCT < 19 && (new Date().getDay() !== 0);
-  if (inWindow && (infra.last_fc_hours == null || infra.last_fc_hours > 4)) {
-    critical.push(`Sin eventos fc_sms_sent desde hace ${infra.last_fc_hours ?? "∞"}h (ventana activa). Cron puede estar caído.`);
+  const hasFcWork = pipeline.contacts_tbc > 0 || (pipeline.ghosts || []).some((g) => g.stage === "Contacted");
+  if (inWindow && hasFcWork && (infra.last_fc_hours == null || infra.last_fc_hours > 4)) {
+    critical.push(`Sin eventos fc_sms_sent desde hace ${infra.last_fc_hours ?? "∞"}h Y hay ${pipeline.contacts_tbc} leads en "To Be Contacted". Cron caído.`);
   }
   if (infra.last_seg_hours != null && infra.last_seg_hours > 30) {
     warnings.push(`Sin seg_sms_sent desde hace ${infra.last_seg_hours}h (esperado daily).`);
