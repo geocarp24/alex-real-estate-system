@@ -145,6 +145,9 @@ Skill designado: `self-improving-agent`.
 ### MOBILE-FIRST — PRIORIDAD #1 PERMANENTE (2026-04-23)
 Todo componente nuevo (popup, form, page, chatbot, email, creative, CTA) se diseña y prueba mobile-first. Real estate = mobile-dominant audience. NUNCA excluir mobile por viewport. CSS base para mobile → media queries hacia desktop. Tap targets ≥ 44px. Test mobile PRIMERO. Detalle en `memoria_ALex.md` regla R7 y `CLAUDE.md` sección 1b.
 
+### SAAS-READY / MULTI-TENANT-FIRST (2026-04-23)
+Todo lo construido para Pinnacle se diseña como producto vendible. Pinnacle = tenant cero. Reglas: nada hardcodeado, tenant isolation, separación core/config/deployment, onboarding documentado, billing hooks desde día 1, validar licencias de deps (AGPL restringe monetización), security defaults, naming genérico. Detalle en `memoria_ALex.md` regla R8 y `CLAUDE.md` sección 1c.
+
 ---
 
 *Última actualización: 2026-04-22*
