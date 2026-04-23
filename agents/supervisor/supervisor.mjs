@@ -363,7 +363,7 @@ async function main() {
   const pipeline = await runPipelineChecks(cfg);
 
   // ── Scoring ──
-  const score = scoreHealth(infra, pipeline);
+  const score = scoreHealth(infra, pipeline, cfg);
 
   // ── Auto-repair (deep, evolve, incident modes — NOT heartbeat) ──
   let repair = { log: "", applied: 0 };
