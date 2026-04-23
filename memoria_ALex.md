@@ -1584,6 +1584,15 @@ LLM_PROVIDER=claude-cli
 
 **Pendiente:** primer smoke test con escenario Pinnacle real (ej: simular reacción al popup copy "Thinking about selling? Know your options first."). Jorge decide cuándo arrancamos.
 
+**SMOKE TEST 2026-04-23 — FALLIDO, diagnóstico:**
+- Input: `popup_copy.md` + `wi_homeowner_persona.md` (7KB texto total) + requirement detallado
+- Ontology generation: ✅ excelente (10 entity types: DistressedHomeowner, TiredLandlord, CashHomeBuyer, RealEstateAgent, Attorney, Lender, GovernmentAgency, ConsumerAdvocate, Person, Organization + 10 edge types relevantes a Wisconsin real estate)
+- **Graph extraction: 0 nodos / 0 edges de 22 chunks** — el LLM subprocess no extrajo nada. Task reportó "completed" sin error, pero resultado vacío.
+- Sim step falló: "Simulation is not ready, current status: failed"
+- **Root cause probable:** MiroFish spawnea `claude-cli` como subprocess. Cuando lo corremos DESDE DENTRO de una sesión Claude Code (como hoy), hay nesting de Claude CLI que falla silenciosamente (auth conflicts / rate limit / stdin-stdout pipe issues).
+- **Implicación arquitectural:** El Oráculo **NO puede correrse como sub-agente dentro de una sesión Claude Code**. Debe deployarse como proceso standalone en Hostinger/VPS con cron + webhook, o llamarse desde un entorno limpio (terminal dedicada, script cron).
+- **Plan ajustado:** cuando construyamos El Oráculo, lo deployamos en VPS (como `secretario-email.service`), no como sub-agente inline.
+
 ### 2026-04-23 — Queue de investigación de skills (Phase 2)
 
 Jorge pidió investigar/evaluar/ejecutar en secuencia:
