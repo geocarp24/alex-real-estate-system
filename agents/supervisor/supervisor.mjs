@@ -471,6 +471,27 @@ async function main() {
     await telegramSend(cfg, formatTelegram(cfg, args, runId, infra, pipeline, score, repair, evolve));
   }
 
+  // Auto-escalation: heartbeat detected RED → spawn incident deep-dive in background.
+  // Guardrail: only from heartbeat mode (avoid recursion from an incident run itself).
+  if (score.health === "red" && args.mode === "heartbeat") {
+    console.error(`[supervisor] RED detected in heartbeat → auto-triggering incident mode`);
+    try {
+      const { spawn } = await import("node:child_process");
+      const child = spawn(process.argv[0], [
+        process.argv[1],
+        "--tenant", args.tenant,
+        "--mode", "incident",
+      ], {
+        env: { ...process.env, SUPERVISOR_TRIGGER: "auto_escalated_from_red" },
+        detached: true,
+        stdio: "ignore",
+      });
+      child.unref();
+    } catch (e) {
+      console.error(`[supervisor] failed to spawn incident: ${e.message}`);
+    }
+  }
+
   console.error(`[supervisor] done run_id=${runId} health=${score.health} duration=${duration}s`);
 }
 
