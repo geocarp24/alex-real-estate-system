@@ -43,6 +43,9 @@ Antes de ejecutar cualquier acción no trivial, evaluar qué skill aplica e invo
 
 Si ninguno de la tabla aplica pero hay un skill cuya descripción matchea la tarea, invocarlo. **Default: en caso de duda, invocar el skill.**
 
+### 1c. SAAS-READY / MULTI-TENANT-FIRST — PRINCIPIO ARQUITECTURAL (orden directa de Jorge 2026-04-23)
+Todo lo que construyamos es producto SaaS vendible. Pinnacle es el tenant cero, no el único. Reglas: (1) nada hardcodeado — todo config por-tenant; (2) tenant isolation (datos, creds, branding separados); (3) separación core engine / tenant config / deployment adapter; (4) onboarding documentado; (5) billing hooks upfront (Stripe + usage metrics); (6) validar licencias de deps — AGPL-3.0 requiere tratamiento especial, MIT/Apache/BSD safe; (7) documentation-first por componente; (8) naming genérico (`{TENANT_NAME}`, no "Pinnacle"); (9) security defaults día 1; (10) mobile-first se complementa. Detalle completo en `memoria_ALex.md` regla R8.
+
 ### 1b. MOBILE-FIRST — PRIORIDAD #1 PERMANENTE (orden directa de Jorge 2026-04-23)
 Todo el trabajo de Pinnacle (popups, formularios, páginas, chatbot, emails, creatives, CTAs, imágenes, cualquier componente) debe diseñarse y probarse **mobile-first**. El mobile es mayoría del tráfico en real estate — homeowners buscan "sell my house fast" desde el celular.
 - NUNCA excluir mobile por viewport sin consultar al Jefe
