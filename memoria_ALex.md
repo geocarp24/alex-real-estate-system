@@ -1468,3 +1468,34 @@ Jorge reportó por segunda vez "popup no aparece". Systematic-debugging confirm�
 **Fix:** removí la línea `if (window.innerWidth < MOBILE_THRESHOLD) return`. El CSS ya tenía `@media (max-width:480px)` que adapta el modal a full-width en celular, así que la experiencia estaba lista — solo faltaba dejarlo aparecer.
 
 **Lección PERMANENTE:** NO agregar exclusiones de audiencia unilateralmente (por "mejor práctica genérica") sin validar con el Jefe. Lo que es best practice para un blog SaaS no es best practice para real estate. Siempre preguntar: "¿dónde vive tu audiencia?" antes de filtrar por viewport, device, región, o cualquier otro eje. Para Pinnacle: mobile-first, nunca mobile-excluded.
+
+### R7. MOBILE-FIRST — PRIORIDAD #1 PERMANENTE (todos los proyectos, todos los modelos, todos los entornos)
+**Orden directa de Jorge, 2026-04-23 — NO NEGOCIABLE.**
+
+Todo el trabajo que hagamos debe estar optimizado para móviles como **prioridad número 1**. El mobile traffic es la mayoría del tráfico web hoy; cualquier decisión de diseño, UX, copy, código o arquitectura debe considerar mobile PRIMERO, desktop después.
+
+**Aplica a (no exhaustivo):**
+- Popups / modals / overlays
+- Formularios (webform `/get-my-offer/`, contact forms, signup, etc.)
+- Páginas del sitio (home, about, services, contact, FAQ, legal)
+- Chatbot flotante
+- Emails (templates + imágenes responsivas)
+- Social media creatives (carrousels 1080x1350 vertical, reels 9:16)
+- CTAs, botones, imágenes (tap targets ≥ 44px, thumbs-zone friendly)
+- Cualquier componente nuevo
+
+**Reglas operativas:**
+1. **NUNCA** excluir mobile por viewport width sin consultar al Jefe
+2. **Diseñar mobile-first**: CSS base para mobile, media queries para desktop (no al revés)
+3. **Tap targets ≥ 44px**, padding generoso, no hover-dependent UX
+4. **Test en mobile viewport primero**, desktop después
+5. **Performance-first en mobile**: imágenes optimizadas, lazy-load, mínimo JS bloqueante
+6. **Cuando diagnostique algo que "no funciona"**: probar en mobile viewport antes que en desktop
+
+**Skills recomendados para esta regla:**
+- `responsive-design` — layouts fluidos + container queries
+- `mobile-ios-design` — iOS HIG (Safari iPhone es dominante en Wisconsin)
+- `mobile-android-design` — Material Design
+- `accessibility-compliance` — WCAG 2.2 mobile a11y patterns
+
+**Aprobado por:** Jorge Cruz — 2026-04-23
