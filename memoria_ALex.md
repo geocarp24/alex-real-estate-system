@@ -1840,6 +1840,67 @@ El Posicionador identifica QUÉ falta. El Escriba escribe QUÉ llena el hueco.
 
 **Patrón compartido confirmado:** Mercader + Posicionador + Escriba comparten ~75% del runtime (parseArgs / loadTenant / runClaude / airtableUpsert / telegramSend). Refactor a `agents/_shared/runner.mjs` se ejecuta cuando sumemos Cazador (4 instancias = ROI claro del abstract).
 
+### 2026-04-23 — Tramo final del día: maps_deep + fer_review_request + MCP builders + NotebookLM MCP + El Cartógrafo scaffold
+
+**Google Maps improvements shipped:**
+- `agents/posicionador/posicionador.mjs` — nuevo modo `maps_deep` (READ-only audit dedicado GBP + NAP + geo-grid + reviews + posts + Q&A + photos). Cadencia cada 3 días. Dry-run verificado.
+- `hostinger/tools/fer_review_request.php` — cron diario que manda SMS bilingüe post-Closed-Won pidiendo review Google, con follow-up 7 días. **Pending:** Jorge pasa el GBP PLACE_ID para llenar `GBP_REVIEW_URL` + crear campos Airtable Deals (`review_request_sent`, `review_request_sent_at`, `review_followup_sent`, `review_followup_sent_at`, `review_received`).
+
+**MCP toolchain instalado:**
+- `mcp-builder` (ComposioHQ) — `/root/.claude/skills/mcp-builder/`, complementa el `mcp-server-builder` del superpowers pack. Guía para construir MCP servers custom.
+- `notebooklm-mcp` (alfredang) — `/home/user/notebooklm-mcp/`, uv sync completo, FastMCP listo. **Pending Jorge (desde su laptop con Chrome):**
+  1. `cd /home/user/notebooklm-mcp && uv run notebooklm login` (abre Chrome, auth con Google)
+  2. `claude mcp add notebooklm -- uv --directory /home/user/notebooklm-mcp run python server.py`
+  3. Restart Claude Code → el MCP expone 16 tools: `create_notebook`, `add_source_url`, `ask_notebook`, `generate_audio_overview`, `generate_video_overview`, `generate_slide_deck`, `generate_mind_map`, `generate_infographic`, `generate_quiz`, `generate_flashcards`, `generate_summary_report`, `generate_data_table`, etc.
+
+**El Cartógrafo v1 SCAFFOLD (GMB write-side agent):**
+- `agents/cartografo/SKILL.md` — identity + 10 operations permitidas + 3 operations hard-prohibited + rate limits table + Airtable schemas GMB_Queue + GMB_Audit_Log
+- `agents/cartografo/mcp_server/server.py` (396 líneas) — FastMCP server con:
+  - Circuit breaker (24h freeze en 429/403 o 3 fails seguidos)
+  - Rate limiter (per_hour + per_day + per_month enforced antes del API call, total daily cap 10 writes)
+  - Audit log a Airtable `GMB_Audit_Log` en cada write
+  - 10 tools: `gbp_health_check`, `gbp_list_locations`, `gbp_get_location`, `gbp_list_reviews`, `gbp_list_insights`, `gbp_publish_post`, `gbp_respond_review`, `gbp_upload_photo`, `gbp_answer_qa` + 3 hard-prohibited (`gbp_update_name/address/phone` devuelven error + auditan el intento)
+  - Cada tool de write requiere `approved_by` field (obligatorio para audit)
+  - Todos los tools actualmente devuelven `STUB_NOT_IMPLEMENTED` — API calls reales se cablean cuando Jorge complete OAuth Step 1
+- `agents/cartografo/mcp_server/pyproject.toml` — deps (fastmcp + google-auth + google-api-python-client)
+- `agents/cartografo/secrets/.gitignore` — nunca commitea OAuth JSON
+- `agents/cartografo/README.md` — 5-step deploy plan
+
+**Anti-ban safety rules del Cartógrafo (hard-coded):**
+- ❌ NUNCA generar reviews (ni positivos ni negativos)
+- ❌ NUNCA cambiar name/address/phone automáticamente
+- ❌ NUNCA >10 API calls/día por ubicación
+- ❌ NUNCA publicar sin `approved_by` field en el tool call
+- ❌ NUNCA bypass del circuit breaker
+- ❌ Rate limits per-op:
+  - publish_post: 2/semana
+  - respond_review: 5/día
+  - upload_photo: 2/semana (¡!)
+  - update_hours / description: 1/mes
+  - answer_qa: 2/día
+
+**Pending de Jorge para activar El Cartógrafo en producción:**
+1. Google Cloud project `pinnacle-gmb` + enable 5 APIs (Business Profile + My Business Business Info + My Business Account Management + My Business Q&A + My Business Posts)
+2. OAuth 2.0 Client ID (Desktop) → download JSON → guardar en `agents/cartografo/secrets/pinnacle_gbp_oauth.json`
+3. Pedir quota de Business Profile API si el proyecto lo requiere
+4. Crear tablas Airtable: `GMB_Queue` + `GMB_Audit_Log` (schemas en SKILL.md) → pegar `table_id` de audit log en env var `AUDIT_LOG_TABLE`
+5. Pasar location_id Pinnacle (formato `accounts/X/locations/Y`)
+6. Registrar MCP en `~/.claude/settings.json` (template completo en `agents/cartografo/README.md`)
+7. Smoke test: `gbp_health_check` → `gbp_list_locations` (solo reads) → cuando OK, habilito HTTP calls reales en cada tool
+
+**Todo list pendiente con prioridad:**
+| Item | Tipo | Prioridad |
+|---|---|---|
+| GBP PLACE_ID para fer_review_request | Info de Jorge | alta |
+| Google Cloud OAuth setup (Cartógrafo Paso 1) | Acción Jorge | alta |
+| Airtable tables (Marketing_Audits, SEO_Audits, Content_Queue, GMB_Queue, GMB_Audit_Log) | Setup Airtable | alta |
+| Host del cron + `claude login` | Deploy ops | alta |
+| El Remitente (email Airtable-only) | Design + build | media |
+| El Cazador (Ads) | Build | media |
+| El Oráculo VPS deploy | Build | media |
+| El Creativo rebuild | Build (awaiting Jorge go) | baja |
+| WhatsApp AgentKit | Paused by Jorge | baja |
+
 ### 2026-04-23 — NotebookLM skill instalado (Google NotebookLM wrapper)
 
 **Repo:** `proyecto26/notebooklm-ai-plugin` (MIT ✓)
