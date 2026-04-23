@@ -1,4 +1,5 @@
-/* Pinnacle Email Capture Popup — 5s timer, bilingual EN/ES, 30d cool-down.
+/* Pinnacle Email Capture Popup — 5s timer, bilingual EN/ES.
+   Shows once per session; suppressed permanently only after subscribe.
    Skips on /get-my-offer/ (server-enqueue filter) and on mobile <480px.
    Posts to /agents/pinnacle_public.php action=subscribe_email. */
 (function(){
@@ -11,17 +12,15 @@
   // and fire the popup in 500ms. Regular visitors are unaffected.
   var FORCE = /[?&]pnp_force=1/.test(location.search || "");
   var TRIGGER_MS = FORCE ? 500 : 5000;
-  var COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
   var MOBILE_THRESHOLD = 480;
-  var K_SHOWN  = "pnp_popup_shown";    // timestamp of last dismiss
-  var K_SUBSCRIBED = "pnp_popup_subscribed"; // "1" once subscribed
+  var K_SESSION_SEEN = "pnp_popup_seen";       // sessionStorage: shown this session (clears when tab closes)
+  var K_SUBSCRIBED   = "pnp_popup_subscribed"; // localStorage: "1" once subscribed (permanent)
 
   // ---- Anti-annoyance pre-checks (bypassed by ?pnp_force=1) ----
   if (!FORCE) {
     try {
       if (localStorage.getItem(K_SUBSCRIBED) === "1") return;
-      var last = parseInt(localStorage.getItem(K_SHOWN) || "0", 10);
-      if (last && (Date.now() - last) < COOLDOWN_MS) return;
+      if (sessionStorage.getItem(K_SESSION_SEEN) === "1") return;
     } catch(e) {}
     if (window.innerWidth < MOBILE_THRESHOLD) return;
   }
