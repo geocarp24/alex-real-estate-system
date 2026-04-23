@@ -19,7 +19,11 @@ Complementa a El Posicionador (`maps_deep` read-only audit) con la capa de EJECU
 - ✅ OAuth flow completo (Jorge 2026-04-23 desde PC)
 - ✅ Access token + refresh token guardados en `secrets/pinnacle_gbp_oauth.json`
 - ✅ MCP server tools wire-up end-to-end: `gbp_list_accounts`, `gbp_list_locations`, `gbp_get_location`, `gbp_list_reviews`, `gbp_list_insights`, `gbp_publish_post`, `gbp_respond_review`, `gbp_answer_qa`
-- ⚠️ **Quota bloqueando operaciones reales**: proyecto `pinnacle-alex-bot` está en modo Testing con default `1 req/min` — HTTP 429 en calls secuenciales
+- 🚨 **BLOQUEANTE PRIMARIO: GBP listing NOT PUBLICLY VISIBLE** — el listing "Pinnacle Holdings Group — We Buy Houses Cash Wisconsin" existe pero no está verificado. Hasta que Jorge complete video verification (3-5 días Google review):
+  - Todas las lecturas API retornan vacío/4xx
+  - Los writes (posts, reviews, Q&A) son bloqueados por Google
+  - La quota increase NO aplica mientras el listing sea invisible
+- ⚠️ Quota bloqueando operaciones reales (secundario, post-verificación): proyecto `pinnacle-alex-bot` en Testing con default `1 req/min`
 
 ### Solución quota (Jorge en Google Cloud Console)
 
