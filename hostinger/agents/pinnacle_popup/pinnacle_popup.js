@@ -1,6 +1,6 @@
-/* Pinnacle Email Capture Popup — 5s timer, bilingual EN/ES.
+/* Pinnacle Email Capture Popup — 5s timer, bilingual EN/ES, fires on desktop + mobile.
    Shows once per session; suppressed permanently only after subscribe.
-   Skips on /get-my-offer/ (server-enqueue filter) and on mobile <480px.
+   Skipped on /get-my-offer/ (server-side enqueue filter — user already engaged).
    Posts to /agents/pinnacle_public.php action=subscribe_email. */
 (function(){
   "use strict";
