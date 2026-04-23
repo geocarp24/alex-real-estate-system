@@ -103,7 +103,10 @@
     "seo_health":   ["seo-audit"],
     "seo_deep":     ["seo-audit", "seo-local", "seo-maps"],
     "ads_health":   ["ads-quick"],
-    "ads_deep":     ["ads-audit"]
+    "ads_deep":     ["ads-audit"],
+    "content_plan_week":    ["seo-content", "content-strategy", "copywriting"],
+    "content_draft_article": ["copywriting", "content-humanizer", "seo-content"],
+    "content_atp_mine":      ["content-strategy"]
   },
 
   "output": {
