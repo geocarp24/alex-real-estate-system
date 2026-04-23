@@ -45,9 +45,9 @@ function parseArgs(argv) {
 
 // ----- Tenant config loader -----
 async function loadTenant(slug) {
-  const p = join(TENANTS_DIR, `${slug}.yaml`);
+  const p = join(TENANTS_DIR, `${slug}.json`);
   const raw = await readFile(p, "utf8");
-  const cfg = parseYaml(raw);
+  const cfg = JSON.parse(raw);
   const required = ["tenant_id", "website", "claude"];
   for (const k of required) if (cfg[k] == null) throw new Error(`tenant.${k} missing in ${p}`);
   return cfg;
