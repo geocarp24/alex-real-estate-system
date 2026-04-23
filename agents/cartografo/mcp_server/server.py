@@ -31,6 +31,9 @@ import json
 import os
 import time
 import uuid
+import urllib.request
+import urllib.parse
+import urllib.error
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
