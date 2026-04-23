@@ -214,21 +214,83 @@ def _guard(op: str):
     return decorator
 
 # ============================================================
-# OAuth token loader (stub — Jorge completes Step 1)
+# OAuth token loader (live — Jorge completed OAuth 2026-04-23)
 # ============================================================
+
+def _load_oauth_file() -> dict:
+    if not OAUTH_JSON_PATH or not Path(OAUTH_JSON_PATH).exists():
+        raise RuntimeError(
+            "OAUTH_NOT_CONFIGURED: set GBP_OAUTH_JSON env var to path of OAuth credentials."
+        )
+    return json.loads(Path(OAUTH_JSON_PATH).read_text())
+
+def _save_oauth_file(doc: dict) -> None:
+    Path(OAUTH_JSON_PATH).write_text(json.dumps(doc, indent=2))
+
+def _refresh_access_token(doc: dict) -> dict:
+    creds = doc["web"]
+    tok = doc.get("tokens", {})
+    if not tok.get("refresh_token"):
+        raise RuntimeError("NO_REFRESH_TOKEN: re-run OAuth authorization flow")
+    data = urllib.parse.urlencode({
+        "client_id":     creds["client_id"],
+        "client_secret": creds["client_secret"],
+        "refresh_token": tok["refresh_token"],
+        "grant_type":    "refresh_token",
+    }).encode()
+    req = urllib.request.Request(
+        "https://oauth2.googleapis.com/token",
+        data=data,
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=20) as r:
+        new = json.loads(r.read())
+    tok["access_token"] = new["access_token"]
+    tok["expires_in"]   = new.get("expires_in", 3599)
+    tok["obtained_at"]  = int(time.time())
+    tok["expires_at"]   = int(time.time()) + int(tok["expires_in"])
+    doc["tokens"] = tok
+    _save_oauth_file(doc)
+    return tok
 
 def _oauth_bearer() -> str:
     """Return a valid GBP API bearer token. Refresh if within 10 min of expiry."""
-    if not OAUTH_JSON_PATH or not Path(OAUTH_JSON_PATH).exists():
-        raise RuntimeError(
-            "OAUTH_NOT_CONFIGURED: set GBP_OAUTH_JSON env var to path of OAuth credentials. "
-            "See Step 1 of El Cartógrafo deploy plan."
-        )
-    # TODO: implement full OAuth 2.0 token refresh logic using google-auth library.
-    # For now, return empty string — live operations will fail until implemented.
-    # The scaffold is complete; Jorge completes Google Cloud project first,
-    # then we enable this path.
-    return ""
+    doc = _load_oauth_file()
+    tok = doc.get("tokens")
+    if not tok or not tok.get("access_token"):
+        raise RuntimeError("NO_ACCESS_TOKEN: run OAuth authorization flow first")
+    # Refresh if we're within 10 min of expiry
+    if tok.get("expires_at", 0) - time.time() < 600:
+        tok = _refresh_access_token(doc)
+    return tok["access_token"]
+
+# ============================================================
+# Google Business Profile API helper
+# ============================================================
+
+def _gbp_call(method: str, url: str, body: dict | None = None, timeout: int = 20) -> tuple[int, dict]:
+    """Call a GBP API endpoint with auto-refresh bearer auth. Returns (status_code, json)."""
+    headers = {"Authorization": f"Bearer {_oauth_bearer()}", "Content-Type": "application/json"}
+    data = json.dumps(body).encode() if body is not None else None
+    req = urllib.request.Request(url, data=data, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return r.status, json.loads(r.read() or b"{}")
+    except urllib.error.HTTPError as e:
+        body_text = e.read().decode() if hasattr(e, "read") else ""
+        try:
+            return e.code, json.loads(body_text)
+        except Exception:
+            return e.code, {"raw_error": body_text[:1000]}
+
+def _first_account_name() -> str | None:
+    """Return the first account resource name like 'accounts/12345'."""
+    code, j = _gbp_call("GET", "https://mybusinessaccountmanagement.googleapis.com/v1/accounts")
+    if code != 200:
+        return None
+    accts = j.get("accounts", [])
+    return accts[0]["name"] if accts else None
 
 # ============================================================
 # MCP Tools — Read-only (safe)
