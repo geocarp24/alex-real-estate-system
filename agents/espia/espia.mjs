@@ -92,7 +92,7 @@ async function priorScan(cfg, competitor_url) {
   return res.records?.[0]?.fields || null;
 }
 
-function buildPrompt(cfg, comp, snap, prior) {
+function buildPrompt(cfg, comp, snap, prior, httpStatus) {
   const priorBlock = prior ? `Prior scan (${prior.scanned_at}):
 - title: ${prior.title_tag}
 - h1: ${prior.h1_text}
