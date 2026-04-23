@@ -40,6 +40,10 @@ on:
     - cron:  "0 15 * * 0"             # espia:weekly_deep
     # Auditor
     - cron:  "0 15 * * 5"             # auditor:weekly
+    # Remitente (email)
+    - cron:  "30 14 * * *"            # remitente:process_welcome (daily 9:30 AM CT summer)
+    - cron:  "0 15 * * *"             # remitente:process_drip (daily 10 AM CT summer)
+    - cron:  "0 11 * * 1"             # remitente:weekly_report (Mon 6 AM CT summer)
   workflow_dispatch:
     inputs:
       agent:
