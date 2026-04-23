@@ -1455,3 +1455,16 @@ Jorge reportó "no está funcionando". Diagnóstico systematic-debugging:
 **Uso:** `https://pinnaclegroupwi.com/?pnp_force=1` (o cualquier URL del sitio con `?pnp_force=1`). Regular visitors no afectados — la lógica anti-annoyance sigue para ellos.
 
 **Lección:** toda pieza de UI con gating client-side debe tener un URL bypass para QA/preview. El 30d cooldown es correcto para usuarios reales, pero sin escape hatch el propio dueño queda atrapado tras el primer dismiss.
+
+### Fix de audiencia 2026-04-23 — popup también en mobile
+
+Jorge reportó por segunda vez "popup no aparece". Systematic-debugging confirmó:
+- Server 100% limpio (L1–L5 verificados)
+- `?pnp_force=1` funciona en móvil ✓
+- Incógnito en móvil sin `?pnp_force=1` → no aparece
+
+**Root cause:** yo mismo había puesto `if (window.innerWidth < 480) return` como "anti-annoyance on phones" siguiendo convención CRO genérica. Pero para Pinnacle Holdings (real estate lead capture) el mobile traffic es mayoría — homeowners buscan "sell my house fast Wisconsin" desde el celular. Excluir mobile = perder 60–70% del lead flow potencial.
+
+**Fix:** removí la línea `if (window.innerWidth < MOBILE_THRESHOLD) return`. El CSS ya tenía `@media (max-width:480px)` que adapta el modal a full-width en celular, así que la experiencia estaba lista — solo faltaba dejarlo aparecer.
+
+**Lección PERMANENTE:** NO agregar exclusiones de audiencia unilateralmente (por "mejor práctica genérica") sin validar con el Jefe. Lo que es best practice para un blog SaaS no es best practice para real estate. Siempre preguntar: "¿dónde vive tu audiencia?" antes de filtrar por viewport, device, región, o cualquier otro eje. Para Pinnacle: mobile-first, nunca mobile-excluded.
