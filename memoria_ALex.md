@@ -1749,6 +1749,47 @@ Ya analicé todo, cuando Jorge elija las 3 respuestas ejecuto en ~30 min (Camino
 
 **Próximos R9:** mismo patrón para El Posicionador (usa `/seo audit`), El Cazador (usa `/ads audit`), El Oráculo (usa MiroFish CLI).
 
+### 2026-04-23 — NotebookLM skill instalado (Google NotebookLM wrapper)
+
+**Repo:** `proyecto26/notebooklm-ai-plugin` (MIT ✓)
+**Ubicación:** `/root/.claude/skills/notebooklm/` (174KB)
+**Stack:** Bun/TypeScript (Bun 1.3.11 ya instalado) + Chrome DevTools Protocol para auth
+**Scripts:** `artifact-generator.ts`, `auth.ts`, `chat.ts`, `cookie-store.ts`, `main.ts`, `notebook-manager.ts`, `notes-manager.ts`, `research-manager.ts`, `rpc-client.ts`, `source-manager.ts`, `types.ts`
+
+**Qué hace:** wrapper programático de Google NotebookLM (gratis, rate-limited). Desde Claude Code:
+- Chat con notebook (Q&A source-grounded + citations de Gemini)
+- Gestionar sources (URLs, YouTube, archivos, texto)
+- Generar 9 artefactos: slide decks (PDF/PPTX), audio overviews (M4A — deep-dive/brief/critique/debate), video overviews (MP4 — classic/whiteboard/kawaii/anime/watercolor), mind maps (HTML), flashcards (HTML/JSON), quizzes (HTML/JSON), infographics (PNG), reports (MD), data tables (CSV/Sheets)
+- Research (fast/deep web research)
+- Notes management
+
+**Rate limits free tier (Google):** 3 audio/video overviews/día · 10 reports/flashcards/quizzes/día · 50 chats/día · 100 notebooks total · 50 sources por notebook.
+
+**Requisito crítico:** Chrome local con sesión Google activa. El skill usa Chrome DevTools Protocol + cookie extraction. **NO funciona en este sandbox headless** — corre desde la laptop del Jefe con Chrome + Google login. La skill queda instalada para cuando Jorge la use desde su máquina.
+
+**Casos de uso Pinnacle + R8 SaaS-ready:**
+1. **Knowledge base WI real estate:** cargar reportes de mercado, leyes de probate/foreclosure WI, competitor deal history → queries citation-backed
+2. **Content factory por tenant:** de un notebook con la "enciclopedia Pinnacle" sacar audios para homeowners distressed, mind maps para casos probate, infographics para redes, slides para investors
+3. **Research feeder para El Oráculo:** cuando hagamos el wrapper, NotebookLM proporciona el grounded data que MiroFish/Oráculo simula reacciones sobre
+4. **Deliverable vendible (R8):** cada cliente SaaS futuro recibe su propio notebook + outputs brandeados = paquete premium "Knowledge + Content Factory"
+
+**Seguridad:** no envía data a terceros más allá de Google's NotebookLM infra. Cookie session queda local.
+
+**Status queue Phase 2 al cierre 2026-04-23:**
+
+| Item | Status |
+|---|---|
+| MiroFish / El Oráculo | Skill ✅ instalado, sub-agente diferido a VPS deploy |
+| ai-marketing-claude / El Mercader | Skill ✅ + **sub-agente v1 DRAFT completo** (3 approvals pendientes para prod) |
+| WhatsApp AgentKit | Clonado, **pausado por Jorge** (3 decisiones arquitecturales) |
+| gstack | ✅ Instalado (42 skills, disciplina ingeniería) |
+| skill-creator | ✅ Instalado (oficial Anthropic) |
+| claude-seo / El Posicionador | Skill ✅ (24 skills), sub-agente por construir |
+| claude-ads / El Cazador | Skill ✅ (20+ skills, template real-estate), sub-agente por construir |
+| ui-ux-pro-max | ✅ Instalado (67 styles, 96 palettes, DSG) |
+| **NotebookLM** | ✅ **Instalado hoy** (requiere Chrome local signed-in) |
+| open-carrusel | ✅ Instalado (Instagram carousels) |
+
 ### 2026-04-23 — gstack instalado (Garry Tan's Claude Code setup)
 
 Jorge pidió "gistak" = **gstack** (typo de autocorrect). Confirmado + instalado.
