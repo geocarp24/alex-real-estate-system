@@ -190,7 +190,7 @@ async function scanOne(cfg, comp, mode, dryRun) {
 
   const snap = extractHtml(page.html);
   const prior = await priorScan(cfg, comp.url);
-  const prompt = buildPrompt(cfg, comp, snap, prior);
+  const prompt = buildPrompt(cfg, comp, snap, prior, page.status);
 
   if (dryRun) {
     console.log(`\n=== DRY RUN [espia] ${comp.name} ===`);
