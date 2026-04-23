@@ -2127,6 +2127,78 @@ Jorge revisó los 5 GAP candidates propuestos + confirmó 4 para construir + dif
 
 **Cierre de día real 2026-04-23.** Next session: mañana.
 
+### 2026-04-23 — SPRINT 2 BUILD: 4 GAP agents shipped (Clasificador + Analista + Espía + Auditor)
+
+**Orden de Jorge:** "Puedes crear los 4 agentes ahora que sugeriste, y mañana seguimos con las pruebas antes de continuar con los más complicados"
+
+**Status:** los 4 agentes shipped con SKILL.md + orchestrator.mjs + README + tabla Airtable dedicada + dry-runs validados.
+
+**Refactor previo:** `agents/_shared/runner.mjs` — shared runtime con helpers DRY:
+- `parseArgs`, `loadTenant`, `runClaude`, `airtableFetch/Create/Update/Upsert`, `telegramSend`, `extractScore/Number/Block`, `genRunId`, `isoNow`, `standardMain` (opcional — agentes nuevos usan main() propio)
+- Los 4 agentes nuevos son thin wrappers (avg ~250 líneas cada uno vs los 380+ de cazador.mjs) — refactor existentes queda pendiente
+
+**Tablas Airtable creadas** (script `agents/_setup/create_sprint2_tables.py`):
+| Tabla | ID | Propósito |
+|---|---|---|
+| `Lead_Scores` | `tbl9JjYf4v8Yy9fPm` | Clasificador — 1 row per lead per scoring + overall_score + urgency/distress/property/timeline/motivation + heat + suggested_action/owner |
+| `Weekly_Dashboards` | `tblIt71QqU7iZCKpT` | Analista — 1 row per ISO week + pipeline metrics + marketing rollup + headline wins/concerns/actions + exec summary |
+| `Competitor_Intel` | `tblMSWcdvKtP62hBR` | Espía — 1 row per competitor per scan + snapshot + diff vs prior + change_severity 0-10 + recommended_action |
+| `Compliance_Audits` | `tblZjJIHQm7LmudA6` | Auditor — 1 row per sweep + scores per regulación (WI wholesaler + TCPA + CAN-SPAM + Fair Housing + GDPR + ADA) + critical issues + evidence snippets |
+
+**Wired en `pinnacle.json.airtable`:** `lead_scores_table_id`, `weekly_dashboards_table_id`, `competitor_intel_table_id`, `compliance_audits_table_id` + también se añadieron `leads_table_id`, `contacts_table_id`, `deals_table_id`, `notes_table_id` para cross-table queries.
+
+**Los 4 agentes:**
+
+1. **El Clasificador** (`agents/clasificador/`)
+   - Modos: `score_batch` (cron 2h, top 25 leads) · `score_one` (--lead-id, on-demand) · `rescore_hot` (nightly, urgency decay)
+   - 5 axes weighted composite: urgency 0.30 + distress 0.25 + property 0.20 + timeline 0.15 + motivation 0.10
+   - Heat: 🔥 Hot ≥75 · 🌡 Warm 55-74 · ❄️ Cold 30-54 · 🚫 Disqualify <30
+   - WI-specific signals: pre-foreclosure sheriff sale dates, probate filings, divorce filings, WI 2024 wholesale disclosure law
+   - Escribe 1 row aggregate per run + 1 row per lead scored (para historial individual)
+
+2. **El Analista** (`agents/analista/`)
+   - Modos: `weekly` (cron Mon 07:00 CT) · `ad_hoc` (--week 2026-W17) · `preview` (dry-run)
+   - Agrega cross-table: Marketing_Audits + SEO_Audits + Ad_Performance + Content_Queue + Email_Campaigns + Email_Events + Competitor_Intel + Compliance_Audits + Lead_Scores + Leads + Deals
+   - Roll-ups automáticos: new_leads, qualified_leads (≥55), deals_closed/lost, revenue, email open/click rates, content_published
+   - Output: 3-paragraph executive_summary + top 3 wins + top 3 concerns + top 3 action items
+   - Dry-run preview confirmó: 3 new leads detectados en W17 (semana actual)
+
+3. **El Espía** (`agents/espia/`)
+   - Modos: `daily` (09:00 CT, todos cfg.competitors) · `weekly_deep` (Sun 10:00 CT, + FB Ad Library) · `on_demand` (--competitor URL)
+   - Scrape respetuoso: User-Agent PinnacleBot identificado, 1 req/sec, robots.txt honor
+   - Signals extraídos: title/h1/hero, CTAs, phones, addresses (multi-loc signal), socials, pricing $, offer keywords, JSON-LD schema, word count
+   - Diff vs prior scan del mismo competitor_url → change_severity 0-10
+   - Alert tiers: 🚨 ≥9 immediate, ⚠️ 6-8 Telegram, 🟡 3-5 digest, ✅ 0-2 silent
+   - Dry-run confirmó: We Buy Ugly Houses scraped exitosamente (title + h1 + 4 CTAs + phone + social links)
+
+4. **El Auditor** (`agents/auditor/`)
+   - Modos: `weekly` (cron Fri 10:00 CT) · `reg_focus` (--reg tcpa|can_spam|fair_housing|gdpr|wi_wholesaler|ada_web) · `incident` (post-event)
+   - 6 regulaciones con scores individuales + overall
+   - Exposure $$ doc en README: TCPA ($500-1500/text × class), CAN-SPAM ($51,744/email FTC 2024), Fair Housing ($16k-79k/violation), GDPR (4% global rev), ADA web ($16k median settlement)
+   - Lee últimos Email_Campaigns + Marketing_Audits + SEO_Audits + pages del site
+   - Output: critical_issues + warnings + passing + recommendations + evidence_snippets (quoted)
+
+**Dry-runs ejecutados OK:**
+- ✅ `clasificador --mode score_batch --dry-run` → 25 leads reales fetched
+- ✅ `analista --mode preview` → 3 new_leads W17, rollups OK
+- ✅ `espia --mode daily --dry-run` → scraped We Buy Ugly Houses live (707 words, 4 CTAs, phone 866-200-6475)
+- ✅ `auditor --mode weekly --dry-run` → prompt construido OK con signals
+
+**Plantel R9 ACTUAL cierre 2026-04-23 (9 agentes always-on + legacy):**
+- R9 core Phase 2: Mercader, Posicionador (+maps_deep), Escriba, Remitente, Cazador
+- R9 Sprint 2 **NUEVOS**: Clasificador, Analista, Espía, Auditor ✅
+- Sub-agentes especializados: Cartógrafo (GMB, OAuth paused)
+- Core legacy: Scout, Matemático, Fact-Checker, Tracy, Fer, Social Media Agent, Creativo, Director, Programador, Secretario, Planificador, Oráculo (VPS diferido)
+
+**Todo list pendiente tomorrow:**
+- Smoke test end-to-end El Remitente (primer envío real)
+- Verificar DMARC propagation (TTL 3600s)
+- Real run de los 4 nuevos agentes (sin --dry-run) una vez Jorge confirme
+- El Cartógrafo OAuth (needs laptop — Test User setup en Google Cloud Console)
+- El Contador (financial, diferido)
+- Rebuild Creativo + Director + Programador (Blotato elimination)
+- Decidir cron host (Hostinger PHP wrapper vs VPS) + claude login
+
 ### 2026-04-23 — NotebookLM skill instalado (Google NotebookLM wrapper)
 
 **Repo:** `proyecto26/notebooklm-ai-plugin` (MIT ✓)
