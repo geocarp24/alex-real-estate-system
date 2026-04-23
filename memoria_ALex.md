@@ -1441,3 +1441,17 @@ Copy inicial habló al público equivocado (inversionistas: "off-market deals").
 **Lección:** ante cualquier componente de marketing, validar AUDIENCIA (quién) y PROPUESTA DE VALOR (qué obtiene) antes de escribir copy. El error fue asumir "deals" = lenguaje universal — en real estate, "deals" pertenece al lado investor, no al lado homeowner.
 
 **Pendiente operacional para Jorge:** el popup promete "first guide" en el success message. Hace falta configurar un email real (Mailchimp/Beehiiv/Convertkit) que mande la guía de bienvenida automáticamente cuando llega un nuevo subscriber a Airtable Contacts. Sin eso, el promise queda sin cumplir.
+
+### Debug pattern 2026-04-23 — URL bypass para testing del popup
+
+Jorge reportó "no está funcionando". Diagnóstico systematic-debugging:
+- L1–L6 server-side todos ✓ (tags emitidos, archivos 200, JS parsea, byte-idéntico, gates intactas)
+- Root cause: localStorage gate en su browser (`pnp_popup_shown` con timestamp <30d tras dismissal previo) → el IIFE hace silent return en línea 20.
+
+**Fix aplicado:** añadido URL override `?pnp_force=1` en `pinnacle_popup.js`. Cuando la URL contiene ese query param:
+1. Se saltan las 3 gates (subscribed / cooldown / mobile-width)
+2. El trigger se reduce a 500ms (vs 5000ms normal) para preview rápido
+
+**Uso:** `https://pinnaclegroupwi.com/?pnp_force=1` (o cualquier URL del sitio con `?pnp_force=1`). Regular visitors no afectados — la lógica anti-annoyance sigue para ellos.
+
+**Lección:** toda pieza de UI con gating client-side debe tener un URL bypass para QA/preview. El 30d cooldown es correcto para usuarios reales, pero sin escape hatch el propio dueño queda atrapado tras el primer dismiss.
