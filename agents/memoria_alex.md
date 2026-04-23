@@ -142,6 +142,9 @@ WRITE inmediato: reglas/lecciones/aprobaciones, bugs+root-cause, credenciales, d
 WRITE al cierre: resumen datado en las 3 memorias conjuntas + auto-backup.
 Skill designado: `self-improving-agent`.
 
+### MOBILE-FIRST — PRIORIDAD #1 PERMANENTE (2026-04-23)
+Todo componente nuevo (popup, form, page, chatbot, email, creative, CTA) se diseña y prueba mobile-first. Real estate = mobile-dominant audience. NUNCA excluir mobile por viewport. CSS base para mobile → media queries hacia desktop. Tap targets ≥ 44px. Test mobile PRIMERO. Detalle en `memoria_ALex.md` regla R7 y `CLAUDE.md` sección 1b.
+
 ---
 
 *Última actualización: 2026-04-22*
