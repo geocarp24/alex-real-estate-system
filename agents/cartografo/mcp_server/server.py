@@ -429,9 +429,25 @@ def gbp_publish_post(
         return {"ok": False, "error": "APPROVAL_REQUIRED: approved_by field must reference Telegram approval"}
     if len(summary) > 1500:
         return {"ok": False, "error": "POST_TOO_LONG: summary must be <=1500 chars"}
-    # TODO: POST https://mybusiness.googleapis.com/v4/{location_id}/localPosts
-    _audit("gbp_publish_post", {"location_id": location_id, "summary": summary[:200]}, None, None, approved_by)
-    return {"ok": False, "error": "STUB_NOT_IMPLEMENTED", "action_taken": "audit_logged"}
+
+    body: dict[str, Any] = {
+        "languageCode": "en",
+        "summary": summary,
+        "topicType": "STANDARD",
+    }
+    if call_to_action_type and call_to_action_url:
+        body["callToAction"] = {"actionType": call_to_action_type, "url": call_to_action_url}
+    if media_url:
+        body["media"] = [{"mediaFormat": "PHOTO", "sourceUrl": media_url}]
+
+    url = f"https://mybusiness.googleapis.com/v4/{location_id}/localPosts"
+    code, resp = _gbp_call("POST", url, body=body)
+    _audit("gbp_publish_post",
+           {"location_id": location_id, "summary": summary[:200], "cta_type": call_to_action_type, "cta_url": call_to_action_url},
+           resp, code, approved_by)
+    if code not in (200, 201):
+        return {"ok": False, "http": code, "error": resp, "action_taken": "audit_logged"}
+    return {"ok": True, "post": resp, "action_taken": "post_published"}
 
 @mcp.tool()
 @_guard("gbp_respond_review")
