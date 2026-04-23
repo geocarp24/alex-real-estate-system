@@ -2345,10 +2345,22 @@ Jorge se movió a PC. Desbloqueó lo que estaba bloqueado en iPhone.
 **17 cron triggers ahora activos en GHA + 4 en Hostinger = 21 jobs autónomos.**
 
 **Todo list pendiente (roadmap real):**
-- Jorge verifica email DKIM/DMARC en Gmail
-- Jorge verifica crons Hostinger toggle verde
-- Mañana 11 AM CT: validar que reloj suizo avance contactos step 1→2
-- Jorge solicita aumento quota GBP API (10 min en Google Cloud Console)
+- ✅ Jorge confirmó: email smoke test recibido OK
+- ✅ Jorge confirmó: 4 crons Hostinger activos
+- ✅ DMARC/SPF/DKIM propagados globalmente confirmed (DoH check 2026-04-23 night)
+- ✅ Supervisor pagination fix (ahora ve los 361 reales no solo 100)
+- ✅ Supervisor auto-trigger incident mode cuando heartbeat red
+- ✅ Supervisor smart stale detection (no alerta cron si no hay TBC work pending)
+- ✅ Remitente v2 3 modos live (process_welcome, process_drip, schedule_send)
+- 🚨 **BLOQUEANTE CARTÓGRAFO: GBP listing NOT PUBLICLY VISIBLE** (Jorge screenshot 2026-04-23 night)
+  - Listing "Pinnacle Holdings Group — We Buy Houses Cash Wisconsin" existe pero sin verificar
+  - Google solo ofrece video verification (3-5 días review)
+  - Jorge NO puede hacer video ahora → DIFERIDO
+  - Descripción en proceso: 726/750 chars ES listos para pegar
+  - Todo el MCP server del Cartógrafo queda listo pero **frozen** hasta que el listing sea público
+  - Quota increase postergada hasta post-verificación (no sirve antes)
+- Mañana 11 AM CT: validar que reloj suizo avance Contactos step 1→2
+- Cuando Jorge pueda grabar video verification: desbloquear Cartógrafo completo
 - Implementar Cartógrafo `gbp_upload_photo` (multipart — futuro cuando se necesite)
 - Debug del 4to inbound de Fer que no se guardó en conversations
 - Rebuild Creativo + Director + Programador (Blotato elimination)
