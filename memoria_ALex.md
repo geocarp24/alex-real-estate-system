@@ -1685,6 +1685,39 @@ Ya analicé todo, cuando Jorge elija las 3 respuestas ejecuto en ~30 min (Camino
 
 **Próximo paso natural** (si Jorge lo habilita): continuar la queue con **Claude SEO** — buscar skill, evaluar, instalar, diseñar El Posicionador.
 
+### 2026-04-23 — gstack instalado (Garry Tan's Claude Code setup)
+
+Jorge pidió "gistak" = **gstack** (typo de autocorrect). Confirmado + instalado.
+
+**Repo:** `garrytan/gstack` v1.6.1.0 (66K stars)
+**Licencia:** MIT ✓
+**Ubicación:** `/root/.claude/skills/gstack/`
+**Stack:** Bun 1.3.11 + Playwright Chromium (278MB descargado)
+
+**42 skills linkeados** (slash commands en Claude Code):
+- **Planning:** `/plan-ceo-review`, `/plan-eng-review`, `/plan-design-review`, `/plan-devex-review`, `/plan-tune`, `/autoplan`, `/office-hours`, `/cso`
+- **Design:** `/design-consultation`, `/design-review`, `/design-shotgun`, `/design-html`
+- **QA:** `/qa`, `/qa-only`, `/browse`, `/open-gstack-browser`, `/setup-browser-cookies`
+- **Review:** `/review`, `/devex-review`, `/careful`
+- **Deploy:** `/ship`, `/land-and-deploy`, `/canary`, `/setup-deploy`, `/freeze`, `/guard`, `/unfreeze`
+- **Ops:** `/investigate`, `/health`, `/document-release`, `/retro`, `/benchmark`, `/benchmark-models`
+- **Meta:** `/context-save`, `/context-restore`, `/learn`, `/pair-agent`, `/codex`, `/gstack-upgrade`, `/make-pdf`
+
+**Uso estratégico para Pinnacle + R8 SaaS-ready:**
+- `/review` + `/qa` antes de cada `/ship` — production gates
+- `/design-review` para popup/webform/chatbot UI antes de deploy — valida con ojo de diseñador
+- `/investigate` + `/retro` para post-mortems tipo el bug del mobile-gate del popup de hoy
+- `/canary` cuando empecemos a vender a 2º cliente — deploy gradual
+- `/freeze` + `/guard` cuando hay campañas críticas en producción
+- `/make-pdf` como alternativa independiente a market-report-pdf
+- `/plan-ceo-review` para decisiones grandes — rethink desde visión producto
+
+**Actualización:** `/gstack-upgrade` sync manual + `gstack-config set auto_upgrade true` para auto-sync.
+
+**Complementariedad con skills existentes:**
+- gstack aporta GATES y PIPELINES (flujos conectados) — no reemplaza los skills atomicos existentes (`code-review-excellence`, `verification-before-completion`, `systematic-debugging`), los conecta.
+- No es domain agent (R9) — es capa de disciplina de ingeniería transversal. ALEX invoca cuando aplica.
+
 ### R9. SUB-AGENTES DEDICADOS ALWAYS-ON POR DOMINIO (2026-04-23)
 **Orden directa de Jorge — NO NEGOCIABLE.**
 
