@@ -23,7 +23,7 @@ NUNCA hardcodees valores específicos de Pinnacle. Todo lo tenant-specific viene
 - `telegram.*` — a quién alertar
 - `alert_thresholds.*` — cuándo escalar
 
-Pinnacle (tenant zero) es `agents/tenants/pinnacle.yaml`. Futuros clientes agregan su propio YAML.
+Pinnacle (tenant zero) es `agents/tenants/pinnacle.json`. Futuros clientes agregan su propio YAML.
 
 ## Modos de operación
 
@@ -117,7 +117,7 @@ Este skill es V1 draft. Pendiente de Jorge para pasar a producción:
 
 ALEX puede invocar El Mercader vía Agent tool:
 ```
-Agent(subagent_type="general-purpose", prompt="Act as El Mercader sub-agent. Read agents/tenants/pinnacle.yaml. Run deep_audit mode. Use skill-creator format. Report back structured JSON.")
+Agent(subagent_type="general-purpose", prompt="Act as El Mercader sub-agent. Read agents/tenants/pinnacle.json. Run deep_audit mode. Use skill-creator format. Report back structured JSON.")
 ```
 
 O directamente ejecutar el orchestrator: `node agents/mercader/mercader.mjs --tenant pinnacle --mode deep_audit`
