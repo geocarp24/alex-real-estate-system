@@ -4,8 +4,37 @@
   "industry": "real-estate",
   "primary_language": "en",
   "markets": [
-    { "state": "WI", "cities": ["Milwaukee", "Madison", "Green Bay", "Racine", "Kenosha", "Appleton", "Waukesha"] }
+    {
+      "state": "WI",
+      "scope": "state-wide",
+      "cities_primary": [
+        "Milwaukee", "Madison", "Green Bay", "Kenosha", "Racine",
+        "Appleton", "Waukesha", "Eau Claire", "Oshkosh", "Janesville",
+        "West Allis", "La Crosse", "Sheboygan", "Wauwatosa", "Fond du Lac"
+      ]
+    }
   ],
+  "regional_scope": {
+    "primary":    "WI",
+    "secondary":  ["MN", "IL", "IA", "MI"],
+    "primary_weight":   0.75,
+    "secondary_weight": 0.25
+  },
+  "search_engines": [
+    "google",
+    "bing",
+    "duckduckgo",
+    "brave",
+    "chatgpt-search",
+    "perplexity",
+    "ai-overviews",
+    "google-sge"
+  ],
+  "seo_goals": {
+    "per_page_target_rank": 1,
+    "primary_priority":     "WI state-wide local SEO + Google Maps dominance",
+    "secondary_priority":   "Regional US ranking for 'Wisconsin' intent queries from IL/MN/IA/MI"
+  },
 
   "website": "https://pinnaclegroupwi.com",
   "secondary_sites": [],
