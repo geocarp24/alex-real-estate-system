@@ -1584,6 +1584,18 @@ LLM_PROVIDER=claude-cli
 
 **Pendiente:** primer smoke test con escenario Pinnacle real (ej: simular reacción al popup copy "Thinking about selling? Know your options first."). Jorge decide cuándo arrancamos.
 
+### 2026-04-23 — Queue de investigación de skills (Phase 2)
+
+Jorge pidió investigar/evaluar/ejecutar en secuencia:
+1. **Marketing skills** (en curso)
+2. **Claude SEO** (siguiente)
+3. **Claude ADS** (después)
+
+Protocolo por cada uno: investigar GitHub → evaluar con lente **Phase 2 ads/promo + R8 SaaS-ready + R7 mobile-first** → instalar si fit claro → grabar en memoria → reportar.
+
+**Pendiente de Jorge** (NO bloquea la queue, pero importante resolver):
+- 3 decisiones sobre arquitectura de El Oráculo (pipeline paralelo / opt-in gate / primera prueba popup-or-carrusel). Cuando responda, seguimos con wiring de El Oráculo.
+
 ---
 
 ### R8. SAAS-READY / MULTI-TENANT-FIRST — PRINCIPIO ARQUITECTURAL PERMANENTE
