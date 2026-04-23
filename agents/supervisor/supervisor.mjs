@@ -280,8 +280,10 @@ function scoreHealth(infra, pipeline, cfg) {
   if (pipeline.ghosts.length > 0) {
     warnings.push(`${pipeline.ghosts.length} contactos fantasma detectados (auto-reset aplicado).`);
   }
-  if (pipeline.contacts_tbc === 0 && pipeline.contacts_new > 50) {
-    warnings.push(`${pipeline.contacts_new} contactos en "New" sin promover → Jorge tiene backlog de revisión.`);
+  if (pipeline.contacts_new > newBacklogCritThreshold) {
+    critical.push(`${pipeline.contacts_new} contactos en "New" sin promover (>${newBacklogCritThreshold}) — backlog fuera de control.`);
+  } else if (pipeline.contacts_new > newBacklogThreshold) {
+    warnings.push(`${pipeline.contacts_new} contactos en "New" sin promover (>${newBacklogThreshold}) — considera revisar.`);
   }
 
   const health = critical.length > 0 ? "red" : warnings.length > 0 ? "yellow" : "green";
