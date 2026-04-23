@@ -51,7 +51,7 @@ on:
         type: choice
         required: true
         default: "mercader"
-        options: [mercader, posicionador, escriba, cazador, clasificador, analista, espia, auditor]
+        options: [mercader, posicionador, escriba, cazador, clasificador, analista, espia, auditor, remitente]
       mode:
         description: "Mode (depends on agent)"
         type: string
