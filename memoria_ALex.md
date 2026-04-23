@@ -1646,6 +1646,36 @@ Jorge aprobó proceder con la queue de Phase 2. Primer item: marketing skills.
 **Repo:** `zubair-trabzada/ai-marketing-claude`
 **Status queue:** Marketing ✅ — Siguiente: Claude SEO (buscar especialista SEO para complementar `/market seo` del suite general)
 
+### R9. SUB-AGENTES DEDICADOS ALWAYS-ON POR DOMINIO (2026-04-23)
+**Orden directa de Jorge — NO NEGOCIABLE.**
+
+Cada nuevo skill de Phase 2 (marketing, SEO, ads, etc.) tiene su **sub-agente dedicado que lo usa 100% del tiempo, no on-demand**. Patrón: monitoreo continuo + alertas automáticas + reportes periódicos + histórico en Airtable.
+
+**Arquitectura por sub-agente:**
+1. **Spec en `agents/<nombre>.md`** (tenant-aware per R8)
+2. **Invocación:** cron (semanal/diaria según dominio) + on-demand desde ALEX
+3. **Storage:** tabla Airtable dedicada por dominio (`SEO_Audits`, `Marketing_Audits`, `Ad_Performance`, etc.)
+4. **Alertas:** Telegram al Jefe cuando se detectan issues o umbrales cruzados
+5. **Billing hook:** usage meter por tenant (R8)
+
+**Plantel propuesto (nombres sugeridos, Jorge aprueba/renombra):**
+
+| Sub-agente | Dominio | Skill base | Cadencia | Estado |
+|---|---|---|---|---|
+| **El Oráculo** | Predicción/simulación pre-launch | MiroFish | opt-in gate (pre-campaign) | smoke test corriendo |
+| **El Mercader** | Marketing ops / audits | ai-marketing-claude | Semanal auto-audit a pinnaclegroupwi.com + competidores WI | pendiente |
+| **El Posicionador** | SEO monitor | Claude SEO (siguiente queue) | Diario health check + semanal deep audit | pendiente install + build |
+| **El Cazador** | Ads performance | Claude ADS (último queue) | Diario monitoring de spend + CTR + ROAS | pendiente install + build |
+
+**Default pattern para cada always-on sub-agente:**
+- **Diario 8 AM CST:** quick health check → Telegram brief si todo OK, alerta si hay issue
+- **Semanal lunes 9 AM CST:** deep audit → genera reporte PDF/MD → guarda en Airtable + link en Telegram
+- **On-demand:** Jorge o ALEX piden análisis puntual
+
+**R9 se complementa con R6 (memoria) + R7 (mobile-first) + R8 (SaaS-ready) — los sub-agentes siguen todas las reglas anteriores.**
+
+**Aprobado por:** Jorge Cruz — 2026-04-23
+
 ---
 
 ### R8. SAAS-READY / MULTI-TENANT-FIRST — PRINCIPIO ARQUITECTURAL PERMANENTE
