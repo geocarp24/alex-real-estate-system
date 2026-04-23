@@ -6,8 +6,27 @@
   "industry": "real-estate",
   "primary_language": "en",
   "markets": [
-    { "state": "WI", "cities": ["Milwaukee", "Madison", "Green Bay"] }
+    {
+      "state": "XX",
+      "scope": "state-wide | metro-only | national",
+      "cities_primary": ["City1", "City2", "City3"]
+    }
   ],
+  "regional_scope": {
+    "primary":    "XX",
+    "secondary":  [],
+    "primary_weight":   0.75,
+    "secondary_weight": 0.25
+  },
+  "search_engines": [
+    "google", "bing", "duckduckgo", "brave",
+    "chatgpt-search", "perplexity", "ai-overviews", "google-sge"
+  ],
+  "seo_goals": {
+    "per_page_target_rank": 1,
+    "primary_priority":     "",
+    "secondary_priority":   ""
+  },
 
   "website": "",
   "secondary_sites": [],
