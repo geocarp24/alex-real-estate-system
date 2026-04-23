@@ -29,10 +29,12 @@ define('FC_CONTACTS', 'tblacvw0Ss770x8l5');
 define('FC_LEADS', 'tblxZz2EWIglOLnEd');
 define('FC_MAX_PER_RUN', 6);
 define('FC_HOURS_BETWEEN', 24);
-define('FC_SMS_DELAY_SECONDS', 15);  // Human-like pacing: avoid carrier rate-limit / spam filters
+define('FC_SMS_DELAY_SECONDS', 5);  // Pacing between sends. 5s keeps total runtime <40s for 6 msgs so a 60s cron invoker does not time out.
 
-// Give ourselves enough headroom for throttled sending.
-@set_time_limit(300);  // 5 min wall clock (6 msgs × 15s = 90s + overhead)
+// Cron invokers may close the connection after ~60s. Keep PHP running so the full batch completes.
+@ignore_user_abort(true);
+@set_time_limit(300);
+@ini_set('max_execution_time', 300);
 
 // Propagate a Contact.Stage change to every linked Lead record.
 // Keeps Leads table in sync with the Contacts pipeline.
