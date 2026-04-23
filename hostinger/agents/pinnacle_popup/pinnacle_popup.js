@@ -7,19 +7,24 @@
   window.__pnpPopupLoaded = true;
 
   var API = "/agents/pinnacle_public.php";
-  var TRIGGER_MS = 5000;
+  // URL override for testing: append ?pnp_force=1 to any page URL to bypass all gates
+  // and fire the popup in 500ms. Regular visitors are unaffected.
+  var FORCE = /[?&]pnp_force=1/.test(location.search || "");
+  var TRIGGER_MS = FORCE ? 500 : 5000;
   var COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
   var MOBILE_THRESHOLD = 480;
   var K_SHOWN  = "pnp_popup_shown";    // timestamp of last dismiss
   var K_SUBSCRIBED = "pnp_popup_subscribed"; // "1" once subscribed
 
-  // ---- Anti-annoyance pre-checks ----
-  try {
-    if (localStorage.getItem(K_SUBSCRIBED) === "1") return;
-    var last = parseInt(localStorage.getItem(K_SHOWN) || "0", 10);
-    if (last && (Date.now() - last) < COOLDOWN_MS) return;
-  } catch(e) {}
-  if (window.innerWidth < MOBILE_THRESHOLD) return;
+  // ---- Anti-annoyance pre-checks (bypassed by ?pnp_force=1) ----
+  if (!FORCE) {
+    try {
+      if (localStorage.getItem(K_SUBSCRIBED) === "1") return;
+      var last = parseInt(localStorage.getItem(K_SHOWN) || "0", 10);
+      if (last && (Date.now() - last) < COOLDOWN_MS) return;
+    } catch(e) {}
+    if (window.innerWidth < MOBILE_THRESHOLD) return;
+  }
 
   // ---- i18n ----
   var LANG = (navigator.language || "en").toLowerCase().indexOf("es") === 0 ? "es" : "en";
