@@ -1934,6 +1934,77 @@ El Posicionador identifica QUÉ falta. El Escriba escribe QUÉ llena el hueco.
 
 **Estado Cartógrafo post-test:** scaffold completo, env vars pendientes de OAuth JSON. Cuando Jorge pase el JSON, cableo las HTTP calls reales de los 10 tools (estimado: 30 min).
 
+### 2026-04-23 — El Cartógrafo: OAuth paused (Google Cloud Console desde iPhone es demasiado fragil)
+
+Jorge hizo el Google Cloud OAuth client (Web app, `pinnacle-alex-bot`). Pegó el JSON completo via chat, lo guardé a `agents/cartografo/secrets/pinnacle_gbp_oauth.json` (chmod 600, gitignored). **client_secret SHA256 primeros 16 = `326c82f732d22d22`** — grabar para audit.
+
+OAuth callback PHP shipped y live (`https://pinnaclegroupwi.com/agents/oauth_gbp_callback.php`) + Jorge agregó esa URL como 2da redirect URI. Le pasé link de autorización — obtuvo 403 de Google (app en "Testing" mode, falta agregarse como Test User). **Desde iPhone no pudo navegar a la pantalla de Test Users** — la Google Cloud Console mobile es inconsistente. **Decisión:** pausar Cartógrafo hasta que Jorge tenga laptop (5 min setup vs horas peleando en mobile). Todo el scaffold + OAuth JSON + callback + URL de authorization quedan listos. State del OAuth pending en `agents/cartografo/secrets/_pending_oauth_state.txt`.
+
+### 2026-04-23 — El Remitente v1 SHIPPED (4to sub-agente R9, email Airtable-native)
+
+**Decisión arquitectural clave (por orden de Jorge):** email marketing 100% in-house, cero servicios externos (no Beehiiv, no ConvertKit, no Resend, no Mailchimp). Hostinger SMTP (`deals@pinnaclegroupwi.com`) + Airtable como source of truth.
+
+**4 tablas Airtable creadas** en Pinnacle CRM (script `agents/_setup/create_email_tables.py`, idempotente):
+| Table | ID |
+|---|---|
+| `Email_Subscribers` | `tblEiB0fBeGxxq7if` |
+| `Email_Templates` | `tbljcO5b5i2SZs3ze` |
+| `Email_Campaigns` | `tblBJAtH3k1IVhqqc` |
+| `Email_Events` | `tblTNKwwXZTBXymOD` |
+
+**`hostinger/agents/pinnacle_mail.php`** — endpoint público en Hostinger con 4 actions:
+- `send_campaign` (privileged, X-Alex-Secret): pulls 1 campaign status=Scheduled + scheduled_at<=now → resuelve audience filter → manda vía PHP mail() con multipart text+HTML + List-Unsubscribe-Post header → logs Email_Events
+- `track_open` (public): 1×1 GIF pixel, GET `?e=TRACKING_ID` → escribe event_type=opened + incrementa `Email_Campaigns.open_count`
+- `track_click` (public): 302 redirect + event_type=clicked
+- `unsubscribe` (public): HMAC-SHA256(email, ALEX_SECRET) token válido → marca `status=Unsubscribed` + muestra página de confirmación brandeada
+
+**`agents/remitente/remitente.mjs`** — Node orchestrator multi-mode:
+- `seed_templates` — siembra 4 templates base (welcome_en/es + nurture_market_update_en/es) con HTML mobile-first 600px max-width
+- `draft_campaign` — usa El Escriba's Content_Queue entry (si existe `--content-queue-id`) o `--topic` para armar subject + preview_text + HTML + text plano via Claude CLI subprocess → escribe a Email_Campaigns status=Draft
+- `weekly_report` — stats últimos 7 días desde Email_Events → Telegram resumen
+- `on_demand` (alias draft_campaign)
+- stub modes: `schedule_send`, `process_welcome`, `process_drip` (v2)
+
+**`pinnacle.json` actualizado** con los 4 `email_*_table_id` cableados.
+
+**Compliance Gmail/Yahoo 2024+ implementado:**
+- From + Reply-To `deals@pinnaclegroupwi.com` (dominio autenticado)
+- `List-Unsubscribe` + `List-Unsubscribe-Post: List-Unsubscribe=One-Click` headers ✅
+- Multipart text+HTML ✅
+- HMAC-signed unsubscribe tokens ✅
+- IP hasheada SHA256 (no plain IPs en logs)
+- Tracking ID opaque (12 hex)
+
+**Verificación:** PHP syntax OK, Node syntax OK, dry-run carga tenant config + muestra los 4 table IDs correctos.
+
+**Pendiente para producción de El Remitente:**
+1. **DKIM + DMARC** — Jorge activa en Hostinger cPanel + DNS (crítico para deliverability):
+   - `_dmarc.pinnaclegroupwi.com TXT "v=DMARC1; p=none; rua=mailto:deals@pinnaclegroupwi.com"`
+   - DKIM cPanel → Email Deliverability → Enable
+2. **Deploy de `pinnacle_mail.php`** — automático al siguiente push a master (workflow handles)
+3. **Run `--mode seed_templates`** una sola vez para sembrar los 4 templates base en Airtable
+4. **Cron entries** en workflow `deploy-hostinger.yml` (4 entries: send_campaign cada 5min, process_welcome daily, process_drip daily, weekly_report lunes)
+5. **Popup mirror** — surgical edit a `pinnacle_public.php` action=`subscribe_email` para que además del Contacts.Email1 actualice también Email_Subscribers con status=Active + source=popup
+
+**Estado plantel R9 al cierre:**
+- El Oráculo — skill ✅, sub-agente diferido VPS
+- El Mercader v1 DRAFT ✅
+- El Posicionador v1 DRAFT + maps_deep mode ✅
+- El Escriba v1 DRAFT ✅ (sub-sub-agente bajo Posicionador)
+- **El Remitente v1 SHIPPED ✅ (email Airtable-native)**
+- El Cartógrafo v1 SCAFFOLD ✅ (OAuth paused hasta laptop)
+- El Cazador — por construir
+- Fer (existente, outbound SMS) — `fer_review_request.php` shipped
+
+**Patrón compartido ahora 4 instancias (Mercader/Posicionador/Escriba/Remitente):** refactor a `agents/_shared/runner.mjs` + `_shared/airtable.mjs` + `_shared/telegram.mjs` es ROI positivo ya. Siguiente build (Cazador) debería usar el shared lib. Deferred mientras Jorge prioriza otras cosas.
+
+**Deployment stack Pinnacle ahora tiene 10 Airtable tables totales:**
+| Core CRM | Contacts, Leads, Deals, Notes & Activity |
+| R9 agent audits | Marketing_Audits, SEO_Audits, Content_Queue, GMB_Queue, GMB_Audit_Log |
+| Email stack | Email_Subscribers, Email_Templates, Email_Campaigns, Email_Events |
+
+Todas con schemas documentados en los SKILL.md respectivos. Zero external dependencies (cero SaaS servicios de email/marketing/SEO).
+
 ### 2026-04-23 — NotebookLM skill instalado (Google NotebookLM wrapper)
 
 **Repo:** `proyecto26/notebooklm-ai-plugin` (MIT ✓)
