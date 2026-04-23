@@ -1797,6 +1797,49 @@ Ya analicé todo, cuando Jorge elija las 3 respuestas ejecuto en ~30 min (Camino
 
 **Nota de refactor:** `mercader.mjs` y `posicionador.mjs` comparten ~80% del código (parseArgs / loadTenant / runClaude / airtableUpsert / telegramSend). Cuando construyamos El Cazador, tendremos 3 instancias del mismo patrón — momento ideal para extraer a `agents/_shared/runner.mjs` y dejar cada sub-agente como thin wrapper con solo `buildPrompt()` + `parseAudit()` específicos. Deferred hasta entonces (R4 cost-benefit: no abstraer con 2 instancias).
 
+### 2026-04-23 — El Escriba v1 DRAFT (sub-sub-agente bajo El Posicionador)
+
+**Jerarquía establecida:** primer caso de agente con dependencia vertical.
+```
+El Posicionador (SEO monitor) cada 3d + semanal
+    └── El Escriba (content writer) semanal + on-demand
+```
+El Posicionador identifica QUÉ falta. El Escriba escribe QUÉ llena el hueco.
+
+**Archivos shipped:**
+- `agents/escriba/SKILL.md` — Anthropic frontmatter + Identity + Jerarquía + 4 modes + Content_Queue schema
+- `agents/escriba/escriba.mjs` — Node orchestrator (chmod +x). Lee Airtable SEO_Audits para context, invoca claude CLI, escribe Content_Queue
+- `agents/escriba/README.md` — deploy guide + cron + token cost estimate + workflow end-to-end
+
+**4 modos:**
+1. **`atp_mine`** (mensual día 1) — genera 50-100 preguntas ATP-style desde `atp_mining.seed_queries`. Default: claude_knowledge. Fallback opcional: gstack `/browse` sobre ATP real
+2. **`plan_week`** (lunes post-Posicionador) — lee último SEO_Audit + ATP questions → calendario semanal de `articles_per_week` (default 3)
+3. **`draft_article`** (mar-jue) — toma artículo status=Planned → draft completo EN+ES + metadata + schema JSON-LD + internal links + external citations. Opcional: publish a WP como status=draft via bridge
+4. **`on_demand`** — ALEX pasa --title + --target-keyword directo, sin pasar por plan
+
+**Token cost/tenant/mes:** ~240-340K tokens = $2.40-3.40. Billing hook limpio para R8 SaaS.
+
+**Extensiones a pinnacle.json + _template.json:**
+- `airtable.content_queue_table_id` — tabla dedicada Content_Queue
+- `content_goals` object: articles_per_week, word_count range, tone, languages, topic_pillars (8 para Pinnacle), content_types + weights, backlink_strategy, atp_mining config, publish_to_wordpress flag
+- `skills.content_plan_week` / `content_draft_article` / `content_atp_mine` — qué skills activa cada modo
+
+**Verificación:** node --check OK + dry-run `plan_week` genera prompt correcto con 8 pillars Pinnacle + 15 ciudades WI + mix EN/ES + token budget.
+
+**3 approvals pendientes:**
+1. Crear tabla `Content_Queue` en Airtable (schema en SKILL.md) → pegar `content_queue_table_id` en tenant JSON
+2. Host cron (compartido con Mercader + Posicionador)
+3. Decidir flow publicación: auto-draft a WP via `pinnacle_wp_bridge.php create_post` OR review-first-en-Airtable-humano-aprueba-después
+
+**Estado plantel R9 al cierre:**
+- El Oráculo — skill ✅, sub-agente diferido VPS
+- El Mercader v1 DRAFT ✅
+- El Posicionador v1 DRAFT ✅
+- **El Escriba v1 DRAFT ✅ (sub-sub-agente bajo Posicionador)**
+- El Cazador — skill ✅, sub-agente por construir
+
+**Patrón compartido confirmado:** Mercader + Posicionador + Escriba comparten ~75% del runtime (parseArgs / loadTenant / runClaude / airtableUpsert / telegramSend). Refactor a `agents/_shared/runner.mjs` se ejecuta cuando sumemos Cazador (4 instancias = ROI claro del abstract).
+
 ### 2026-04-23 — NotebookLM skill instalado (Google NotebookLM wrapper)
 
 **Repo:** `proyecto26/notebooklm-ai-plugin` (MIT ✓)
