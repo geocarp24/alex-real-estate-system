@@ -107,7 +107,7 @@ function buildPrompt(cfg, comp, snap, prior, httpStatus) {
 Tenant: ${cfg.tenant_name} | Competitor: ${comp.name} (${comp.url})
 
 Current scan:
-- HTTP status: ${snap.status}
+- HTTP status: ${httpStatus}
 - title: ${snap.title}
 - h1: ${snap.h1}
 - hero: ${snap.hero}
