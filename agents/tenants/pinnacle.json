@@ -110,6 +110,10 @@
     "content_queue_table_id":  "tblmIlIvmBvX5mLrx",
     "gmb_queue_table_id":      "tbl8OWFFT5X9x8A0E",
     "gmb_audit_log_table_id":  "tbl0lzGZbD71rfBzA",
+    "email_subscribers_table_id": "tblEiB0fBeGxxq7if",
+    "email_templates_table_id":   "tbljcO5b5i2SZs3ze",
+    "email_campaigns_table_id":   "tblBJAtH3k1IVhqqc",
+    "email_events_table_id":      "tblTNKwwXZTBXymOD",
     "token_env":               "AIRTABLE_TOKEN"
   },
 
