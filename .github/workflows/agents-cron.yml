@@ -1,0 +1,138 @@
+name: R9 Agents — Scheduled runs
+
+# Cadence reference (UTC unless noted):
+#   Mercader        — Mon 15:00  deep_audit       (weekly deep marketing)
+#   Mercader        — */3 days 14:00  quick_health
+#   Posicionador    — Mon 16:00  seo_deep         (weekly deep SEO + maps)
+#   Posicionador    — */3 days 14:30  seo_health
+#   Escriba         — Mon 17:00  content_plan_week
+#   Cazador         — Mon 18:00  ads_deep
+#   Cazador         — */3 days 15:00  ads_health
+#   Clasificador    — every 2h  score_batch
+#   Clasificador    — daily 02:00 (= 20:00 CT prev day) rescore_hot
+#   Analista        — Mon 12:00  weekly
+#   Espia           — daily 14:00  daily
+#   Espia           — Sun 15:00  weekly_deep
+#   Auditor         — Fri 15:00  weekly
+#
+# Each cron line maps to exactly one agent+mode via the `determine_job` step.
+
+on:
+  schedule:
+    # Clasificador every 2h (even hours)
+    - cron:  "0 */2 * * *"            # clasificador:score_batch
+    - cron:  "0 2 * * *"              # clasificador:rescore_hot
+    # Analista weekly
+    - cron:  "0 12 * * 1"             # analista:weekly
+    # Mercader
+    - cron:  "0 15 * * 1"             # mercader:deep_audit
+    - cron:  "0 14 */3 * *"           # mercader:quick_health
+    # Posicionador
+    - cron:  "0 16 * * 1"             # posicionador:seo_deep
+    - cron:  "30 14 */3 * *"          # posicionador:seo_health
+    # Escriba
+    - cron:  "0 17 * * 1"             # escriba:content_plan_week
+    # Cazador
+    - cron:  "0 18 * * 1"             # cazador:ads_deep
+    - cron:  "0 15 */3 * *"           # cazador:ads_health
+    # Espia
+    - cron:  "0 14 * * *"             # espia:daily
+    - cron:  "0 15 * * 0"             # espia:weekly_deep
+    # Auditor
+    - cron:  "0 15 * * 5"             # auditor:weekly
+  workflow_dispatch:
+    inputs:
+      agent:
+        description: "Which agent to run"
+        type: choice
+        required: true
+        default: "mercader"
+        options: [mercader, posicionador, escriba, cazador, clasificador, analista, espia, auditor]
+      mode:
+        description: "Mode (depends on agent)"
+        type: string
+        required: true
+        default: "quick_health"
+
+concurrency:
+  group: agents-${{ github.event.schedule || 'manual' }}
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine agent + mode from trigger
+        id: job
+        run: |
+          case "${{ github.event.schedule }}" in
+            "0 */2 * * *")       agent=clasificador; mode=score_batch ;;
+            "0 2 * * *")         agent=clasificador; mode=rescore_hot ;;
+            "0 12 * * 1")        agent=analista;     mode=weekly ;;
+            "0 15 * * 1")        agent=mercader;     mode=deep_audit ;;
+            "0 14 */3 * *")      agent=mercader;     mode=quick_health ;;
+            "0 16 * * 1")        agent=posicionador; mode=seo_deep ;;
+            "30 14 */3 * *")     agent=posicionador; mode=seo_health ;;
+            "0 17 * * 1")        agent=escriba;      mode=content_plan_week ;;
+            "0 18 * * 1")        agent=cazador;      mode=ads_deep ;;
+            "0 15 */3 * *")      agent=cazador;      mode=ads_health ;;
+            "0 14 * * *")        agent=espia;        mode=daily ;;
+            "0 15 * * 0")        agent=espia;        mode=weekly_deep ;;
+            "0 15 * * 5")        agent=auditor;      mode=weekly ;;
+            *)                   agent="${{ inputs.agent || 'mercader' }}"; mode="${{ inputs.mode || 'quick_health' }}" ;;
+          esac
+          echo "agent=$agent" >> $GITHUB_OUTPUT
+          echo "mode=$mode"   >> $GITHUB_OUTPUT
+          echo "Selected: $agent --mode $mode"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Claude Code CLI
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude --version
+
+      - name: Override claude binary path for GHA
+        run: |
+          node -e "
+            const fs=require('fs');
+            const p='agents/tenants/pinnacle.json';
+            const c=JSON.parse(fs.readFileSync(p,'utf8'));
+            c.claude=c.claude||{};
+            c.claude.binary_path='claude';
+            fs.writeFileSync(p, JSON.stringify(c,null,2));
+          "
+
+      - name: Run ${{ steps.job.outputs.agent }} --mode ${{ steps.job.outputs.mode }}
+        env:
+          AIRTABLE_TOKEN:           ${{ secrets.AIRTABLE_TOKEN }}
+          QUO_API_KEY:              ${{ secrets.QUO_API_KEY }}
+          TELEGRAM_BOT_TOKEN:       ${{ secrets.FER_TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:         ${{ secrets.TELEGRAM_CHAT_ID }}
+          ANTHROPIC_API_KEY:        ${{ secrets.ANTHROPIC_API_KEY }}
+          MERCADER_TRIGGER:         "gha"
+          POSICIONADOR_TRIGGER:     "gha"
+          ESCRIBA_TRIGGER:          "gha"
+          CAZADOR_TRIGGER:          "gha"
+          CLASIFICADOR_TRIGGER:     "gha"
+          ANALISTA_TRIGGER:         "gha"
+          ESPIA_TRIGGER:            "gha"
+          AUDITOR_TRIGGER:          "gha"
+        run: |
+          node agents/${{ steps.job.outputs.agent }}/${{ steps.job.outputs.agent }}.mjs \
+            --tenant pinnacle \
+            --mode ${{ steps.job.outputs.mode }}
+
+      - name: Upload run artifacts (if any)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.job.outputs.agent }}-${{ steps.job.outputs.mode }}-${{ github.run_number }}
+          path: agents/${{ steps.job.outputs.agent }}/runs/
+          if-no-files-found: ignore
+          retention-days: 14
