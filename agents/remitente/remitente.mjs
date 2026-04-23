@@ -302,6 +302,234 @@ Rules:
   console.error(`[remitente] draft created campaign_id=${campaign_id}`);
 }
 
+// ===== SMTP helper — sends via Hostinger send_notification.php =====
+async function sendEmailSmtp(cfg, to, subject, bodyText) {
+  const site = (cfg.website || "").replace(/\/$/, "");
+  try {
+    const r = await fetch(`${site}/Tools/send_notification.php`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "email", to, subject, body: bodyText }),
+    });
+    const j = await r.json().catch(() => ({}));
+    return { ok: j.success === true, response: j, http: r.status };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+function unsubUrl(cfg, token) {
+  const site = (cfg.website || "").replace(/\/$/, "");
+  return `${site}/agents/pinnacle_mail.php?action=unsubscribe&t=${encodeURIComponent(token || "")}`;
+}
+
+function renderTemplate(tmpl, sub, cfg) {
+  const email = sub.email || "";
+  const name = (email.split("@")[0] || "friend").replace(/[._-]/g, " ");
+  const vars = {
+    "{{unsub_url}}": unsubUrl(cfg, sub.unsubscribe_token),
+    "{{email}}":    email,
+    "{{name}}":     name,
+    "{{month}}":    new Date().toLocaleString("en-US", { month: "long" }),
+    "{{year}}":     String(new Date().getFullYear()),
+  };
+  const replaceAll = (s) => {
+    let out = String(s || "");
+    for (const [k, v] of Object.entries(vars)) out = out.split(k).join(v);
+    return out;
+  };
+  return {
+    subject: replaceAll(tmpl.subject_template),
+    body:    replaceAll(tmpl.body_text || tmpl.body_html || ""),
+  };
+}
+
+async function fetchTemplatesByCategory(cfg, category) {
+  const c = at_config(cfg);
+  const q = await at_get(cfg, c.temp,
+    `filterByFormula=${encodeURIComponent(`{category}='${category}'`)}&pageSize=20`);
+  const byLang = {};
+  for (const r of q.records || []) {
+    const f = r.fields;
+    if (f.language) byLang[f.language] = f;
+  }
+  return byLang;
+}
+
+async function logEvent(cfg, subscriberEmail, templateId, eventType, metadata = "") {
+  const c = at_config(cfg);
+  if (!c.evt) return;
+  await at_create(cfg, c.evt, {
+    event_id:         randomUUID(),
+    tenant_id:        cfg.tenant_id,
+    subscriber_email: subscriberEmail,
+    template_id:      templateId || "",
+    event_type:       eventType,
+    ts:               new Date().toISOString(),
+    metadata:         metadata,
+  }).catch(() => {});
+}
+
+// ===== Mode: process_welcome =====
+async function modeProcessWelcome(cfg) {
+  const c = at_config(cfg);
+  // Active subscribers that have NEVER received any email yet
+  const formula = `AND({status}='Active', OR({last_email_sent_at}=BLANK(), {last_email_sent_at}=''))`;
+  const q = await at_get(cfg, c.subs,
+    `filterByFormula=${encodeURIComponent(formula)}&pageSize=20&sort[0][field]=subscribed_at&sort[0][direction]=asc`);
+  const subs = q.records || [];
+
+  if (subs.length === 0) {
+    console.error("[remitente] process_welcome: no pending welcomes");
+    return { sent: 0, errs: 0 };
+  }
+
+  const tmpls = await fetchTemplatesByCategory(cfg, "welcome");
+  if (!tmpls.en && !tmpls.es) {
+    console.error("[remitente] process_welcome: no welcome templates seeded — run seed_templates first");
+    return { sent: 0, errs: subs.length };
+  }
+
+  let sent = 0, errs = 0;
+  for (const r of subs) {
+    const f = r.fields;
+    const lang = (f.lang === "es") ? "es" : "en";
+    const tmpl = tmpls[lang] || tmpls.en || tmpls.es;
+    if (!tmpl) { errs++; continue; }
+
+    const rendered = renderTemplate(tmpl, f, cfg);
+    const result = await sendEmailSmtp(cfg, f.email, rendered.subject, rendered.body);
+    if (result.ok) {
+      sent++;
+      await at_update(cfg, c.subs, r.id, { last_email_sent_at: new Date().toISOString() });
+      await logEvent(cfg, f.email, tmpl.template_id, "sent", "welcome");
+      console.error(`[remitente] welcome sent: ${f.email} (${lang})`);
+    } else {
+      errs++;
+      await logEvent(cfg, f.email, tmpl.template_id, "error", String(result.error || result.http));
+      console.error(`[remitente] welcome FAILED: ${f.email} err=${result.error || result.http}`);
+    }
+    await new Promise((r) => setTimeout(r, 500)); // 2/sec pacing
+  }
+
+  const msg = `📧 *El Remitente — welcomes*\nsent: ${sent} · errors: ${errs} · pending: ${subs.length - sent - errs}`;
+  await telegram(cfg, msg);
+  return { sent, errs };
+}
+
+// ===== Mode: process_drip =====
+// Sends nurture email to subscribers whose last email was >= 14 days ago.
+async function modeProcessDrip(cfg) {
+  const c = at_config(cfg);
+  const cutoff = new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString();
+  const formula = `AND({status}='Active', {last_email_sent_at}!='', IS_BEFORE({last_email_sent_at}, DATETIME_PARSE('${cutoff}')))`;
+  const q = await at_get(cfg, c.subs,
+    `filterByFormula=${encodeURIComponent(formula)}&pageSize=20&sort[0][field]=last_email_sent_at&sort[0][direction]=asc`);
+  const subs = q.records || [];
+
+  if (subs.length === 0) {
+    console.error("[remitente] process_drip: no subscribers due for drip");
+    return { sent: 0, errs: 0 };
+  }
+
+  const tmpls = await fetchTemplatesByCategory(cfg, "nurture");
+  if (!tmpls.en && !tmpls.es) {
+    console.error("[remitente] process_drip: no nurture templates available");
+    return { sent: 0, errs: subs.length };
+  }
+
+  let sent = 0, errs = 0;
+  for (const r of subs) {
+    const f = r.fields;
+    const lang = (f.lang === "es") ? "es" : "en";
+    const tmpl = tmpls[lang] || tmpls.en || tmpls.es;
+    if (!tmpl) { errs++; continue; }
+
+    const rendered = renderTemplate(tmpl, f, cfg);
+    const result = await sendEmailSmtp(cfg, f.email, rendered.subject, rendered.body);
+    if (result.ok) {
+      sent++;
+      await at_update(cfg, c.subs, r.id, { last_email_sent_at: new Date().toISOString() });
+      await logEvent(cfg, f.email, tmpl.template_id, "sent", "drip_nurture");
+    } else {
+      errs++;
+      await logEvent(cfg, f.email, tmpl.template_id, "error", String(result.error || result.http));
+    }
+    await new Promise((r) => setTimeout(r, 500));
+  }
+
+  const msg = `💧 *El Remitente — drip tick*\nsent: ${sent} · errors: ${errs} · due: ${subs.length}`;
+  await telegram(cfg, msg);
+  return { sent, errs };
+}
+
+// ===== Mode: schedule_send =====
+// Manually fires a specific campaign by campaign_id to all Active subscribers.
+async function modeScheduleSend(cfg, args) {
+  const c = at_config(cfg);
+  if (!args.campaignId) {
+    console.error("[remitente] schedule_send requires --campaign-id <id>");
+    process.exit(2);
+  }
+  // Fetch campaign
+  const campQ = await at_get(cfg, c.camp,
+    `filterByFormula=${encodeURIComponent(`{campaign_id}='${args.campaignId}'`)}&maxRecords=1`);
+  if (!(campQ.records || []).length) {
+    console.error(`[remitente] schedule_send: campaign_id='${args.campaignId}' not found`);
+    process.exit(2);
+  }
+  const camp = campQ.records[0];
+  const cf = camp.fields;
+
+  // Load template
+  const tmplQ = await at_get(cfg, c.temp,
+    `filterByFormula=${encodeURIComponent(`{template_id}='${cf.template_id || ""}'`)}&maxRecords=1`);
+  const tmpl = (tmplQ.records || [])[0]?.fields;
+  if (!tmpl) {
+    console.error(`[remitente] schedule_send: template not found for campaign`);
+    process.exit(2);
+  }
+
+  // Fetch subscribers (respect audience_filter if present, else all Active)
+  const baseFilter = "{status}='Active'";
+  const audienceFilter = cf.audience_filter ? `AND(${baseFilter},${cf.audience_filter})` : baseFilter;
+  const q = await at_get(cfg, c.subs,
+    `filterByFormula=${encodeURIComponent(audienceFilter)}&pageSize=100`);
+  const subs = q.records || [];
+
+  console.error(`[remitente] schedule_send: campaign='${cf.name || args.campaignId}' targets=${subs.length}`);
+
+  // Mark campaign Sending
+  await at_update(cfg, c.camp, camp.id, { status: "Sending", started_at: new Date().toISOString() });
+
+  let sent = 0, errs = 0;
+  for (const r of subs) {
+    const f = r.fields;
+    const rendered = renderTemplate(tmpl, f, cfg);
+    const result = await sendEmailSmtp(cfg, f.email, rendered.subject, rendered.body);
+    if (result.ok) {
+      sent++;
+      await at_update(cfg, c.subs, r.id, { last_email_sent_at: new Date().toISOString() });
+      await logEvent(cfg, f.email, tmpl.template_id, "sent", `campaign:${args.campaignId}`);
+    } else {
+      errs++;
+      await logEvent(cfg, f.email, tmpl.template_id, "error", `campaign:${args.campaignId}:${result.error || result.http}`);
+    }
+    await new Promise((r) => setTimeout(r, 500));
+  }
+
+  await at_update(cfg, c.camp, camp.id, {
+    status: "Sent",
+    completed_at: new Date().toISOString(),
+    total_sent: sent,
+    total_errors: errs,
+  });
+
+  const msg = `📣 *El Remitente — campaign sent*\n\`${cf.name || args.campaignId}\`\nsent: ${sent} · errors: ${errs} · targeted: ${subs.length}`;
+  await telegram(cfg, msg);
+  return { sent, errs };
+}
+
 // ===== Mode: weekly_report =====
 async function modeWeeklyReport(cfg) {
   const c = at_config(cfg);
