@@ -2093,6 +2093,40 @@ Archivos:
 
 **Próxima sesión (mañana):** verificar DMARC propagation → smoke test end-to-end de El Remitente (primer email real) → validar DKIM=pass + SPF=pass headers en inbox.
 
+### 2026-04-23 23:xx — Jorge aprueba 4 nuevos agentes GAP + roadmap priorizado
+
+Jorge revisó los 5 GAP candidates propuestos + confirmó 4 para construir + difirió 1.
+
+**APROBADOS para build (orden de priorización recomendada por ROI):**
+
+| Prio | Agente | Rol | Uso primario de skills |
+|---|---|---|---|
+| 1 | **Blotato elimination** (3 rebuilds) | El Creativo + El Director + El Programador sin Blotato | open-carrusel + Meta Graph API / Buffer alternative |
+| 2 | **El Clasificador** | Lead scoring — puntúa leads por urgency + distress + property + timeline | product-analytics + experiment-designer + Matemático |
+| 3 | **El Analista** | Weekly exec dashboard (Monday 9 AM CST) unificando outputs de Mercader/Posicionador/Escriba/Remitente/Cazador + CRM pipeline + revenue | kpi-dashboard-design + data-storytelling + board-deck-builder |
+| 4 | **El Espía** | Daily competitor watchdog — scrape webuyuglyhouses WI + HomeVestors Milwaukee + Sell My House Fast, alert on changes | browser-automation + gstack /browse + Firecrawl + competitive-intel |
+| 5 | **El Auditor** | Weekly compliance — WI wholesaler law + TCPA (SMS) + CAN-SPAM (email) + Fair Housing | security-pen-testing + gdpr-data-handling + chief-of-staff |
+
+**DIFERIDO a "for later":**
+- **El Contador** — financial agent (deal P&L, CAC, CAC:LTV, ROI per channel). Jorge: "sí es necesario pero podemos ponerlo en la to do list, para luego".
+
+**Jorge sigue closed por hoy** — smoke test Remitente + verification DMARC espera hasta mañana. Los 5 agentes nuevos también se construirán después del smoke test + según Jorge priorice en el momento.
+
+**Arquitectura proyectada** (aplicará R8 SaaS-ready + R7 mobile-first + patrón compartido con existentes):
+- Todos usarán tenant config `agents/tenants/<slug>.json` con sus propios campos
+- Cada uno crea su tabla Airtable dedicada (El Clasificador: `Lead_Scores`, El Analista: `Weekly_Dashboards`, El Espía: `Competitor_Intel`, El Auditor: `Compliance_Audits`)
+- Refactor a `agents/_shared/runner.mjs` sería ROI claro antes de construir los 4 nuevos (4 existentes + 4 nuevos = 8 instancias del patrón)
+- Todos alertan a Telegram + writeback a Airtable + logs locales por run
+
+**Plantel R9 proyectado completo (post-build):**
+- Core legacy: Scout, Matemático, Fact-Checker, Tracy, Fer, Social Media Agent, Secretario, Planificador
+- R9 Phase 2 core: Mercader, Posicionador (+maps_deep), Escriba, Remitente, Cazador, Cartógrafo (OAuth pending), Oráculo (VPS diferido)
+- **Nuevos sprint 2:** Clasificador, Analista, Espía, Auditor
+- Rebuild sprint 2: Creativo (open-carrusel), Director (?), Programador (Meta Graph API?)
+- **Total projected:** 18+ sub-agentes cuando todo quede shipped
+
+**Cierre de día real 2026-04-23.** Next session: mañana.
+
 ### 2026-04-23 — NotebookLM skill instalado (Google NotebookLM wrapper)
 
 **Repo:** `proyecto26/notebooklm-ai-plugin` (MIT ✓)
