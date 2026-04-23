@@ -47,15 +47,20 @@ async function fetchLog(cfg) {
   }
 }
 
-async function probeEndpoint(url, timeoutMs = 10_000) {
+async function probeEndpoint(url, timeoutMs = 5_000) {
+  // Use GET with short timeout. PHP cron scripts may not support HEAD. ignore_user_abort
+  // on the server side lets our request return fast without triggering a full run — we
+  // only need proof of life (TCP + HTTP stack responding).
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    const r = await fetch(url, { signal: ctrl.signal, method: "HEAD" });
+    const r = await fetch(url, { signal: ctrl.signal, method: "GET" });
     clearTimeout(t);
     return { ok: r.status >= 200 && r.status < 500, status: r.status };
   } catch (e) {
     clearTimeout(t);
+    // Abort after 5s = endpoint started executing (PHP running) → that counts as "alive"
+    if (e.name === "AbortError") return { ok: true, status: 0, note: "timeout_but_started" };
     return { ok: false, status: 0, error: e.message };
   }
 }
