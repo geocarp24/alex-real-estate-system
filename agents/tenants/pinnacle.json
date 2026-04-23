@@ -36,6 +36,49 @@
     "secondary_priority":   "Regional US ranking for 'Wisconsin' intent queries from IL/MN/IA/MI"
   },
 
+  "content_goals": {
+    "articles_per_week":      3,
+    "target_word_count_min":  900,
+    "target_word_count_max":  1800,
+    "tone":                   "empathic + educational + locally credible (Wisconsin homeowner voice)",
+    "languages":              ["en", "es"],
+    "publish_to_wordpress":   true,
+    "wp_default_status":      "draft",
+    "content_types": [
+      { "type": "blog_post",    "weight": 0.5 },
+      { "type": "q_and_a_page", "weight": 0.3 },
+      { "type": "news_article", "weight": 0.1 },
+      { "type": "pillar_page",  "weight": 0.1 }
+    ],
+    "topic_pillars": [
+      "Foreclosure help Wisconsin",
+      "Inherited property sale (probate Wisconsin)",
+      "Divorce and real estate Wisconsin",
+      "Cash home buyers vs realtors comparison",
+      "Selling rental property Wisconsin (landlord exits)",
+      "Back taxes property sale Wisconsin",
+      "Fast home sale relocation",
+      "Wisconsin housing market updates"
+    ],
+    "backlink_strategy": {
+      "target_types":   ["local news", "real estate directories", "legal partnerships (probate/divorce attorneys)", "WI community sites", "Reddit r/Wisconsin / r/Milwaukee"],
+      "monthly_target": 10
+    },
+    "atp_mining": {
+      "enabled":      true,
+      "method":       "claude_knowledge",
+      "fallback_browser": true,
+      "seed_queries": [
+        "sell my house fast wisconsin",
+        "foreclosure help milwaukee",
+        "inherited house wisconsin probate",
+        "cash home buyer madison",
+        "avoid foreclosure wisconsin",
+        "sell house as is wisconsin"
+      ]
+    }
+  },
+
   "website": "https://pinnaclegroupwi.com",
   "secondary_sites": [],
   "brand": {
