@@ -1,0 +1,70 @@
+name: Supervisor — Autonomous Ops Watchdog
+
+on:
+  schedule:
+    # heartbeat every 15 min (uses UTC — cron's min:00/15/30/45)
+    - cron: "*/15 * * * *"
+    # deep every 1h at :05 (offset from heartbeat to avoid collision)
+    - cron: "5 * * * *"
+    # evolve weekly Saturday 07:00 America/Chicago = 12:00 UTC winter / 13:00 UTC summer (we pick 13 UTC — will be 8am CT Sat in winter, 7am CT Sat in summer. Good enough.)
+    - cron: "0 13 * * 6"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Supervisor mode"
+        required: true
+        default: "deep"
+        type: choice
+        options: [heartbeat, deep, evolve, incident]
+
+concurrency:
+  group: supervisor-${{ github.event.schedule || 'manual' }}
+  cancel-in-progress: false
+
+jobs:
+  supervise:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Choose mode from trigger
+        id: mode
+        run: |
+          case "${{ github.event.schedule }}" in
+            "*/15 * * * *") echo "mode=heartbeat" >> $GITHUB_OUTPUT ;;
+            "5 * * * *")    echo "mode=deep"      >> $GITHUB_OUTPUT ;;
+            "0 13 * * 6")   echo "mode=evolve"    >> $GITHUB_OUTPUT ;;
+            *)              echo "mode=${{ inputs.mode || 'heartbeat' }}" >> $GITHUB_OUTPUT ;;
+          esac
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Claude Code CLI
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude --version
+
+      - name: Run Supervisor
+        env:
+          AIRTABLE_TOKEN:     ${{ secrets.AIRTABLE_TOKEN }}
+          QUO_API_KEY:        ${{ secrets.QUO_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.FER_TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+          ANTHROPIC_API_KEY:  ${{ secrets.ANTHROPIC_API_KEY }}
+          SUPERVISOR_TRIGGER: "gha_${{ steps.mode.outputs.mode }}"
+        run: |
+          # For modes that invoke Claude (evolve, incident) the binary path in
+          # pinnacle.json points to a local path that GHA doesn't have.
+          # Override to the GHA-installed claude.
+          node -e "
+            const fs = require('fs');
+            const p = 'agents/tenants/pinnacle.json';
+            const cfg = JSON.parse(fs.readFileSync(p,'utf8'));
+            cfg.claude = cfg.claude || {};
+            cfg.claude.binary_path = 'claude';
+            fs.writeFileSync(p, JSON.stringify(cfg, null, 2));
+          "
+          node agents/supervisor/supervisor.mjs --tenant pinnacle --mode ${{ steps.mode.outputs.mode }}
