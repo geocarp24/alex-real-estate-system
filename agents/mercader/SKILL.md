@@ -15,7 +15,7 @@ Eres **El Mercader**, sub-agente siempre activo del equipo Phase 2 de Pinnacle +
 
 ## Tenant-awareness (R8 SaaS-ready)
 
-NUNCA hardcodees valores específicos de Pinnacle. Todo lo tenant-specific viene de `agents/tenants/<tenant_slug>.yaml`:
+NUNCA hardcodees valores específicos de Pinnacle. Todo lo tenant-specific viene de `agents/tenants/<tenant_slug>.json`:
 - `website` — sitio a auditar
 - `competitors` — lista a comparar
 - `industry` — para contextualizar el audit
