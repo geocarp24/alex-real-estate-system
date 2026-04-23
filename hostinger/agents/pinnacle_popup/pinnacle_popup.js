@@ -25,33 +25,33 @@
   var LANG = (navigator.language || "en").toLowerCase().indexOf("es") === 0 ? "es" : "en";
   var T = {
     en: {
-      badge: "Wisconsin Investors",
-      headline: "Want a head start on the next deal?",
-      subhead: "Off-market opportunities + Wisconsin market insights, twice a month. No spam — unsubscribe anytime.",
+      badge: "Wisconsin Homeowners",
+      headline: "Thinking about selling? Know your options first.",
+      subhead: "Free guides for homeowners facing foreclosure, inherited property, back taxes, or needing a fast sale — pros & cons of every path, plus monthly Wisconsin market updates. No pressure, unsubscribe anytime.",
       placeholder: "you@example.com",
-      cta: "Send Me Deals",
-      decline: "No thanks",
-      trust: "We never share your email",
+      cta: "Send Me Free Guides",
+      decline: "Maybe later",
+      trust: "Free · no obligation · Wisconsin-specific",
       err_required: "Please enter your email",
       err_invalid: "Please enter a valid email",
       err_server: "Connection hiccup — try again.",
       success_title: "You're in!",
-      success_msg: "Check your inbox for a welcome note. Next deal alert coming soon.",
+      success_msg: "Check your inbox — your first guide is on the way. You'll get monthly Wisconsin market updates and homeowner tips, no spam.",
       success_close: "Got it"
     },
     es: {
-      badge: "Inversionistas Wisconsin",
-      headline: "¿Quieres adelantarte al próximo deal?",
-      subhead: "Oportunidades off-market + análisis del mercado de Wisconsin, dos veces al mes. Sin spam — cancela cuando quieras.",
+      badge: "Dueños de Casa en Wisconsin",
+      headline: "¿Pensando en vender? Conoce tus opciones primero.",
+      subhead: "Guías gratis para dueños en foreclosure, con casa heredada, atraso en taxes o que necesitan vender rápido — pros y contras de cada opción, más análisis mensual del mercado de Wisconsin. Sin compromiso, cancela cuando quieras.",
       placeholder: "tu@ejemplo.com",
-      cta: "Envíenme Deals",
-      decline: "No, gracias",
-      trust: "Nunca compartimos tu email",
+      cta: "Recibir Guías Gratis",
+      decline: "Tal vez después",
+      trust: "Gratis · sin compromiso · específico para Wisconsin",
       err_required: "Ingresa tu email",
       err_invalid: "Ingresa un email válido",
       err_server: "Fallo de conexión — intenta otra vez.",
       success_title: "¡Listo!",
-      success_msg: "Revisa tu inbox para un mensaje de bienvenida. Próxima alerta de deal en camino.",
+      success_msg: "Revisa tu inbox — tu primera guía viene en camino. Recibirás análisis mensual del mercado de Wisconsin y tips para dueños de casa, sin spam.",
       success_close: "Entendido"
     }
   };
