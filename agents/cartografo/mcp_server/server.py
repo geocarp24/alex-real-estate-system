@@ -313,34 +313,93 @@ def gbp_health_check() -> dict:
     }
 
 @mcp.tool()
-def gbp_list_locations() -> dict:
-    """List GBP locations for the authenticated account. Read-only."""
-    # TODO: implement via Google Business Profile API v1
-    # GET https://mybusinessaccountmanagement.googleapis.com/v1/accounts/{account}/locations
-    return {"ok": False, "error": "STUB_NOT_IMPLEMENTED", "next_step": "Jorge completes Google Cloud OAuth (Step 1); then we wire the API call."}
+def gbp_list_accounts() -> dict:
+    """List GBP accounts the authenticated identity can access. Read-only."""
+    code, j = _gbp_call("GET", "https://mybusinessaccountmanagement.googleapis.com/v1/accounts")
+    if code != 200:
+        return {"ok": False, "http": code, "error": j}
+    return {"ok": True, "accounts": j.get("accounts", [])}
+
+@mcp.tool()
+def gbp_list_locations(account_name: str = "") -> dict:
+    """List GBP locations for an account.
+
+    Args:
+        account_name: 'accounts/12345' format. If empty, uses first account available.
+    """
+    if not account_name:
+        account_name = _first_account_name() or ""
+        if not account_name:
+            return {"ok": False, "error": "NO_ACCOUNT_FOUND"}
+    read_mask = "name,title,storefrontAddress,phoneNumbers,websiteUri,regularHours,categories,metadata"
+    url = f"https://mybusinessbusinessinformation.googleapis.com/v1/{account_name}/locations?readMask={urllib.parse.quote(read_mask)}"
+    code, j = _gbp_call("GET", url)
+    if code != 200:
+        return {"ok": False, "http": code, "error": j, "account": account_name}
+    return {"ok": True, "account": account_name, "locations": j.get("locations", [])}
 
 @mcp.tool()
 def gbp_get_location(location_id: str) -> dict:
-    """Get a single GBP location by ID. Read-only."""
-    return {"ok": False, "error": "STUB_NOT_IMPLEMENTED", "location_id": location_id}
+    """Get a single GBP location by ID. Read-only.
+
+    Args:
+        location_id: 'locations/12345' or full 'accounts/X/locations/Y' format.
+    """
+    loc_name = location_id if location_id.startswith("locations/") else location_id
+    read_mask = "name,title,storefrontAddress,phoneNumbers,websiteUri,regularHours,categories,profile,serviceItems,metadata"
+    url = f"https://mybusinessbusinessinformation.googleapis.com/v1/{loc_name}?readMask={urllib.parse.quote(read_mask)}"
+    code, j = _gbp_call("GET", url)
+    if code != 200:
+        return {"ok": False, "http": code, "error": j}
+    return {"ok": True, "location": j}
 
 @mcp.tool()
 def gbp_list_reviews(location_id: str, limit: int = 20) -> dict:
-    """List reviews for a location. Read-only. Max 4 calls/day."""
+    """List reviews for a location. Read-only. Max 4 calls/day.
+
+    Args:
+        location_id: 'accounts/X/locations/Y' full name required.
+    """
     allowed, reason = _rate_allow("gbp_list_reviews")
     if not allowed:
         return {"ok": False, "error": reason}
+    url = f"https://mybusiness.googleapis.com/v4/{location_id}/reviews?pageSize={min(limit, 50)}"
+    code, j = _gbp_call("GET", url)
     _rate_record("gbp_list_reviews")
-    return {"ok": False, "error": "STUB_NOT_IMPLEMENTED", "location_id": location_id, "limit": limit}
+    if code != 200:
+        return {"ok": False, "http": code, "error": j}
+    return {"ok": True, "location_id": location_id, "reviews": j.get("reviews", []), "averageRating": j.get("averageRating"), "totalReviewCount": j.get("totalReviewCount")}
 
 @mcp.tool()
-def gbp_list_insights(location_id: str) -> dict:
-    """Get insights (views, searches, actions) for a location. Read-only. Max 1/day."""
+def gbp_list_insights(location_id: str, days: int = 30) -> dict:
+    """Get performance metrics (views, searches, actions) for a location. Read-only. Max 1/day.
+
+    Args:
+        location_id: 'locations/12345' format.
+        days: Lookback window (max 18 months per Google).
+    """
     allowed, reason = _rate_allow("gbp_list_insights")
     if not allowed:
         return {"ok": False, "error": reason}
+    end = datetime.now(timezone.utc)
+    start = end.timestamp() - days * 86400
+    start_iso = datetime.fromtimestamp(start, tz=timezone.utc).strftime("%Y-%m-%d")
+    end_iso = end.strftime("%Y-%m-%d")
+    metrics = [
+        "BUSINESS_IMPRESSIONS_DESKTOP_MAPS", "BUSINESS_IMPRESSIONS_DESKTOP_SEARCH",
+        "BUSINESS_IMPRESSIONS_MOBILE_MAPS",  "BUSINESS_IMPRESSIONS_MOBILE_SEARCH",
+        "CALL_CLICKS", "WEBSITE_CLICKS", "BUSINESS_DIRECTION_REQUESTS",
+    ]
+    loc_name = location_id if location_id.startswith("locations/") else f"locations/{location_id}"
+    params = "&".join(f"dailyMetrics={m}" for m in metrics) + \
+             f"&dailyRange.start_date.year={start_iso[:4]}&dailyRange.start_date.month={int(start_iso[5:7])}&dailyRange.start_date.day={int(start_iso[8:10])}" + \
+             f"&dailyRange.end_date.year={end_iso[:4]}&dailyRange.end_date.month={int(end_iso[5:7])}&dailyRange.end_date.day={int(end_iso[8:10])}"
+    url = f"https://businessprofileperformance.googleapis.com/v1/{loc_name}:fetchMultiDailyMetricsTimeSeries?{params}"
+    code, j = _gbp_call("GET", url)
     _rate_record("gbp_list_insights")
-    return {"ok": False, "error": "STUB_NOT_IMPLEMENTED", "location_id": location_id}
+    if code != 200:
+        return {"ok": False, "http": code, "error": j}
+    return {"ok": True, "location_id": location_id, "days": days, "series": j.get("multiDailyMetricTimeSeries", [])}
 
 # ============================================================
 # MCP Tools — Write-side (guarded)
