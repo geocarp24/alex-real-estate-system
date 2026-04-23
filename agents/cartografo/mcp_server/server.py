@@ -506,8 +506,14 @@ def gbp_answer_qa(
     """Post an answer to a user question on GBP. Max 2/day."""
     if not approved_by:
         return {"ok": False, "error": "APPROVAL_REQUIRED"}
-    _audit("gbp_answer_qa", {"question_name": question_name, "answer_text": answer_text[:200]}, None, None, approved_by)
-    return {"ok": False, "error": "STUB_NOT_IMPLEMENTED", "action_taken": "audit_logged"}
+    if len(answer_text) > 4096:
+        return {"ok": False, "error": "ANSWER_TOO_LONG"}
+    url = f"https://mybusinessqanda.googleapis.com/v1/{question_name}/answers:upsert"
+    code, resp = _gbp_call("POST", url, body={"answer": {"text": answer_text}})
+    _audit("gbp_answer_qa", {"question_name": question_name, "answer_text": answer_text[:200]}, resp, code, approved_by)
+    if code not in (200, 201):
+        return {"ok": False, "http": code, "error": resp, "action_taken": "audit_logged"}
+    return {"ok": True, "answer": resp, "action_taken": "answer_posted"}
 
 # ============================================================
 # Hard-prohibited ops (return error always)
