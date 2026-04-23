@@ -1749,6 +1749,54 @@ Ya analicé todo, cuando Jorge elija las 3 respuestas ejecuto en ~30 min (Camino
 
 **Próximos R9:** mismo patrón para El Posicionador (usa `/seo audit`), El Cazador (usa `/ads audit`), El Oráculo (usa MiroFish CLI).
 
+### 2026-04-23 — El Posicionador v1 DRAFT COMPLETO (segundo sub-agente R9)
+
+**Especificación final Jorge (orden directa 2026-04-23):**
+- **Objetivo operativo:** posicionar TODAS las páginas del tenant en #1 en TODOS los motores (Google + Bing + DuckDuckGo + Brave + ChatGPT Search + Perplexity + AI Overviews + Google SGE — la lista está en `tenant.search_engines[]` para que el tenant la ajuste)
+- **Cadencia:** cada 3 días (modo `seo_health` — amplio pero lightweight) + semanal lunes (modo `seo_deep` — reporte client-ready)
+- **Prioridad PRIMARIA:** local SEO state-wide Wisconsin (15 ciudades top, no solo Milwaukee)
+- **Prioridad SECUNDARIA:** regional US desde estados vecinos (IL, MN, IA, MI) — peso 25%
+- **Mobile-first (R7):** Core Web Vitals móviles + mobile rank = señal primaria
+
+**Archivos shipped:**
+- `agents/posicionador/SKILL.md` — Anthropic frontmatter + Identity + Objetivo operativo + 3 modes + Airtable schema SEO_Audits
+- `agents/posicionador/posicionador.mjs` — Node orchestrator (chmod +x). Soporta `--mode seo_health|seo_deep|on_demand` + `--dry-run`
+- `agents/posicionador/README.md` — deploy guide
+- `agents/tenants/pinnacle.json` expandido con:
+  - `markets[].cities_primary` = 15 ciudades top WI
+  - `regional_scope` = {primary: WI, secondary: [MN,IL,IA,MI], weights 0.75/0.25}
+  - `search_engines` = [google, bing, duckduckgo, brave, chatgpt-search, perplexity, ai-overviews, google-sge]
+  - `seo_goals` = {per_page_target_rank: 1, primary_priority, secondary_priority}
+  - `airtable.seo_table_id` — campo separado para no colisionar con Mercader's `table_id`
+- `agents/tenants/_template.json` — mismas extensiones para R8 consistency
+
+**Verificación:** `node --check` OK + dry-run `seo_health` y `seo_deep` producen prompts correctos con state-wide cities + multi-engine + per-page target.
+
+**Prompts generados (muestra):**
+- `seo_health` prompt: 53 líneas — incluye inventario sitemap, rank probe de top 10 pages en 8 engines, mobile CWV check, local health WI primario
+- `seo_deep` prompt: 100+ líneas — pipeline completo `/seo sitemap → audit → technical → local → maps → content → drift → per-page rank probe → schema → competitor gaps`, con tabla Markdown de rank inventory por engine, geo-grid 15 ciudades WI, regional US check
+
+**Airtable schema SEO_Audits extendido** (vs Marketing_Audits de Mercader):
+- `technical_score`, `local_score`, `content_score` (sub-scores dedicados)
+- `mobile_cwv` (LCP/CLS/INP con PASS/WARN/FAIL)
+- `local_ranks` (rank per ciudad)
+- `competitor_gaps`, `schema_coverage`, `score_delta` (drift)
+
+**Airtable separation R8:** tenant JSON ahora soporta `table_id` (Mercader), `seo_table_id` (Posicionador), `ads_table_id` (Cazador future), `oracle_table_id` (Oraculo future). Cada sub-agente escribe a su tabla dedicada. Si falta, fallback al `table_id` genérico.
+
+**3 approvals pendientes para producción (mismo set que Mercader):**
+1. Crear tabla `SEO_Audits` en Airtable base `appU9s3kGkVpdrJkw` → pegar `table_id` en `pinnacle.json.airtable.seo_table_id`
+2. Host del cron (Hostinger PHP o VPS) — compartido con Mercader
+3. `claude login` en el host
+
+**Estado plantel R9 al cierre 2026-04-23:**
+- El Oráculo — skill ✅, sub-agente diferido a VPS
+- **El Mercader v1 DRAFT** ✅ — pending approvals
+- **El Posicionador v1 DRAFT** ✅ — pending approvals
+- El Cazador — skill ✅, sub-agente por construir (mismo patrón)
+
+**Nota de refactor:** `mercader.mjs` y `posicionador.mjs` comparten ~80% del código (parseArgs / loadTenant / runClaude / airtableUpsert / telegramSend). Cuando construyamos El Cazador, tendremos 3 instancias del mismo patrón — momento ideal para extraer a `agents/_shared/runner.mjs` y dejar cada sub-agente como thin wrapper con solo `buildPrompt()` + `parseAudit()` específicos. Deferred hasta entonces (R4 cost-benefit: no abstraer con 2 instancias).
+
 ### 2026-04-23 — NotebookLM skill instalado (Google NotebookLM wrapper)
 
 **Repo:** `proyecto26/notebooklm-ai-plugin` (MIT ✓)
