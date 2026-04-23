@@ -1901,6 +1901,39 @@ El Posicionador identifica QUÉ falta. El Escriba escribe QUÉ llena el hueco.
 | El Creativo rebuild | Build (awaiting Jorge go) | baja |
 | WhatsApp AgentKit | Paused by Jorge | baja |
 
+### 2026-04-23 — Test GBP API key + provisión de 5 tablas Airtable
+
+**Test del Google API key (confirmación honesta):**
+- `GOOGLE_PLACES_API_KEY` en `.env.sandbox` tiene **referer restrictions** — solo funciona desde `pinnaclegroupwi.com`, no desde terminal/script
+- Google Business Profile API rechaza API keys con **HTTP 401** — Google **solo acepta OAuth 2.0** para GBP (by design — solo el owner autenticado puede modificar su propia GBP)
+- Conclusión: para El Cartógrafo, Jorge sí necesita completar el Google Cloud OAuth setup. El key de Places no sirve.
+- Para El Posicionador `maps_deep` (read-only): puede usar skills `/seo maps` que internamente van vía scraping/SERP APIs, no vía GBP API directo, entonces no necesita OAuth.
+
+**5 tablas Airtable creadas en base Pinnacle CRM `appfQbDA750Oihy9J`:**
+| Tabla | Table ID | Para qué agente |
+|---|---|---|
+| `Marketing_Audits` | `tbl5vSf886N1WnHU7` | El Mercader |
+| `SEO_Audits` | `tblobZ4d7skx8kPHK` | El Posicionador (incluye maps_deep) |
+| `Content_Queue` | `tblmIlIvmBvX5mLrx` | El Escriba |
+| `GMB_Queue` | `tbl8OWFFT5X9x8A0E` | El Cartógrafo (queue pending approvals) |
+| `GMB_Audit_Log` | `tbl0lzGZbD71rfBzA` | El Cartógrafo (forensic audit trail) |
+
+**Script provisión:** `agents/_setup/create_tables.py` (idempotente — safe to re-run).
+
+**pinnacle.json actualizado** con los 5 table_ids reales + `base_id` cambiado a `appfQbDA750Oihy9J` (Pinnacle CRM es donde viven los audits ahora, junto a Contacts/Leads/Deals).
+
+**Smoke test end-to-end:** escribí y borré record de prueba en `Marketing_Audits` con el AIRTABLE_TOKEN → confirmado que el token tiene read + write + schema.bases:write scopes. Todo conectado.
+
+**Scope token Airtable confirmado:**
+- ✅ list bases (ve solo `appfQbDA750Oihy9J` Pinnacle CRM)
+- ✅ meta.bases.tables.create (puede provisionar tablas)
+- ✅ read records, write records, patch, delete (todas las ops normales)
+- ❌ No tiene acceso a base `appU9s3kGkVpdrJkw` (Social Media Pinnacle) — si algún día necesitamos wiring cross-base, Jorge expande el token
+
+**Nota operativa:** quedó un test table leftover `_test_delete_me` (tblSYqybnImkJGsDQ) en Pinnacle CRM de la sonda inicial — Airtable Meta API no expone DELETE de tablas completas, Jorge puede borrarla manual desde UI si le molesta (es safe).
+
+**Estado Cartógrafo post-test:** scaffold completo, env vars pendientes de OAuth JSON. Cuando Jorge pase el JSON, cableo las HTTP calls reales de los 10 tools (estimado: 30 min).
+
 ### 2026-04-23 — NotebookLM skill instalado (Google NotebookLM wrapper)
 
 **Repo:** `proyecto26/notebooklm-ai-plugin` (MIT ✓)
