@@ -21,7 +21,7 @@ const ROOT = join(__dirname, "..", "..");
 const TENANTS_DIR = join(ROOT, "agents", "tenants");
 const OUTPUT_DIR = join(__dirname, "runs");
 
-const VALID_MODES = ["seo_health", "seo_deep", "on_demand"];
+const VALID_MODES = ["seo_health", "seo_deep", "maps_deep", "on_demand"];
 
 function parseArgs(argv) {
   const args = { mode: "seo_health", dryRun: false, tenant: null };
