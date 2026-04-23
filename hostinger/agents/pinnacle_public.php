@@ -1012,13 +1012,108 @@ switch ($action) {
             }
         }
 
+        // ===== Mirror to Email_Subscribers (El Remitente source of truth) =====
+        // Runs regardless of the Contacts.Email1 outcome above — we want the email
+        // in the subscribers list even if Contact dedup didn't land cleanly.
+        $subs_record_id = '';
+        if (defined('AIRTABLE_TOKEN')) {
+            $subs_url = 'https://api.airtable.com/v0/' . AIRTABLE_BASE_ID . '/tblEiB0fBeGxxq7if';
+
+            // First: check if this email is already a subscriber (avoid dupes + re-subscribe
+            // someone who previously unsubscribed ONLY if source indicates intent).
+            $existing_url = $subs_url . '?filterByFormula=' . rawurlencode("{email}='" . $email_norm . "'") . '&maxRecords=1';
+            $ch = curl_init($existing_url);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_HTTPHEADER     => ['Authorization: Bearer ' . AIRTABLE_TOKEN],
+                CURLOPT_TIMEOUT        => 15,
+            ]);
+            $er = curl_exec($ch);
+            $ec = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            $existing_rec = null;
+            if ($ec >= 200 && $ec < 300) {
+                $edata = json_decode((string) $er, true) ?: [];
+                $existing_rec = $edata['records'][0] ?? null;
+            }
+
+            $token_raw = $email_norm . '|' . (defined('ALEX_SECRET') ? ALEX_SECRET : 'fallback-salt');
+            $unsub_token = hash_hmac('sha256', $email_norm, defined('ALEX_SECRET') ? ALEX_SECRET : 'fallback-salt');
+
+            if ($existing_rec) {
+                // Re-subscribe: if they were Unsubscribed + now opting in again via a new source,
+                // flip back to Active. If already Active, just refresh subscribed_at.
+                $prev_status = $existing_rec['fields']['status'] ?? 'Active';
+                $update_fields = [
+                    'status'         => 'Active',
+                    'source'         => substr($source ?: 'popup', 0, 100),
+                    'lang'           => $lang,
+                    'subscribed_at'  => gmdate('c'),
+                    'unsubscribe_token' => $unsub_token,
+                ];
+                $ch = curl_init($subs_url . '/' . $existing_rec['id']);
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_CUSTOMREQUEST  => 'PATCH',
+                    CURLOPT_POSTFIELDS     => json_encode(['fields' => $update_fields, 'typecast' => true]),
+                    CURLOPT_HTTPHEADER     => [
+                        'Authorization: Bearer ' . AIRTABLE_TOKEN,
+                        'Content-Type: application/json',
+                    ],
+                    CURLOPT_TIMEOUT        => 15,
+                ]);
+                $sr = curl_exec($ch);
+                $sc = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+                if ($sc >= 200 && $sc < 300) {
+                    $sd = json_decode((string) $sr, true) ?: [];
+                    $subs_record_id = $sd['id'] ?? '';
+                    $log('info', 'subscriber re-activated', ['email' => $email_norm, 'prev' => $prev_status]);
+                }
+            } else {
+                // New subscriber
+                $new_fields = [
+                    'subscriber_id'     => bin2hex(random_bytes(8)),
+                    'tenant_id'         => 'pinnacle',
+                    'email'             => $email_norm,
+                    'status'            => 'Active',
+                    'source'            => substr($source ?: 'popup', 0, 100),
+                    'lang'              => $lang,
+                    'subscribed_at'     => gmdate('c'),
+                    'unsubscribe_token' => $unsub_token,
+                ];
+                $ch = curl_init($subs_url);
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_POST           => true,
+                    CURLOPT_POSTFIELDS     => json_encode(['fields' => $new_fields, 'typecast' => true]),
+                    CURLOPT_HTTPHEADER     => [
+                        'Authorization: Bearer ' . AIRTABLE_TOKEN,
+                        'Content-Type: application/json',
+                    ],
+                    CURLOPT_TIMEOUT        => 15,
+                ]);
+                $sr = curl_exec($ch);
+                $sc = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+                if ($sc >= 200 && $sc < 300) {
+                    $sd = json_decode((string) $sr, true) ?: [];
+                    $subs_record_id = $sd['id'] ?? '';
+                    $log('info', 'subscriber created', ['email' => $email_norm, 'subs_rec' => $subs_record_id]);
+                } else {
+                    $log('warn', 'Email_Subscribers create failed', ['code' => $sc, 'resp' => substr((string) $sr, 0, 200)]);
+                }
+            }
+        }
+
         // Telegram notification regardless of airtable outcome (so Jorge always sees it)
         if (defined('TELEGRAM_BOT_TOKEN') && defined('TELEGRAM_CHAT_ID')) {
             $msg = "📬 *New newsletter subscriber*\n"
                  . "• Email: `" . $email_norm . "`\n"
                  . "• Lang: " . strtoupper($lang) . "\n"
                  . "• Source: " . $source . "\n"
-                 . "• Airtable: " . ($ok ? ($record_id ?: 'created') : 'failed');
+                 . "• Contacts: " . ($ok ? ($record_id ?: 'created') : 'failed') . "\n"
+                 . "• Email_Subscribers: " . ($subs_record_id ? $subs_record_id : 'failed');
             $ch = curl_init('https://api.telegram.org/bot' . TELEGRAM_BOT_TOKEN . '/sendMessage');
             curl_setopt_array($ch, [
                 CURLOPT_RETURNTRANSFER => true,
