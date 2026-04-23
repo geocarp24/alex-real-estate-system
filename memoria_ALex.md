@@ -1495,6 +1495,28 @@ Esto abre el browser en http://localhost:3000 con el builder. Conversás con Cla
 
 **Uso para Pinnacle:** alimenta el pipeline Social Media (FASE 2 El Creativo) con carruseles Instagram brandeados. Output 1080×1350 coincide con el aspect ratio que ya usamos.
 
+### 2026-04-23 — PHASE 1 → PHASE 2 + ELIMINAR BLOTATO COMPLETO
+
+**Orden directa de Jorge:**
+
+**Phase 1 (casi cerrada):** CRM (Airtable) + Website público Pinnacle (webform, chatbot, contact 5-ways, email-capture popup) + Tools internas (Fer SMS, Tracy skip tracer, secretario email, el_polling, el_chismoso, fer_* crons). **Estado:** operativo en producción.
+
+**Phase 2 (arrancando ahora):** Publicidad + promoción del sitio + servicios Pinnacle. Social media, paid ads, growth, lead generation channels. Jorge va a buscar y instalar nuevos skills dedicados a esta fase.
+
+**Blotato — eliminación completa:**
+- Ya no sirve para los intereses de Pinnacle
+- Hay que sacarlo del stack por completo, no solo de FASE 2 (visual gen) sino también de FASE 3 (publishing a FB/IG)
+- Reemplazo para publishing: opciones a evaluar cuando Jorge instale skills de Phase 2 — candidatos: Meta Graph API directo, Buffer, Later, Publer, Metricool, open-source alternatives
+
+**Estado del trabajo de El Creativo v6 (parcial — PAUSADO):**
+- ✅ `agents/creativo_runner/themes.mjs` — 5 temas T1-T5 + slide builders (hook/point/CTA) mobile-first 1080×1350. Reutilizable.
+- ⏸ `pinnacle_setup.mjs` (setup brand) — NO escrito todavía
+- ⏸ `creativo_runner.mjs` (orchestrator) — NO escrito todavía
+- ⏸ Rewrite `agents/creativo.md` a v6 — NO hecho todavía
+- **Razón del pause:** si eliminamos Blotato completo, el diseño correcto del pipeline cambia. Mejor esperar Phase 2 skills + redefinir arquitectura end-to-end (generación + publicación) antes de invertir más horas. Los themes.mjs quedan como activo reusable independiente de la decisión arquitectural.
+
+**Aprobado por:** Jorge Cruz — 2026-04-23
+
 ### R7. MOBILE-FIRST — PRIORIDAD #1 PERMANENTE (todos los proyectos, todos los modelos, todos los entornos)
 **Orden directa de Jorge, 2026-04-23 — NO NEGOCIABLE.**
 
