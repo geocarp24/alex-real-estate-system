@@ -1548,6 +1548,44 @@ Todo el trabajo que hagamos debe estar optimizado para móviles como **prioridad
 
 **Aprobado por:** Jorge Cruz — 2026-04-23
 
+### 2026-04-23 — Herramienta instalada: MiroFish CLI (multi-agent prediction engine)
+
+Jorge ordenó instalar MiroFish para apoyar Phase 2 (publicidad + promoción). Es motor de simulación multi-agente: toma documentos fuente (PDF/MD/TXT) → construye grafo de conocimiento → genera personas AI → simula reacciones en redes (Twitter/Reddit) → produce reporte de predicción.
+
+**Ubicación:** `/home/user/mirofish-cli/`
+**Repo:** `amadad/mirofish-cli` (fork en inglés + soporte Claude CLI de `666ghj/MiroFish` original)
+**Licencia:** **AGPL-3.0** — copyleft viral: si se modifica y se ofrece como servicio, las modificaciones deben ser open-source. **Estrategia:** usar como tool externo sin modificar el source. Nuestro wrapper de integración queda libre para licencia privada.
+**Stack:** Python 3.11-3.12 + uv (package manager). Heavy deps (PyTorch, transformers, unstructured). `uv sync` completó OK.
+
+**Configuración .env:**
+```
+LLM_PROVIDER=claude-cli
+```
+
+**Bug resuelto:** MiroFish busca binario literal `claude-cli` vía `shutil.which("claude-cli")`, pero el binario real de Claude Code se llama `claude`. Fix: symlink `/root/.local/bin/claude-cli → /opt/node22/bin/claude`. `mirofish doctor` pasa todos los checks.
+
+**CLI comandos:**
+- `uv run mirofish run --files <archivos> --requirement "<pregunta>" [--platform parallel|twitter|reddit] [--max-rounds N] [--json]`
+- `uv run mirofish runs list --json`
+- `uv run mirofish runs status <run_id>`
+- `uv run mirofish runs export <run_id>`
+- `uv run mirofish doctor`
+
+**Casos de uso Pinnacle para Phase 2 (publicidad + promoción):**
+
+1. **Pre-flight de ad copy:** alimentar draft de ad → simular reacción de audiencia homeowners WI → decidir qué va a Meta Ads antes de gastar $
+2. **A/B test de popup/email subject:** 2 variantes → simular → elegir ganador sin tráfico real
+3. **Validación de copy del webform:** simular reactions de personas en distress (foreclosure / probate / relocation) → detectar qué les traba
+4. **Stress-test de Fer-bot:** generar mensajes típicos de homeowners → ver cómo Fer responde antes de producción
+5. **Análisis competitivo:** cargar contenido de competidores locales WI → simular reacción de NUESTRA audiencia → encontrar gaps
+6. **Escenarios de mercado:** nuevo evento (Fed rate cut, política fiscal WI) → simular impacto en intent-to-sell → ajustar messaging
+
+**Estrategia SaaS (per R8):** MiroFish queda como **dependencia externa use-as-is**. Nuestro wrapper (cuando se escriba) le pasa tenant config + input files, recibe JSON report, lo presenta en nuestro UI. Cliente ve "Campaign Simulator" como feature premium. No distribuimos MiroFish modificado (evita AGPL).
+
+**Pendiente:** primer smoke test con escenario Pinnacle real (ej: simular reacción al popup copy "Thinking about selling? Know your options first."). Jorge decide cuándo arrancamos.
+
+---
+
 ### R8. SAAS-READY / MULTI-TENANT-FIRST — PRINCIPIO ARQUITECTURAL PERMANENTE
 **Orden directa de Jorge, 2026-04-23 — NO NEGOCIABLE, aplica a TODO lo que desarrollemos.**
 
