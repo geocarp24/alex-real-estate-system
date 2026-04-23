@@ -1,0 +1,66 @@
+{
+  "tenant_id": "pinnacle",
+  "tenant_name": "Pinnacle Holdings Group LLC",
+  "industry": "real-estate",
+  "primary_language": "en",
+  "markets": [
+    { "state": "WI", "cities": ["Milwaukee", "Madison", "Green Bay", "Racine", "Kenosha", "Appleton", "Waukesha"] }
+  ],
+
+  "website": "https://pinnaclegroupwi.com",
+  "secondary_sites": [],
+  "brand": {
+    "primary_color": "#0D3B2E",
+    "secondary_color": "#C9A84C",
+    "accent_color": "#E83E8C",
+    "logo_url": "https://pinnaclegroupwi.com/wp-content/uploads/2026/03/logo-pinnacle.png",
+    "phone": "(920) 777-9886",
+    "email": "deals@pinnaclegroupwi.com"
+  },
+
+  "competitors": [
+    { "name": "We Buy Ugly Houses Wisconsin",       "url": "https://www.webuyuglyhouses.com/wisconsin" },
+    { "name": "HomeVestors Milwaukee",              "url": "https://www.homevestors.com/wisconsin/" },
+    { "name": "Sell My House Fast Milwaukee",       "url": "https://www.sellmyhousefast.com/we-buy-houses-milwaukee-wi/" }
+  ],
+
+  "schedules": {
+    "quick_health": "0 14 */3 * *",
+    "deep_audit":   "0 15 * * 1"
+  },
+
+  "airtable": {
+    "base_id":   "appU9s3kGkVpdrJkw",
+    "table_id":  "",
+    "token_env": "AIRTABLE_TOKEN"
+  },
+
+  "telegram": {
+    "chat_id_env":   "TELEGRAM_CHAT_ID",
+    "bot_token_env": "TELEGRAM_BOT_TOKEN"
+  },
+
+  "claude": {
+    "binary_path": "/opt/node22/bin/claude",
+    "model":       "claude-sonnet-4-6"
+  },
+
+  "alert_thresholds": {
+    "critical_score": 50,
+    "warn_score":     70
+  },
+
+  "skills": {
+    "quick_health": ["market-quick"],
+    "deep_audit":   ["market-audit", "market-competitors"],
+    "seo_health":   ["seo-audit"],
+    "seo_deep":     ["seo-audit", "seo-local", "seo-maps"],
+    "ads_health":   ["ads-quick"],
+    "ads_deep":     ["ads-audit"]
+  },
+
+  "output": {
+    "retain_reports_days": 90,
+    "upload_pdfs_to":      "hostinger"
+  }
+}
