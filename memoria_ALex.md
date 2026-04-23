@@ -2190,6 +2190,84 @@ Jorge revisó los 5 GAP candidates propuestos + confirmó 4 para construir + dif
 - Sub-agentes especializados: Cartógrafo (GMB, OAuth paused)
 - Core legacy: Scout, Matemático, Fact-Checker, Tracy, Fer, Social Media Agent, Creativo, Director, Programador, Secretario, Planificador, Oráculo (VPS diferido)
 
+### 2026-04-23 PM — Reloj suizo (follow-up pipeline) diagnosticado + arreglado
+
+Jorge reportó que los emails/SMS constantes de primeros 30 días NO estaban saliendo. Diagnóstico profundo + fixes:
+
+**Flujo Contacts (5 stages):**
+1. `New` (92) — backlog manual de Jorge (NO es problema, él los revisa)
+2. `To Be Contacted` → cron `fer_first_contact.php` cada 15 min
+3. `Contacted` step 1-4 → mismo cron, 24h entre steps (SMS a Phone1→Phone4)
+4. `Seguimiento` 24 touches × 12 meses → cron `fer_seguimiento.php` daily 9:30 CT
+5. `Dead` — step ≥24 o stop
+
+**Root cause encontrado:** los cron jobs de Hostinger estaban configurados via SSH (`crontab -l | crontab -` en deploy-hostinger.yml) pero **SSH crontab NO persiste en Hostinger shared hosting**. Los PHP scripts funcionan perfectamente cuando se disparan — lo confirmé invocando manual: 17 SMS reales enviados en ~3 min, incluyendo los 12 fantasmas reseteados.
+
+**Fixes aplicados:**
+1. `FC_SMS_DELAY_SECONDS` y `SEG_SMS_DELAY_SECONDS` bajados de 15s → 5s (evita timeout 60s del cron invoker)
+2. Añadido `@ignore_user_abort(true) + @ini_set('max_execution_time', 300)` en ambos scripts → PHP sigue ejecutando aunque nginx corte
+3. Reset de 12 fantasmas (Robert Boyda, Makayla Kleiber, MICHAEL KEMINGER, Kerry Duquaine, Patricia Boschert, Sandra Phillips, Jessica Clayton, Penny Maresh, Brian Reignier, Stuart Enselmoz, JANE GANTENBEIN, Breeyana Trapman) → Stage=To Be Contacted + campos limpios
+4. Procesé manual los 12 → TODOS recibieron primer SMS a Phone1
+5. `docs/CRON_SETUP.md` creado con los 4 crons exactos para Hostinger cPanel (manual, ya que SSH no persiste)
+
+**Acción pendiente de Jorge:** configurar los 4 crons en hPanel → Advanced → Cron Jobs:
+- `*/15 * * * *` → fer_first_contact.php (crítico)
+- `30 15 * * *` → fer_seguimiento.php (daily)
+- `0 14 * * *` → fer_stale_cron.php
+- `30 14 * * *` → fer_morning_brief.php
+
+**Evaluación de Fer (inbound responder):** 4 inbounds hoy, 3 conversaciones guardadas, 1 se perdió (phone sin Contact match probable).
+- Shashikanth Kaluvala (+1269...) respondió → Claude Sonnet escalated → Fer lo movió a Stage=Dead (clasificación autónoma correcta)
+- MICHAEL KEMINGER respondió al primer SMS → Fer contestó con Haiku 3s después. OK.
+
+### 2026-04-23 PM — EL SUPERVISOR: sistema auto-evolutivo shipped
+
+**Orden directa de Jorge:** *"construir un agente supervisor para que todo esté funcionando bien, sistema autonomista e inteligente que sepa evolucionar por sí mismo sin que yo tenga que estar detrás de ello"*.
+
+**Construido:** `agents/supervisor/` — 10mo agente R9, meta-watchdog.
+
+**Tablas Airtable:**
+- `Ops_Health` `tbltZWa4PiYPdnyKl` — 1 row per run (heartbeat/deep/evolve)
+- `Ops_Insights` `tblPfJba7iPJBTrw6` — knowledge base de patrones aprendidos + fix proposals
+
+**4 modos:**
+| Mode | Cadencia | Qué hace |
+|---|---|---|
+| `heartbeat` | cada 15 min | probe endpoints Hostinger + Airtable/OpenPhone/Telegram APIs + log freshness + pipeline counters |
+| `deep` | cada 1h | + ghost detection + auto-repair (reset fantasmas max 25/run) + drift metrics |
+| `evolve` | weekly Sat 07:00 CT | 7-day pattern recognition vía Claude, fix proposals, some auto-applied |
+| `incident` | on-demand | forensic deep-dive |
+
+**Auto-repairs que hace solo (no molesta a Jorge):**
+- Ghost reset automático
+- Cron re-trigger si endpoint stale >4h en ventana (max 1/endpoint/hora)
+- Exponential backoff en OpenPhone 429
+- Log schema drift sin bucle
+
+**Alert tiers Telegram (solo molesta cuando vale la pena):**
+- 🚨 CRITICAL instant: API key revoked, cron muerto >6h, Hot lead no contactado, security event
+- ⚠️ WARN hourly digest: un agente falló, score drop, email bounce sube
+- 🟡 NOTICE daily 8am digest: auto-repairs aplicados, drift menor
+- ✅ GREEN silent: todo OK
+
+**Evolve mode — corazón de la autoevolución:**
+1. Lee 7 días de Ops_Health
+2. Cuenta top 10 errores recurrentes
+3. Claude genera causa raíz + fix concreto (file+diff) + impacto $ por cada patrón
+4. Fixes triviales+seguros → auto-aplica
+5. Fixes complejos → Ops_Insights status=open + Telegram digest
+
+**Deploy:** `.github/workflows/supervisor-cron.yml` — GitHub Actions scheduled (gratis, no VPS needed). Secrets ya existen del workflow deploy-hostinger. Primer tick automático en el siguiente `*/15` UTC.
+
+**Dry-run ejecutado:** heartbeat funcionó end-to-end, detectó red health (2/8 checks) correctamente porque no tenía API keys locales — en GHA las tendrá todas. Pipeline stats correctos: 92 New (reconocido como backlog de Jorge, no error), 0 ghosts post-mi-reset.
+
+**Plantel R9 cierre 2026-04-23 (10 agentes + legacy):**
+- R9 core Phase 2: Mercader, Posicionador, Escriba, Remitente, Cazador
+- R9 Sprint 2: Clasificador, Analista, Espía, Auditor
+- R9 Sprint 3 **NUEVO:** Supervisor ✅
+- Specialized: Cartógrafo (OAuth paused), Oráculo (VPS diferido)
+- Legacy: Scout, Matemático, Fact-Checker, Tracy, Fer, Social Media, Creativo, Director, Programador, Secretario, Planificador
+
 **Todo list pendiente tomorrow:**
 - Smoke test end-to-end El Remitente (primer envío real)
 - Verificar DMARC propagation (TTL 3600s)
