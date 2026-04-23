@@ -3,7 +3,7 @@
 #pnp-backdrop[hidden] { display:none !important; }
 @keyframes pnpFade { from { opacity:0; } to { opacity:1; } }
 
-.pnp-modal { background:#FFFFFF; border-radius:20px; box-shadow:0 30px 80px rgba(0,0,0,.4); width:100%; max-width:460px; overflow:hidden; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; position:relative; animation:pnpSlide .4s cubic-bezier(.2,.8,.2,1); }
+.pnp-modal { background:#FFFFFF; border:3px solid #E83E8C; border-radius:20px; box-shadow:0 30px 80px rgba(0,0,0,.4), 0 0 0 6px rgba(232,62,140,.18); width:100%; max-width:460px; overflow:hidden; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; position:relative; animation:pnpSlide .4s cubic-bezier(.2,.8,.2,1); }
 @keyframes pnpSlide { from { opacity:0; transform:translateY(30px) scale(.96); } to { opacity:1; transform:translateY(0) scale(1); } }
 
 .pnp-close { position:absolute; top:12px; right:14px; width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,.25); color:#FFFFFF; border:0; font-size:20px; line-height:1; cursor:pointer; z-index:2; transition:background .15s ease; }
