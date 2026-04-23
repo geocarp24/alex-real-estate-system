@@ -273,6 +273,62 @@ Aggregate into single client-ready report:
 Be specific, quantified, actionable. Mobile signals weighted heavier. Cite every number.`;
   }
 
+  if (mode === "maps_deep") {
+    return `You are El Posicionador, always-on SEO sub-agent. Modo: maps_deep — enfoque EXCLUSIVO en Google Maps + Google Business Profile (GBP) + local citations + review velocity. Runs every 3 days, separate from general seo_health.
+
+${commonContext}
+
+Run in sequence:
+1) /seo local ${site} — GBP audit: name, category, description, services listed, hours, service area config, photos fresh, Posts this week, Q&A answered
+2) /seo maps ${site} — geo-grid rank tracking across ALL ${state} cities: ${citiesList}. For each city, check rank on the 3 primary intent queries (e.g., "cash home buyers <city>", "sell my house fast <city>", "we buy houses <city>").
+3) Citations NAP consistency audit:
+   - Is Name + Address + Phone IDENTICAL across: Yelp, BBB, Apple Maps, Bing Places, Foursquare, Wisconsin REALTORS Association, Milwaukee Business Journal directory, and top 20 general directories?
+   - Flag any inconsistency (different phone formats, abbreviated street names, wrong zip)
+4) Review velocity analysis:
+   - Total Google reviews count + delta vs last maps_deep run
+   - Response rate to reviews (responded within 48h / 7d / never)
+   - Rating distribution + weighted average
+   - Competitor comparison: how many reviews do ${(cfg.competitors || []).map(c => c.name).join(", ") || "top competitors"} have?
+5) GBP Posts frequency check: when was the last GBP Post published? Recommended cadence: weekly minimum
+6) Q&A proactivity: are there user questions on GBP profile unanswered? Should we add our own FAQ-style Q&As?
+7) Photo freshness: are photos uploaded within the last 30 days? GBP favors fresh media
+
+Output format (strict markdown):
+
+# ${tenant} — Google Maps Deep Audit (${new Date().toISOString().slice(0,10)})
+
+## GBP Health Score: N/100
+## Local Visibility Score: N/100
+
+## GBP Profile Completeness
+| Field | Status | Action needed |
+|---|---|---|
+- Name / Category / Description / Services / Hours / Service area / Photos / Posts / Q&A
+
+## NAP Consistency
+- Sources audited: N
+- Inconsistencies found: N (list each: source, what differs, suggested fix)
+
+## Geo-Grid Rank (${state} state-wide)
+| City | "cash home buyers" rank | "sell my house fast" rank | "we buy houses" rank |
+|---|---|---|---|
+- Row per city in: ${citiesList}
+
+## Review Velocity
+- Total Google reviews: N (delta +X vs last audit)
+- Average rating: X.X
+- Response rate: X%
+- Competitors: [name — count reviews — avg rating]
+- Review request opportunities: list deals closed in last 30d without review request sent
+
+## Action Priorities (ranked — what moves local rank most in next 3 days)
+1. ...
+2. ...
+3. ...
+
+Mobile-first: GBP impressions are 80%+ mobile. Mobile photo UX + mobile directions clicks weighted heavily.`;
+  }
+
   // on_demand fallback
   const skills = (cfg.skills && cfg.skills.seo_deep) || ["seo-audit"];
   return `You are El Posicionador. On-demand SEO for ${site} (tenant: ${tenant}). Skills: ${skills.join(", ")}. Multi-engine rank check + mobile CWV + state-wide local. Produce scored markdown report.`;
