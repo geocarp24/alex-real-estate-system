@@ -12,7 +12,6 @@
   // and fire the popup in 500ms. Regular visitors are unaffected.
   var FORCE = /[?&]pnp_force=1/.test(location.search || "");
   var TRIGGER_MS = FORCE ? 500 : 5000;
-  var MOBILE_THRESHOLD = 480;
   var K_SESSION_SEEN = "pnp_popup_seen";       // sessionStorage: shown this session (clears when tab closes)
   var K_SUBSCRIBED   = "pnp_popup_subscribed"; // localStorage: "1" once subscribed (permanent)
 
@@ -22,7 +21,6 @@
       if (localStorage.getItem(K_SUBSCRIBED) === "1") return;
       if (sessionStorage.getItem(K_SESSION_SEEN) === "1") return;
     } catch(e) {}
-    if (window.innerWidth < MOBILE_THRESHOLD) return;
   }
 
   // ---- i18n ----
