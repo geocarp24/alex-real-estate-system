@@ -1547,3 +1547,45 @@ Todo el trabajo que hagamos debe estar optimizado para móviles como **prioridad
 - `accessibility-compliance` — WCAG 2.2 mobile a11y patterns
 
 **Aprobado por:** Jorge Cruz — 2026-04-23
+
+### R8. SAAS-READY / MULTI-TENANT-FIRST — PRINCIPIO ARQUITECTURAL PERMANENTE
+**Orden directa de Jorge, 2026-04-23 — NO NEGOCIABLE, aplica a TODO lo que desarrollemos.**
+
+Todo lo que se construya para Pinnacle debe diseñarse desde el día 1 como **producto SaaS vendible a terceros**. Pinnacle es el tenant cero — no el único tenant. Cada decisión arquitectural deja la puerta abierta a clientes futuros.
+
+**Reglas operativas:**
+
+1. **Configurabilidad total** — NADA hardcodeado. Todo lo específico de Pinnacle (colores, logo, nombre, teléfono, website, API keys, Airtable base ID, textos de copy, emails, horarios) va en configuración por-tenant, no en el código.
+
+2. **Tenant isolation** — cada cliente tiene su propio espacio de datos: Airtable base propia (o tabla con `tenant_id`), credenciales propias, storage propio, branding propio. Nunca cross-pollution entre tenants.
+
+3. **Separación de capas:**
+   - **Core engine** (reusable, open-source-safe): lógica del form, chatbot, popup, SM pipeline, simulación
+   - **Tenant config**: todo lo específico de un cliente en un JSON/YAML o DB record
+   - **Deployment adapter**: scripts que instalan el core con la config de un tenant dado
+
+4. **Onboarding de nuevos clientes** — debe existir un proceso definido: crear config → provisionar infra → go live. Documentado.
+
+5. **Billing hooks** — considerar upfront dónde enchufarse Stripe / subscription management. Usage metrics (leads capturados, simulaciones corridas, popups mostrados, emails enviados) desde el día 1 en cada componente.
+
+6. **Licencias de terceros** — siempre validar license antes de usar una dep. AGPL-3.0 y viral copyleft pueden bloquear monetización — evaluar si usar, usar-sin-modificar, o reemplazar. MIT / Apache 2.0 / BSD son safe.
+
+7. **Documentation-first** — cada componente tiene README con: setup, configuración por-tenant, API pública, troubleshooting, cómo extender. Debe poder leerlo un cliente o dev externo sin acceso a nuestro contexto interno.
+
+8. **Naming & branding** — código, endpoints, nombres de variables NO asumir "Pinnacle". Usar placeholders genéricos (`{TENANT_NAME}`, `{BRAND_PRIMARY}`). Pinnacle va en la config.
+
+9. **Security defaults** — input validation, rate limiting, honeypot, auth, CORS, CSP — desde el día 1. No "lo agregamos después cuando vendamos".
+
+10. **Mobile-first (R7) + SaaS-ready (R8) se complementan** — el producto vendible TIENE que verse bien en móvil. Es lo primero que ven los clientes cuando les demostramos.
+
+**Ejemplos:**
+- ❌ `const AIRTABLE_BASE = "appfQbDA750Oihy9J"` — hardcoded Pinnacle
+- ✅ `const AIRTABLE_BASE = tenant.airtable.base_id`
+- ❌ `const LOGO = "https://pinnaclegroupwi.com/..."` — hardcoded URL
+- ✅ `const LOGO = tenant.brand.logo_url`
+- ❌ `subject: "We Buy Houses in Wisconsin"` — hardcoded industry + region
+- ✅ `subject: interpolate(tenant.copy.email_subject, tenant.vars)`
+
+**Reconciliación con Phase 1 actual:** el código actual está lleno de hardcodes (webform, chatbot, popup, bridges). Eso se refactoriza gradualmente — no bloquea Phase 2. Regla aplica FORWARD desde 2026-04-23. Refactor retroactivo a Phase 1 se hace cuando armemos la primera venta a un segundo cliente.
+
+**Aprobado por:** Jorge Cruz — 2026-04-23
