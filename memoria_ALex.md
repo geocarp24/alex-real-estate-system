@@ -1596,6 +1596,56 @@ Protocolo por cada uno: investigar GitHub → evaluar con lente **Phase 2 ads/pr
 **Pendiente de Jorge** (NO bloquea la queue, pero importante resolver):
 - 3 decisiones sobre arquitectura de El Oráculo (pipeline paralelo / opt-in gate / primera prueba popup-or-carrusel). Cuando responda, seguimos con wiring de El Oráculo.
 
+### 2026-04-23 — Marketing skill instalado: ai-marketing-claude
+
+Jorge aprobó proceder con la queue de Phase 2. Primer item: marketing skills.
+
+**Evaluados 3 candidatos:**
+- `OpenClaudia/openclaudia-skills` (62+ skills, necesita API keys externas para valor pleno)
+- `kostja94/marketing-skills` (160+ skills puros MD, sin orquestación)
+- `zubair-trabzada/ai-marketing-claude` (15 skills + 5 parallel subagents + PDF reports) ← **Seleccionado**
+
+**Razones de la selección (vía R8 SaaS-ready + R7 mobile-first + Phase 2 objetivos):**
+1. **Client-ready PDF reports** = deliverable vendible (audits tipo "/market audit URL" → PDF branded)
+2. **Parallel subagents** = cost-efficient, mismo patrón que Scout/Matemático/Fact-Checker
+3. **15 skills focused** > 160 dispersos (menos ruido, easier integration)
+4. **MIT license** ✓
+5. Installer auditado: git clone + file copy + dep check (sin exec raro)
+
+**Instalado en:**
+- `/root/.claude/skills/market/` + 14 `market-*` skills individuales
+- `/root/.claude/agents/` — 5 parallel agents: `market-content`, `market-conversion`, `market-competitive`, `market-technical`, `market-strategy`
+- Scripts: `analyze_page.py`, `competitor_scanner.py`, `social_calendar.py`, `generate_pdf_report.py`
+- Python deps: `reportlab 4.4.10` + `pillow 12.2.0` (añadidos post-install porque el check del installer mintió)
+
+**15 slash commands disponibles:**
+```
+/market audit <url>        Full marketing audit (5 parallel agents → PDF)
+/market quick <url>        60s snapshot
+/market copy <url>         Copy generation
+/market emails <topic>     Email sequences
+/market social <topic>     Content calendar
+/market ads <url>          Ad creative + copy
+/market funnel <url>       Sales funnel analysis
+/market competitors <url>  Competitive intel
+/market landing <url>      Landing page CRO
+/market launch <product>   Launch playbook
+/market proposal <client>  Client proposal generator
+/market report <url>       Markdown report
+/market report-pdf <url>   PDF report (requires reportlab ✓)
+/market seo <url>          SEO audit
+/market brand <url>        Brand voice analysis
+```
+
+**Uso inmediato para Pinnacle + SaaS:**
+- `/market audit pinnaclegroupwi.com` → PDF audit propio, validar si el sitio está optimizado
+- `/market audit <competitor>` → inteligencia competitiva en WI
+- `/market proposal <prospecto>` → generar propuestas cuando empecemos a vender el sistema a otros investors
+- `/market social "Wisconsin foreclosure tips"` → alimentar pipeline SM
+
+**Repo:** `zubair-trabzada/ai-marketing-claude`
+**Status queue:** Marketing ✅ — Siguiente: Claude SEO (buscar especialista SEO para complementar `/market seo` del suite general)
+
 ---
 
 ### R8. SAAS-READY / MULTI-TENANT-FIRST — PRINCIPIO ARQUITECTURAL PERMANENTE
