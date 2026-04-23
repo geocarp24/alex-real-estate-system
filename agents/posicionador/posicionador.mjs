@@ -145,45 +145,105 @@ function parseAudit(text) {
 }
 
 function buildPrompt(cfg, mode) {
-  const site = cfg.website;
-  const tenant = cfg.tenant_name;
-  const cities = (cfg.markets || []).flatMap(m => m.cities || []).slice(0, 7);
-  const citiesList = cities.length ? cities.join(", ") : "(none configured)";
-  const competitors = (cfg.competitors || []).map(c => `- ${c.name}: ${c.url}`).join("\n") || "(none configured)";
+  const site     = cfg.website;
+  const tenant   = cfg.tenant_name;
   const industry = cfg.industry || "generic";
+  const market   = (cfg.markets && cfg.markets[0]) || {};
+  const state    = market.state || "";
+  const citiesArr = market.cities_primary || market.cities || [];
+  const citiesList = citiesArr.length ? citiesArr.join(", ") : "(none configured)";
+  const regional  = cfg.regional_scope || {};
+  const regionalSecondary = (regional.secondary || []).join(", ") || "(none)";
+  const engines   = (cfg.search_engines || ["google", "bing", "ai-overviews", "chatgpt-search", "perplexity"]).join(", ");
+  const targetRank = (cfg.seo_goals && cfg.seo_goals.per_page_target_rank) || 1;
+  const primaryPriority   = (cfg.seo_goals && cfg.seo_goals.primary_priority)   || `${state} state-wide local SEO`;
+  const secondaryPriority = (cfg.seo_goals && cfg.seo_goals.secondary_priority) || "Regional US";
+  const competitors = (cfg.competitors || []).map(c => `- ${c.name}: ${c.url}`).join("\n") || "(none configured)";
+
+  const commonContext = `
+Tenant:       "${tenant}" (industry: ${industry})
+Site:         ${site}
+Primary goal: rank EVERY page at position #${targetRank} on EVERY search engine below.
+Engines:      ${engines}
+PRIMARY scope (weight ${regional.primary_weight ?? 0.75}):   ${primaryPriority}
+  State:        ${state}
+  Target cities (state-wide, not metro-only): ${citiesList}
+SECONDARY scope (weight ${regional.secondary_weight ?? 0.25}): ${secondaryPriority}
+  Neighboring states for regional 'Wisconsin intent' queries: ${regionalSecondary}
+Mobile-first: mobile traffic dominates real estate search (60-70%+). Mobile CWV + mobile rank = primary signal.`;
 
   if (mode === "seo_health") {
-    return `You are El Posicionador, an always-on SEO monitoring sub-agent. Run a mobile-first SEO health check for tenant "${tenant}" on ${site}.
+    return `You are El Posicionador, always-on SEO sub-agent. Scope every 3 days: state-wide multi-engine rank health check for tenant.
 
-Use skill: /seo audit ${site}
+${commonContext}
 
-Focus on:
-- OVERALL SCORE: N/100 (weight mobile 60% / desktop 40%)
-- Mobile Core Web Vitals (LCP, CLS, INP) with PASS/WARN/FAIL per metric
-- Top 3 critical issues (prioritize mobile + local visibility)
-- Top 3 wins
-- 3 priority recommendations
+Tasks for this run (priority order):
+1) /seo sitemap ${site} — enumerate ALL indexed pages (we want every single one at #${targetRank})
+2) /seo audit ${site} — overall health score (mobile-weighted)
+3) /seo local ${site} — GBP health + citation NAP consistency + reviews velocity (primary lever for WI state-wide visibility)
+4) Check Core Web Vitals mobile (LCP/CLS/INP) — any regression vs last baseline
+5) Quick per-page rank probe for top 10 pages across engines listed above: where does each page rank today for its primary intent query? Note any page not in top 3 on any engine.
 
-Output: concise markdown with those sections. One line per bullet. Do NOT drift into deep analysis — this is a health check.`;
+Output format (concise markdown, terse bullets):
+
+# ${tenant} — SEO Health Check (${new Date().toISOString().slice(0,10)})
+
+## Overall Score: N/100
+
+## Pages Inventoried
+- Total pages in sitemap: N
+- Pages currently at rank #1 on primary engine (Google): X/N
+- Pages NOT in top 3 on primary engine: Y  ← target for next week
+
+## Mobile CWV
+- LCP / CLS / INP with PASS/WARN/FAIL each
+
+## Local Health (Primary)
+- GBP status
+- NAP consistency
+- Review velocity vs last check
+
+## Top 3 Critical Issues (mobile + local priority)
+- ...
+
+## Top 3 Wins
+- ...
+
+## 3 Priority Recommendations (to push more pages to #${targetRank})
+- ...
+
+Scores 0-100. Do NOT drift into deep content analysis — this is the every-3-days health check.`;
   }
 
   if (mode === "seo_deep") {
-    return `You are El Posicionador, an always-on SEO monitoring sub-agent. Run a full mobile-first, local-priority SEO deep audit for tenant "${tenant}" (industry: ${industry}) on ${site}.
+    return `You are El Posicionador, always-on SEO sub-agent. Weekly comprehensive state-wide multi-engine SEO deep audit.
 
-Markets: ${citiesList}
-Competitors:
+${commonContext}
+
+Run in sequence, covering ALL pages of the site and ALL engines in the list:
+
+1) /seo sitemap ${site} — inventory every indexable page
+2) /seo audit ${site} — site-level overall
+3) /seo technical ${site} — crawlability, indexability, rendering, schema, mobile CWV, structured data, JS rendering, internationalization
+4) /seo local ${site} — GBP, citations NAP, reviews, local citations (primary: ${state} state-wide)
+5) /seo maps ${site} — geo-grid rank tracking across ALL these cities: ${citiesList}
+6) /seo content ${site} — E-E-A-T quality + AI citation readiness (GEO/AEO for AI Overviews, ChatGPT search, Perplexity, Google SGE)
+7) /seo drift ${site} — regression vs last week's baseline
+8) For each of the top 10 pages: probe rank on each engine (${engines}) for its primary intent query. Flag any page not at #${targetRank}.
+9) /seo schema ${site} — validate schema.org coverage (LocalBusiness, FAQPage, Review, Service, Organization)
+10) Competitor gap analysis against:
 ${competitors}
 
-Run in sequence:
-1) /seo audit ${site}            — overall score
-2) /seo technical ${site}         — 9 categories (crawlability, indexability, rendering, schema, CWV mobile, etc.)
-3) /seo local ${site}             — GBP, citations NAP, reviews velocity, local rank tracking
-4) /seo maps ${site}              — geo-grid rank across these cities: ${citiesList}
-5) /seo content ${site}           — E-E-A-T + AI citation readiness (GEO/AEO for AI Overviews, ChatGPT search, Perplexity)
-
-Aggregate into a single client-ready report with this structure:
+Aggregate into single client-ready report:
 
 # ${tenant} — Weekly SEO Audit (${new Date().toISOString().slice(0,10)})
+
+## Executive Summary
+- Pages at target rank (#${targetRank}): X/N
+- Pages that moved up this week: A
+- Pages that moved down this week: B
+- Primary-market ${state} visibility: score /100
+- Regional US visibility (${regionalSecondary}): score /100
 
 ## Overall Score: N/100
 ## Technical Score: N/100
@@ -191,35 +251,31 @@ Aggregate into a single client-ready report with this structure:
 ## Content Score: N/100
 
 ## Mobile Core Web Vitals
-- LCP: <value> (PASS/WARN/FAIL)
-- CLS: <value> (PASS/WARN/FAIL)
-- INP: <value> (PASS/WARN/FAIL)
+- LCP / CLS / INP with PASS/WARN/FAIL and delta vs last week
+
+## Per-Page Rank Inventory (primary engine + AI engines)
+| Page URL | Intent query | Google | AI Overviews | Bing | ChatGPT | Perplexity |
+|---|---|---|---|---|---|---|
+- Table for top 10 pages.
+
+## Local Ranks by City (geo-grid, ${state} state-wide)
+- Milwaukee / Madison / Green Bay / Kenosha / Racine / ... — rank per primary query
+
+## Regional US Check (from ${regionalSecondary} origins)
+- Does "Wisconsin cash home buyers" show us in top 3 from IL/MN/IA/MI searches?
 
 ## Top Critical Issues
-- ...
-
 ## Top Wins
-- ...
-
-## Priority Recommendations
-- ...
-
-## Local Ranks (by city)
-- Milwaukee: position for "we buy houses milwaukee" / "sell my house fast milwaukee" / etc.
-- Madison: ...
-
+## Priority Recommendations (ordered — what moves the most pages to #${targetRank} fastest)
 ## Competitor Gaps
-- Where competitors outrank us and on what queries.
-
 ## Schema Coverage
-- Present / missing schema.org types.
 
-Be specific and actionable. All scores 0-100. Mobile data weighted heavier.`;
+Be specific, quantified, actionable. Mobile signals weighted heavier. Cite every number.`;
   }
 
-  // on_demand default
+  // on_demand fallback
   const skills = (cfg.skills && cfg.skills.seo_deep) || ["seo-audit"];
-  return `You are El Posicionador. Run on-demand SEO analysis for ${site} (tenant: ${tenant}). Skills: ${skills.join(", ")}. Produce markdown with Overall Score, Issues, Wins, Recommendations, Mobile CWV.`;
+  return `You are El Posicionador. On-demand SEO for ${site} (tenant: ${tenant}). Skills: ${skills.join(", ")}. Multi-engine rank check + mobile CWV + state-wide local. Produce scored markdown report.`;
 }
 
 async function main() {
