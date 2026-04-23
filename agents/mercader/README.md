@@ -11,7 +11,7 @@ Part of plantel R9: **El Oráculo** (predictor) + **El Mercader** (marketing ops
 | `SKILL.md` | Anthropic-format skill spec (frontmatter + workflow). Lives under `~/.claude/skills/mercader/` when registered globally |
 | `mercader.mjs` | Node orchestrator. Reads tenant YAML → spawns `claude` CLI → parses output → Airtable + Telegram |
 | `runs/` | Auto-created. Stores raw MD output per run (retention per tenant config) |
-| `../tenants/pinnacle.yaml` | Tenant zero config |
+| `../tenants/pinnacle.json` | Tenant zero config |
 | `../tenants/_template.yaml` | Template for new tenants |
 
 ## Modes
