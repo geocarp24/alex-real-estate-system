@@ -113,13 +113,14 @@
   function show(){
     if (!root) build();
     root.hidden = false;
+    // Mark as "seen this session" when popup becomes visible — clears when tab closes.
+    if (!FORCE) { try { sessionStorage.setItem(K_SESSION_SEEN, "1"); } catch(e){} }
     setTimeout(function(){ try { emailInput.focus(); } catch(e){} }, 300);
   }
 
   function dismiss(){
     if (!root) return;
     root.hidden = true;
-    try { localStorage.setItem(K_SHOWN, String(Date.now())); } catch(e){}
   }
 
   function setError(msg){
