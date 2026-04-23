@@ -28,6 +28,33 @@
     "secondary_priority":   ""
   },
 
+  "content_goals": {
+    "articles_per_week":      3,
+    "target_word_count_min":  900,
+    "target_word_count_max":  1800,
+    "tone":                   "",
+    "languages":              ["en"],
+    "publish_to_wordpress":   false,
+    "wp_default_status":      "draft",
+    "content_types": [
+      { "type": "blog_post",    "weight": 0.5 },
+      { "type": "q_and_a_page", "weight": 0.3 },
+      { "type": "news_article", "weight": 0.1 },
+      { "type": "pillar_page",  "weight": 0.1 }
+    ],
+    "topic_pillars": [],
+    "backlink_strategy": {
+      "target_types":   [],
+      "monthly_target": 5
+    },
+    "atp_mining": {
+      "enabled":      true,
+      "method":       "claude_knowledge",
+      "fallback_browser": false,
+      "seed_queries": []
+    }
+  },
+
   "website": "",
   "secondary_sites": [],
   "brand": {
