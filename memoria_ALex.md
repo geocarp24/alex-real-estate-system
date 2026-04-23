@@ -1720,6 +1720,35 @@ Ya analicé todo, cuando Jorge elija las 3 respuestas ejecuto en ~30 min (Camino
 - **El Posicionador** — wrapper de `/seo audit` + cron cada 3 días → Airtable + Telegram
 - **El Cazador** — wrapper de `/ads audit` + cron diario → Airtable + Telegram
 
+### 2026-04-23 — El Mercader v1 DRAFT COMPLETO (primer sub-agente R9)
+
+**Archivos shipped** (10KB total, zero runtime deps):
+
+| Archivo | Rol |
+|---|---|
+| `agents/tenants/_template.json` | Template tenant config R8 (copiás → llenás para cada cliente nuevo, NO código change) |
+| `agents/tenants/pinnacle.json` | Tenant zero: Pinnacle Holdings. `website`, `brand`, `competitors` (3 cash-buyers WI), `schedules` (cada 3 días + semanal), `airtable.base_id=appU9s3kGkVpdrJkw`, `alert_thresholds` (crit 50 / warn 70) |
+| `agents/mercader/SKILL.md` | Anthropic skill-creator format: frontmatter + workflow. Identity + 3 modes (quick_health / deep_audit / on_demand) + Airtable schema + security rules |
+| `agents/mercader/mercader.mjs` | Node orchestrator (ejecutable, chmod +x). Lee tenant JSON → spawns `claude --print` subprocess → parsea output (score, issues, wins, recs) → escribe Airtable → envía Telegram. Soporta `--dry-run` para preview sin tokens |
+| `agents/mercader/README.md` | Deploy guide + known limitation (nested Claude CLI) + adding-new-tenant recipe |
+
+**Verificación (per `verification-before-completion`):**
+- ✅ `node --check` limpio
+- ✅ Dry-run quick_health produce prompt correcto con URL Pinnacle + skill `market-quick`
+- ✅ Dry-run deep_audit produce prompt con 3 competitors interpoados + report template
+- ✅ Zero npm deps (Node 22 fetch + JSON native)
+
+**3 approvals pendientes de Jorge antes de pasar a producción:**
+1. **Airtable table:** crear `Marketing_Audits` en base `appU9s3kGkVpdrJkw` con el schema descrito en `SKILL.md` (run_id, tenant_id, audit_type, status, score, top_issues, top_wins, recommendations, summary_md, report_url, tokens_used, etc.). Pegar `table_id` en `pinnacle.json.airtable.table_id`.
+2. **Host del cron:** Hostinger PHP cron wrapper (simple, mismo patrón que `fer_seguimiento`) OR VPS service (más control). Pendiente decisión arquitectural.
+3. **Auth `claude` CLI** en el host elegido (`claude login`). Sin auth el subprocess falla igual que El Oráculo.
+
+**Limitación conocida:** Nested Claude CLI (correr El Mercader desde dentro de una sesión ALEX Claude Code) falla silenciosamente, mismo issue que MiroFish. Solución: correr desde terminal limpia, VPS cron, o Hostinger cron.
+
+**SaaS-ready (R8):** 100% tenant-aware. Agregar un segundo cliente = `cp _template.json acme.json` + llenar valores + `node mercader.mjs --tenant acme --mode quick_health`. Cero código nuevo.
+
+**Próximos R9:** mismo patrón para El Posicionador (usa `/seo audit`), El Cazador (usa `/ads audit`), El Oráculo (usa MiroFish CLI).
+
 ### 2026-04-23 — gstack instalado (Garry Tan's Claude Code setup)
 
 Jorge pidió "gistak" = **gstack** (typo de autocorrect). Confirmado + instalado.
