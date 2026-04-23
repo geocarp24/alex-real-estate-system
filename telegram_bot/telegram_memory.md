@@ -51,4 +51,7 @@ El bot de Telegram debe leer al arrancar: `memoria_ALex.md`, `agents/memoria_ale
 ### MOBILE-FIRST — PRIORIDAD #1 PERMANENTE (2026-04-23)
 Todo el trabajo de Pinnacle se optimiza mobile-first como prioridad #1. Mayor tráfico web hoy = mobile. Aplica a popups, formularios, páginas, chatbot, emails, social creatives, CTAs, imágenes, cualquier componente nuevo. NUNCA excluir mobile por viewport sin consultar al Jefe. Test mobile PRIMERO, desktop después. Detalle completo en `memoria_ALex.md` regla R7 y `CLAUDE.md` sección 1b.
 
+### SAAS-READY / MULTI-TENANT-FIRST (2026-04-23)
+Todo se construye como producto vendible a terceros. Pinnacle = tenant cero. Reglas: nada hardcodeado (todo por-tenant config), tenant isolation, separación core/config/deployment, onboarding documentado, billing hooks upfront, validar licencias deps (AGPL no-go para mono core, MIT/Apache safe), security defaults día 1, naming genérico. Detalle completo en `memoria_ALex.md` regla R8 y `CLAUDE.md` sección 1c.
+
 ---
