@@ -1469,6 +1469,32 @@ Jorge reportó por segunda vez "popup no aparece". Systematic-debugging confirm�
 
 **Lección PERMANENTE:** NO agregar exclusiones de audiencia unilateralmente (por "mejor práctica genérica") sin validar con el Jefe. Lo que es best practice para un blog SaaS no es best practice para real estate. Siempre preguntar: "¿dónde vive tu audiencia?" antes de filtrar por viewport, device, región, o cualquier otro eje. Para Pinnacle: mobile-first, nunca mobile-excluded.
 
+### 2026-04-23 — Herramienta instalada: Open Carrusel (Instagram carousel builder)
+
+Jorge ordenó instalar `Hainrixz/open-carrusel` de GitHub. No es un skill `~/.claude/skills/` global — es un proyecto Next.js standalone que se lanza desde su propio directorio con Claude Code.
+
+**Ubicación:** `/home/user/open-carrusel/`
+**Licencia:** MIT | **Stack:** Next.js 16 + React 19 + TypeScript 5 + Tailwind v4 + Puppeteer
+**Diseño:** local-first (todo corre en la máquina, solo llama a Anthropic API vía Claude Code)
+**Output:** slides HTML/CSS generadas por Claude → screenshots PNG 1080×1350 (Instagram feed).
+
+**Slash commands (scoped a ese repo):**
+- `/start` — bootstrapa setup, arranca dev server, abre browser
+- `/stop` — detiene dev server
+- `/reset` — resetea data/uploads
+- `/doctor` — diagnóstico de entorno
+
+**Flujo de uso:**
+```bash
+cd /home/user/open-carrusel
+claude
+# dentro de Claude Code:
+/start
+```
+Esto abre el browser en http://localhost:3000 con el builder. Conversás con Claude, te genera slides, exportás PNGs.
+
+**Uso para Pinnacle:** alimenta el pipeline Social Media (FASE 2 El Creativo) con carruseles Instagram brandeados. Output 1080×1350 coincide con el aspect ratio que ya usamos.
+
 ### R7. MOBILE-FIRST — PRIORIDAD #1 PERMANENTE (todos los proyectos, todos los modelos, todos los entornos)
 **Orden directa de Jorge, 2026-04-23 — NO NEGOCIABLE.**
 
