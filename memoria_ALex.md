@@ -2277,6 +2277,87 @@ Jorge reportó que los emails/SMS constantes de primeros 30 días NO estaban sal
 - Rebuild Creativo + Director + Programador (Blotato elimination)
 - Decidir cron host (Hostinger PHP wrapper vs VPS) + claude login
 
+### 2026-04-23 NIGHT — Unlocks desde PC + cron host + Remitente v2
+
+Jorge se movió a PC. Desbloqueó lo que estaba bloqueado en iPhone.
+
+**1. El Cartógrafo OAuth COMPLETO:**
+- Redirect URI configurado en Google Cloud Console → `https://pinnaclegroupwi.com/agents/oauth_gbp_callback.php`
+- Test User añadido (email admin de GBP)
+- Autorización completada, `code` intercambiado por:
+  - `access_token` (válido 1h)
+  - `refresh_token` (permanente, auto-mint de access tokens)
+  - `scope: https://www.googleapis.com/auth/business.manage`
+- Tokens guardados en `agents/cartografo/secrets/pinnacle_gbp_oauth.json` (gitignored)
+- Refresh flow probado ✓
+- Quota GBP API bloqueando calls secuenciales (HTTP 429 — default 1/min en Testing mode). Jorge debe solicitar aumento a 300/min en https://console.cloud.google.com/apis/api/mybusinessbusinessinformation.googleapis.com/quotas?project=pinnacle-alex-bot
+
+**2. MCP Server Cartógrafo wire-up real (+208 líneas):**
+- `_oauth_bearer()` con auto-refresh 10 min antes de expirar
+- `_gbp_call(method, url, body)` helper genérico con error handling
+- Tools live: `gbp_list_accounts`, `gbp_list_locations`, `gbp_get_location`, `gbp_list_reviews`, `gbp_list_insights` (reads) + `gbp_publish_post`, `gbp_respond_review`, `gbp_answer_qa` (writes con circuit breaker + rate limit + audit)
+- Único stub restante: `gbp_upload_photo` (requiere POST multipart bytes — futuro)
+
+**3. Supervisor threshold refinado:**
+- Antes: warning si >50 New contacts (disparaba yellow falsos todo el tiempo en Pinnacle que tiene backlog normal de Jorge)
+- Ahora: tenant-configurable. Pinnacle: `backlog_new_warn_threshold: 500`, `backlog_new_critical_threshold: 2000`
+- Config añadido a `agents/tenants/pinnacle.json` bajo bloque `supervisor`
+
+**4. El Remitente v2 — 3 modos críticos implementados:**
+- `process_welcome` — scan Active subs sin último email → manda welcome_{lang} template con {{unsub_url}} HMAC → update last_email_sent_at + log Email_Events
+- `process_drip` — scan Active subs con last_email >= 14 días atrás → manda nurture_{lang} → update
+- `schedule_send` — fire campaign específica por `--campaign-id` a todos Active que matchean audience_filter
+- Helpers nuevos: `sendEmailSmtp()` → POST `/Tools/send_notification.php`, `renderTemplate()` con vars (unsub_url, email, name, month, year), `fetchTemplatesByCategory()`, `logEvent()` → Email_Events
+- Rate limit: 2 emails/sec pacing entre sends
+- Remitente ahora integrado al workflow `agents-cron.yml`: process_welcome daily 14:30 UTC, process_drip daily 15:00 UTC, weekly_report Mon 11:00 UTC
+
+**5. GHA workflow para 8 agentes Node (`agents-cron.yml`):**
+- 16 cron triggers (con Remitente ahora 17+) cubriendo: Mercader, Posicionador, Escriba, Cazador, Clasificador, Analista, Espía, Auditor, Remitente
+- Instala claude-code CLI on GHA → override binary_path a 'claude' → ejecuta agente
+- Secrets reutilizados de deploy-hostinger.yml
+- workflow_dispatch para invocación manual desde UI GitHub
+- Artifacts uploaded para inspección post-run
+
+**6. Email smoke test confirmado:**
+- Enviado a geocarpentryllc@gmail.com vía POST `/Tools/send_notification.php`
+- HTTP 200 + `{"success":true,"type":"email"}`
+- Pendiente: Jorge verifica en Gmail "Show original" que DKIM:PASS + DMARC:PASS + SPF:PASS
+
+**7. Reloj suizo Hostinger crons:**
+- Jorge configuró los 4 crons en hPanel manualmente (fer_first_contact cada 15 min, fer_seguimiento daily 15:30 UTC, fer_stale_cron daily 14:00 UTC, fer_morning_brief daily 14:30 UTC)
+- Verificación pendiente mañana ~11 AM CT: si los 28 Contacted avanzaron step 1→2 → cron funciona
+- Supervisor GHA vigilando la freshness del log
+
+**8. Verificación Supervisor primer tick GHA:**
+- Corrió 2026-04-23T20:14:36 UTC (primer tick scheduled)
+- 8/8 checks pass (endpoints Hostinger + Airtable + OpenPhone + Telegram + webhooks)
+- Health: yellow → fix applied en threshold (próximo tick será green)
+- Pipeline: 0 ghosts detectados, stats correctos
+- GHA secrets verificados funcionales (sino checks fallarían)
+
+**Plantel R9 cierre night 2026-04-23 (10 agentes funcionales):**
+- R9 Phase 2: Mercader, Posicionador, Escriba, Remitente (✨ v2 completo), Cazador
+- R9 Sprint 2 GAP: Clasificador, Analista, Espía, Auditor
+- R9 Sprint 3: Supervisor (corriendo GHA scheduled)
+- Specialized: Cartógrafo (OAuth ✅ + MCP wire-up ✅, quota pending Jorge)
+- Legacy: Scout, Matemático, Fact-Checker, Tracy, Fer, Social Media, Creativo, Director, Programador, Secretario, Planificador, Oráculo (diferido VPS)
+
+**17 cron triggers ahora activos en GHA + 4 en Hostinger = 21 jobs autónomos.**
+
+**Todo list pendiente (roadmap real):**
+- Jorge verifica email DKIM/DMARC en Gmail
+- Jorge verifica crons Hostinger toggle verde
+- Mañana 11 AM CT: validar que reloj suizo avance contactos step 1→2
+- Jorge solicita aumento quota GBP API (10 min en Google Cloud Console)
+- Implementar Cartógrafo `gbp_upload_photo` (multipart — futuro cuando se necesite)
+- Debug del 4to inbound de Fer que no se guardó en conversations
+- Rebuild Creativo + Director + Programador (Blotato elimination)
+- El Contador (financial, diferido)
+- WhatsApp AgentKit (3 decisiones arquitectónicas)
+- Refactor existentes a `_shared/runner.mjs` (reduce duplicación)
+- Supervisor incident auto-trigger cuando heartbeat red
+- Pagination en Supervisor pipeline check (>100 contactos)
+
 ### 2026-04-23 — NotebookLM skill instalado (Google NotebookLM wrapper)
 
 **Repo:** `proyecto26/notebooklm-ai-plugin` (MIT ✓)
