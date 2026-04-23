@@ -40,64 +40,8 @@ function parseArgs(argv) {
   return args;
 }
 
-// ----- Minimal YAML parser (enough for our shape; avoids adding deps) -----
-function parseYaml(src) {
-  const lines = src.split(/\r?\n/);
-  const root = {};
-  const stack = [{ indent: -1, obj: root, key: null, listKey: null }];
-  for (let raw of lines) {
-    if (!raw.trim() || raw.trim().startsWith("#")) continue;
-    const indent = raw.match(/^ */)[0].length;
-    const line = raw.trim();
-    while (stack.length > 1 && indent <= stack[stack.length - 1].indent) stack.pop();
-    const top = stack[stack.length - 1];
-
-    if (line.startsWith("- ")) {
-      const item = line.slice(2).trim();
-      if (!Array.isArray(top.obj)) continue;
-      if (item.includes(": ")) {
-        const o = {};
-        const [k, v] = splitKV(item);
-        o[k] = coerce(v);
-        top.obj.push(o);
-        stack.push({ indent, obj: o, key: null });
-      } else {
-        top.obj.push(coerce(item));
-      }
-      continue;
-    }
-
-    const [k, v] = splitKV(line);
-    if (v === "") {
-      const nested = {};
-      top.obj[k] = nested;
-      stack.push({ indent, obj: nested, key: k });
-    } else if (v === "[]") {
-      top.obj[k] = [];
-    } else if (v.startsWith("[") && v.endsWith("]")) {
-      top.obj[k] = v.slice(1, -1).split(",").map(s => coerce(s.trim())).filter(Boolean);
-    } else {
-      top.obj[k] = coerce(v);
-    }
-  }
-  // second pass: convert empty-obj marker positions that are actually lists
-  return root;
-}
-function splitKV(line) {
-  const idx = line.indexOf(":");
-  if (idx < 0) return [line, ""];
-  return [line.slice(0, idx).trim(), line.slice(idx + 1).trim()];
-}
-function coerce(v) {
-  if (typeof v !== "string") return v;
-  const s = v.replace(/^["']|["']$/g, "");
-  if (s === "true") return true;
-  if (s === "false") return false;
-  if (s === "null" || s === "~") return null;
-  if (/^-?\d+$/.test(s)) return Number.parseInt(s, 10);
-  if (/^-?\d+\.\d+$/.test(s)) return Number.parseFloat(s);
-  return s;
-}
+// ----- Minimal YAML parser REPLACED WITH JSON (R1 surgical) -----
+// Tenant configs live as agents/tenants/<slug>.json — Node parses natively, zero deps.
 
 // ----- Tenant config loader -----
 async function loadTenant(slug) {
