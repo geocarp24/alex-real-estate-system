@@ -3215,4 +3215,110 @@ Send a closing summary with:
 
 ---
 
-<!-- PLAN_PART_12B_END -->
+## Sprint 1 Test Count Summary
+
+If all 15 tasks land green, the Sprint 1 test suite contains:
+
+| Task | File | Tests |
+|---|---|---|
+| 0 | `test/schema_setup.test.mjs` | 3 |
+| 1 | `test/reexport.test.mjs` | 4 |
+| 2 | `test/audio.test.mjs` | 5 |
+| 3 | `test/retry.test.mjs` + `test/sanitize.test.mjs` | 3 + 7 = 10 |
+| 4 | `test/pexels.test.mjs` | 4 |
+| 5 | `test/nano_banana.test.mjs` | 5 |
+| 6 | `test/scene_layout.test.mjs` | 8 |
+| 7 | `test/render.test.mjs` | 3 |
+| 8 | `test/narratives.test.mjs` | 10 |
+| 9 | `test/ffmpeg.test.mjs` | 6 |
+| 10 | `test/cloudinary.test.mjs` | 3 |
+| 11 | `test/airtable.test.mjs` | 6 |
+| 12 | `test/main.test.mjs` | 4 |
+| 13 | `test/cost_control.test.mjs` | 5 |
+| **Total** | | **76** |
+
+This **exceeds the spec's threshold of ≥40 tests** (the spec said "target ~55" — 76 is comfortably above). Tasks 14 and 15 don't add tests (they consume them via `npm test`).
+
+---
+
+## Spec Coverage Check (writing-plans self-review step 1)
+
+Mapping of spec sections to plan tasks:
+
+| Spec section | Plan task(s) |
+|---|---|
+| §3 Arquitectura — file structure | Task 1 (scaffold) |
+| §3.2 Modules reused from Creativo | Task 1 (re-exports), Task 10 (cloudinary copied+extended) |
+| §3.3 New modules | Tasks 2, 3, 4, 5, 6, 7, 8, 9, 13 |
+| §4 Flujo de datos pipeline | Task 12 (main.mjs orchestrator) |
+| §4.4 Dry-run | Task 12 step 5 includes `--dry-run` |
+| §4.5 Error isolation | Task 12 (try/catch per record + safePatchError) |
+| §5 Narratives A/B/C | Task 8 (narrative B only — A/C in Sprint 2 per spec) |
+| §5.2 Narrative B mapping | Task 8 — verified by tests |
+| §5.5 `theme_solid` heroSource | Task 6 — verified by `scene_layout.test.mjs` |
+| §6.1 Error handling matrix | Tasks 4, 5, 11 (retry on 429), Task 12 (fallback chain) |
+| §6.2 Fallback chains | Task 12 `resolveHero` |
+| §6.3 Cost control caps | Task 13 |
+| §6.4 Security sanitization | Task 3 (sanitize utilities) — used everywhere |
+| §6.5 Retry policy | Task 3 (`withRetry`) — used in clients |
+| §6.6 Observability | Task 12 console logs + summarize |
+| §7 Testing strategy | Every task includes TDD |
+| §7.5 Smoke test | Optional, not in Sprint 1 (mentioned in Task 15 step 1 as `npm test` includes it gated) |
+| §8.1 POC | Task 14 |
+| §8.2 POC criteria | Task 14 step 3 (ffprobe checks) |
+| §8.3 Task 0 schema setup | Task 0 |
+| §8.4 Sprint 1 task list | All 15 tasks |
+| §8.5 Sprint 2 (A + C) | NOT in this plan (correct — spec marks as non-blocking) |
+| §8.6 Sprint 3 enhancements | NOT in this plan (correct — bloqueados) |
+| §8.7 Legacy backfill | NOT in this plan — referenced in Task 15 step 10 as next action (correct per spec, post-Sprint-1) |
+| §8.8 Closure checklist | Task 15 |
+
+**Coverage gap analysis:** none. Spec sections deferred to Sprint 2/3 are correctly out of this plan.
+
+---
+
+## Type Consistency Check (writing-plans self-review step 3)
+
+Verified that signatures and exported names are consistent across all tasks:
+
+- `expandNarrative(spec)` defined in Task 8, used in Task 12 ✅
+- `validateSpec(spec)` defined in Task 8, used in Task 12 ✅
+- `parseVisualPrompt(raw)` defined in Task 11, used in Task 12 ✅
+- `listPending(env)` defined in Task 11, used in Task 12 ✅
+- `updateRecord(id, fields, env)` defined in Task 11, used in Task 12 ✅
+- `searchPortrait(query, opts)` and `downloadToFile(url, dest)` Task 4, used in Tasks 12 and 14 ✅
+- `generateImage(prompt, opts) → { imageBuffer, costCents, attempts }` Task 5, used in Tasks 12 and 14 ✅
+- `buildSceneHtml(scene, heroPath, theme, aspect)` Task 6, used in Tasks 12 and 14 ✅
+- `renderScene(html, scene, outDir, opts) → string[]` Task 7, used in Tasks 12 and 14 ✅
+- `buildVideoCommand({ scenes, musicPath, outputPath }) → { bin, args }` Task 9, used in Tasks 12 and 14 ✅
+- `uploadVideo(localPath, opts)` Task 10, used in Tasks 12 and 14 ✅
+- `enforcePerVideoBudget(scenes)`, `registerNanoBananaCall(cents)`, `shouldForcePexelsFallback(scenes)` Task 13, used in Task 12 ✅
+- `withRetry(fn, opts)` Task 3, used in Tasks 4, 11, and indirectly in 5 ✅
+- All `__setFetch` test injection helpers exist per-module (airtable, cloudinary, pexels, nano_banana) ✅
+
+**No type mismatches found.**
+
+---
+
+## Plan complete
+
+**Saved to:** `docs/superpowers/plans/2026-04-24-director-v2-sprint1.md`
+**Size:** ~3,200 lines across 14 commit-sized parts (regla "por partes" aplicada)
+**Estimated effort:** 3-5 working sessions of focused execution
+**Estimated tests at end:** 76 (target was ≥40)
+**Estimated cost per video:** ~$0.08 (2 Nano Banana × $0.04)
+
+---
+
+## Execution choice — pick one
+
+**Plan complete and saved to `docs/superpowers/plans/2026-04-24-director-v2-sprint1.md`. Two execution options:**
+
+**1. Subagent-Driven (recommended)** — I dispatch a fresh subagent per task. Each subagent gets the spec + the specific task, executes it independently, and reports back. I review between tasks. Faster iteration, isolated context per task, less risk of context-window crashes mid-Sprint.
+
+**2. Inline Execution** — I execute tasks 0-15 in this session using the `executing-plans` skill, with checkpoints between major tasks for your review. More direct visibility but uses more of this conversation's context, higher risk of API errors mid-task on a long plan.
+
+**Which approach? `subagent` or `inline`?**
+
+Given the plan is 15 tasks and we already had API errors mid-conversation, **my strong recommendation is `subagent`** — each task is independent, runs in a fresh context, and you can review what each task produced before the next one starts. Decision is yours.
+
