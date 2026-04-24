@@ -2,6 +2,20 @@
 // The returned string is Puppeteer-ready.
 
 import { THEMES } from './themes.mjs';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const REMOTE_LOGO_URL = 'https://pinnaclegroupwi.com/wp-content/uploads/2026/03/logo-pinnacle.png';
+const LOGO_DATA_URI = (() => {
+  const buf = readFileSync(path.join(__dirname, 'assets', 'logo-pinnacle.png'));
+  return `data:image/png;base64,${buf.toString('base64')}`;
+})();
+
+function inlineLogo(html) {
+  return html.split(REMOTE_LOGO_URL).join(LOGO_DATA_URI);
+}
 
 export function wrapSlideHtml(bodyHtml, themeCode = 'T1') {
   const theme = THEMES[themeCode] || THEMES.T1;
