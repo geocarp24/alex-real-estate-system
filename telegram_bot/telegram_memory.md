@@ -5,6 +5,9 @@ Se actualiza con /guardar o /reset. ALEX lo lee al inicio de cada sesión.
 
 ---
 
+## 2026-04-24 — REGLA "LEGACY RECORD BACKFILL" (orden de Jorge, NO NEGOCIABLE)
+Cuando un flujo nuevo procesa records existentes con formato distinto al que espera el nuevo pipeline, **es OBLIGATORIO** incluir una Task final de backfill one-time: read → regenerate → PATCH → tabla consistente. Aplica a cualquier storage (Airtable, DB, JSON, archivos). Evita que records queden como Status=Error eternamente. Requiere: script idempotente + dry-run + log + commit explícito. Aplicado a Creativo v2, Fer, Tracy, cualquier flujo con records legacy. Aplica a Claude Code, Telegram Bot, Claude.ai.
+
 ## 2026-04-24 — REGLA "POR PARTES" (orden de Jorge, NO NEGOCIABLE)
 Aplicar SIEMPRE la regla de Fase 4 del PROTOCOLO_EJECUCION en **todos los procesos con output >300 líneas** (planes, specs, código, docs, reportes). Dividir en partes pequeñas (<300 líneas por Write/Edit), reportar "✅ Parte N/M lista. Sigo." tras cada una, usar Write/Edit al disco, nunca stream del chat. Validado con plan Fase 2 Creativo v2 (982 líneas, 9 partes, sin timeout) después de que el intento inline previo falló. Aplica a Claude Code, Telegram Bot, Claude.ai y cualquier instancia de ALEX.
 
