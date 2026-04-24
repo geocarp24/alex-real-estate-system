@@ -6,6 +6,8 @@
   "private": true,
   "scripts": {
     "poc": "node poc.mjs",
+    "prod": "doppler run --project pinnacle-social-publisher --config dev_personal -- node main.mjs",
+    "prod:dry": "doppler run --project pinnacle-social-publisher --config dev_personal -- node main.mjs --dry-run",
     "test": "node --test test/*.test.mjs"
   },
   "dependencies": {
