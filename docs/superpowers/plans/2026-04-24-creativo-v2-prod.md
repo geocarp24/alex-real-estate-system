@@ -955,6 +955,94 @@ Post summary:
 
 ---
 
+## Task 9: Legacy Record Backfill (ONE-TIME — OBLIGATORY per Jefe rule 2026-04-24)
+
+**Background:** When Fase 2 goes live, Airtable `tblAj0Pkj1jW4p5Ld` has ~19 legacy records with Visual_Prompt in old descriptive format. The new flow expects JSON. Without this backfill, those records stay as `Status=Error` forever and we have no content to publish.
+
+**Trigger condition:** This task runs ONCE, only after Social Media Agent is updated to emit JSON format (out of scope of this plan — tracked separately). Do NOT run this task during Task 8's E2E validation (too destructive).
+
+- [ ] **Step 1: Update Social Media Agent to emit Visual_Prompt as JSON**
+
+(Separate plan — not covered here. Prerequisite for Task 9.)
+
+- [ ] **Step 2: Build backfill script**
+
+Create `agents/creativo_v2/scripts/backfill_legacy_visual_prompt.mjs`:
+
+```javascript
+// ONE-TIME: regenerate Visual_Prompt for legacy records in new JSON format.
+// Idempotent: safe to run multiple times — skips already-JSON records.
+// Usage:
+//   doppler run -- node scripts/backfill_legacy_visual_prompt.mjs --dry-run
+//   doppler run -- node scripts/backfill_legacy_visual_prompt.mjs
+
+import { listPending, parseVisualPrompt, updateRecord } from '../src/airtable.mjs';
+
+const dryRun = process.argv.includes('--dry-run');
+const records = await listPending();
+const stale = records.filter(r => {
+  try { parseVisualPrompt(r.fields?.Visual_Prompt || ''); return false; }
+  catch { return true; }
+});
+console.log(`Legacy records needing backfill: ${stale.length}/${records.length}`);
+
+const results = { updated: 0, skipped: 0, failed: 0 };
+for (const r of stale) {
+  const id = r.id;
+  // Invoke Social Media Agent to regenerate JSON based on title+existing fields
+  // ... (calls Social Media Agent; exact API TBD when agent is updated)
+  const newJson = await regenerateViaSocialMediaAgent(r);
+  if (dryRun) {
+    console.log(`[${id}] would update with new JSON (${newJson.length} chars)`);
+    results.skipped++;
+    continue;
+  }
+  try {
+    await updateRecord(id, { Visual_Prompt: newJson });
+    results.updated++;
+  } catch (e) {
+    console.error(`[${id}] update failed: ${e.message}`);
+    results.failed++;
+  }
+}
+console.log('Backfill summary:', results);
+```
+
+- [ ] **Step 3: Dry-run first**
+
+```bash
+cd agents/creativo_v2 && doppler run -- node scripts/backfill_legacy_visual_prompt.mjs --dry-run
+```
+
+Verify count of records to update is expected.
+
+- [ ] **Step 4: Full run**
+
+```bash
+cd agents/creativo_v2 && doppler run -- node scripts/backfill_legacy_visual_prompt.mjs
+```
+
+Log every updated record ID.
+
+- [ ] **Step 5: Re-run the main orchestrator to process now-consistent records**
+
+```bash
+cd agents/creativo_v2 && npm run prod
+```
+
+Expected: all previously stale records now successfully render + upload + Status=Lista para Publicar.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add agents/creativo_v2/scripts/backfill_legacy_visual_prompt.mjs
+git -c commit.gpgsign=false commit -m "creativo_v2: backfill script for legacy Visual_Prompt records"
+```
+
+**IMPORTANT — rule going forward:** Every new plan that introduces a data format change MUST include an analogous backfill Task as a non-negotiable final step. See `memoria_ALex.md` regla 2026-04-24 "Legacy Record Backfill".
+
+---
+
 ## Verification Checklist (after Task 8)
 
 - [ ] `npm test` in `agents/creativo_v2/` — all 19+ tests pass (13 from Fase 1 + 10 airtable + 3 cloudinary + 4 main = 30 minimum)
