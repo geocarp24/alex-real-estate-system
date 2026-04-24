@@ -65,7 +65,7 @@ function logoWatermark(theme, size = 64) {
 // HOOK SLIDE — large centered hook text, bilingual EN/ES, logo watermark
 // Used as Slide 1 of every carousel/post.
 // ---------------------------------------------------------------------------
-export function slideHook(themeCode, { hookEn, hookEs, badge } = {}) {
+export function slideHook(themeCode, { hookEn, hookEs, badge, aspect = "4:5" } = {}) {
   const theme = THEMES[themeCode] || THEMES.T1;
   const badgeChip = badge ? `
     <div style="
