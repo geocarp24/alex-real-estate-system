@@ -5,7 +5,7 @@ import puppeteer from 'puppeteer';
 import path from 'node:path';
 import fs from 'node:fs/promises';
 
-const VIEWPORT = { width: 1080, height: 1350, deviceScaleFactor: 1 };
+const DEFAULT_VIEWPORT = { width: 1080, height: 1350, deviceScaleFactor: 1 };
 const JPEG_QUALITY = 90;
 
 let _browser = null;
