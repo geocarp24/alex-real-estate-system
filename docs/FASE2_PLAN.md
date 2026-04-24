@@ -12,9 +12,16 @@ El resultado: publicamos posts, imágenes y videos desde ALEX, sin intermediario
 
 ### 1. Agente Creativo
 - **Qué hace:** Genera el contenido del post. Texto, imagen, video (si aplica).
-- **Cómo funciona:** Recibe una instrucción ("crea un post de GEO Carpentry sobre decks de madera")
-  y devuelve el contenido listo para publicar.
-- **Tecnología:** LLM (Claude) + generación de imágenes si se necesita.
+- **Cómo funciona:** Recibe una instrucción ("crea un post de GEO Carpentry sobre decks de madera"),
+  consulta el contexto del negocio, genera texto con Claude, genera imagen con Replicate o Nano Banana,
+  y devuelve el paquete listo para publicar.
+- **Tecnología (tres fuentes de entrada):**
+  - **NotebookLM** (`geocarpentryllc@gmail.com`, notebook "Pinnacle WI Knowledge Base") →
+    provee contexto del negocio: servicios, zonas, proyectos, tono de marca.
+  - **Replicate** (token `pinnacle-alex`, usuario `geocarp24`) →
+    generación de imágenes y videos variados vía modelos open-source.
+  - **Nano Banana / Gemini API** (cuenta `admin@geocarpentry.com`, Pro) →
+    generación de imágenes premium. **Usar esta cuenta, no la de geocarpentryllc.**
 - **Estado actual:** Por construir (Fase 2.4).
 
 ### 2. Organizador
