@@ -200,7 +200,7 @@ export function slideCTA(themeCode, { ctaEn, ctaEs, aspect = "4:5" } = {}) {
     </div>
     ${logoCorner(theme, 160)}
   `;
-  return baseWrapper(theme, inner, { pad: 0 });
+  return baseWrapper(theme, inner, { pad: 0, aspect });
 }
 
 // ---------------------------------------------------------------------------
