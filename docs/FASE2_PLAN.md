@@ -6,87 +6,74 @@ Reemplazamos Blotato. En lugar de depender de una herramienta externa para publi
 conectamos el sistema ALEX directo a Facebook e Instagram usando la API oficial de Meta (Graph API).
 El resultado: publicamos posts, imágenes y videos desde ALEX, sin intermediarios, sin costo mensual por Blotato.
 
----
-
-## Las 3 Piezas del Sistema
-
-### 1. Agente Creativo
-- **Qué hace:** Genera el contenido del post. Texto, imagen, video (si aplica).
-- **Cómo funciona:** Recibe una instrucción ("crea un post de GEO Carpentry sobre decks de madera"),
-  consulta el contexto del negocio, genera texto con Claude, genera imagen con Replicate o Nano Banana,
-  y devuelve el paquete listo para publicar.
-- **Tecnología (tres fuentes de entrada):**
-  - **NotebookLM** (`geocarpentryllc@gmail.com`, notebook "Pinnacle WI Knowledge Base") →
-    provee contexto del negocio: servicios, zonas, proyectos, tono de marca.
-  - **Replicate** (token `pinnacle-alex`, usuario `geocarp24`) →
-    generación de imágenes y videos variados vía modelos open-source.
-  - **Nano Banana / Gemini API** (cuenta `admin@geocarpentry.com`, Pro) →
-    generación de imágenes premium. **Usar esta cuenta, no la de geocarpentryllc.**
-- **Estado actual:** Por construir (Fase 2.4).
-
-### 2. Organizador
-- **Qué hace:** Decide qué publicar, cuándo y en qué red. Maneja la cola de posts.
-- **Funciones:**
-  - Calendario de publicaciones
-  - Prioridades (¿qué va primero?)
-  - Cola: posts listos esperando su turno
-  - Registro de lo que ya se publicó
-- **Estado actual:** Por construir (Fase 2.3).
-
-### 3. Publicador
-- **Qué hace:** Habla con la Graph API de Meta. Recibe la orden del Organizador
-  ("publicá este contenido en esta página") y lo ejecuta.
-- **Funciones:**
-  - Publicar texto, imágenes y videos en Facebook Pages
-  - Publicar en Instagram Business
-  - Reportar resultado (éxito / error) al Organizador
-- **Estado actual:** Por construir (Fase 2.2 — versión mínima primero).
+**Meta de producción:** 3 posts por día entre Facebook + Instagram.
 
 ---
 
-## Flujo del Sistema
+## Pipeline Completo
 
 ```
-NotebookLM (Pinnacle WI KB)        ──► contexto / knowledge base
-Replicate   (pinnacle-alex token)  ──► imágenes y videos variados
-Nano Banana (admin@geocarpentry)   ──► imágenes premium (Gemini API Pro)
-                    │
-                    ▼
-             Agente Creativo
-             (texto + imagen)
-                    │
-                    ▼
-             Organizador
-             (cola / calendario)
-                    │
-                    ▼
-             Publicador
-                    │
-                    ▼
-          Meta Graph API
-           /            \
-     Facebook          Instagram
-     Page(s)           Business Account
+┌────────────────────────┐
+│ Agente Social Media    │ ← genera IDEAS (concepto, copy borrador, tema)
+│ (usa NotebookLM KB)    │
+└──────────┬─────────────┘
+           ▼
+┌────────────────────────┐
+│ Agente Oráculo         │ ← APRUEBA o RECHAZA (gate de calidad/marca)
+└──────────┬─────────────┘
+           │ approved
+           ▼
+┌────────────────────────┐
+│ Herramientas creación  │ ← imágenes / reels / videos
+│ (Replicate + Nano      │   Solo corren si Oráculo aprobó.
+│  Banana via Gemini)    │
+└──────────┬─────────────┘
+           ▼
+┌────────────────────────┐
+│ Organizador/Publicador │ ← schedule + publish
+│ (Meta Graph API)       │
+└──────────┬─────────────┘
+           ▼
+      Facebook + Instagram
+      Meta: 3 posts/día
 ```
 
 ---
 
-## Airtable como almacén del Organizador
+## Las 4 Piezas del Sistema
 
-**Pregunta abierta (decidir con el Jefe):**
+### 1. Agente Social Media
+- **Qué hace:** Genera ideas de contenido. Solo produce concepto — no genera media.
+- **Output:** Tema del post + copy borrador + tipo de media sugerido (foto, video, carrusel).
+- **Fuente de contexto:** NotebookLM ("Pinnacle WI Knowledge Base") — servicios, proyectos,
+  tono de marca, zonas de trabajo de GEO Carpentry y Pinnacle Wisconsin.
+- **No hace:** No genera imágenes ni videos. No publica nada.
+- **Estado:** Por construir (Fase 2.4).
 
-¿Usamos Airtable como la cola de posts del Organizador, o una base local (SQLite)?
+### 2. Agente Oráculo — Gate de Calidad
+- **Qué hace:** Revisa el concepto del Agente Social Media y decide: **Approve** o **Reject**.
+- **Por qué importa:** Replicate y Nano Banana cuestan créditos reales.
+  El Oráculo filtra ANTES de gastarlos. Solo se genera media cuando el concepto pasó el filtro.
+- **Output:** `approved` + razón breve, o `rejected` + razón. Nada más.
+- **Pregunta abierta:** ¿El Oráculo usa reglas hard-coded o es un LLM con prompt de review?
+  (Ver sección Preguntas Abiertas)
+- **Estado:** Por construir (Fase 2.4).
 
-**Opción A — Airtable:**
-- Ventaja: el Jefe puede ver y editar la cola desde el navegador, sin código.
-- Desventaja: depende de conexión a internet y del plan de Airtable.
+### 3. Herramientas de Creación (tools, no agente)
+- **Qué son:** Funciones que el pipeline llama cuando el Oráculo aprobó.
+  No son un agente independiente — son tools ejecutadas en secuencia.
+- **Replicate** (token `pinnacle-alex`, usuario `geocarp24`) →
+  imágenes y videos variados con modelos open-source (Flux, SDXL, etc.).
+- **Nano Banana / Gemini API** (cuenta `admin@geocarpentry.com`, Pro) →
+  imágenes premium. ⚠️ Usar ESTA cuenta, no `geocarpentryllc@gmail.com` (Free).
+- **Estado:** APIs configuradas. Código pendiente (Fase 2.4).
 
-**Opción B — SQLite (archivo local):**
-- Ventaja: más rápido, sin costo, sin dependencias externas.
-- Desventaja: no hay interfaz visual sin construirla.
-
-**Recomendación inicial:** Airtable (ya lo usamos para el CRM, el Jefe ya sabe mirarlo).
-Decidir en la sesión de Fase 2.3.
+### 4. Organizador + Publicador
+- **Organizador:** arma la cola de posts aprobados y asigna horarios.
+  Meta: 3 posts por día, distribuidos a lo largo del día.
+- **Publicador:** executor final. Lee la cola y llama a la Meta Graph API para publicar
+  en Facebook Pages + Instagram Business. Reporta resultado (éxito / error).
+- **Estado:** Por construir (Fase 2.2 el publicador mínimo, Fase 2.3 el organizador).
 
 ---
 
@@ -94,68 +81,74 @@ Decidir en la sesión de Fase 2.3.
 
 ### Fase 2.1 — Setup de la App de Meta ← ESTAMOS AQUÍ
 - Crear app "Pinnacle Social Publisher" en Meta for Developers ✅
-- Activar los Use Cases correctos (permisos de páginas e Instagram)
-- Configurar OAuth (para que Meta nos deje publicar)
-- Obtener los tokens de acceso de página (Page Access Token)
-- Hacer la primera llamada de prueba a la Graph API
+- App ID: `4233439163564604` | Business ID: `800555019765952` ✅
+- Activar Use Cases: páginas de Facebook + Instagram Business
+- Configurar OAuth y obtener Page Access Token
+- Primera llamada de prueba a la Graph API
 
 ### Fase 2.2 — Publicador Mínimo
-- Publicar un post de solo texto en una Facebook Page real
-- Objetivo: probar que el pipeline funciona de punta a punta
-- Sin agente creativo, sin organizador — solo el Publicador solo
+- Publicar un post de texto solo en una Facebook Page real
+- Probar el pipeline de punta a punta: `.env` → Graph API → post visible en FB
+- Sin Oráculo, sin Organizador, sin Creativo — solo el executor
 
 ### Fase 2.3 — Organizador
-- Cola simple de posts (Airtable o SQLite — decisión pendiente)
-- El Publicador lee la cola y publica en orden
-- Sin lógica de horarios todavía
+- Cola de posts con meta de 3/día
+- Asignación de horarios
+- Registro de historial (qué se publicó, cuándo, resultado)
+- Decisión pendiente: Airtable (visual, ya conectado) o SQLite local (más rápido)
 
-### Fase 2.4 — Agente Creativo
-- Conectar NotebookLM como fuente de contexto del negocio
-- Conectar Replicate (`pinnacle-alex`) para generación de imágenes
-- Conectar Nano Banana / Gemini API (cuenta `admin@geocarpentry.com`) para imágenes premium
-- El Jefe da un tema → el Creativo genera texto + imagen → el Organizador lo encola → el Publicador lo publica
+### Fase 2.4 — Agente Social Media + Oráculo + Herramientas
+- Agente Social Media: ideas de contenido usando NotebookLM como KB
+- Agente Oráculo: gate de calidad antes de gastar créditos en media
+- Herramientas: Replicate + Nano Banana conectadas al pipeline
+- Pipeline completo: idea → aprobación → media → cola → publicación
 
 ### Fase 2.5 — Polish + App Review de Meta
-- Publicar la Política de Privacidad (requisito de Meta)
-- Solicitar App Review para salir del modo desarrollo
-- La app queda "Live" — puede publicar en cualquier página sin modo dev
-- Ajustes finales, manejo de errores, logs
+- Publicar Política de Privacidad (requisito de Meta para App Review)
+- Solicitar App Review → la app queda "Live" (puede tocar páginas de terceros)
+- Manejo de errores, logs, alertas por Telegram si falla una publicación
+- Ajustes finales de horarios y mix de contenido
 
 ---
 
+## Integraciones Confirmadas
+
+> Cuentas y tokens configurados por el Jefe fuera del repo.
+> No hay código aún — entran en Fase 2.4.
+
+| Servicio | Cuenta / Usuario | Rol |
+|----------|-----------------|-----|
+| NotebookLM | `geocarpentryllc@gmail.com` | KB "Pinnacle WI" — contexto para el Agente Social Media |
+| Replicate | `geocarp24` / token `pinnacle-alex` | Imágenes y videos variados (Flux, SDXL, etc.) |
+| Gemini API (Nano Banana) | `admin@geocarpentry.com` (**Pro**) | Imágenes premium — ⚠️ NO usar la cuenta Free |
+| Meta Graph API | App ID `4233439163564604` | Publicación en FB Pages + Instagram Business |
+
 ---
 
-## Integraciones Confirmadas del Agente Creativo
+## Preguntas Abiertas (el Jefe responde cuando pueda)
 
-> Estas cuentas y tokens ya existen — el Jefe los configuró fuera del repo.
-> No hay código aún, pero las credenciales están listas para cuando lleguemos a Fase 2.4.
+Estas decisiones afectan el diseño. Quedan anotadas para no olvidarlas.
 
-### NotebookLM (Google)
-- **Cuenta:** `geocarpentryllc@gmail.com`
-- **Notebook activo:** "Pinnacle WI Knowledge Base" (10 sources cargados)
-- **Rol en el sistema:** Fuente de conocimiento del negocio. El Creativo consulta este notebook
-  para generar posts con contexto real de Pinnacle Wisconsin (servicios, zonas, proyectos, tono).
-- **Estado:** Cuenta configurada. Código pendiente (Fase 2.4).
+1. **¿Oráculo con reglas o con LLM?**
+   ¿El Oráculo filtra con criterios hard-coded (ej. "rechazar si no menciona marca o zona")
+   o es un segundo LLM con un prompt de reviewer de calidad/marca?
 
-### Replicate
-- **Usuario:** `geocarp24`
-- **Token:** `pinnacle-alex` (prefijo `r8_Z3w...`) — el valor completo va en `.env` local.
-- **Rol en el sistema:** Generación de imágenes y videos variados con modelos open-source.
-  Más flexible que una API única — permite probar distintos modelos (Flux, SDXL, etc.).
-- **Estado:** Cuenta configurada. Código pendiente (Fase 2.4).
+2. **¿Publicación 100% automática o el Jefe aprueba el post final?**
+   ¿Todo corre auto (Social Media → Oráculo → media → publicación sin intervención),
+   o el Jefe tiene un paso de aprobación final antes de que el Publicador ejecute?
 
-### Nano Banana — Gemini API (Google)
-- **IMPORTANTE — dos cuentas, usar la correcta:**
-  - `geocarpentryllc@gmail.com` → Free tier. Tiene API key pero es la secundaria. No usar en producción.
-  - `admin@geocarpentry.com` → **cuenta Pro con Nano Banana. ESTA es la de producción.**
-- **Rol en el sistema:** Generación de imágenes premium. Complementa a Replicate para posts de mayor calidad.
-- **Estado:** Cuenta Pro activa. API key pendiente de copiar en `.env`. Código pendiente (Fase 2.4).
+3. **¿Qué mix de contenido para los 3 posts/día?**
+   ¿Balance fijo (ej. 1 listing + 1 educativo + 1 community)?
+   ¿O el Organizador decide según lo que haya en cola?
+   ¿Qué tipos de contenido queremos: listings, behind-the-scenes, tips, promos, community?
 
-### Meta for Developers
-- **App:** Pinnacle Social Publisher
-- **App ID:** `4233439163564604`
-- **Business ID:** `800555019765952`
-- **Estado:** App creada, Unpublished (modo desarrollo). Configurando permisos — Fase 2.1 en curso.
+4. **¿Dónde vive la cola del Organizador?**
+   Airtable (ya conectado al CRM, el Jefe puede verlo en el navegador)
+   o SQLite local (más rápido, sin costo, sin interfaz visual automática).
+
+5. **¿FB + IG con el mismo contenido, o adaptado a cada red?**
+   ¿Publicamos el mismo post simultáneo en ambas redes,
+   o el Agente Social Media adapta el copy y el formato según la plataforma?
 
 ---
 
