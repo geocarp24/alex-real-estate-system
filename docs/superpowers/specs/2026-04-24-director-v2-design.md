@@ -1009,8 +1009,7 @@ Jorge revisa la URL → da "go" → POC aprobado → pasamos a productivizar.
 **Acciones:**
 1. Verificar conexión con base `appU9s3kGkVpdrJkw` usando `AIRTABLE_SM_SCHEMA_TOKEN`
 2. Descubrir tabla `tblAj0Pkj1jW4p5Ld` via `GET /meta/bases/{baseId}/tables`
-3. Verificar si `Media_Type` tiene opción `"reel"`:
-   - Si no, `PATCH /meta/bases/{baseId}/tables/{tableId}/fields/{fieldId}` con `options.choices += [{name: 'reel'}]`
+3. ~~Verificar si `Media_Type` tiene opción `"reel"`~~ (NO APLICA — verificado contra producción 2026-04-24: la tabla usa el campo `Formato` que ya incluye la opción `Reel` en producción; Director v2 filtra por `{Formato}='Reel'`).
 4. Verificar si campo `video_duration` existe:
    - Si no, `POST /meta/bases/{baseId}/tables/{tableId}/fields` con `{name: 'video_duration', type: 'number', options: {precision: 1}}`
 5. Verificar si campo `video_cost_cents` existe:
