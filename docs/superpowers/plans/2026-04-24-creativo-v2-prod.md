@@ -75,4 +75,52 @@ Social Media Agent writes **valid JSON** to the Visual_Prompt field matching thi
 
 ---
 
-*Tasks follow in Parts 2-9.*
+## Task 1: Migrate Airtable secrets to Doppler
+
+**Files:**
+- Modify (manual, via Doppler dashboard): add 3 secrets to `pinnacle-social-publisher` / `dev_personal`
+
+- [ ] **Step 1: Jefe adds 3 secrets to Doppler dashboard**
+
+In `dashboard.doppler.com` → project `pinnacle-social-publisher` → config `dev_personal` → Add Secret (x3):
+
+```
+AIRTABLE_SM_TOKEN     = patSlNwngu7SJoa52.003c83df8f6e378af5309237e310a36568a037448709d94b10739d032f9e8ef7
+AIRTABLE_SM_BASE_ID   = appU9s3kGkVpdrJkw
+AIRTABLE_SM_TABLE_ID  = tblAj0Pkj1jW4p5Ld
+```
+
+(Values come from existing `agents/social_media.md`. After migration, remove them from that file.)
+
+- [ ] **Step 2: Verify Doppler sees all 8 secrets**
+
+```bash
+doppler secrets --only-names --no-check-version 2>&1 | grep -E "^\s*(CLOUDINARY|GEMINI|REPLICATE|AIRTABLE)"
+```
+
+Expected: 8 rows listing CLOUDINARY_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET, GEMINI_API_KEY, REPLICATE_API_TOKEN, AIRTABLE_SM_TOKEN, AIRTABLE_SM_BASE_ID, AIRTABLE_SM_TABLE_ID.
+
+- [ ] **Step 3: Remove plaintext secret from social_media.md**
+
+Edit `agents/social_media.md` section "CREDENCIALES AIRTABLE" — replace the literal token with:
+
+```
+## CREDENCIALES AIRTABLE
+
+Secrets en Doppler project `pinnacle-social-publisher` / config `dev_personal`:
+- AIRTABLE_SM_TOKEN
+- AIRTABLE_SM_BASE_ID  (appU9s3kGkVpdrJkw)
+- AIRTABLE_SM_TABLE_ID (tblAj0Pkj1jW4p5Ld for Ideas de Contenido)
+
+Ejecutar con: `doppler run -- node agents/creativo_v2/main.mjs`
+```
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add agents/social_media.md
+git -c commit.gpgsign=false commit -m "social_media: move Airtable token to Doppler"
+```
+
+---
+
