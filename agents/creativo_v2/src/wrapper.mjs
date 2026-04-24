@@ -17,20 +17,21 @@ function inlineLogo(html) {
   return html.split(REMOTE_LOGO_URL).join(LOGO_DATA_URI);
 }
 
-export function wrapSlideHtml(bodyHtml, themeCode = 'T1') {
+export function wrapSlideHtml(bodyHtml, themeCode = 'T1', aspect = '4:5') {
   const theme = THEMES[themeCode] || THEMES.T1;
+  const dims = dimsForAspect(aspect);
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=1080" />
+<meta name="viewport" content="width=${dims.width}" />
 <title>Pinnacle Slide</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;800&display=swap" />
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  html, body { width:1080px; height:1350px; background:${theme.bg}; }
+  html, body { width:${dims.width}px; height:${dims.height}px; background:${theme.bg}; }
   body { font-family: 'Montserrat', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif; -webkit-font-smoothing: antialiased; }
   img { max-width:100%; display:block; }
 </style>
