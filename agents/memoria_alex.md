@@ -6,6 +6,9 @@
 
 ---
 
+## EL CREATIVO v2 — 100% OPERATIVO (ESTÁTICOS) — 2026-04-24
+ACTIVADO. `agents/creativo_v2/`. 5 temas (T1-T5) + 3 aspects (4:5, 1:1, 9:16) + 3 slide-types (hook, point 2-col bilingüe, CTA). Puppeteer HTML→JPG. 42 tests. Integración Airtable + Cloudinary vía Doppler. `npm run prod`. Pendientes no-bloqueantes: slide-types media/quote/stat, hero Nano Banana. Bloqueos: Social Media Agent debe emitir Visual_Prompt JSON (spec en `docs/superpowers/plans/2026-04-24-creativo-v2-prod.md`). Siguiente: Director v2 (videos 7-15s).
+
 ## REGLA "LEGACY RECORD BACKFILL" (2026-04-24) — NO NEGOCIABLE
 Orden de Jorge: cuando un flujo nuevo procesa records existentes con formato distinto al esperado, **es OBLIGATORIO** incluir una Task final de **backfill one-time**: lee records viejos → regenera en nuevo formato → PATCH → tabla consistente. Aplica a Airtable, DB, JSON, cualquier storage. Sin backfill la tabla acumula "Error" para siempre. Script idempotente + dry-run mode + log de actualizados/fallidos + commit explícito. Aplicado desde hoy para Creativo v2, Fer, Tracy, todo flujo con legacy.
 
