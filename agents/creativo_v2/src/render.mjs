@@ -19,19 +19,21 @@ async function getBrowser() {
   return _browser;
 }
 
-export async function renderJpg(html, outputPath) {
+export async function renderJpg(html, outputPath, opts = {}) {
   await fs.mkdir(path.dirname(outputPath), { recursive: true });
+  const width = opts.width ?? DEFAULT_VIEWPORT.width;
+  const height = opts.height ?? DEFAULT_VIEWPORT.height;
   const browser = await getBrowser();
   const page = await browser.newPage();
   try {
-    await page.setViewport(VIEWPORT);
+    await page.setViewport({ width, height, deviceScaleFactor: 1 });
     await page.setContent(html, { waitUntil: 'networkidle0', timeout: 30000 });
     await page.evaluate(() => document.fonts && document.fonts.ready);
     await page.screenshot({
       path: outputPath,
       type: 'jpeg',
       quality: JPEG_QUALITY,
-      clip: { x: 0, y: 0, width: 1080, height: 1350 },
+      clip: { x: 0, y: 0, width, height },
       omitBackground: false,
     });
   } finally {
