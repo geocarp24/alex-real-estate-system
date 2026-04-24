@@ -78,8 +78,10 @@ agents/director_v2/
 │   ├── ffmpeg.mjs                    # build video: xfade + zoompan + audio mix
 │   ├── cloudinary.mjs                # ← extend desde creativo_v2 con uploadVideo
 │   ├── airtable.mjs                  # lista records con Media_Type=reel
+│   ├── cost_control.mjs              # monthly + per-video Nano Banana budget caps
 │   └── util/
-│       └── retry.mjs                 # withRetry(fn, { attempts, baseDelayMs })
+│       ├── retry.mjs                 # withRetry(fn, { attempts, baseDelayMs })
+│       └── sanitize.mjs              # escapeHtml, sanitizePexelsQuery, sanitizeNanoBananaPrompt, sanitizePublicId
 ├── assets/
 │   ├── music/
 │   │   ├── upbeat_1.mp3              # 5-8 tracks CC0 de Pixabay
