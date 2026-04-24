@@ -2300,9 +2300,9 @@ Create `agents/director_v2/test/fixtures/airtable_records_pending.json`:
     {
       "id": "recABC123",
       "fields": {
-        "Media_Type": "reel",
+        "Formato": "Reel",
         "Status": "Nueva",
-        "Visual_Prompt": "{\"media_type\":\"reel\",\"theme\":\"T1\",\"aspect\":\"9:16\",\"narrative\":\"B\",\"duration\":10,\"hook\":{\"en\":\"x\",\"es\":\"y\"},\"points\":[{\"headingEn\":\"a\",\"headingEs\":\"b\"},{\"headingEn\":\"c\",\"headingEs\":\"d\"},{\"headingEn\":\"e\",\"headingEs\":\"f\"}],\"cta\":{\"en\":\"x\",\"es\":\"y\"}}"
+        "Visual_Prompt": "{\"theme\":\"T1\",\"aspect\":\"9:16\",\"narrative\":\"B\",\"duration\":10,\"hook\":{\"en\":\"x\",\"es\":\"y\"},\"points\":[{\"headingEn\":\"a\",\"headingEs\":\"b\"},{\"headingEn\":\"c\",\"headingEs\":\"d\"},{\"headingEn\":\"e\",\"headingEs\":\"f\"}],\"cta\":{\"en\":\"x\",\"es\":\"y\"}}"
       }
     }
   ]
