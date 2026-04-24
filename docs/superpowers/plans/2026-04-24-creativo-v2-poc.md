@@ -555,7 +555,7 @@ Write `agents/creativo_v2/spec/poc_t1_5reasons.json`:
 - [ ] **Step 2: Verify JSON parses**
 
 ```bash
-node -e "const s=require('./agents/creativo_v2/spec/poc_t1_5reasons.json'); console.log('theme:',s.theme,'points:',s.points.length,'ok')"
+python3 -c "import json; s=json.load(open('agents/creativo_v2/spec/poc_t1_5reasons.json')); print('theme:',s['theme'],'points:',len(s['points']),'ok')"
 ```
 
 Expected: `theme: T1 points: 4 ok`
