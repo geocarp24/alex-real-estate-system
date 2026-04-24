@@ -75,7 +75,59 @@ Social Media Agent writes **valid JSON** to the Visual_Prompt field matching thi
 
 ---
 
-## Task 2_PLACEHOLDER: Airtable `listPending()` — read records ready for rendering
+## Task 1: Migrate Airtable secrets to Doppler
+
+**Files:**
+- Modify (manual, via Doppler dashboard): add 3 secrets to `pinnacle-social-publisher` / `dev_personal`
+
+- [ ] **Step 1: Jefe adds 3 secrets to Doppler dashboard**
+
+In `dashboard.doppler.com` → project `pinnacle-social-publisher` → config `dev_personal` → Add Secret (x3):
+
+```
+AIRTABLE_SM_TOKEN     = patSlNwngu7SJoa52.003c83df8f6e378af5309237e310a36568a037448709d94b10739d032f9e8ef7
+AIRTABLE_SM_BASE_ID   = appU9s3kGkVpdrJkw
+AIRTABLE_SM_TABLE_ID  = tblAj0Pkj1jW4p5Ld
+```
+
+(Values come from existing `agents/social_media.md`. After migration, remove them from that file.)
+
+- [ ] **Step 2: Verify Doppler sees all 8 secrets**
+
+```bash
+doppler secrets --only-names --no-check-version 2>&1 | grep -E "^\s*(CLOUDINARY|GEMINI|REPLICATE|AIRTABLE)"
+```
+
+Expected: 8 rows listing CLOUDINARY_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET, GEMINI_API_KEY, REPLICATE_API_TOKEN, AIRTABLE_SM_TOKEN, AIRTABLE_SM_BASE_ID, AIRTABLE_SM_TABLE_ID.
+
+- [ ] **Step 3: Remove plaintext secret from social_media.md**
+
+Edit `agents/social_media.md` section "CREDENCIALES AIRTABLE" — replace the literal token with:
+
+```
+## CREDENCIALES AIRTABLE
+
+Secrets en Doppler project `pinnacle-social-publisher` / config `dev_personal`:
+- AIRTABLE_SM_TOKEN
+- AIRTABLE_SM_BASE_ID  (appU9s3kGkVpdrJkw)
+- AIRTABLE_SM_TABLE_ID (tblAj0Pkj1jW4p5Ld for Ideas de Contenido)
+
+Ejecutar con: `doppler run -- node agents/creativo_v2/main.mjs`
+```
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add agents/social_media.md
+git -c commit.gpgsign=false commit -m "social_media: move Airtable token to Doppler"
+```
+
+---
+
+
+---
+
+## Task 2: Airtable `listPending()` — read records ready for rendering
 
 **Files:**
 - Create: `agents/creativo_v2/src/airtable.mjs`
@@ -199,52 +251,120 @@ git -c commit.gpgsign=false commit -m "creativo_v2: airtable listPending + tests
 
 ---
 
-## Task 1: Migrate Airtable secrets to Doppler
+## Task 3: Airtable `parseVisualPrompt()` — convert field text → spec JSON
 
 **Files:**
-- Modify (manual, via Doppler dashboard): add 3 secrets to `pinnacle-social-publisher` / `dev_personal`
+- Modify: `agents/creativo_v2/src/airtable.mjs` (append `parseVisualPrompt`)
+- Modify: `agents/creativo_v2/test/airtable.test.mjs` (append tests)
 
-- [ ] **Step 1: Jefe adds 3 secrets to Doppler dashboard**
+- [ ] **Step 1: Write failing tests (append to existing test file)**
 
-In `dashboard.doppler.com` → project `pinnacle-social-publisher` → config `dev_personal` → Add Secret (x3):
+Append to `agents/creativo_v2/test/airtable.test.mjs`:
 
+```javascript
+import { parseVisualPrompt } from '../src/airtable.mjs';
+
+test('parseVisualPrompt accepts raw JSON', () => {
+  const raw = '{"theme":"T1","hook":{"en":"H","es":"h"},"points":[{"headingEn":"a","headingEs":"b","bodyEn":"c","bodyEs":"d"}],"cta":{"en":"X","es":"x"}}';
+  const spec = parseVisualPrompt(raw);
+  assert.equal(spec.theme, 'T1');
+  assert.equal(spec.hook.en, 'H');
+  assert.equal(spec.points.length, 1);
+});
+
+test('parseVisualPrompt strips ```json fences', () => {
+  const raw = '```json\n{"theme":"T2","hook":{"en":"a","es":"b"},"points":[],"cta":{"en":"c","es":"d"}}\n```';
+  const spec = parseVisualPrompt(raw);
+  assert.equal(spec.theme, 'T2');
+});
+
+test('parseVisualPrompt strips plain ``` fences', () => {
+  const raw = '```\n{"theme":"T3","hook":{"en":"a","es":"b"},"points":[],"cta":{"en":"c","es":"d"}}\n```';
+  const spec = parseVisualPrompt(raw);
+  assert.equal(spec.theme, 'T3');
+});
+
+test('parseVisualPrompt throws on invalid JSON with clear message', () => {
+  assert.throws(() => parseVisualPrompt('not json at all'), /invalid JSON/i);
+});
+
+test('parseVisualPrompt throws on missing theme', () => {
+  assert.throws(() => parseVisualPrompt('{"hook":{}}'), /theme/i);
+});
+
+test('parseVisualPrompt throws on invalid theme code', () => {
+  assert.throws(() => parseVisualPrompt('{"theme":"T99","hook":{"en":"a","es":"b"},"points":[],"cta":{"en":"c","es":"d"}}'), /T99|theme/i);
+});
+
+test('parseVisualPrompt throws on missing hook.en', () => {
+  assert.throws(() => parseVisualPrompt('{"theme":"T1","hook":{},"points":[],"cta":{"en":"c","es":"d"}}'), /hook\.en/i);
+});
 ```
-AIRTABLE_SM_TOKEN     = patSlNwngu7SJoa52.003c83df8f6e378af5309237e310a36568a037448709d94b10739d032f9e8ef7
-AIRTABLE_SM_BASE_ID   = appU9s3kGkVpdrJkw
-AIRTABLE_SM_TABLE_ID  = tblAj0Pkj1jW4p5Ld
-```
 
-(Values come from existing `agents/social_media.md`. After migration, remove them from that file.)
-
-- [ ] **Step 2: Verify Doppler sees all 8 secrets**
+- [ ] **Step 2: Run — expect 7 new tests failing**
 
 ```bash
-doppler secrets --only-names --no-check-version 2>&1 | grep -E "^\s*(CLOUDINARY|GEMINI|REPLICATE|AIRTABLE)"
+cd agents/creativo_v2 && node --test test/airtable.test.mjs 2>&1 | tail -8
 ```
 
-Expected: 8 rows listing CLOUDINARY_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET, GEMINI_API_KEY, REPLICATE_API_TOKEN, AIRTABLE_SM_TOKEN, AIRTABLE_SM_BASE_ID, AIRTABLE_SM_TABLE_ID.
+Expected: `pass 3`, `fail 7` — the parseVisualPrompt tests fail because function doesn't exist.
 
-- [ ] **Step 3: Remove plaintext secret from social_media.md**
+- [ ] **Step 3: Implement parseVisualPrompt (append to airtable.mjs)**
 
-Edit `agents/social_media.md` section "CREDENCIALES AIRTABLE" — replace the literal token with:
+Append to `agents/creativo_v2/src/airtable.mjs`:
 
+```javascript
+const VALID_THEMES = new Set(['T1', 'T2', 'T3', 'T4', 'T5']);
+
+function stripCodeFences(s) {
+  const trimmed = s.trim();
+  if (trimmed.startsWith('```')) {
+    return trimmed.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '').trim();
+  }
+  return trimmed;
+}
+
+export function parseVisualPrompt(raw) {
+  if (typeof raw !== 'string' || !raw.trim()) {
+    throw new Error('parseVisualPrompt: empty input');
+  }
+  const clean = stripCodeFences(raw);
+  let spec;
+  try {
+    spec = JSON.parse(clean);
+  } catch (e) {
+    throw new Error(`parseVisualPrompt: invalid JSON — ${e.message}`);
+  }
+  if (!spec || typeof spec !== 'object') {
+    throw new Error('parseVisualPrompt: spec is not an object');
+  }
+  if (!spec.theme || !VALID_THEMES.has(spec.theme)) {
+    throw new Error(`parseVisualPrompt: invalid theme "${spec.theme}" (expected T1-T5)`);
+  }
+  if (!spec.hook || typeof spec.hook.en !== 'string' || !spec.hook.en.trim()) {
+    throw new Error('parseVisualPrompt: missing hook.en');
+  }
+  if (!spec.hook.es || typeof spec.hook.es !== 'string') {
+    throw new Error('parseVisualPrompt: missing hook.es');
+  }
+  if (!Array.isArray(spec.points)) spec.points = [];
+  if (!spec.cta) spec.cta = {};
+  return spec;
+}
 ```
-## CREDENCIALES AIRTABLE
 
-Secrets en Doppler project `pinnacle-social-publisher` / config `dev_personal`:
-- AIRTABLE_SM_TOKEN
-- AIRTABLE_SM_BASE_ID  (appU9s3kGkVpdrJkw)
-- AIRTABLE_SM_TABLE_ID (tblAj0Pkj1jW4p5Ld for Ideas de Contenido)
-
-Ejecutar con: `doppler run -- node agents/creativo_v2/main.mjs`
-```
-
-- [ ] **Step 4: Commit**
+- [ ] **Step 4: Run — all 10 tests must pass**
 
 ```bash
-git add agents/social_media.md
-git -c commit.gpgsign=false commit -m "social_media: move Airtable token to Doppler"
+cd agents/creativo_v2 && node --test test/airtable.test.mjs 2>&1 | tail -8
 ```
 
----
+Expected: `pass 10`, `fail 0`.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add agents/creativo_v2/src/airtable.mjs agents/creativo_v2/test/airtable.test.mjs
+git -c commit.gpgsign=false commit -m "creativo_v2: airtable parseVisualPrompt (JSON + fence stripping)"
+```
 
