@@ -26,12 +26,14 @@ export function safeSummary(s) {
 async function renderToTmp(spec, recordId) {
   const dir = path.join(os.tmpdir(), `creativo_v2_${recordId}_${Date.now()}`);
   await mkdir(dir, { recursive: true });
+  const aspect = spec.aspect || "4:5";
+  const dims = dimsForAspect(aspect);
   const slides = buildCarousel(spec);
   const paths = [];
   for (let i = 0; i < slides.length; i++) {
     const out = path.join(dir, `slide_${i + 1}.jpg`);
-    const html = wrapSlideHtml(slides[i], spec.theme);
-    await renderJpg(html, out);
+    const html = wrapSlideHtml(slides[i], spec.theme, aspect);
+    await renderJpg(html, out, dims);
     paths.push(out);
   }
   return { dir, paths };
