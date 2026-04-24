@@ -77,7 +77,7 @@ agents/director_v2/
 │   ├── audio.mjs                     # pickMusic(mood, duration) + ducking
 │   ├── ffmpeg.mjs                    # build video: xfade + zoompan + audio mix
 │   ├── cloudinary.mjs                # ← extend desde creativo_v2 con uploadVideo
-│   ├── airtable.mjs                  # lista records con Media_Type=reel
+│   ├── airtable.mjs                  # lista records con Formato='Reel'
 │   ├── cost_control.mjs              # monthly + per-video Nano Banana budget caps
 │   └── util/
 │       ├── retry.mjs                 # withRetry(fn, { attempts, baseDelayMs })
