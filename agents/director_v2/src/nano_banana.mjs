@@ -13,7 +13,7 @@ export class NanoBananaFailedError extends Error {
   }
 }
 
-const API = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent';
+const API = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent';
 
 async function callOnce(prompt, apiKey) {
   const body = {
