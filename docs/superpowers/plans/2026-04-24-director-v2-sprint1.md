@@ -402,4 +402,329 @@ git commit -m "feat(director_v2): Task 0 — idempotent Airtable schema setup fo
 
 ---
 
-<!-- PLAN_PART_2_END -->
+## Task 1: Scaffold + re-export themes/wrapper + gitignore
+
+**Goal:** Set up the full folder structure, extend `package.json` with all scripts, create .gitignore, and thin re-export modules so Director can reuse Creativo's brand system.
+
+**Files:**
+- Create: `agents/director_v2/.gitignore`
+- Modify: `agents/director_v2/package.json` (add scripts)
+- Create: `agents/director_v2/src/themes.mjs` (re-export)
+- Create: `agents/director_v2/src/wrapper.mjs` (re-export)
+- Create: `agents/director_v2/src/` subdirs: `narratives/`, `util/`
+- Create: `agents/director_v2/assets/music/`
+- Create: `agents/director_v2/test/fixtures/`
+
+- [ ] **Step 1: Create all directories**
+
+```bash
+mkdir -p agents/director_v2/src/narratives \
+         agents/director_v2/src/util \
+         agents/director_v2/assets/music \
+         agents/director_v2/test/fixtures \
+         agents/director_v2/samples \
+         agents/director_v2/state
+```
+
+- [ ] **Step 2: Create .gitignore**
+
+Create `agents/director_v2/.gitignore`:
+```
+node_modules/
+tmp/
+samples/
+logs/
+state/nano_banana_usage.json
+```
+
+- [ ] **Step 3: Replace package.json with full Sprint 1 scripts**
+
+Overwrite `agents/director_v2/package.json`:
+```json
+{
+  "name": "@pinnacle/director-v2",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "engines": { "node": ">=22.0.0" },
+  "scripts": {
+    "test":             "node --test test/*.test.mjs",
+    "test:smoke":       "RUN_SMOKE=1 node --test test/smoke.test.mjs",
+    "prod":             "doppler run -- node main.mjs",
+    "prod:dry-run":     "doppler run -- node main.mjs --dry-run",
+    "poc":              "doppler run -- node render_poc.mjs",
+    "schema":           "doppler run -- node scripts/airtable_schema_setup.mjs",
+    "schema:dry-run":   "doppler run -- node scripts/airtable_schema_setup.mjs --dry-run"
+  },
+  "dependencies": {
+    "puppeteer": "^23.0.0"
+  }
+}
+```
+
+- [ ] **Step 4: Install puppeteer**
+
+```bash
+cd agents/director_v2 && npm install
+```
+Expected: `added N packages`, Chromium downloaded to `node_modules/puppeteer/.local-chromium/`.
+
+- [ ] **Step 5: Write failing test for re-export**
+
+Create `agents/director_v2/test/reexport.test.mjs`:
+```javascript
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { THEMES, dimsForAspect, VALID_ASPECTS } from '../src/themes.mjs';
+import { wrapSlideHtml } from '../src/wrapper.mjs';
+
+test('themes re-export exposes THEMES T1-T5', () => {
+  assert.equal(Object.keys(THEMES).sort().join(','), 'T1,T2,T3,T4,T5');
+  assert.equal(THEMES.T1.bg, '#0D3B2E');
+});
+
+test('dimsForAspect 9:16 returns 1080x1920', () => {
+  assert.deepEqual(dimsForAspect('9:16'), { width: 1080, height: 1920 });
+});
+
+test('VALID_ASPECTS includes 9:16', () => {
+  assert.ok(VALID_ASPECTS.includes('9:16'));
+});
+
+test('wrapper.wrapSlideHtml returns HTML with inlined logo', () => {
+  const html = wrapSlideHtml('<div>test</div>', 'T1', '9:16');
+  assert.ok(html.includes('height:1920px'));
+  assert.ok(html.includes('data:image/png;base64,'));
+});
+```
+
+- [ ] **Step 6: Run test to verify it fails**
+
+```bash
+cd agents/director_v2 && node --test test/reexport.test.mjs
+```
+Expected: FAIL with `Cannot find module '../src/themes.mjs'`
+
+- [ ] **Step 7: Create re-export modules**
+
+Create `agents/director_v2/src/themes.mjs`:
+```javascript
+export * from '../../creativo_v2/src/themes.mjs';
+```
+
+Create `agents/director_v2/src/wrapper.mjs`:
+```javascript
+export * from '../../creativo_v2/src/wrapper.mjs';
+```
+
+- [ ] **Step 8: Run test to verify it passes**
+
+```bash
+cd agents/director_v2 && node --test test/reexport.test.mjs
+```
+Expected: `# pass 4`.
+
+- [ ] **Step 9: Update root .gitignore**
+
+Append to `.gitignore` (root of repo):
+```
+# Director v2
+agents/director_v2/node_modules/
+agents/director_v2/tmp/
+agents/director_v2/samples/
+agents/director_v2/logs/
+agents/director_v2/state/nano_banana_usage.json
+```
+
+- [ ] **Step 10: Commit**
+
+```bash
+git add agents/director_v2/.gitignore \
+        agents/director_v2/package.json \
+        agents/director_v2/package-lock.json \
+        agents/director_v2/src/themes.mjs \
+        agents/director_v2/src/wrapper.mjs \
+        agents/director_v2/test/reexport.test.mjs \
+        .gitignore
+git commit -m "feat(director_v2): Task 1 — scaffold + re-export Creativo themes and wrapper"
+```
+
+**Acceptance criteria:**
+- `cd agents/director_v2 && node --test test/*.test.mjs` passes 7 tests total (3 schema + 4 reexport)
+- `node_modules/puppeteer` installed locally
+- Root `.gitignore` updated
+
+---
+
+## Task 2: Audio — download 5 royalty-free tracks + pickMusic selector
+
+**Goal:** Download 5-8 CC0 instrumental tracks from Pixabay into `assets/music/`, write `LICENSES.md` with source URLs, implement `src/audio.mjs` that picks a track by mood with rotation.
+
+**Files:**
+- Create: `agents/director_v2/assets/music/upbeat_1.mp3` (+ 4-7 more)
+- Create: `agents/director_v2/assets/music/LICENSES.md`
+- Create: `agents/director_v2/src/audio.mjs`
+- Create: `agents/director_v2/test/audio.test.mjs`
+
+**Pre-requirement:** Jorge approves the 5 track choices before download (2 minutes of review).
+
+- [ ] **Step 1: Write failing tests**
+
+Create `agents/director_v2/test/audio.test.mjs`:
+```javascript
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { pickMusic, listTracksForMood, MOOD_DEFAULT } from '../src/audio.mjs';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const MUSIC_DIR = join(HERE, '..', 'assets', 'music');
+
+test('pickMusic("upbeat", 10) returns path to an existing mp3', () => {
+  const path = pickMusic('upbeat', 10);
+  assert.ok(existsSync(path), `track should exist at ${path}`);
+  assert.ok(path.endsWith('.mp3'));
+});
+
+test('pickMusic with unknown mood falls back to default upbeat', () => {
+  const path = pickMusic('nonexistent', 10);
+  assert.ok(existsSync(path));
+  assert.ok(path.toLowerCase().includes('upbeat'));
+});
+
+test('pickMusic rotates when called twice with same mood (different seeds)', () => {
+  const a = pickMusic('upbeat', 10, { seed: 1 });
+  const b = pickMusic('upbeat', 10, { seed: 2 });
+  // With 2+ tracks in upbeat, different seeds SHOULD pick different tracks
+  // If only 1 track exists, they will be equal — test passes either way since that's still correct behavior
+  const tracksUpbeat = listTracksForMood('upbeat');
+  if (tracksUpbeat.length >= 2) assert.notEqual(a, b);
+  else assert.equal(a, b);
+});
+
+test('LICENSES.md exists and lists all tracks in assets/music/', () => {
+  const licPath = join(MUSIC_DIR, 'LICENSES.md');
+  assert.ok(existsSync(licPath));
+  const text = readFileSync(licPath, 'utf8');
+  const moods = ['upbeat', 'chill', 'cinematic', 'tension'];
+  for (const m of moods) {
+    const tracks = listTracksForMood(m);
+    for (const t of tracks) {
+      const basename = t.split('/').pop();
+      assert.ok(text.includes(basename), `LICENSES.md must mention ${basename}`);
+    }
+  }
+});
+
+test('MOOD_DEFAULT is upbeat', () => {
+  assert.equal(MOOD_DEFAULT, 'upbeat');
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+```bash
+cd agents/director_v2 && node --test test/audio.test.mjs
+```
+Expected: FAIL with `Cannot find module '../src/audio.mjs'`
+
+- [ ] **Step 3: Download tracks from Pixabay (manual curation)**
+
+Ask Jorge to approve these 5 tracks (visit pixabay.com/music, search each phrase, pick the top result that matches the mood and duration 15-30s):
+
+| Filename | Search phrase | Mood |
+|---|---|---|
+| `upbeat_1.mp3` | "upbeat corporate" | upbeat |
+| `upbeat_2.mp3` | "upbeat energy" | upbeat |
+| `chill_1.mp3` | "chill lofi real estate" | chill |
+| `cinematic_1.mp3` | "cinematic inspirational" | cinematic |
+| `tension_1.mp3` | "dramatic build up" | tension |
+
+Download each file and place in `agents/director_v2/assets/music/{filename}.mp3`. All files must be CC0 (Pixabay default) — verify on the track page.
+
+- [ ] **Step 4: Create LICENSES.md**
+
+Create `agents/director_v2/assets/music/LICENSES.md`:
+```markdown
+# Director v2 — Music Track Licenses
+
+All tracks below are royalty-free under the Pixabay Content License (equivalent to CC0). Free for commercial use, no attribution required.
+
+| Track | Source URL | License | Mood |
+|---|---|---|---|
+| upbeat_1.mp3   | https://pixabay.com/music/<slug-1>/ | Pixabay Content License | upbeat |
+| upbeat_2.mp3   | https://pixabay.com/music/<slug-2>/ | Pixabay Content License | upbeat |
+| chill_1.mp3    | https://pixabay.com/music/<slug-3>/ | Pixabay Content License | chill |
+| cinematic_1.mp3| https://pixabay.com/music/<slug-4>/ | Pixabay Content License | cinematic |
+| tension_1.mp3  | https://pixabay.com/music/<slug-5>/ | Pixabay Content License | tension |
+
+Replace `<slug-N>` with actual URLs after download. Keep this file in sync: if a track is added or removed, update this table.
+```
+
+Replace the `<slug-N>` with the actual URLs after downloading.
+
+- [ ] **Step 5: Implement audio.mjs**
+
+Create `agents/director_v2/src/audio.mjs`:
+```javascript
+import { readdirSync, existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const MUSIC_DIR = join(HERE, '..', 'assets', 'music');
+
+export const MOOD_DEFAULT = 'upbeat';
+const VALID_MOODS = ['upbeat', 'chill', 'cinematic', 'tension'];
+
+export function listTracksForMood(mood) {
+  if (!existsSync(MUSIC_DIR)) return [];
+  const files = readdirSync(MUSIC_DIR).filter(f => f.endsWith('.mp3'));
+  const prefix = `${mood}_`;
+  return files.filter(f => f.startsWith(prefix)).map(f => join(MUSIC_DIR, f)).sort();
+}
+
+export function pickMusic(mood, durationSeconds, { seed = Date.now() } = {}) {
+  let targetMood = VALID_MOODS.includes(mood) ? mood : MOOD_DEFAULT;
+  let tracks = listTracksForMood(targetMood);
+
+  if (tracks.length === 0) {
+    targetMood = MOOD_DEFAULT;
+    tracks = listTracksForMood(MOOD_DEFAULT);
+  }
+  if (tracks.length === 0) {
+    throw new Error(`No music tracks found in ${MUSIC_DIR} for any mood`);
+  }
+
+  const idx = Math.abs(Number(seed) | 0) % tracks.length;
+  return tracks[idx];
+}
+```
+
+- [ ] **Step 6: Run tests to verify they pass**
+
+```bash
+cd agents/director_v2 && node --test test/audio.test.mjs
+```
+Expected: `# pass 5`.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add agents/director_v2/assets/music/ \
+        agents/director_v2/src/audio.mjs \
+        agents/director_v2/test/audio.test.mjs
+git commit -m "feat(director_v2): Task 2 — royalty-free music library + pickMusic selector"
+```
+
+**Acceptance criteria:**
+- 5 `.mp3` files in `assets/music/`, all CC0 Pixabay
+- `LICENSES.md` lists all 5 with source URLs
+- `node --test test/audio.test.mjs` passes 5 tests
+- `listTracksForMood('upbeat').length >= 2` (rotation works)
+
+---
+
+<!-- PLAN_PART_3_END -->
