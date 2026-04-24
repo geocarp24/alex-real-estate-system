@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { listPending, parseVisualPrompt, __setFetch } from '../src/airtable.mjs';
+import { listPending, parseVisualPrompt, updateRecord, __setFetch } from '../src/airtable.mjs';
 
 test('listPending builds correct URL with filterByFormula', async () => {
   let capturedUrl = '';
