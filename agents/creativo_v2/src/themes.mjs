@@ -32,6 +32,13 @@ function baseWrapper(theme, inner, opts = {}) {
   </div>`;
 }
 
+function logoCorner(theme, width = 140) {
+  const isLight = theme.name === "White Clean" || theme.name === "Soft Cream";
+  return `<img src="${LOGO_URL}" alt="Pinnacle Holdings Group" style="
+    position:absolute; top:48px; right:48px; width:${width}px; height:auto; z-index:5;
+    opacity:${isLight ? ".95" : "1"};" />`;
+}
+
 function logoWatermark(theme, size = 64) {
   return `<img src="${LOGO_URL}" alt="Pinnacle Holdings" style="
     position:absolute; bottom:48px; right:48px; width:${size}px; height:auto;
