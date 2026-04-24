@@ -105,11 +105,12 @@ agents/creativo_v2/src/cloudinary.mjs   export uploadVideo() alongside uploadJpg
 
 ## Schema Contract — Visual_Prompt JSON for reels
 
-Social Media Agent writes valid JSON to Airtable `Visual_Prompt` (table `tblAj0Pkj1jW4p5Ld`, base `appU9s3kGkVpdrJkw`) with `Media_Type='reel'` for every record the Director processes:
+The Airtable production table is `tblAj0Pkj1jW4p5Ld` (named "Ideas de Contenido") in base `appU9s3kGkVpdrJkw`. The single-select field that distinguishes media types is **`Formato`** (not `Media_Type`) with options `Post | Reel | Carrusel | Story`.
+
+Social Media Agent writes valid JSON to Airtable `Visual_Prompt` for every record the Director processes (Director filters by `{Formato}='Reel'`):
 
 ```json
 {
-  "media_type": "reel",
   "theme": "T1",
   "aspect": "9:16",
   "narrative": "B",
@@ -125,7 +126,7 @@ Social Media Agent writes valid JSON to Airtable `Visual_Prompt` (table `tblAj0P
 }
 ```
 
-`parseVisualPrompt` tolerates ```` ```json ... ``` ```` markdown fencing (same as Creativo). If parse fails → record marked `Status=Error` with `Error_Reason`; batch continues.
+The JSON does NOT need a `media_type` field — that is communicated via Airtable's `Formato` column. `parseVisualPrompt` tolerates ```` ```json ... ``` ```` markdown fencing (same as Creativo). If parse fails → record marked `Status=Error` with `Error_Reason`; batch continues.
 
 **Legacy records:** backfill handled by a separate post-Sprint-1 Task (see Sprint 1 completion in Section 14 of spec) — out of scope for this plan.
 
