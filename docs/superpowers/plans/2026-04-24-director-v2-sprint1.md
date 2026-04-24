@@ -1679,4 +1679,259 @@ git commit -m "feat(director_v2): Task 7 — render.mjs with browser singleton +
 
 ---
 
-<!-- PLAN_PART_7_END -->
+## Task 8: narratives — narrative_B + dispatcher + validateSpec
+
+**Goal:** Implement the expansion of a `spec` into an array of 5 scenes for narrative B (MVP). Dispatcher routes `spec.narrative` to the right expander. `validateSpec` throws clear error messages for each missing/invalid field.
+
+**Files:**
+- Create: `agents/director_v2/src/narratives/index.mjs`
+- Create: `agents/director_v2/src/narratives/narrative_B.mjs`
+- Create: `agents/director_v2/test/narratives.test.mjs`
+- Create: `agents/director_v2/test/fixtures/spec_narrative_B_valid.json`
+- Create: `agents/director_v2/test/fixtures/spec_narrative_B_missing_points.json`
+- Create: `agents/director_v2/test/fixtures/spec_malformed.txt`
+
+- [ ] **Step 1: Create fixtures**
+
+Create `agents/director_v2/test/fixtures/spec_narrative_B_valid.json`:
+```json
+{
+  "media_type": "reel",
+  "theme": "T1",
+  "aspect": "9:16",
+  "narrative": "B",
+  "duration": 10,
+  "mood": "upbeat",
+  "hook": { "en": "3 REASONS TO SELL OFF-MARKET", "es": "3 RAZONES PARA VENDER OFF-MARKET", "badge": "WISCONSIN" },
+  "points": [
+    { "headingEn": "Faster Than Banks", "headingEs": "Más Rápido Que Los Bancos", "bodyEn": "No waiting", "bodyEs": "Sin esperar" },
+    { "headingEn": "No Commissions",    "headingEs": "Sin Comisiones",             "bodyEn": "Keep 100%",  "bodyEs": "Quedate 100%" },
+    { "headingEn": "No Showings",       "headingEs": "Sin Visitas",                "bodyEn": "Sell as-is", "bodyEs": "Como está" }
+  ],
+  "cta": { "en": "Get your cash offer today", "es": "Reciba su oferta en efectivo hoy" }
+}
+```
+
+Create `agents/director_v2/test/fixtures/spec_narrative_B_missing_points.json`:
+```json
+{
+  "media_type": "reel", "theme": "T1", "aspect": "9:16", "narrative": "B", "duration": 10,
+  "hook": { "en": "x", "es": "y" },
+  "points": [ { "headingEn": "only one" } ],
+  "cta": { "en": "x", "es": "y" }
+}
+```
+
+Create `agents/director_v2/test/fixtures/spec_malformed.txt`:
+```
+This is not JSON { it's plain text that should break parseVisualPrompt.
+```
+
+- [ ] **Step 2: Write failing tests for narratives**
+
+Create `agents/director_v2/test/narratives.test.mjs`:
+```javascript
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { expandNarrative, validateSpec } from '../src/narratives/index.mjs';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const B_VALID = JSON.parse(readFileSync(join(HERE, 'fixtures/spec_narrative_B_valid.json'), 'utf8'));
+
+test('narrative B expands to 5 scenes with correct durations', () => {
+  const scenes = expandNarrative(B_VALID);
+  assert.equal(scenes.length, 5);
+  const total = scenes.reduce((s, sc) => s + sc.duration, 0);
+  assert.ok(total >= 7 && total <= 15, `total duration ${total} must be 7-15s`);
+  assert.equal(scenes[0].layoutType, 'hook');
+  assert.equal(scenes[1].layoutType, 'layout_d');
+  assert.equal(scenes[2].layoutType, 'layout_d');
+  assert.equal(scenes[3].layoutType, 'layout_d');
+  assert.equal(scenes[4].layoutType, 'cta');
+});
+
+test('narrative B uses Nano Banana only on scene 1 and scene 5 (cost cap)', () => {
+  const scenes = expandNarrative(B_VALID);
+  const nanoCount = scenes.filter(s => s.heroSource === 'nano_banana').length;
+  assert.equal(nanoCount, 2, 'exactly 2 Nano Banana calls per narrative B video');
+});
+
+test('narrative B maps points[i].headingEn to scene captionEn', () => {
+  const scenes = expandNarrative(B_VALID);
+  assert.equal(scenes[1].captionEn, 'Faster Than Banks');
+  assert.equal(scenes[1].captionEs, 'Más Rápido Que Los Bancos');
+  assert.equal(scenes[2].captionEn, 'No Commissions');
+  assert.equal(scenes[3].captionEn, 'No Showings');
+});
+
+test('narrative B derives pexels query from heading', () => {
+  const scenes = expandNarrative(B_VALID);
+  assert.equal(scenes[1].heroSource, 'pexels');
+  assert.ok(scenes[1].heroQuery.length > 0);
+});
+
+test('validateSpec passes on valid narrative B', () => {
+  assert.equal(validateSpec(B_VALID), true);
+});
+
+test('validateSpec throws on missing points in narrative B', () => {
+  const bad = { ...B_VALID, points: [{ headingEn: 'x' }] };
+  assert.throws(() => validateSpec(bad), /points\[3\+\]/);
+});
+
+test('validateSpec throws on unknown narrative', () => {
+  const bad = { ...B_VALID, narrative: 'Z' };
+  assert.throws(() => validateSpec(bad), /narrative must be A\|B\|C/);
+});
+
+test('validateSpec throws on invalid aspect for Director', () => {
+  const bad = { ...B_VALID, aspect: '4:5' };
+  assert.throws(() => validateSpec(bad), /aspect must be 9:16/);
+});
+
+test('validateSpec throws on duration out of 7-15', () => {
+  const bad = { ...B_VALID, duration: 30 };
+  assert.throws(() => validateSpec(bad), /duration must be 7-15/);
+});
+
+test('dispatcher throws on unknown narrative code', () => {
+  assert.throws(() => expandNarrative({ narrative: 'X' }), /Unknown narrative/);
+});
+```
+
+- [ ] **Step 3: Run tests to verify they fail**
+
+```bash
+cd agents/director_v2 && node --test test/narratives.test.mjs
+```
+Expected: FAIL (modules missing).
+
+- [ ] **Step 4: Implement narrative_B.mjs**
+
+Create `agents/director_v2/src/narratives/narrative_B.mjs`:
+```javascript
+const HERO_QUERY_TABLE = {
+  'faster than banks':   'clock time money',
+  'no commissions':      'real estate contract',
+  'no showings':         'house closed sign',
+  'no repairs':          'home renovation',
+  'cash offer':          'cash money deal',
+  'close in 7 days':     'calendar keys house',
+  'any condition':       'vintage house exterior',
+  'sell as-is':          'house vintage interior',
+};
+const FALLBACK_QUERY = 'real estate wisconsin';
+
+export function deriveHeroQuery(heading) {
+  const key = String(heading || '').trim().toLowerCase();
+  return HERO_QUERY_TABLE[key] || FALLBACK_QUERY;
+}
+
+export function expand(spec) {
+  const mood = spec.mood || 'upbeat';
+  const theme = spec.theme;
+  const hookPrompt = `Modern real estate scene matching: "${spec.hook.en}", Pinnacle Holdings brand, cinematic, golden hour, 9:16 vertical`;
+  const ctaPrompt  = 'Pinnacle Holdings Group branded CTA scene, modern craftsman home exterior at twilight, cinematic, 9:16 vertical';
+
+  return [
+    {
+      index: 1, duration: 2.5, layoutType: 'hook',
+      captionEn: spec.hook.en, captionEs: spec.hook.es,
+      heroSource: 'nano_banana', heroPrompt: hookPrompt, heroQuery: null,
+      kinetic: true, zoompan: { from: 1.0, to: 1.05 },
+      transitionOut: 'crossfade', mood,
+    },
+    {
+      index: 2, duration: 2.0, layoutType: 'layout_d',
+      captionEn: spec.points[0].headingEn, captionEs: spec.points[0].headingEs,
+      heroSource: 'pexels', heroPrompt: null, heroQuery: deriveHeroQuery(spec.points[0].headingEn),
+      kinetic: false, zoompan: { from: 1.0, to: 1.03 },
+      transitionOut: 'wipeleft', mood,
+    },
+    {
+      index: 3, duration: 2.0, layoutType: 'layout_d',
+      captionEn: spec.points[1].headingEn, captionEs: spec.points[1].headingEs,
+      heroSource: 'pexels', heroPrompt: null, heroQuery: deriveHeroQuery(spec.points[1].headingEn),
+      kinetic: false, zoompan: { from: 1.0, to: 1.03 },
+      transitionOut: 'crossfade', mood,
+    },
+    {
+      index: 4, duration: 2.0, layoutType: 'layout_d',
+      captionEn: spec.points[2].headingEn, captionEs: spec.points[2].headingEs,
+      heroSource: 'pexels', heroPrompt: null, heroQuery: deriveHeroQuery(spec.points[2].headingEn),
+      kinetic: false, zoompan: { from: 1.0, to: 1.03 },
+      transitionOut: 'slideup', mood,
+    },
+    {
+      index: 5, duration: 2.5, layoutType: 'cta',
+      captionEn: spec.cta.en, captionEs: spec.cta.es,
+      heroSource: 'nano_banana', heroPrompt: ctaPrompt, heroQuery: null,
+      kinetic: true, zoompan: { from: 1.0, to: 1.05 },
+      transitionOut: 'none', mood,
+    },
+  ];
+}
+```
+
+- [ ] **Step 5: Implement dispatcher index.mjs**
+
+Create `agents/director_v2/src/narratives/index.mjs`:
+```javascript
+import { expand as expandB } from './narrative_B.mjs';
+
+const REGISTRY = { B: expandB };
+
+export function expandNarrative(spec) {
+  const fn = REGISTRY[spec.narrative];
+  if (!fn) throw new Error(`Unknown narrative: ${spec.narrative}`);
+  return fn(spec);
+}
+
+export function validateSpec(spec) {
+  if (!spec || typeof spec !== 'object') throw new Error('spec must be object');
+  if (!['A', 'B', 'C'].includes(spec.narrative)) throw new Error(`narrative must be A|B|C, got: ${spec.narrative}`);
+  if (spec.aspect !== '9:16') throw new Error(`aspect must be 9:16 for Director, got: ${spec.aspect}`);
+  if (!['T1', 'T2', 'T3', 'T4', 'T5'].includes(spec.theme)) throw new Error(`theme must be T1-T5, got: ${spec.theme}`);
+  const d = Number(spec.duration);
+  if (!Number.isFinite(d) || d < 7 || d > 15) throw new Error(`duration must be 7-15, got: ${spec.duration}`);
+
+  if (spec.narrative === 'B') {
+    if (!spec.hook?.en || !spec.hook?.es) throw new Error('narrative B requires hook.en and hook.es');
+    if (!Array.isArray(spec.points) || spec.points.length < 3) throw new Error('narrative B requires points[3+]');
+    if (!spec.cta?.en || !spec.cta?.es) throw new Error('narrative B requires cta.en and cta.es');
+  }
+  // narratives A and C validated in Sprint 2
+  return true;
+}
+```
+
+- [ ] **Step 6: Run tests to verify all pass**
+
+```bash
+cd agents/director_v2 && node --test test/narratives.test.mjs
+```
+Expected: `# pass 10`.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add agents/director_v2/src/narratives/ \
+        agents/director_v2/test/narratives.test.mjs \
+        agents/director_v2/test/fixtures/spec_narrative_B_valid.json \
+        agents/director_v2/test/fixtures/spec_narrative_B_missing_points.json \
+        agents/director_v2/test/fixtures/spec_malformed.txt
+git commit -m "feat(director_v2): Task 8 — narrative B expander + dispatcher + validator with 10 tests"
+```
+
+**Acceptance criteria:**
+- 10 tests passing
+- `expandNarrative(B_VALID).length === 5`
+- Exactly 2 Nano Banana calls per video (scenes 1 and 5)
+- Total duration ∈ [7, 15]
+
+---
+
+<!-- PLAN_PART_8_END -->
