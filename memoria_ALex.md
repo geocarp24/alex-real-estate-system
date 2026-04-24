@@ -7,6 +7,22 @@
 
 ## REGLAS DEL JEFE (aplican a TODOS los agentes, siempre)
 
+### 2026-04-24 — REGLA "LEGACY RECORD BACKFILL" ES OBLIGATORIA EN TODO FLOW (NO NEGOCIABLE — APROBADO POR JORGE)
+- **Orden de Jorge, 2026-04-24:** cuando se construye un nuevo flujo que procesa records existentes (Airtable, DB, JSON, cualquier almacén) y el nuevo flujo espera un **formato distinto** al que tenían los records antiguos, **es OBLIGATORIO** incluir un paso de **backfill one-time** que:
+  1. Lea todos los records antiguos que no cumplen el nuevo formato
+  2. Los re-genere / re-analice / transforme al nuevo formato esperado
+  3. PATCH cada record con el formato nuevo
+  4. Deje la tabla completa en estado consistente con el flujo nuevo
+- **Cuándo aplica:** después de merge de un nuevo flujo productivo, antes de habilitar el cron/scheduler.
+- **Quién ejecuta el backfill:** el agente apropiado (ej. Social Media Agent regenera Visual_Prompt, Tracy regenera skip-trace data, ALEX regenera deal analyses, etc.).
+- **Por qué es supremamente necesario:** evita tener datos "muertos" en tablas, evita que records antiguos queden atorados como `Status=Error` para siempre, y mantiene toda la información al día.
+- **Aplicado desde hoy para:** Creativo v2 (records viejos con Visual_Prompt descriptivo → JSON), Fer Receptionist (si futuros cambios de schema), Tracy Skip Tracer, cualquier tabla con records legacy.
+- **Formato estándar en planes:** cada plan que introduzca un nuevo formato debe incluir una Task final `Backfill legacy records` con:
+  - Script idempotente (puede correrse 2 veces sin daño)
+  - Dry-run mode obligatorio para preview
+  - Log de cuántos records se actualizaron / fallaron
+  - Commit explícito "backfill: records legacy actualizados a formato vN"
+
 ### 2026-04-24 — REGLA "POR PARTES" ES OBLIGATORIA EN TODOS LOS PROCESOS (NO NEGOCIABLE — APROBADO POR JORGE)
 - **Orden de Jorge, 2026-04-24:** la metodología "por partes" (Fase 4 del `agents/PROTOCOLO_EJECUCION.md`) se aplica **SIN EXCUSA en TODOS los procesos**, no solo en los que generan mucho código.
 - **Aplica a:** planes de implementación, specs, generación de código, documentación larga, reportes, respuestas extensas al Jefe, memoria updates, análisis de deals, cualquier output >300 líneas.
