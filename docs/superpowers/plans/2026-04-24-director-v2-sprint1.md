@@ -2462,7 +2462,7 @@ git commit -m "feat(director_v2): Task 11 — airtable listPending+parse+update 
 
 **Acceptance criteria:**
 - 6 tests passing
-- `listPending` filter matches spec: `Media_Type='reel' AND Status='Nueva' AND Visual_Prompt!='' AND visual_url=''`
+- `listPending` filter: `AND({Formato}='Reel',{Status}='Nueva',{Visual_Prompt}!='',{visual_url}='')`
 - `parseVisualPrompt` tolerates ```` ```json ... ``` ```` fencing
 
 ---
