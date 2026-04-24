@@ -6,7 +6,7 @@
 import { mkdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
-import { buildCarousel } from './src/themes.mjs';
+import { buildCarousel, dimsForAspect } from './src/themes.mjs';
 import { wrapSlideHtml } from './src/wrapper.mjs';
 import { renderJpg, closeBrowser } from './src/render.mjs';
 import { listPending, parseVisualPrompt, updateRecord } from './src/airtable.mjs';
