@@ -1,0 +1,60 @@
+const HERO_QUERY_TABLE = {
+  'faster than banks':   'clock time money',
+  'no commissions':      'real estate contract',
+  'no showings':         'house closed sign',
+  'no repairs':          'home renovation',
+  'cash offer':          'cash money deal',
+  'close in 7 days':     'calendar keys house',
+  'any condition':       'vintage house exterior',
+  'sell as-is':          'house vintage interior',
+};
+const FALLBACK_QUERY = 'real estate wisconsin';
+
+export function deriveHeroQuery(heading) {
+  const key = String(heading || '').trim().toLowerCase();
+  return HERO_QUERY_TABLE[key] || FALLBACK_QUERY;
+}
+
+export function expand(spec) {
+  const mood = spec.mood || 'upbeat';
+  const hookPrompt = `Modern real estate scene matching: "${spec.hook.en}", Pinnacle Holdings brand, cinematic, golden hour, 9:16 vertical`;
+  const ctaPrompt  = 'Pinnacle Holdings Group branded CTA scene, modern craftsman home exterior at twilight, cinematic, 9:16 vertical';
+
+  return [
+    {
+      index: 1, duration: 2.5, layoutType: 'hook',
+      captionEn: spec.hook.en, captionEs: spec.hook.es,
+      heroSource: 'nano_banana', heroPrompt: hookPrompt, heroQuery: null,
+      kinetic: true, zoompan: { from: 1.0, to: 1.05 },
+      transitionOut: 'crossfade', mood,
+    },
+    {
+      index: 2, duration: 2.0, layoutType: 'layout_d',
+      captionEn: spec.points[0].headingEn, captionEs: spec.points[0].headingEs,
+      heroSource: 'pexels', heroPrompt: null, heroQuery: deriveHeroQuery(spec.points[0].headingEn),
+      kinetic: false, zoompan: { from: 1.0, to: 1.03 },
+      transitionOut: 'wipeleft', mood,
+    },
+    {
+      index: 3, duration: 2.0, layoutType: 'layout_d',
+      captionEn: spec.points[1].headingEn, captionEs: spec.points[1].headingEs,
+      heroSource: 'pexels', heroPrompt: null, heroQuery: deriveHeroQuery(spec.points[1].headingEn),
+      kinetic: false, zoompan: { from: 1.0, to: 1.03 },
+      transitionOut: 'crossfade', mood,
+    },
+    {
+      index: 4, duration: 2.0, layoutType: 'layout_d',
+      captionEn: spec.points[2].headingEn, captionEs: spec.points[2].headingEs,
+      heroSource: 'pexels', heroPrompt: null, heroQuery: deriveHeroQuery(spec.points[2].headingEn),
+      kinetic: false, zoompan: { from: 1.0, to: 1.03 },
+      transitionOut: 'slideup', mood,
+    },
+    {
+      index: 5, duration: 2.5, layoutType: 'cta',
+      captionEn: spec.cta.en, captionEs: spec.cta.es,
+      heroSource: 'nano_banana', heroPrompt: ctaPrompt, heroQuery: null,
+      kinetic: true, zoompan: { from: 1.0, to: 1.05 },
+      transitionOut: 'none', mood,
+    },
+  ];
+}
