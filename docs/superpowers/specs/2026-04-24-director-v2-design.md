@@ -1334,7 +1334,7 @@ agents/director_v2/node_modules/
 
 ### 11.4 Items para revisar antes de empezar
 - Confirmar con Jorge que el token `AIRTABLE_SM_TOKEN` actual tiene permiso sobre la tabla `tblAj0Pkj1jW4p5Ld` (debería — lo usa Creativo)
-- Confirmar cantidad de records legacy con `Media_Type='reel'` antes de ejecutar backfill (`curl GET` con filter)
+- Confirmar cantidad de records legacy con `{Formato}='Reel'` antes de ejecutar backfill (`curl GET` con filter)
 - Validar que `agents/director.md` antiguo (v2.0 Blotato) no está siendo invocado por Social Media Agent — si lo está, marcar como deprecated antes de reemplazar
 
 ---
