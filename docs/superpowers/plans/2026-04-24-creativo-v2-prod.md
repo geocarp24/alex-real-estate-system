@@ -452,3 +452,167 @@ git add agents/creativo_v2/src/airtable.mjs agents/creativo_v2/test/airtable.tes
 git -c commit.gpgsign=false commit -m "creativo_v2: airtable updateRecord (PATCH) + tests"
 ```
 
+---
+
+## Task 5: Cloudinary `uploadJpg()` + `uploadCarousel()` — signed upload
+
+**Files:**
+- Create: `agents/creativo_v2/src/cloudinary.mjs`
+- Create: `agents/creativo_v2/test/cloudinary.test.mjs`
+
+**Background — Cloudinary signed upload:**
+- POST multipart to `https://api.cloudinary.com/v1_1/{cloud_name}/image/upload`
+- Signature = `sha1(paramString + api_secret)` where `paramString` is `&`-joined sorted `key=value` pairs of all non-file params EXCEPT `api_key`, `file`, `cloud_name`, `resource_type`, `signature`
+- Standard params: `timestamp`, `public_id`, `folder`, `overwrite`
+
+- [ ] **Step 1: Write failing tests**
+
+Write `agents/creativo_v2/test/cloudinary.test.mjs`:
+
+```javascript
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { buildSignature, uploadJpg, __setFetch } from '../src/cloudinary.mjs';
+
+test('buildSignature sorts params alphabetically and SHA1s with secret', () => {
+  const sig = buildSignature({ timestamp: 1700000000, public_id: 'foo/bar', overwrite: 'true' }, 'SECRET');
+  // sha1 of "overwrite=true&public_id=foo/bar&timestamp=1700000000SECRET"
+  assert.equal(sig, '3cbc2194ff47efffae56eb4989f5f3a9f53795e4');
+});
+
+test('uploadJpg posts multipart with correct fields and returns secure_url', async () => {
+  let capturedUrl, capturedMethod;
+  const captured = { fields: {} };
+  __setFetch(async (url, opts) => {
+    capturedUrl = url; capturedMethod = opts.method;
+    // parse multipart body is complex; for test just confirm FormData used + headers
+    assert.ok(opts.body, 'body must be set');
+    return {
+      ok: true, status: 200,
+      json: async () => ({ secure_url: 'https://res.cloudinary.com/dzzlhhk0m/image/upload/v1/foo.jpg', public_id: 'foo', bytes: 12345 }),
+    };
+  });
+  process.env.CLOUDINARY_NAME = 'dzzlhhk0m';
+  process.env.CLOUDINARY_API_KEY = 'keytest';
+  process.env.CLOUDINARY_API_SECRET = 'secrettest';
+
+  // write a dummy file for the upload
+  const fs = await import('node:fs/promises');
+  const os = await import('node:os');
+  const path = await import('node:path');
+  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'clou-'));
+  const p = path.join(tmp, 't.jpg');
+  await fs.writeFile(p, Buffer.from([0xff, 0xd8, 0xff, 0xd9]));  // minimal JPG
+
+  const url = await uploadJpg(p, { publicId: 'pinnacle/test_slide_1', folder: 'pinnacle-social-media' });
+
+  assert.equal(capturedMethod, 'POST');
+  assert.ok(capturedUrl.includes('dzzlhhk0m'));
+  assert.ok(url.startsWith('https://res.cloudinary.com/'));
+  await fs.rm(tmp, { recursive: true });
+});
+
+test('uploadJpg throws on non-2xx with status in error', async () => {
+  __setFetch(async () => ({ ok: false, status: 401, text: async () => '{"error":"invalid sig"}' }));
+  const fs = await import('node:fs/promises');
+  const os = await import('node:os');
+  const path = await import('node:path');
+  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'clou-'));
+  const p = path.join(tmp, 't.jpg');
+  await fs.writeFile(p, Buffer.from([0xff, 0xd8]));
+  await assert.rejects(uploadJpg(p, { publicId: 'x', folder: 'y' }), /401/);
+  await fs.rm(tmp, { recursive: true });
+});
+```
+
+- [ ] **Step 2: Run — expect 3 fails (module missing)**
+
+```bash
+cd agents/creativo_v2 && node --test test/cloudinary.test.mjs 2>&1 | tail -5
+```
+
+- [ ] **Step 3: Implement cloudinary.mjs**
+
+Write `agents/creativo_v2/src/cloudinary.mjs`:
+
+```javascript
+// Cloudinary signed upload via native fetch + FormData.
+// Secrets from env (via doppler run): CLOUDINARY_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET.
+
+import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+
+let _fetch = globalThis.fetch;
+export function __setFetch(fn) { _fetch = fn; }
+
+function env(name) {
+  const v = process.env[name];
+  if (!v) throw new Error(`Missing env ${name} (expected via doppler run)`);
+  return v;
+}
+
+export function buildSignature(params, apiSecret) {
+  const keys = Object.keys(params).sort();
+  const str = keys.map(k => `${k}=${params[k]}`).join('&') + apiSecret;
+  return createHash('sha1').update(str).digest('hex');
+}
+
+export async function uploadJpg(localPath, { publicId, folder, overwrite = true }) {
+  if (!publicId) throw new Error('uploadJpg: publicId required');
+  const cloudName = env('CLOUDINARY_NAME');
+  const apiKey = env('CLOUDINARY_API_KEY');
+  const apiSecret = env('CLOUDINARY_API_SECRET');
+  const timestamp = Math.floor(Date.now() / 1000);
+
+  const signedParams = { folder, overwrite: String(overwrite), public_id: publicId, timestamp };
+  const signature = buildSignature(signedParams, apiSecret);
+
+  const buf = await readFile(localPath);
+  const blob = new Blob([buf], { type: 'image/jpeg' });
+  const form = new FormData();
+  form.append('file', blob, path.basename(localPath));
+  form.append('api_key', apiKey);
+  form.append('timestamp', String(timestamp));
+  form.append('public_id', publicId);
+  form.append('folder', folder);
+  form.append('overwrite', String(overwrite));
+  form.append('signature', signature);
+
+  const url = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
+  const res = await _fetch(url, { method: 'POST', body: form });
+  if (!res.ok) {
+    const body = typeof res.text === 'function' ? await res.text() : '';
+    throw new Error(`Cloudinary upload failed: ${res.status} ${body.slice(0, 200)}`);
+  }
+  const data = await res.json();
+  return data.secure_url;
+}
+
+export async function uploadCarousel(jpgPaths, { recordId, week = 0, folder = 'pinnacle-social-media' }) {
+  const urls = [];
+  for (let i = 0; i < jpgPaths.length; i++) {
+    const slideIdx = i + 1;
+    const publicId = `${folder}/pinnacle_s${week}_carousel_${recordId}/slide_${slideIdx}`;
+    const url = await uploadJpg(jpgPaths[i], { publicId, folder });
+    urls.push(url);
+  }
+  return urls;
+}
+```
+
+- [ ] **Step 4: Run — 3 pass**
+
+```bash
+cd agents/creativo_v2 && node --test test/cloudinary.test.mjs 2>&1 | tail -5
+```
+
+Expected: `pass 3`, `fail 0`.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add agents/creativo_v2/src/cloudinary.mjs agents/creativo_v2/test/cloudinary.test.mjs
+git -c commit.gpgsign=false commit -m "creativo_v2: cloudinary signed upload + carousel helper"
+```
+
