@@ -3,6 +3,7 @@ client_secret*.json
 *.secret.json
 .env
 .env.*
+!.env.example
 
 # Sesiones de Telegram
 telegram_bot/sessions/
