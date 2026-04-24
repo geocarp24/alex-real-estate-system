@@ -47,14 +47,38 @@ Permite publicar en Instagram Business.
 Estas variables van en un archivo `.env` **local** — **nunca se comparten por chat, nunca se suben al repo.**
 
 ```
-META_APP_ID=...           # El App ID de Pinnacle Social Publisher (termina en ...564604)
-META_APP_SECRET=...       # El App Secret — el Jefe lo pega solo en su máquina
-META_PAGE_ACCESS_TOKEN=.. # Token que autoriza publicar en la Facebook Page específica
-META_PAGE_ID=...          # ID numérico de la Facebook Page de GEO Carpentry
-META_IG_BUSINESS_ID=...   # ID numérico de la cuenta de Instagram Business
+# ── META / FACEBOOK + INSTAGRAM ──────────────────────────────────────────
+META_APP_ID=4233439163564604        # App ID de Pinnacle Social Publisher
+META_APP_SECRET=...                 # El Jefe lo pega solo — nunca al chat
+META_PAGE_ACCESS_TOKEN=...          # Token para publicar en la Facebook Page
+META_PAGE_ID=...                    # ID numérico de la Facebook Page de GEO Carpentry
+META_IG_BUSINESS_ID=...             # ID numérico de la cuenta de Instagram Business
+
+# ── NOTEBOOKLM ───────────────────────────────────────────────────────────
+NOTEBOOKLM_NOTEBOOK_ID=...          # ID del notebook "Pinnacle WI Knowledge Base"
+                                    # Cuenta: geocarpentryllc@gmail.com
+
+# ── REPLICATE ────────────────────────────────────────────────────────────
+REPLICATE_API_TOKEN=r8_Z3w...       # Token "pinnacle-alex" — usuario geocarp24
+                                    # El Jefe pega el token completo localmente
+
+# ── GEMINI API (NANO BANANA) ──────────────────────────────────────────────
+GEMINI_API_KEY=...                  # USAR cuenta admin@geocarpentry.com (Pro)
+                                    # NO usar geocarpentryllc@gmail.com (Free tier)
 ```
 
-> **Regla de oro:** `META_APP_SECRET` jamás va al chat ni al repo. El Jefe lo copia directamente en el archivo `.env` en su computadora.
+> **Regla de oro:** Ningún secreto va al chat ni al repo. El Jefe los copia directamente en `.env` en su máquina.
+
+---
+
+## Alerta: Dos Cuentas de Google — No Confundirse
+
+| Cuenta | Tier | Uso |
+|--------|------|-----|
+| `geocarpentryllc@gmail.com` | Free | NotebookLM, secundaria. NO usar para Gemini en producción. |
+| `admin@geocarpentry.com` | **Pro** | **Gemini API / Nano Banana. ESTA es la de producción.** |
+
+La API key de Gemini que va en `.env` debe ser la de `admin@geocarpentry.com`.
 
 ---
 
