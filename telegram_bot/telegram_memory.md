@@ -55,3 +55,17 @@ Todo el trabajo de Pinnacle se optimiza mobile-first como prioridad #1. Mayor tr
 Todo se construye como producto vendible a terceros. Pinnacle = tenant cero. Reglas: nada hardcodeado (todo por-tenant config), tenant isolation, separación core/config/deployment, onboarding documentado, billing hooks upfront, validar licencias deps (AGPL no-go para mono core, MIT/Apache safe), security defaults día 1, naming genérico. Detalle completo en `memoria_ALex.md` regla R8 y `CLAUDE.md` sección 1c.
 
 ---
+
+---
+
+## 2026-04-24 — Lección Cowork: "Could not process image" = conversación muerta
+
+**Síntoma:** API Error 400 `invalid_request_error: Could not process image` en loop en Claude Cowork desktop.
+
+**Root cause:** imagen rota/no-soportada queda en el contexto; cada mensaje nuevo re-envía todo el contexto → 400 garantizado. Escribir `/reset` o `/clear` como texto NO funciona (se interpretan como mensaje, no como comando).
+
+**Fix:** abandonar la conversación — **New chat** (botón arriba izquierda). NO intentar reparar mandando más mensajes.
+
+**Prevención:** al adjuntar imagen: JPEG/PNG/WEBP/GIF, < 5MB, < 8000×8000 px, no HEIC.
+
+**Regla para ALEX:** ante "se pegó / da errores" en Cowork → preguntar primero *"¿adjuntaste imagen? ¿qué formato?"* antes de cualquier otro debug.

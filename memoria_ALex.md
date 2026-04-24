@@ -2520,3 +2520,26 @@ Todo lo que se construya para Pinnacle debe diseñarse desde el día 1 como **pr
 **Reconciliación con Phase 1 actual:** el código actual está lleno de hardcodes (webform, chatbot, popup, bridges). Eso se refactoriza gradualmente — no bloquea Phase 2. Regla aplica FORWARD desde 2026-04-23. Refactor retroactivo a Phase 1 se hace cuando armemos la primera venta a un segundo cliente.
 
 **Aprobado por:** Jorge Cruz — 2026-04-23
+
+---
+
+## 2026-04-24 — Lección: Claude Cowork desktop "Could not process image" = conversación envenenada
+
+**Síntoma:** API Error 400 `invalid_request_error: "Could not process image"` repitiéndose en loop sin importar qué mensaje nuevo se envíe. Reportado por Jorge en Cowork desktop.
+
+**Root cause:** Cuando se adjunta una imagen que el API no puede procesar (formato no soportado, corrupta, truncada, expirada), queda en el contexto de la conversación. Cada mensaje nuevo re-envía TODO el contexto incluyendo la imagen rota → 400 garantizado en cada retry.
+
+**Anti-patrón detectado:** Escribir `/reset` o `/clear` como mensaje dentro del chat envenenado NO funciona — se interpretan como texto, se envían al API, vuelven a incluir la imagen rota, vuelven a dar 400. Esto consume tokens y frustra al usuario.
+
+**Fix correcto:**
+1. **Abandonar la conversación** — abrir New chat (botón arriba izquierda o + en sidebar)
+2. NO intentar reparar mandando más mensajes
+3. Si no hay botón de New chat visible → Quit app + matar procesos Electron + reabrir
+
+**Prevención — checklist antes de adjuntar imagen a Cowork/Claude.ai:**
+- Formato: JPEG / PNG / WEBP / GIF (NO HEIC de iPhone, NO BMP, NO TIFF)
+- Tamaño: < 5 MB y < 8000×8000 px
+- No corrupta: si Windows Photos no la abre, Claude tampoco
+- Si es URL: descargar y adjuntar como archivo (URLs pueden expirar)
+
+**Regla operativa para ALEX:** Si el Jefe reporta "se quedó pegado / me da errores" en Cowork/Claude.ai — primera pregunta obligatoria: *"¿Adjuntaste una imagen antes del error? ¿Qué formato?"* Antes que cualquier otro debug.
