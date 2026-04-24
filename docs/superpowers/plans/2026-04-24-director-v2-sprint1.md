@@ -1349,4 +1349,334 @@ git commit -m "feat(director_v2): Task 5 — Nano Banana client with re-roll + c
 
 ---
 
-<!-- PLAN_PART_6_END -->
+## Task 6: scene_layout — the layout D template
+
+**Goal:** Build the HTML template for a single scene. Layout D = hero image fullscreen + gradient overlay in theme color + caption bottom-third (EN large, ES small) + Pinnacle logo top-right. Also supports `heroSource: "theme_solid"` where there's no image — only gradient background.
+
+**Files:**
+- Create: `agents/director_v2/src/scene_layout.mjs`
+- Create: `agents/director_v2/test/scene_layout.test.mjs`
+
+- [ ] **Step 1: Write failing tests for scene_layout**
+
+Create `agents/director_v2/test/scene_layout.test.mjs`:
+```javascript
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { buildSceneHtml } from '../src/scene_layout.mjs';
+import { THEMES } from '../src/themes.mjs';
+
+function mkScene(over = {}) {
+  return {
+    index: 2, duration: 2.0, layoutType: 'layout_d',
+    captionEn: 'FASTER THAN BANKS', captionEs: 'Más rápido que los bancos',
+    heroSource: 'pexels', heroQuery: 'clock time money', heroPrompt: null,
+    kinetic: false, zoompan: { from: 1.0, to: 1.03 }, transitionOut: 'wipeleft',
+    mood: 'upbeat',
+    ...over,
+  };
+}
+
+test('layout_d includes hero img, gradient overlay, both captions, logo', () => {
+  const html = buildSceneHtml(mkScene(), '/tmp/hero.jpg', 'T1', '9:16');
+  assert.ok(html.includes('<img'), 'must include hero img tag');
+  assert.ok(html.includes('/tmp/hero.jpg') || html.includes('file:///tmp/hero.jpg'), 'must reference hero path');
+  assert.ok(html.includes('FASTER THAN BANKS'), 'must include EN caption');
+  assert.ok(html.includes('Más rápido que los bancos'), 'must include ES caption');
+  assert.ok(html.includes('linear-gradient'), 'must include gradient overlay');
+  assert.ok(html.includes('top:48px') && html.includes('right:48px'), 'logo top-right');
+});
+
+test('heroSource theme_solid omits img and uses background', () => {
+  const html = buildSceneHtml(mkScene({ heroSource: 'theme_solid' }), null, 'T1', '9:16');
+  assert.ok(!html.includes('<img'), 'must NOT include hero img tag');
+  assert.ok(html.includes('radial-gradient') || html.includes(THEMES.T1.bg), 'must use theme colors as bg');
+});
+
+test('HTML escape applied to captions', () => {
+  const html = buildSceneHtml(
+    mkScene({ captionEn: '<script>alert(1)</script>', captionEs: 'a & b' }),
+    '/tmp/h.jpg', 'T1', '9:16'
+  );
+  assert.ok(!html.includes('<script>alert(1)</script>'), 'must escape script tag');
+  assert.ok(html.includes('&lt;script&gt;'));
+  assert.ok(html.includes('a &amp; b'));
+});
+
+test('9:16 aspect yields height:1920px wrapper', () => {
+  const html = buildSceneHtml(mkScene(), '/tmp/h.jpg', 'T1', '9:16');
+  assert.ok(html.includes('1920'), 'must include 1920 height for 9:16');
+});
+
+test('theme T3 overlay uses T3 bg color', () => {
+  const html = buildSceneHtml(mkScene(), '/tmp/h.jpg', 'T3', '9:16');
+  assert.ok(html.includes(THEMES.T3.bg), 'must include theme T3 bg color in overlay');
+});
+
+test('layoutType hook uses large centered caption (hero slide treatment)', () => {
+  const html = buildSceneHtml(mkScene({ layoutType: 'hook', captionEn: 'HEY' }), '/tmp/h.jpg', 'T1', '9:16');
+  assert.ok(html.includes('HEY'));
+  assert.ok(html.match(/font-size:\s*1[0-9][0-9]px/), 'hook caption should be ≥100px font-size');
+});
+
+test('layoutType cta includes Pinnacle phone and URL', () => {
+  const html = buildSceneHtml(mkScene({ layoutType: 'cta', captionEn: 'Call now' }), '/tmp/h.jpg', 'T1', '9:16');
+  assert.ok(html.includes('(920) 777-9886') || html.includes('920.777.9886') || html.includes('9207779886'));
+  assert.ok(html.includes('pinnaclegroupwi.com'));
+});
+
+test('kinetic=true adds data-kinetic attribute on root wrapper', () => {
+  const html = buildSceneHtml(mkScene({ kinetic: true }), '/tmp/h.jpg', 'T1', '9:16');
+  assert.ok(html.includes('data-kinetic="true"'));
+});
+```
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+```bash
+cd agents/director_v2 && node --test test/scene_layout.test.mjs
+```
+Expected: FAIL with `Cannot find module '../src/scene_layout.mjs'`.
+
+- [ ] **Step 3: Implement scene_layout.mjs**
+
+Create `agents/director_v2/src/scene_layout.mjs`:
+```javascript
+import { THEMES, dimsForAspect } from './themes.mjs';
+import { escapeHtml } from './util/sanitize.mjs';
+
+const LOGO_TOP_RIGHT = 'position:absolute; top:48px; right:48px; width:140px; height:auto; z-index:10;';
+
+export function buildSceneHtml(scene, heroImagePath, themeCode, aspect) {
+  const theme = THEMES[themeCode] || THEMES.T1;
+  const { width, height } = dimsForAspect(aspect);
+
+  const kineticAttr = scene.kinetic ? 'data-kinetic="true"' : '';
+  const heroLayer = scene.heroSource === 'theme_solid'
+    ? `<div style="position:absolute; inset:0; background:${theme.bg};
+          background-image:
+            radial-gradient(circle at 20% 20%, rgba(255,255,255,.08), transparent 50%),
+            radial-gradient(circle at 80% 80%, ${theme.accent}22, transparent 50%);"></div>`
+    : `<img src="file://${heroImagePath}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;" />`;
+
+  const overlayColor = theme.bg;
+  const overlay = `<div style="position:absolute; inset:0; background:linear-gradient(180deg, transparent 0%, ${overlayColor}D9 60%, ${overlayColor} 100%);"></div>`;
+
+  const logo = `<img src="__LOGO_DATA_URI__" style="${LOGO_TOP_RIGHT}" alt="Pinnacle" />`;
+
+  const captionEn = escapeHtml(scene.captionEn);
+  const captionEs = escapeHtml(scene.captionEs || '');
+
+  let captionBlock;
+  if (scene.layoutType === 'hook') {
+    captionBlock = `
+      <div style="position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:96px; text-align:center; z-index:5;">
+        <div style="font-family:Montserrat,sans-serif; font-weight:900; font-size:128px; line-height:1.05; color:${theme.text}; text-shadow:0 4px 32px rgba(0,0,0,.6);">${captionEn}</div>
+        ${captionEs ? `<div style="font-family:Montserrat,sans-serif; font-weight:500; font-size:56px; margin-top:32px; color:${theme.muted}; opacity:.92;">${captionEs}</div>` : ''}
+      </div>`;
+  } else if (scene.layoutType === 'cta') {
+    captionBlock = `
+      <div style="position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:80px; text-align:center; z-index:5;">
+        <div style="font-family:Montserrat,sans-serif; font-weight:900; font-size:96px; line-height:1.1; color:${theme.text};">${captionEn}</div>
+        ${captionEs ? `<div style="font-family:Montserrat,sans-serif; font-weight:500; font-size:48px; margin-top:24px; color:${theme.muted};">${captionEs}</div>` : ''}
+        <div style="margin-top:64px; font-family:Montserrat,sans-serif; font-weight:700; font-size:56px; color:${theme.accent};">(920) 777-9886</div>
+        <div style="margin-top:16px; font-family:Montserrat,sans-serif; font-weight:500; font-size:40px; color:${theme.text}; opacity:.85;">pinnaclegroupwi.com</div>
+      </div>`;
+  } else {
+    captionBlock = `
+      <div style="position:absolute; left:0; right:0; bottom:0; padding:80px 64px 96px 64px; background:linear-gradient(180deg, transparent 0%, ${overlayColor}B3 100%); backdrop-filter:blur(6px); z-index:5;">
+        <div style="font-family:Montserrat,sans-serif; font-weight:900; font-size:96px; line-height:1.05; color:${theme.accent};">${captionEn}</div>
+        ${captionEs ? `<div style="font-family:Montserrat,sans-serif; font-weight:500; font-size:48px; margin-top:20px; color:${theme.muted};">${captionEs}</div>` : ''}
+      </div>`;
+  }
+
+  return `
+<div ${kineticAttr} style="position:relative; width:${width}px; height:${height}px; overflow:hidden; background:${theme.bg};">
+  ${heroLayer}
+  ${overlay}
+  ${captionBlock}
+  ${logo}
+</div>`;
+}
+```
+
+- [ ] **Step 4: Run tests to verify all pass**
+
+```bash
+cd agents/director_v2 && node --test test/scene_layout.test.mjs
+```
+Expected: `# pass 8`.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add agents/director_v2/src/scene_layout.mjs \
+        agents/director_v2/test/scene_layout.test.mjs
+git commit -m "feat(director_v2): Task 6 — scene_layout D (hero + overlay + caption + logo) with 8 tests"
+```
+
+**Acceptance criteria:**
+- 8 tests passing
+- `layout_d`, `hook`, and `cta` variants all produce valid HTML
+- `heroSource: "theme_solid"` produces no `<img>` tag, only gradient backgrounds
+
+---
+
+## Task 7: render — Puppeteer HTML → JPG (or PNG sequence for kinetic)
+
+**Goal:** Wrap Puppeteer in a thin client. One browser instance reused across scenes. If `kinetic: false`, render one JPG; if `kinetic: true`, render N PNG frames (N = fps × duration) for later ffmpeg composition.
+
+**Files:**
+- Create: `agents/director_v2/src/render.mjs`
+- Create: `agents/director_v2/test/render.test.mjs`
+
+- [ ] **Step 1: Write failing tests for render**
+
+Create `agents/director_v2/test/render.test.mjs`:
+```javascript
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { existsSync, rmSync, mkdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { renderScene, closeBrowser, __getBrowserStats } from '../src/render.mjs';
+import { buildSceneHtml } from '../src/scene_layout.mjs';
+import { wrapSlideHtml } from '../src/wrapper.mjs';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const TMP  = join(HERE, '..', 'tmp', 'render_test');
+
+function setupTmp() {
+  rmSync(TMP, { recursive: true, force: true });
+  mkdirSync(TMP, { recursive: true });
+}
+
+test('renderScene kinetic=false writes exactly 1 JPG', async () => {
+  setupTmp();
+  const scene = { index: 1, duration: 2.0, layoutType: 'layout_d', captionEn: 'TEST', captionEs: 'PRUEBA',
+                  heroSource: 'theme_solid', kinetic: false, zoompan: null, transitionOut: 'cut', mood: 'upbeat' };
+  const body = buildSceneHtml(scene, null, 'T1', '9:16');
+  const html = wrapSlideHtml(body, 'T1', '9:16');
+  const out = await renderScene(html, scene, TMP);
+  assert.equal(out.length, 1);
+  assert.ok(out[0].endsWith('.jpg'));
+  assert.ok(existsSync(out[0]));
+  await closeBrowser();
+});
+
+test('renderScene kinetic=true writes N PNG frames = fps × duration', async () => {
+  setupTmp();
+  const scene = { index: 1, duration: 1.0, layoutType: 'hook', captionEn: 'K', captionEs: 'k',
+                  heroSource: 'theme_solid', kinetic: true, zoompan: null, transitionOut: 'cut', mood: 'upbeat' };
+  const body = buildSceneHtml(scene, null, 'T1', '9:16');
+  const html = wrapSlideHtml(body, 'T1', '9:16');
+  const out = await renderScene(html, scene, TMP, { fps: 10 });
+  assert.equal(out.length, 10, 'should produce 10 frames for 1s @ 10fps');
+  for (const p of out) assert.ok(p.endsWith('.png'));
+  assert.ok(existsSync(out[0]));
+  await closeBrowser();
+});
+
+test('renderScene reuses the browser singleton across calls', async () => {
+  setupTmp();
+  const scene = { index: 1, duration: 1.0, layoutType: 'layout_d', captionEn: 'A', captionEs: 'a',
+                  heroSource: 'theme_solid', kinetic: false, zoompan: null, transitionOut: 'cut', mood: 'upbeat' };
+  const body = buildSceneHtml(scene, null, 'T1', '9:16');
+  const html = wrapSlideHtml(body, 'T1', '9:16');
+  await renderScene(html, scene, TMP);
+  await renderScene(html, { ...scene, index: 2 }, TMP);
+  const stats = __getBrowserStats();
+  assert.equal(stats.launchCount, 1, 'browser should launch exactly once for 2 scenes');
+  await closeBrowser();
+});
+```
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+```bash
+cd agents/director_v2 && node --test test/render.test.mjs
+```
+Expected: FAIL with `Cannot find module '../src/render.mjs'`.
+
+- [ ] **Step 3: Implement render.mjs**
+
+Create `agents/director_v2/src/render.mjs`:
+```javascript
+import puppeteer from 'puppeteer';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+
+let _browser = null;
+const _stats = { launchCount: 0 };
+
+async function getBrowser() {
+  if (_browser && _browser.connected) return _browser;
+  _stats.launchCount++;
+  _browser = await puppeteer.launch({
+    headless: 'new',
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+  });
+  return _browser;
+}
+
+export function __getBrowserStats() { return { ..._stats }; }
+
+export async function closeBrowser() {
+  if (_browser) { try { await _browser.close(); } catch {} _browser = null; }
+}
+
+export async function renderScene(html, scene, outDir, { fps = 30 } = {}) {
+  await mkdir(outDir, { recursive: true });
+  const browser = await getBrowser();
+  const page = await browser.newPage();
+  await page.setViewport({ width: 1080, height: 1920, deviceScaleFactor: 1 });
+  await page.setContent(html, { waitUntil: 'networkidle0' });
+  await page.evaluate(() => document.fonts?.ready);
+
+  const outputs = [];
+  if (!scene.kinetic) {
+    const path = join(outDir, `scene_${scene.index}.jpg`);
+    const buf = await page.screenshot({ type: 'jpeg', quality: 92, fullPage: false, omitBackground: false });
+    await writeFile(path, buf);
+    outputs.push(path);
+  } else {
+    const totalFrames = Math.max(1, Math.round(fps * scene.duration));
+    for (let f = 0; f < totalFrames; f++) {
+      const progress = f / Math.max(1, totalFrames - 1);
+      await page.evaluate((p) => { window.__kineticProgress = p; }, progress);
+      const path = join(outDir, `scene_${scene.index}_${String(f).padStart(3, '0')}.png`);
+      const buf = await page.screenshot({ type: 'png', fullPage: false, omitBackground: false });
+      await writeFile(path, buf);
+      outputs.push(path);
+    }
+  }
+  await page.close();
+  return outputs;
+}
+```
+
+**Note:** The kinetic progress update via `window.__kineticProgress` is a hook for layout templates to animate themselves reading that value via CSS/JS. For Sprint 1 MVP kinetic just renders N identical frames (the "hook" animation ships in Sprint 3 — see spec Sec 8.6). This keeps Task 7 focused on the rendering mechanic, not the animation choreography.
+
+- [ ] **Step 4: Run tests to verify all pass**
+
+```bash
+cd agents/director_v2 && node --test test/render.test.mjs
+```
+Expected: `# pass 3`. This may take 10-20 seconds (Puppeteer launches a real browser).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add agents/director_v2/src/render.mjs \
+        agents/director_v2/test/render.test.mjs
+git commit -m "feat(director_v2): Task 7 — render.mjs with browser singleton + 3 tests"
+```
+
+**Acceptance criteria:**
+- 3 tests passing
+- Browser singleton reused across multiple `renderScene` calls
+- `tmp/render_test/` contains actual image files after tests run
+
+---
+
+<!-- PLAN_PART_7_END -->
