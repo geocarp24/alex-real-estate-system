@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "poc": "node poc.mjs",
-    "test": "node --test test/"
+    "test": "node --test test/*.test.mjs"
   },
   "dependencies": {
     "puppeteer": "^23.0.0"
