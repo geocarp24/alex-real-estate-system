@@ -2473,4 +2473,444 @@ git commit -m "feat(director_v2): Task 11 — airtable listPending+parse+update 
 
 ---
 
-<!-- PLAN_PART_10_END -->
+## Task 12: main.mjs — production orchestrator
+
+**Goal:** Wire everything together. Read pending records from Airtable → for each, parse spec → expand narrative → resolve hero images (Pexels + Nano Banana with fallback chain) → render scenes → ffmpeg assemble → upload to Cloudinary → PATCH Airtable. Supports `--dry-run` flag. Isolated errors per record.
+
+**Files:**
+- Create: `agents/director_v2/main.mjs`
+- Create: `agents/director_v2/test/main.test.mjs`
+
+- [ ] **Step 1: Write failing tests for helper functions in main**
+
+Create `agents/director_v2/test/main.test.mjs`:
+```javascript
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { shortMessage, summarize } from '../main.mjs';
+
+test('shortMessage trims and truncates error to <200 chars', () => {
+  const long = new Error('x'.repeat(500));
+  const msg = shortMessage(long);
+  assert.ok(msg.length <= 200);
+});
+
+test('shortMessage keeps name and message for typed errors', () => {
+  class MyErr extends Error { constructor(m) { super(m); this.name = 'MyErr'; } }
+  const e = new MyErr('boom');
+  assert.ok(shortMessage(e).includes('MyErr'));
+  assert.ok(shortMessage(e).includes('boom'));
+});
+
+test('summarize builds line-count summary of batch results', () => {
+  const stats = { ok: 2, error: 1, fallback: 1, nanoBananaCalls: 3, nanoBananaCents: 12, pexelsCalls: 4, uploadMb: 10.5, durationMs: 90000 };
+  const s = summarize(stats);
+  assert.ok(s.includes('Lista:           2'));
+  assert.ok(s.includes('Error:            1'));
+  assert.ok(s.includes('Nano Banana calls:  3 ($0.12)'));
+});
+
+test('summarize formats zero-counts cleanly', () => {
+  const stats = { ok: 0, error: 0, fallback: 0, nanoBananaCalls: 0, nanoBananaCents: 0, pexelsCalls: 0, uploadMb: 0, durationMs: 0 };
+  const s = summarize(stats);
+  assert.ok(s.includes('0'));
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+```bash
+cd agents/director_v2 && node --test test/main.test.mjs
+```
+Expected: FAIL (`Cannot find module '../main.mjs'`).
+
+- [ ] **Step 3: Implement main.mjs**
+
+Create `agents/director_v2/main.mjs`:
+```javascript
+#!/usr/bin/env node
+// Director v2 — production orchestrator
+// Usage:   doppler run -- node main.mjs [--dry-run]
+
+import { mkdir, rm, readFile, stat } from 'node:fs/promises';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import { listPending, parseVisualPrompt, updateRecord } from './src/airtable.mjs';
+import { expandNarrative, validateSpec } from './src/narratives/index.mjs';
+import { buildSceneHtml } from './src/scene_layout.mjs';
+import { wrapSlideHtml } from './src/wrapper.mjs';
+import { renderScene, closeBrowser } from './src/render.mjs';
+import { searchPortrait, downloadToFile, PexelsNoResultsError } from './src/pexels.mjs';
+import { generateImage, NanoBananaFailedError } from './src/nano_banana.mjs';
+import { pickMusic } from './src/audio.mjs';
+import { buildVideoCommand, runFfmpeg } from './src/ffmpeg.mjs';
+import { uploadVideo } from './src/cloudinary.mjs';
+import { sanitizeRecordId } from './src/util/sanitize.mjs';
+import { registerNanoBananaCall, enforcePerVideoBudget, shouldForcePexelsFallback } from './src/cost_control.mjs';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const TMP  = join(HERE, 'tmp');
+const SAMPLES = join(HERE, 'samples');
+
+export function shortMessage(err) {
+  const name = err?.name || 'Error';
+  const msg  = String(err?.message || err || 'unknown');
+  return `${name}: ${msg}`.slice(0, 200);
+}
+
+export function summarize(stats) {
+  const cents = stats.nanoBananaCents | 0;
+  const dollars = (cents / 100).toFixed(2);
+  const mins = Math.floor(stats.durationMs / 60000);
+  const secs = Math.floor((stats.durationMs % 60000) / 1000);
+  return `
+════════════════════════════════════════
+Director v2 — Batch Summary
+════════════════════════════════════════
+Records procesados:  ${stats.ok + stats.error}
+ ├─ Lista:           ${stats.ok}
+ ├─ Error:            ${stats.error}
+ └─ Fallback:         ${stats.fallback}
+Nano Banana calls:  ${stats.nanoBananaCalls} ($${dollars})
+Pexels calls:       ${stats.pexelsCalls}
+Cloudinary uploads: ${stats.ok} (total ${stats.uploadMb.toFixed(1)} MB)
+Duración total:     ${mins}m ${secs}s
+════════════════════════════════════════`.trim();
+}
+
+async function resolveHero(scene, { pexelsKey, geminiKey, tmpDir, stats, forcePexels }) {
+  const heroPath = join(tmpDir, `hero_${scene.index}.bin`);
+  let effectiveSource = scene.heroSource;
+  if (forcePexels && effectiveSource === 'nano_banana') effectiveSource = 'pexels';
+
+  if (effectiveSource === 'nano_banana') {
+    try {
+      const { imageBuffer, costCents } = await generateImage(scene.heroPrompt, { apiKey: geminiKey });
+      stats.nanoBananaCalls++;
+      stats.nanoBananaCents += costCents;
+      await registerNanoBananaCall(costCents);
+      await (await import('node:fs/promises')).writeFile(heroPath, imageBuffer);
+      return { path: heroPath, sourceActual: 'nano_banana' };
+    } catch (err) {
+      if (!(err instanceof NanoBananaFailedError)) throw err;
+      stats.fallback++;
+    }
+    effectiveSource = 'pexels';
+    scene.heroQuery = scene.heroQuery || 'real estate wisconsin';
+  }
+
+  if (effectiveSource === 'pexels') {
+    try {
+      const photo = await searchPortrait(scene.heroQuery, { apiKey: pexelsKey });
+      stats.pexelsCalls++;
+      await downloadToFile(photo.downloadUrl, heroPath);
+      return { path: heroPath, sourceActual: 'pexels' };
+    } catch (err) {
+      if (err instanceof PexelsNoResultsError) {
+        stats.fallback++;
+        effectiveSource = 'theme_solid';
+      } else throw err;
+    }
+  }
+
+  return { path: null, sourceActual: 'theme_solid' };
+}
+
+async function processRecord(record, { env, dryRun, stats }) {
+  const recordId = sanitizeRecordId(record.id);
+  const recordTmp = join(TMP, recordId);
+  await mkdir(recordTmp, { recursive: true });
+
+  const spec = parseVisualPrompt(record.fields.Visual_Prompt);
+  validateSpec(spec);
+  const scenes = expandNarrative(spec);
+  enforcePerVideoBudget(scenes);
+  const forcePexels = await shouldForcePexelsFallback(scenes);
+
+  const frameOutputs = [];
+  for (const scene of scenes) {
+    const hero = await resolveHero(scene, {
+      pexelsKey: env.PEXELS_API_KEY, geminiKey: env.GEMINI_API_KEY, tmpDir: recordTmp, stats, forcePexels,
+    });
+    const body = buildSceneHtml(scene, hero.path, spec.theme, spec.aspect);
+    const html = wrapSlideHtml(body, spec.theme, spec.aspect);
+    const files = await renderScene(html, scene, recordTmp);
+    frameOutputs.push({ index: scene.index, duration: scene.duration, imagePaths: files, zoompan: scene.zoompan, transitionOut: scene.transitionOut, kinetic: scene.kinetic });
+  }
+
+  const musicPath = pickMusic(spec.mood || 'upbeat', scenes.reduce((t, s) => t + s.duration, 0));
+  const outputPath = dryRun ? join(SAMPLES, `dry_run_${recordId}.mp4`) : join(recordTmp, `${recordId}.mp4`);
+  await mkdir(dirname(outputPath), { recursive: true });
+
+  const cmd = buildVideoCommand({ scenes: frameOutputs, musicPath, outputPath });
+  await runFfmpeg(cmd);
+  const { size } = await stat(outputPath);
+  stats.uploadMb += size / 1_048_576;
+
+  if (dryRun) {
+    console.log(`[dry-run] ${recordId} → ${outputPath}`);
+    return;
+  }
+
+  const upload = await uploadVideo(outputPath, {
+    publicId: `directorv2/${recordId}`,
+    folder: 'pinnacle-social-media/videos',
+    cloudName: env.CLOUDINARY_NAME,
+    apiKey: env.CLOUDINARY_API_KEY,
+    apiSecret: env.CLOUDINARY_API_SECRET,
+  });
+
+  await updateRecord(recordId, {
+    visual_url: upload.secure_url,
+    video_duration: upload.duration || (scenes.reduce((t, s) => t + s.duration, 0) - 0.3 * (scenes.length - 1)),
+    video_cost_cents: stats.nanoBananaCents,
+    Status: 'Lista',
+    Error_Reason: '',
+  }, env);
+}
+
+async function safePatchError(recordId, reason, env) {
+  try {
+    await updateRecord(sanitizeRecordId(recordId), { Status: 'Error', Error_Reason: reason }, env);
+  } catch (e) {
+    console.error(`[patch_failed] ${recordId}: ${shortMessage(e)}`);
+  }
+}
+
+async function main() {
+  const dryRun = process.argv.includes('--dry-run');
+  const env = {
+    token: process.env.AIRTABLE_SM_TOKEN,
+    baseId: process.env.AIRTABLE_SM_BASE_ID,
+    tableId: process.env.AIRTABLE_SM_TABLE_ID,
+    PEXELS_API_KEY: process.env.PEXELS_API_KEY,
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    CLOUDINARY_NAME: process.env.CLOUDINARY_NAME,
+    CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
+    CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
+  };
+  for (const [k, v] of Object.entries(env)) {
+    if (!v) { console.error(`ERROR: env ${k} missing (Doppler)`); process.exit(1); }
+  }
+
+  await rm(TMP, { recursive: true, force: true });
+  await mkdir(TMP, { recursive: true });
+  await mkdir(SAMPLES, { recursive: true });
+
+  const start = Date.now();
+  const stats = { ok: 0, error: 0, fallback: 0, nanoBananaCalls: 0, nanoBananaCents: 0, pexelsCalls: 0, uploadMb: 0, durationMs: 0 };
+
+  const pending = await listPending(env);
+  console.log(`Director v2 — ${pending.length} pending reel record(s)${dryRun ? ' (dry-run)' : ''}`);
+
+  for (const record of pending) {
+    try {
+      await processRecord(record, { env, dryRun, stats });
+      stats.ok++;
+    } catch (err) {
+      stats.error++;
+      const msg = shortMessage(err);
+      console.error(`[error] ${record.id}: ${msg}`);
+      if (!dryRun) await safePatchError(record.id, msg, env);
+    }
+  }
+
+  stats.durationMs = Date.now() - start;
+  await closeBrowser();
+  console.log(summarize(stats));
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch(err => { console.error('FAIL:', err); process.exit(1); });
+}
+```
+
+- [ ] **Step 4: Run tests to verify all pass**
+
+```bash
+cd agents/director_v2 && node --test test/main.test.mjs
+```
+Expected: `# pass 4`.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add agents/director_v2/main.mjs \
+        agents/director_v2/test/main.test.mjs
+git commit -m "feat(director_v2): Task 12 — main orchestrator with dry-run + error isolation + 4 tests"
+```
+
+**Acceptance criteria:**
+- 4 tests passing
+- `main.mjs` handles per-record errors without breaking batch
+- `--dry-run` skips Cloudinary + Airtable PATCH and writes MP4 to `samples/`
+
+---
+
+## Task 13: cost_control — monthly + per-video budget caps
+
+**Goal:** Persist Nano Banana usage per month to `state/nano_banana_usage.json` and enforce caps. Called from main.mjs at two points: `enforcePerVideoBudget(scenes)` before rendering, and `shouldForcePexelsFallback(scenes)` to decide if monthly cap would overflow.
+
+**Files:**
+- Create: `agents/director_v2/src/cost_control.mjs`
+- Create: `agents/director_v2/test/cost_control.test.mjs`
+
+- [ ] **Step 1: Write failing tests**
+
+Create `agents/director_v2/test/cost_control.test.mjs`:
+```javascript
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { rmSync, writeFileSync, readFileSync, mkdirSync, existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import {
+  enforcePerVideoBudget, BudgetExceededError,
+  __setStatePath, registerNanoBananaCall, shouldForcePexelsFallback,
+  MAX_NANO_BANANA_PER_VIDEO, MONTHLY_CAP_CENTS, COST_PER_CALL_CENTS,
+} from '../src/cost_control.mjs';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const STATE = join(HERE, '..', 'tmp', 'test_usage.json');
+
+function resetState() {
+  mkdirSync(dirname(STATE), { recursive: true });
+  if (existsSync(STATE)) rmSync(STATE);
+  __setStatePath(STATE);
+}
+
+test('enforcePerVideoBudget throws when >MAX Nano Banana scenes', () => {
+  resetState();
+  const scenes = Array(MAX_NANO_BANANA_PER_VIDEO + 1).fill({ heroSource: 'nano_banana' });
+  assert.throws(() => enforcePerVideoBudget(scenes), (e) => e instanceof BudgetExceededError);
+});
+
+test('enforcePerVideoBudget passes when at or under MAX', () => {
+  resetState();
+  const scenes = Array(MAX_NANO_BANANA_PER_VIDEO).fill({ heroSource: 'nano_banana' });
+  assert.doesNotThrow(() => enforcePerVideoBudget(scenes));
+});
+
+test('shouldForcePexelsFallback returns true when this video would overflow monthly cap', async () => {
+  resetState();
+  const month = new Date().toISOString().slice(0, 7);
+  writeFileSync(STATE, JSON.stringify({ [month]: { calls: 0, cents: MONTHLY_CAP_CENTS - 2, videos: 10 } }));
+  const scenes = [{ heroSource: 'nano_banana' }, { heroSource: 'nano_banana' }]; // +8 cents would overflow
+  const force = await shouldForcePexelsFallback(scenes);
+  assert.equal(force, true);
+});
+
+test('registerNanoBananaCall creates atomic write and increments counter', async () => {
+  resetState();
+  await registerNanoBananaCall(4);
+  await registerNanoBananaCall(4);
+  const raw = JSON.parse(readFileSync(STATE, 'utf8'));
+  const month = new Date().toISOString().slice(0, 7);
+  assert.equal(raw[month].cents, 8);
+  assert.equal(raw[month].calls, 2);
+});
+
+test('corrupt state file is re-initialized without crash', async () => {
+  resetState();
+  writeFileSync(STATE, 'not-json-at-all');
+  await registerNanoBananaCall(COST_PER_CALL_CENTS);
+  const raw = JSON.parse(readFileSync(STATE, 'utf8'));
+  const month = new Date().toISOString().slice(0, 7);
+  assert.equal(raw[month].cents, COST_PER_CALL_CENTS);
+});
+```
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+```bash
+cd agents/director_v2 && node --test test/cost_control.test.mjs
+```
+Expected: FAIL (module missing).
+
+- [ ] **Step 3: Implement cost_control.mjs**
+
+Create `agents/director_v2/src/cost_control.mjs`:
+```javascript
+import { readFile, writeFile, rename, mkdir } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+export const MAX_NANO_BANANA_PER_VIDEO = 3;
+export const MONTHLY_CAP_CENTS = 1000; // $10/month
+export const COST_PER_CALL_CENTS = 4;
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+let _statePath = join(HERE, '..', 'state', 'nano_banana_usage.json');
+
+export function __setStatePath(p) { _statePath = p; }
+
+export class BudgetExceededError extends Error {
+  constructor(msg) { super(msg); this.name = 'BudgetExceededError'; }
+}
+
+export function enforcePerVideoBudget(scenes) {
+  const n = scenes.filter(s => s.heroSource === 'nano_banana').length;
+  if (n > MAX_NANO_BANANA_PER_VIDEO) {
+    throw new BudgetExceededError(`per-video Nano Banana cap exceeded: ${n} > ${MAX_NANO_BANANA_PER_VIDEO}`);
+  }
+}
+
+async function loadUsage() {
+  if (!existsSync(_statePath)) return {};
+  try { return JSON.parse(await readFile(_statePath, 'utf8')); }
+  catch { return {}; }
+}
+
+async function writeUsageAtomic(data) {
+  await mkdir(dirname(_statePath), { recursive: true });
+  const tmp = `${_statePath}.tmp.${process.pid}`;
+  await writeFile(tmp, JSON.stringify(data, null, 2));
+  await rename(tmp, _statePath);
+}
+
+function currentMonth() { return new Date().toISOString().slice(0, 7); }
+
+export async function shouldForcePexelsFallback(scenes) {
+  const usage = await loadUsage();
+  const month = currentMonth();
+  const current = usage[month]?.cents || 0;
+  const thisVideoCents = scenes.filter(s => s.heroSource === 'nano_banana').length * COST_PER_CALL_CENTS;
+  return (current + thisVideoCents) > MONTHLY_CAP_CENTS;
+}
+
+export async function registerNanoBananaCall(costCents) {
+  const usage = await loadUsage();
+  const month = currentMonth();
+  const bucket = usage[month] || { calls: 0, cents: 0, videos: 0 };
+  bucket.calls += 1;
+  bucket.cents += costCents;
+  usage[month] = bucket;
+  await writeUsageAtomic(usage);
+}
+```
+
+- [ ] **Step 4: Run tests to verify all pass**
+
+```bash
+cd agents/director_v2 && node --test test/cost_control.test.mjs
+```
+Expected: `# pass 5`.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add agents/director_v2/src/cost_control.mjs \
+        agents/director_v2/test/cost_control.test.mjs
+git commit -m "feat(director_v2): Task 13 — cost_control with per-video + monthly caps, 5 tests"
+```
+
+**Acceptance criteria:**
+- 5 tests passing
+- `state/nano_banana_usage.json` is created with atomic write (tmp + rename)
+- Corrupt state file does not crash the agent
+
+---
+
+<!-- PLAN_PART_11_END -->
