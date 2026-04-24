@@ -2,7 +2,11 @@
 client_secret*.json
 *.secret.json
 .env
+.env.local
+.env.*.local
 .env.*
+*.key
+*.pem
 
 # Sesiones de Telegram
 telegram_bot/sessions/
