@@ -303,4 +303,229 @@ for (const record of pending) {
 
 `safePatchError()` también envuelve PATCH en try/catch — si Airtable está caído, se loguea a `logs/patch_failures.ndjson` para recovery manual.
 
-<!-- SECTION_BREAK_AFTER_2 -->
+## 5. Narrativas A/B/C (Sección 3/6 del design)
+
+Cada narrativa es un módulo `narratives/narrative_X.mjs` que exporta `expand(spec) → scenes[]`. Todas las narrativas producen el mismo shape de `scene` para que `scene_layout.mjs` y `ffmpeg.mjs` sean agnósticos del preset usado.
+
+### 5.1 Shape común de una `scene`
+
+```typescript
+type Scene = {
+  index: number;                                         // 1-based
+  duration: number;                                      // segundos (float)
+  layoutType: "hook" | "layout_d" | "cta";
+  captionEn: string;
+  captionEs?: string;                                    // opcional en cta o stats
+  heroSource: "nano_banana" | "pexels" | "local" | "theme_solid";
+  heroPrompt?: string | null;                            // si source=nano_banana
+  heroQuery?: string | null;                             // si source=pexels
+  heroLocalId?: string | null;                           // si source=local
+  kinetic: boolean;                                      // true → PNG sequence; false → 1 JPG
+  zoompan: { from: number, to: number } | null;          // Ken Burns (scale factors)
+  transitionOut: "cut" | "crossfade" | "wipeleft" | "slideup" | "none";
+  mood: "upbeat" | "chill" | "cinematic" | "tension";
+};
+```
+
+### 5.2 Narrativa B — Hook + 3 puntos + CTA (default del MVP)
+
+**Reusa el spec del Creativo v2** — el Social Media Agent emite UN record, y si `media_type` es `"both"` ese record genera simultáneamente el carrusel (Creativo) y el reel (Director).
+
+**Spec mínimo:**
+```json
+{
+  "media_type": "reel",
+  "theme": "T1",
+  "aspect": "9:16",
+  "narrative": "B",
+  "duration": 10,
+  "mood": "upbeat",
+  "hook": { "en": "3 REASONS TO SELL OFF-MARKET", "es": "3 RAZONES PARA VENDER OFF-MARKET", "badge": "WISCONSIN" },
+  "points": [
+    { "headingEn": "Faster Than Banks", "headingEs": "Más Rápido Que Los Bancos", "bodyEn": "No waiting", "bodyEs": "Sin esperar" },
+    { "headingEn": "No Commissions",    "headingEs": "Sin Comisiones",             "bodyEn": "Keep 100%",  "bodyEs": "Quedate 100%" },
+    { "headingEn": "No Showings",       "headingEs": "Sin Visitas",                "bodyEn": "Sell as-is", "bodyEs": "Como está" }
+  ],
+  "cta": { "en": "Get your cash offer today", "es": "Reciba su oferta hoy" }
+}
+```
+
+**Expansión (5 scenes):**
+
+| # | Rol | Duración | Layout | Kinetic | Hero | Mood | TransitionOut |
+|---|---|---|---|---|---|---|---|
+| 1 | hook | 2.5s | hook | ✓ | nano_banana (branded) | upbeat | crossfade |
+| 2 | point 1 | 2.0s | layout_d | ✗ | pexels (derived query) | upbeat | wipeleft |
+| 3 | point 2 | 2.0s | layout_d | ✗ | pexels | upbeat | crossfade |
+| 4 | point 3 | 2.0s | layout_d | ✗ | pexels | upbeat | slideup |
+| 5 | cta | 2.5s | cta | ✓ | nano_banana (branded) | upbeat | none |
+
+**Total:** 11s → con 4 × 0.3s de xfade solapado ≈ **9.8s efectivo**.
+
+**Nano Banana calls:** 2 por video (hook + cta) = **$0.08/video**.
+
+**heroPrompt defaults:**
+- scene 1: `"Modern real estate scene matching: {hook.en}, Pinnacle brand, cinematic, 9:16"`
+- scene 5: `"Pinnacle Holdings branded CTA scene, golden hour exterior, cinematic, 9:16"`
+
+**heroQuery derivation** para scenes 2-4: primeras 2 palabras sustantivas del `headingEn` + palabra contextual fija. Tabla de derivación:
+```
+"Faster Than Banks"  → "clock time money"
+"No Commissions"     → "real estate contract"
+"No Showings"        → "house closed sign"
+"No Repairs"         → "home renovation"
+```
+Si el heading no matchea ninguna entrada → fallback genérico `"real estate wisconsin"`.
+
+**zoompan** en scenes 1 y 5: `{ from: 1.0, to: 1.05 }` (Ken Burns sutil 5%).  
+**zoompan** en scenes 2-4: `{ from: 1.0, to: 1.03 }` (3%, más sutil porque Pexels ya tiene composición fija).
+
+### 5.3 Narrativa A — Problem → Solution → Benefits → CTA (wholesale)
+
+**Spec específico:**
+```json
+{
+  "media_type": "reel",
+  "theme": "T1",
+  "aspect": "9:16",
+  "narrative": "A",
+  "duration": 10,
+  "problem":  { "en": "Tired of repairs eating your equity?", "es": "¿Cansado de reparaciones?" },
+  "solution": { "en": "We buy as-is. Any condition.",         "es": "Compramos como está." },
+  "benefits": [
+    { "en": "No commissions", "es": "Sin comisiones" },
+    { "en": "No showings",    "es": "Sin visitas" }
+  ],
+  "cta":      { "en": "Get your cash offer", "es": "Reciba su oferta" }
+}
+```
+
+**Expansión (5 scenes):**
+
+| # | Rol | Duración | Layout | Kinetic | Hero | Mood | TransitionOut |
+|---|---|---|---|---|---|---|---|
+| 1 | problem | 2.5s | hook | ✓ | nano_banana | tension | crossfade |
+| 2 | solution | 2.5s | layout_d | ✓ | nano_banana | upbeat | crossfade |
+| 3 | benefit 1 | 1.75s | layout_d | ✗ | pexels | upbeat | wipeleft |
+| 4 | benefit 2 | 1.75s | layout_d | ✗ | pexels | upbeat | slideup |
+| 5 | cta | 2.0s | cta | ✓ | nano_banana | upbeat | none |
+
+**Total:** 10.5s. **Nano Banana:** 3 calls = **$0.12/video**.
+
+**Mood shift scene 1 → scene 2** (tension → upbeat) se refleja en:
+- Selección de track de música (scene 1 empieza en track de mood `tension`, scene 2 en adelante music switch a `upbeat` — handled por ffmpeg audio crossfade)
+- Color overlay: scene 1 usa theme.bg (dark premium = verde oscuro) con tinte extra dark; scene 2+ usa el tinte normal
+
+**heroPrompt defaults:**
+- scene 1: `"Stressed homeowner looking at damaged house, dramatic lighting, moody, 9:16"`
+- scene 2: `"Bright confident real estate professional handshake, Pinnacle brand, golden hour, 9:16"`
+- scene 5: `"Pinnacle Holdings modern logo reveal, cinematic, 9:16"`
+
+### 5.4 Narrativa C — Before / After + Stats + CTA (rehab portfolio)
+
+**Spec específico:**
+```json
+{
+  "media_type": "reel",
+  "theme": "T3",
+  "aspect": "9:16",
+  "narrative": "C",
+  "duration": 10,
+  "intro":      { "en": "We bought this house last month", "es": "Compramos esta casa el mes pasado" },
+  "before_url": "https://res.cloudinary.com/.../before_xyz.jpg",
+  "after_url":  "https://res.cloudinary.com/.../after_xyz.jpg",
+  "stats": [
+    { "label": "ROI",  "value": "42%" },
+    { "label": "Days", "value": "90"  }
+  ],
+  "cta": { "en": "Your house could be next", "es": "Su casa podría ser la siguiente" }
+}
+```
+
+**Expansión (5 scenes):**
+
+| # | Rol | Duración | Layout | Kinetic | Hero | Mood | TransitionOut |
+|---|---|---|---|---|---|---|---|
+| 1 | intro | 1.5s | hook | ✗ | local (before thumbnail) | chill | crossfade |
+| 2 | before | 2.5s | layout_d | ✗ | local (before_url) | chill | wipeleft |
+| 3 | after | 2.5s | layout_d | ✗ | local (after_url) | cinematic | crossfade |
+| 4 | stats | 2.0s | cta | ✓ | theme_solid | cinematic | crossfade |
+| 5 | cta | 2.0s | cta | ✓ | nano_banana | cinematic | none |
+
+**Total:** 10.5s. **Nano Banana:** 1 call = **$0.04/video**.
+
+**Detalles especiales narrativa C:**
+- **zoompan scene 2:** `{ from: 1.0, to: 1.08 }` — Ken Burns fuerte para enfatizar deterioro
+- **zoompan scene 3:** `{ from: 1.08, to: 1.0 }` — zoom out para revelar resultado completo
+- **heroSource `theme_solid`** en scene 4 (stats) — fondo sólido del theme con stats grandes superpuestos
+- **captionEn scene 2:** `"BEFORE"` (mayúsculas, hero tratamiento, sin bilingüe)
+- **captionEn scene 3:** `"AFTER"`
+- **captionEn scene 4:** `stats.map(s => \`${s.label}: ${s.value}\`).join(' • ')` → `"ROI: 42% • Days: 90"`
+
+**Theme recomendado para narrativa C:** T3 (Gold & Black) — contrasta mejor con fotos de rehab y da sensación premium.
+
+### 5.5 `heroSource: "theme_solid"` (nuevo del Director)
+
+No pide ni a Pexels ni a Nano Banana. Genera un fondo visual puramente del theme sin foto. Dos implementaciones posibles:
+
+**Opción 1 (MVP):** CSS puro en el HTML de `scene_layout.mjs`:
+```html
+<div style="
+  width:1080px; height:1920px;
+  background: {theme.bg};
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(255,255,255,.08), transparent 50%),
+    radial-gradient(circle at 80% 80%, {theme.accent}22, transparent 50%);
+"></div>
+```
+
+**Opción 2 (post-MVP):** generar PNG con `node-canvas` (evita Puppeteer roundtrip para un fondo estático).
+
+### 5.6 Dispatcher `narratives/index.mjs`
+
+```javascript
+import { expand as expandB } from './narrative_B.mjs';
+import { expand as expandA } from './narrative_A.mjs';
+import { expand as expandC } from './narrative_C.mjs';
+
+const REGISTRY = { A: expandA, B: expandB, C: expandC };
+
+export function expandNarrative(spec) {
+  const fn = REGISTRY[spec.narrative];
+  if (!fn) throw new Error(`Unknown narrative: ${spec.narrative}`);
+  return fn(spec);
+}
+
+export function validateSpec(spec) {
+  if (!spec || typeof spec !== 'object') throw new Error('spec must be object');
+  if (!['A', 'B', 'C'].includes(spec.narrative)) throw new Error(`narrative must be A|B|C, got: ${spec.narrative}`);
+  if (spec.aspect !== '9:16') throw new Error(`aspect must be 9:16 for Director, got: ${spec.aspect}`);
+  if (!['T1','T2','T3','T4','T5'].includes(spec.theme)) throw new Error(`theme must be T1-T5, got: ${spec.theme}`);
+  const d = Number(spec.duration);
+  if (!Number.isFinite(d) || d < 7 || d > 15) throw new Error(`duration must be 7-15, got: ${spec.duration}`);
+
+  // per-narrative validation
+  switch (spec.narrative) {
+    case 'B':
+      if (!spec.hook?.en || !spec.hook?.es) throw new Error('narrative B requires hook.en and hook.es');
+      if (!Array.isArray(spec.points) || spec.points.length < 3) throw new Error('narrative B requires points[3+]');
+      if (!spec.cta?.en || !spec.cta?.es) throw new Error('narrative B requires cta.en and cta.es');
+      break;
+    case 'A':
+      if (!spec.problem?.en) throw new Error('narrative A requires problem.en');
+      if (!spec.solution?.en) throw new Error('narrative A requires solution.en');
+      if (!Array.isArray(spec.benefits) || spec.benefits.length < 2) throw new Error('narrative A requires benefits[2+]');
+      if (!spec.cta?.en) throw new Error('narrative A requires cta.en');
+      break;
+    case 'C':
+      if (!spec.before_url) throw new Error('narrative C requires before_url');
+      if (!spec.after_url) throw new Error('narrative C requires after_url');
+      if (!Array.isArray(spec.stats) || spec.stats.length < 2) throw new Error('narrative C requires stats[2+]');
+      if (!spec.cta?.en) throw new Error('narrative C requires cta.en');
+      break;
+  }
+  return true;
+}
+```
+
+<!-- SECTION_BREAK_AFTER_3 -->
