@@ -80,3 +80,27 @@ test('parseVisualPrompt throws on invalid theme code', () => {
 test('parseVisualPrompt throws on missing hook.en', () => {
   assert.throws(() => parseVisualPrompt('{"theme":"T1","hook":{},"points":[],"cta":{"en":"c","es":"d"}}'), /hook\.en/i);
 });
+
+test('updateRecord sends PATCH to correct URL with fields body', async () => {
+  let method, url, body;
+  __setFetch(async (u, opts) => {
+    url = u; method = opts.method; body = opts.body;
+    return { ok: true, status: 200, json: async () => ({ id: 'recABC', fields: {} }) };
+  });
+  process.env.AIRTABLE_SM_TOKEN = 'tok_test';
+  process.env.AIRTABLE_SM_BASE_ID = 'appTEST';
+  process.env.AIRTABLE_SM_TABLE_ID = 'tblTEST';
+
+  await updateRecord('recABC', { visual_url: 'https://cdn/a.jpg', Status: 'Lista para Publicar' });
+
+  assert.equal(method, 'PATCH');
+  assert.ok(url.endsWith('/appTEST/tblTEST/recABC'));
+  const payload = JSON.parse(body);
+  assert.equal(payload.fields.visual_url, 'https://cdn/a.jpg');
+  assert.equal(payload.fields.Status, 'Lista para Publicar');
+});
+
+test('updateRecord throws on non-2xx with body snippet', async () => {
+  __setFetch(async () => ({ ok: false, status: 422, text: async () => 'Invalid field name' }));
+  await assert.rejects(updateRecord('recX', { foo: 'bar' }), /422/);
+});
