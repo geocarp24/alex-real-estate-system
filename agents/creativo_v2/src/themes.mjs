@@ -162,14 +162,14 @@ export function slidePoint(themeCode, { index, total, headingEn, bodyEn, heading
 
     ${logoCorner(theme, 140)}
   `;
-  return baseWrapper(theme, inner, { pad: 0 });
+  return baseWrapper(theme, inner, { pad: 0, aspect });
 }
 
 // ---------------------------------------------------------------------------
 // CTA SLIDE — centered logo + call to action + phone + website
 // Used as the last slide of every carousel/post.
 // ---------------------------------------------------------------------------
-export function slideCTA(themeCode, { ctaEn, ctaEs } = {}) {
+export function slideCTA(themeCode, { ctaEn, ctaEs, aspect = "4:5" } = {}) {
   const theme = THEMES[themeCode] || THEMES.T1;
   const cta_en = ctaEn || "We Buy Houses. Cash. Fast. Fair.";
   const cta_es = ctaEs || "Compramos Casas. Efectivo. Rapido. Justo.";
