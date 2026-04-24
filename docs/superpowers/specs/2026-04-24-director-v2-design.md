@@ -1090,7 +1090,7 @@ Según la **regla del Jefe del 2026-04-24 "LEGACY RECORD BACKFILL" (no negociabl
 **Lógica:**
 ```
 1. Leer Airtable records con:
-   Media_Type='reel' AND (visual_url='' OR Status='Error')
+   AND({Formato}='Reel', OR({visual_url}='', {Status}='Error'))
 
 2. Para cada record legacy:
    2a. Leer Visual_Prompt actual
