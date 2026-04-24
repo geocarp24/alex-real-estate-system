@@ -528,4 +528,222 @@ export function validateSpec(spec) {
 }
 ```
 
-<!-- SECTION_BREAK_AFTER_3 -->
+## 6. Error handling + cost control + security (Sección 4/6 del design)
+
+### 6.1 Error handling — matriz de fallos por step del pipeline
+
+| Step | Fallo posible | Estrategia |
+|---|---|---|
+| 2a `parseVisualPrompt` | JSON malformado | catch → PATCH `Status=Error, Error_Reason='Visual_Prompt no es JSON válido'` → continue |
+| 2b `validateSpec` | Campo faltante / valor inválido | PATCH `Error_Reason='invalid: <field>: <detail>'` → continue |
+| 3 `expandNarrative` | Narrativa desconocida o spec incompleto | PATCH `Error_Reason='narrative <X> missing <field>'` → continue |
+| 4a hero Pexels | Query sin resultados / 429 rate limit | Retry 3× exp backoff → si sigue fallando → fallback a `theme_solid` (no bloquear) |
+| 4a hero Nano Banana | Timeout / filtro de seguridad / cara deformada detectada | Re-roll 1× con prompt refinado → si sigue fallando → fallback a Pexels → si Pexels falla → `theme_solid` |
+| 4c render Puppeteer | Crash del browser / OOM | Restart browser + reintentar escena 1× → si sigue, PATCH error |
+| 5 `pickMusic` | Track missing en disco | Fallback al primer track del mood genérico `"upbeat"` |
+| 6 ffmpeg | Exit code ≠ 0 | Capturar stderr → PATCH `Error_Reason='ffmpeg: <last line>'` → continue |
+| 7 Cloudinary upload | 5xx / timeout | Retry 3× exp backoff → si sigue fallando → PATCH error |
+| 8 Airtable PATCH final | 429 / 5xx | Retry 3× → si falla, log a disco `logs/patch_failures.ndjson` para recovery manual |
+
+**Principio invariante:** un fallo en 1 record NUNCA rompe el batch. El loop procesa N records y al final imprime resumen de status.
+
+### 6.2 Fallback chains
+
+**Hero image fallback chain (por escena):**
+```
+heroSource = "nano_banana" (solicitado)
+   ↓ falla re-roll
+heroSource = "pexels" (fallback automático con heroQuery derivado)
+   ↓ falla 3× retry
+heroSource = "theme_solid" (último recurso, nunca falla)
+```
+
+La scene se marca con `heroSourceActual` además de `heroSource` original para tracking. El log NDJSON incluye ambos.
+
+**Music fallback chain:**
+```
+pickMusic(spec.mood) requested track
+   ↓ missing from disk
+fallback first track of spec.mood
+   ↓ mood dir empty
+fallback first track of "upbeat"
+   ↓ upbeat dir empty (should never happen)
+throw — abort video (esto NO es recuperable)
+```
+
+### 6.3 Cost control — caps y tracking
+
+| Cap | Valor | Implementación |
+|---|---|---|
+| Nano Banana por video | **Máx 3 calls** | `validateSceneBudget(scenes)` cuenta `heroSource === 'nano_banana'` antes de render; si > 3 throws `BudgetExceededError` antes de gastar |
+| Nano Banana mensual | **Máx $10/mes (250 calls)** | Contador persistente en `state/nano_banana_usage.json` (YYYY-MM key); al superar, fallback automático a Pexels con log `cost_cap_reached` |
+| Cloudinary storage | Free tier 25GB | Cron separado (fuera del MVP): borra videos >30 días con `visual_url` populated |
+| Cost tracking per record | `video_cost_cents` field | Cada Nano Banana call incrementa contador del record en +4 cents |
+
+**Monthly budget file format:**
+```json
+{
+  "2026-04": { "calls": 47, "cents": 188, "videos": 18 },
+  "2026-05": { "calls": 0, "cents": 0, "videos": 0 }
+}
+```
+
+**Atomic write pattern** (evita corrupción con concurrent runs):
+```javascript
+import { writeFile, rename } from 'node:fs/promises';
+async function writeUsageAtomic(path, data) {
+  const tmp = `${path}.tmp.${process.pid}`;
+  await writeFile(tmp, JSON.stringify(data, null, 2));
+  await rename(tmp, path);
+}
+```
+
+**Budget check antes del render:**
+```javascript
+const currentMonth = new Date().toISOString().slice(0, 7); // "2026-04"
+const usage = await loadUsage();
+const monthUsage = usage[currentMonth] || { cents: 0 };
+const thisVideoCents = countNanoBananaScenes(scenes) * 4;
+if (monthUsage.cents + thisVideoCents > 1000) {
+  log.warn({ event: 'cost_cap_approaching', monthCents: monthUsage.cents });
+  // force ALL scenes to pexels fallback
+  scenes.forEach(s => { if (s.heroSource === 'nano_banana') s.heroSource = 'pexels'; });
+}
+```
+
+### 6.4 Security — secrets, sanitización, scopes
+
+**Secrets — todos vía Doppler, cero plaintext:**
+```
+GEMINI_API_KEY               (Nano Banana)
+PEXELS_API_KEY               (nuevo — hay que añadirlo a Doppler)
+CLOUDINARY_NAME              (ya existe)
+CLOUDINARY_API_KEY           (ya existe)
+CLOUDINARY_API_SECRET        (ya existe)
+AIRTABLE_SM_TOKEN            (ya existe)
+AIRTABLE_SM_BASE_ID          (ya existe)
+AIRTABLE_SM_TABLE_ID         (ya existe)
+```
+
+Doppler project: `pinnacle-social-publisher`, config `dev_personal`.  
+Ejecución siempre con `doppler run -- node main.mjs`.  
+`package.json.scripts.prod` envuelve el comando.
+
+**Sanitización de inputs que llegan a HTML, ffmpeg, shell:**
+
+| Input | Destino | Sanitización |
+|---|---|---|
+| `captionEn`, `captionEs` | HTML template | escape HTML entities: `&` → `&amp;`, `<` → `&lt;`, `>` → `&gt;`, `"` → `&quot;`, `'` → `&#39;` |
+| `heroQuery` | Pexels API URL | URL encode + whitelist `[a-zA-Z0-9 ]+` (strip el resto antes de encode) |
+| `heroPrompt` | Nano Banana API body | max 500 chars + strip markers conocidos de prompt injection: `<\|im_end\|>`, `<\|system\|>`, `<\|endoftext\|>`, `###`, `[INST]`, `[/INST]` |
+| Paths a ffmpeg | argv array | **NUNCA** string concat; siempre `spawn('ffmpeg', [...args])` como array → zero shell injection |
+| `cloudinary.publicId` | URL Cloudinary | whitelist `[a-z0-9_\-/]+` (lowercase, guiones, slashes para folders) |
+| `recordId` (Airtable) | paths en tmp/ | whitelist `[a-zA-Z0-9]+` (Airtable IDs son alfanuméricos) |
+
+**Implementación de sanitización en `src/util/sanitize.mjs`:**
+```javascript
+const HTML_ESCAPE = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+export function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => HTML_ESCAPE[c]);
+}
+
+export function sanitizePexelsQuery(q) {
+  return String(q ?? '').replace(/[^a-zA-Z0-9 ]+/g, '').trim().slice(0, 100);
+}
+
+const PROMPT_INJECTION_MARKERS = [
+  /<\|im_end\|>/g, /<\|system\|>/g, /<\|endoftext\|>/g,
+  /\[INST\]/g, /\[\/INST\]/g, /###\s*(system|assistant|user)/gi,
+];
+export function sanitizeNanoBananaPrompt(p) {
+  let clean = String(p ?? '');
+  for (const re of PROMPT_INJECTION_MARKERS) clean = clean.replace(re, '');
+  return clean.slice(0, 500);
+}
+
+export function sanitizePublicId(id) {
+  return String(id ?? '').toLowerCase().replace(/[^a-z0-9_\-/]+/g, '_');
+}
+
+export function sanitizeRecordId(id) {
+  const clean = String(id ?? '').replace(/[^a-zA-Z0-9]+/g, '');
+  if (!clean) throw new Error('invalid recordId');
+  return clean;
+}
+```
+
+**Airtable scope:**
+- Token principal (`AIRTABLE_SM_TOKEN`) — scope `data.records:read + data.records:write` sobre base `appU9s3kGkVpdrJkw`. **Sin** `schema.bases:write`, **sin** delete.
+- Para `Task 0 schema setup` se usa un token temporal con scope `schema.bases:write` que se crea una vez, se corre el script, y se elimina: `doppler secrets delete AIRTABLE_SM_SCHEMA_TOKEN`.
+
+**Anti-prompt-injection en contenido externo (regla del Jefe, 2026-04-22):**
+- Si Pexels devuelve metadata con strings tipo `"ignore previous instructions"`, `"you are now"`, `"system prompt"` → log alerta `{event: 'prompt_injection_detected', source: 'pexels'}` y usar la foto igual (es un asset binario — no se ejecutan instrucciones)
+- Nano Banana responses se tratan como binario opaco (imagen PNG); no se parsea texto de la API response más allá del Content-Type
+- Jamás se usa `eval`, `Function(...)`, ni se interpola input externo en comandos shell
+
+**tmp/ cleanup:**
+- `main.mjs` borra `tmp/` al inicio del batch (rmSync recursive force)
+- Por cada record procesado: borra `tmp/{recordId}/` al terminar (success o error)
+- Garantiza no dejar assets de un record en disco entre runs
+
+### 6.5 Rate limits + retry policy
+
+| API | Límite | Retry | Backoff |
+|---|---|---|---|
+| Pexels | 200/hora (free tier) | 3 | 2s, 4s, 8s |
+| Gemini (Nano Banana) | ~60 req/min (free tier) | 3 | 3s, 6s, 12s |
+| Cloudinary upload | 500/hora (free tier) | 3 | 2s, 4s, 8s |
+| Airtable | 5 req/s por base | 3 | 1s, 2s, 4s |
+
+**Retry wrapper común** (`src/util/retry.mjs`):
+```javascript
+export async function withRetry(fn, { attempts = 3, baseDelayMs = 1000, onRetry = () => {} } = {}) {
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (i === attempts - 1) break;
+      const delay = baseDelayMs * Math.pow(2, i);
+      onRetry(err, i + 1, delay);
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+  throw lastErr;
+}
+```
+
+Los clientes (`pexels.mjs`, `nano_banana.mjs`, `cloudinary.mjs`, `airtable.mjs`) usan este wrapper con los valores de la tabla.
+
+### 6.6 Observabilidad — log estructurado
+
+**Formato:** NDJSON a stdout (una línea JSON por evento). Redirigir a `logs/director_v2_{YYYY-MM-DD}.ndjson` vía `tee` en producción.
+
+**Ejemplos de líneas:**
+```json
+{"ts":"2026-04-24T14:22:01Z","recordId":"rec123","step":"render","scene":2,"duration_ms":1240}
+{"ts":"2026-04-24T14:22:05Z","recordId":"rec123","step":"nano_banana","cost_cents":4,"scene":1}
+{"ts":"2026-04-24T14:22:06Z","recordId":"rec123","step":"hero_fallback","from":"nano_banana","to":"pexels","reason":"re_roll_failed"}
+{"ts":"2026-04-24T14:22:10Z","recordId":"rec123","step":"ffmpeg","ok":true,"output_mb":2.4,"duration_s":10.2}
+{"ts":"2026-04-24T14:22:12Z","recordId":"rec123","step":"cloudinary_upload","ok":true,"public_id":"directorv2/rec123"}
+{"ts":"2026-04-24T14:22:13Z","recordId":"rec123","step":"airtable_patch","status":"Lista"}
+```
+
+**Resumen al final del batch (stdout, legible):**
+```
+════════════════════════════════════════
+Director v2 — Batch Summary
+════════════════════════════════════════
+Records procesados:  20
+ ├─ Lista:           17
+ ├─ Error:            2
+ └─ Fallback:         1 (nano_banana → pexels cost cap)
+Nano Banana calls:  35 ($1.40)
+Pexels calls:       52
+Cloudinary uploads: 17 (total 38.2 MB)
+Duración total:     4m 12s
+════════════════════════════════════════
+```
+
+<!-- SECTION_BREAK_AFTER_4 -->
