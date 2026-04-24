@@ -3107,4 +3107,112 @@ git commit -m "feat(director_v2): Task 14 — POC narrative B render approved by
 
 ---
 
-<!-- PLAN_PART_12A_END -->
+## Task 15: Final push + memorias + CLAUDE.md update
+
+**Goal:** Mark Director v2 as 100% operativo per the spec's Section 8.8 closure checklist. Push branch to GitHub. Update the 3 memory files. Mark legacy `agents/director.md` (v2.0 Blotato) as deprecated.
+
+**Files:**
+- Modify: `memoria_ALex.md` (root)
+- Modify: `agents/memoria_alex.md`
+- Modify: `telegram_bot/telegram_memory.md`
+- Modify: `CLAUDE.md`
+- Modify: `agents/director.md` (mark deprecated header)
+
+- [ ] **Step 1: Run full test suite to confirm green**
+
+```bash
+cd agents/director_v2 && npm test 2>&1 | tail -20
+```
+Expected: `tests <N> / pass <N> / fail 0` where N ≥ 40 (target ~55).
+
+If any test fails: STOP. Diagnose with `systematic-debugging` skill, fix, re-run. Do not proceed to Step 2 with reds.
+
+- [ ] **Step 2: Add deprecation note to legacy director.md**
+
+Edit `agents/director.md` — prepend this block to the top of the file:
+```markdown
+> **⚠️ DEPRECATED (2026-04-24):** This v2.0 Blotato-based agent is replaced by **El Director v2** in `agents/director_v2/`. Do NOT invoke this prompt for new content. The new pipeline is code-first (Puppeteer + ffmpeg + Pexels + Nano Banana → Cloudinary), uses `Visual_Prompt` JSON in Airtable, and produces 9:16 Reels with the same brand system as El Creativo v2 (themes T1-T5).
+> 
+> **Migration:** records previously processed by this agent are migrated by the post-Sprint-1 backfill task (see `docs/superpowers/specs/2026-04-24-director-v2-design.md` Section 8.7).
+```
+
+- [ ] **Step 3: Add memoria entry to root memoria_ALex.md**
+
+In `memoria_ALex.md`, near the top under "REGLAS DEL JEFE", insert this block:
+```markdown
+## EL DIRECTOR v2 100% OPERATIVO — 2026-04-24
+
+`agents/director_v2/` activo. Genera Reels/Stories 9:16 (1080×1920) de 7-15s con audio royalty-free + xfade + zoompan + kinetic typography selectivo. MVP soporta narrativa B (hook + 3 puntos + CTA). Stack: Puppeteer + ffmpeg 6.1.1 + Pexels + Nano Banana + Cloudinary. Tests verdes: <N>. Costo operativo: ~$0.08/reel B. POC narrativa B aprobado por Jorge en `samples/poc_narrative_b.mp4` y subido a Cloudinary.
+
+**Pendientes no-bloqueantes:**
+- Sprint 2: narrativas A (problem→solution) y C (before/after) — agregan ~8 tests
+- Sprint 3: HeyGen avatar (bloqueado en compra), ElevenLabs voice-over (bloqueado), Kling generative (sin caso de uso aún), narrativa D testimonios (bloqueada en consent)
+- Task backfill legacy reels (siguiente tarea, regla NO NEGOCIABLE 2026-04-24)
+```
+
+- [ ] **Step 4: Mirror entry to `agents/memoria_alex.md`**
+
+In `agents/memoria_alex.md`, add the same block at the top after any existing 2026-04-24 entries.
+
+- [ ] **Step 5: Mirror entry to `telegram_bot/telegram_memory.md`**
+
+In `telegram_bot/telegram_memory.md`, add a shorter Telegram-format entry at the top:
+```markdown
+## 2026-04-24 — EL DIRECTOR v2 100% OPERATIVO (REELS)
+ACTIVADO. `agents/director_v2/`. Reels 9:16 7-15s con audio. Narrativa B (hook + 3 pts + CTA) en MVP. <N> tests verdes. Stack: Puppeteer + ffmpeg + Pexels + Nano Banana + Cloudinary. ~$0.08/reel. POC aprobado. Sprint 2 (A+C) y Sprint 3 (HeyGen/ElevenLabs/Kling) pendientes no-bloqueantes. Backfill legacy reels: siguiente tarea (regla 2026-04-24).
+```
+
+- [ ] **Step 6: Update CLAUDE.md sub-agent list**
+
+In `CLAUDE.md` find the section listing sub-agents (likely "Sub-agentes disponibles") and add a reference to Director v2 alongside the existing `agents/director.md`:
+```markdown
+- **El Director v2:** `agents/director_v2/` (production code, replaces `agents/director.md`) — Reels 9:16 7-15s vía Puppeteer + ffmpeg + Pexels + Nano Banana
+```
+
+Search for the existing `agents/director.md` reference to find the exact location to insert.
+
+- [ ] **Step 7: Commit memorias and CLAUDE.md updates**
+
+```bash
+git add memoria_ALex.md \
+        agents/memoria_alex.md \
+        telegram_bot/telegram_memory.md \
+        CLAUDE.md \
+        agents/director.md
+git commit -m "docs: mark Director v2 100% operativo + deprecate legacy director.md"
+```
+
+- [ ] **Step 8: Push branch to GitHub**
+
+```bash
+git push -u origin claude/greeting-setup-yOfqf
+```
+Expected: branch is up to date or new commits pushed. Retry on network failures with exponential backoff (2s, 4s, 8s, 16s).
+
+- [ ] **Step 9: Verify with full test suite one more time**
+
+```bash
+cd agents/director_v2 && npm test 2>&1 | tail -10
+```
+Expected: same green count as Step 1.
+
+- [ ] **Step 10: Final report to Jorge**
+
+Send a closing summary with:
+- Total tests passing (count)
+- Cloudinary URL of POC
+- Doppler secret count (8+)
+- Cost per video estimate
+- Sprints 2-3 status (pending non-blocking)
+- Next recommended action: run Task Backfill legacy reels (out of Sprint 1 scope but enabled by it)
+
+**Acceptance criteria:**
+- All tests green (≥40, target ~55)
+- 3 memorias updated with dated entry
+- `CLAUDE.md` references Director v2
+- Legacy `agents/director.md` marked deprecated
+- Branch pushed to `claude/greeting-setup-yOfqf` on GitHub
+
+---
+
+<!-- PLAN_PART_12B_END -->
