@@ -124,5 +124,5 @@ La API key de Gemini que va en `.env` debe ser la de `admin@geocarpentry.com`.
 
 ---
 
-*Documento creado: 2026-04-23*
-*Estado: Estamos en Fase 2.1 — configurando la app en Meta for Developers*
+*Documento creado: 2026-04-23 | Última actualización: 2026-04-23*
+*Estado: Fase 2.1 en curso — app creada (ID: 4233439163564604), configurando Use Cases y permisos*
