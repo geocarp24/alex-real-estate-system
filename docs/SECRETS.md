@@ -10,7 +10,7 @@
 | Variable | Servicio | Dónde obtenerla |
 |---|---|---|
 | `REPLICATE_API_TOKEN` | Replicate (Fooocus, Wan 2.1, Kling, SDXL) | `replicate.com/account/api-tokens` |
-| `GEMINI_API_KEY` | Google AI Studio (nano-banana, Veo, Gemini) | `aistudio.google.com/apikey` (cuenta Jorge Pro) |
+| `GEMINI_API_KEY` | Google AI Studio (nano-banana, Veo, Gemini) — cuenta `admin@geocarpentry.com`, key name `pinnacle-alex-banana`, project `1027245729665` | `aistudio.google.com/apikey` |
 | `ELEVENLABS_API_KEY` | ElevenLabs (voice — usado por remotion-ads) | `elevenlabs.io/app/settings/api-keys` |
 | `HEYGEN_API_KEY` | HeyGen (avatar Jorge + voice clone) | `app.heygen.com/settings/api` |
 | `META_APP_ID` / `META_APP_SECRET` | Meta for Developers — app "Pinnacle Social Publisher" | `developers.facebook.com` → My Apps → App Settings → Basic |
