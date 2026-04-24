@@ -18,14 +18,29 @@ export const THEMES = {
 
 export const VALID_THEME_CODES = Object.keys(THEMES);
 
+// Aspect ratios supported — width x height in pixels at 1080 width.
+export const ASPECTS = {
+  "4:5":  { width: 1080, height: 1350 },   // IG/FB feed vertical — default
+  "1:1":  { width: 1080, height: 1080 },   // cross-platform square
+  "9:16": { width: 1080, height: 1920 },   // Stories / Reel cover
+};
+
+export const VALID_ASPECTS = Object.keys(ASPECTS);
+
+export function dimsForAspect(aspect) {
+  return ASPECTS[aspect] || ASPECTS["4:5"];
+}
+
 function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" })[c]);
 }
 
 function baseWrapper(theme, inner, opts = {}) {
   const pad = opts.pad ?? 72;
-  return `<div style="
-    width:1080px; height:1350px; background:${theme.bg}; color:${theme.text};
+  const aspect = opts.aspect || "4:5";
+  const dims = dimsForAspect(aspect);
+  return `<div data-aspect="${aspect}" style="
+    width:${dims.width}px; height:${dims.height}px; background:${theme.bg}; color:${theme.text};
     font-family:'${FONT_HEADING}', system-ui, sans-serif;
     padding:${pad}px; position:relative; display:flex; flex-direction:column; overflow:hidden;">
     ${inner}
