@@ -131,6 +131,9 @@ Síntoma ≠ causa. Ante "volvió el formato viejo / no funciona / falta algo":
 
 **Regla para sub-agentes (Creativo, Mercader, Posicionador, Programador, Director, Cazador, Oráculo):** ANTES de empezar cualquier trabajo, consultar la tabla de arriba + `claude plugin list` y usar el skill apropiado. No construir desde cero lo que un skill ya resuelve.
 
+### 🚪 ORÁCULO GATE — CREATIVO NO GENERA SIN APROBACIÓN (2026-04-23, NO NEGOCIABLE)
+**Orden directa de Jorge.** El Creativo **NO invoca ninguna tool de generación** (`banana-claude`, `claude-video-generate`, HeyGen, Replicate, Veo, Runway, Fooocus, `remotion-ads`, `claude-video-shorts`, Google AI Studio API, etc.) sin aprobación previa del Oráculo. Workflow obligatorio: `idea → Creativo propone spec → 🚪 Oráculo evalúa (MiroFish simulación audiencia WI + legal + brand) → APROBADO/MODIFICAR/RECHAZADO → solo si APROBADO el Creativo ejecuta tools → Programador publica`. Veto automático: `legal_compliance < 7` = RECHAZADO sin override. Detalle en `agents/oraculo.md` + `agents/creativo.md` v6.
+
 ---
 
 ## INICIO DE SESIÓN — PROTOCOLO OBLIGATORIO

@@ -1,12 +1,6 @@
 {
   "messages": [
     {
-      "role": "user",
-      "content": "ya estoy subiendo no solo fotos mias pero tambien videos de mi hablando en diferentes poses y atuendos, podrías usar estos para crear varios avatares en blotato para crear videos y reels?",
-      "channel": "telegram",
-      "timestamp": "2026-04-05T19:23:21.138817"
-    },
-    {
       "role": "assistant",
       "content": "Bien. Blotato es una plataforma de **publicación de contenido**, no de **generación de avatares o videos AI**. Voy a ser directo contigo Jefe:\n\n---\n\n## 🎯 DIAGNÓSTICO HONESTO — BLOTATO vs LO QUE NECESITAS\n\n```\nBlotato puede:\n✅ Publicar posts con imágenes en FB + IG\n✅ Programar contenido\n✅ Generar visuales con templates estáticos\n✅ Publicar videos que ya están creados\n\nBlotato NO puede:\n❌ Crear avatares de video con tu imagen\n❌ Generar reels con IA usando tus videos\n❌ Clonar tu voz o imagen en video\n```\n\n---\n\n## 🔥 LO QUE SÍ PUEDE CREAR AVATARES DE VIDEO CON TUS FOTOS/VIDEOS\n\n| Herramienta | Qué hace | Precio |\n|-------------|----------|--------|\n| **HeyGen** | Avatar de Jorge hablando con tu voz clonada | $29/mes |\n| **Synthesia** | Avatares profesionales desde video tuyo | $30/mes |\n| **D-ID** | Video avatar desde foto estática | $6/mes |\n| **Runway ML** | Edición y generación de video AI | $12/mes |\n\n---\n\n## ⚡ PLAN CONCRETO — DOS FASES\n\n### FASE 1 — ESTA SEMANA (con Blotato)\n```\n✅ 13 posts estáticos profesionales\n✅ Tus fotos + logo PHG + colores de marca\n✅ Programados en FB + IG — 4 semanas\n```\n\n### FASE 2 — PRÓXIMA SEMANA (con HeyGen)\n```\n✅ Subes tus videos a HeyGen\n✅ Clonan tu avatar + voz\n✅ Generas Reels profesionales en minutos\n✅ Blotato los publica automáticamente\n```\n\n---\n\n## 🚀 AHORA MISMO — EMPEZAMOS FASE 1\n\nDime cuando termines de subir las fotos a GitHub y **arranco de inmediato** con los 13 visuales en Blotato. ¿Ya están subidas? 💪",
       "channel": "telegram",
@@ -359,6 +353,12 @@
       "content": "🔧 MEMORIA: Skills-first permanente. 11 plugins Phase 2 instalados y persistidos en plugin-marketplaces/ del repo. Cada modelo + sub-agente consulta `claude plugin list` antes de trabajar. Bootstrap idempotente: `bash scripts/setup-skills.sh`. Lista: banana-claude, claude-ads, claude-seo, document-skills (via marketplace); remotion-ads, instagram, claude-video-shorts, claude-video-generate, claude-video-caption, claude-video-create, claude-youtube (via .claude/skills/). Tabla de uso en CLAUDE.md.",
       "channel": "claude_code",
       "timestamp": "2026-04-24T00:44:09.970030Z"
+    },
+    {
+      "role": "assistant",
+      "content": "🚪 ARCH: Oráculo gate BLOQUEANTE antes de cualquier tool de generación del Creativo. Workflow: idea → Creativo propone spec → Oráculo evalúa (audience/brand/legal/negative/roi via MiroFish) → APROBADO/MODIFICAR/RECHAZADO → solo si APROBADO se queman créditos API. Veto automático legal_compliance<7. Creativo v6 + oraculo.md v1.0 creados. Regla en CLAUDE.md + PROTOCOLO_EJECUCION paso 8.",
+      "channel": "claude_code",
+      "timestamp": "2026-04-24T01:01:57.847843Z"
     }
   ],
   "updated": "2026-04-06T03:21:09.241834"
