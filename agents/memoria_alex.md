@@ -6,6 +6,11 @@
 
 ---
 
+## REGLA "POR PARTES" (2026-04-24) — NO NEGOCIABLE
+Orden de Jorge: aplicar SIEMPRE la regla de Fase 4 del PROTOCOLO_EJECUCION para **cualquier output >300 líneas** — planes, specs, código, docs, reportes. Dividir en partes pequeñas (<300 líneas cada Write/Edit), reportar "✅ Parte N/M lista. Sigo." después de cada una, usar Write/Edit al disco (no stream del chat). Comprobado funcional 2026-04-24 con plan Fase 2 Creativo v2 (982 líneas en 9 partes).
+
+---
+
 ## 🧠 IDENTIDAD Y CONTEXTO DEL SISTEMA
 
 **Nombre:** ALEX — AI Real Estate Investment Analyst
