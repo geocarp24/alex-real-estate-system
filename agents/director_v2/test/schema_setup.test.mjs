@@ -10,8 +10,8 @@ test('discoverTable returns table metadata for given tableId', async () => {
       ok: true,
       json: async () => ({
         tables: [
-          { id: 'tblAj0Pkj1jW4p5Ld', name: 'SocialMedia', fields: [
-            { id: 'fldMT', name: 'Media_Type', type: 'singleSelect', options: { choices: [{ name: 'carousel' }] } },
+          { id: 'tblAj0Pkj1jW4p5Ld', name: 'Ideas de Contenido', fields: [
+            { id: 'fldF', name: 'Formato', type: 'singleSelect', options: { choices: [{ name: 'Post' }, { name: 'Reel' }] } },
             { id: 'fldVU', name: 'visual_url', type: 'url' }
           ]}
         ]
@@ -24,24 +24,23 @@ test('discoverTable returns table metadata for given tableId', async () => {
   assert.equal(table.fields.length, 2);
 });
 
-test('diffSchema returns list of pending changes when fields missing', () => {
+test('diffSchema returns 2 add_field changes when both numeric fields missing', () => {
   const table = {
     fields: [
-      { name: 'Media_Type', type: 'singleSelect', options: { choices: [{ name: 'carousel' }] } },
+      { name: 'Formato', type: 'singleSelect', options: { choices: [{ name: 'Reel' }] } },
       { name: 'visual_url', type: 'url' },
     ]
   };
   const changes = diffSchema(table);
-  assert.equal(changes.length, 3);
-  assert.ok(changes.find(c => c.action === 'add_option' && c.option === 'reel'));
+  assert.equal(changes.length, 2);
   assert.ok(changes.find(c => c.action === 'add_field' && c.name === 'video_duration'));
   assert.ok(changes.find(c => c.action === 'add_field' && c.name === 'video_cost_cents'));
 });
 
-test('diffSchema returns empty when all 3 changes already applied', () => {
+test('diffSchema returns empty when both numeric fields already present', () => {
   const table = {
     fields: [
-      { name: 'Media_Type', type: 'singleSelect', options: { choices: [{ name: 'carousel' }, { name: 'reel' }] } },
+      { name: 'Formato', type: 'singleSelect', options: { choices: [{ name: 'Reel' }] } },
       { name: 'video_duration', type: 'number', options: { precision: 1 } },
       { name: 'video_cost_cents', type: 'number', options: { precision: 0 } },
     ]
