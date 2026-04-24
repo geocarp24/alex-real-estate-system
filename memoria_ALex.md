@@ -7,6 +7,28 @@
 
 ## REGLAS DEL JEFE (aplican a TODOS los agentes, siempre)
 
+### 2026-04-24 — EL CREATIVO v2 AL 100% OPERATIVO (ESTÁTICOS)
+- **Status:** ACTIVADO — listo para producción en generación de contenido visual estático
+- **Ubicación:** `agents/creativo_v2/`
+- **Branch:** `claude/greeting-setup-yOfqf`
+- **Capacidades confirmadas:**
+  - 5 temas de marca (T1 Dark Premium, T2 White Clean, T3 Gold & Black, T4 Soft Cream, T5 Vibrant Blue) — todos aprobados por Jorge 2026-04-24 como templates rotativos
+  - 3 aspect ratios: **4:5 (feed IG/FB)**, **1:1 (cross-platform)**, **9:16 (Stories)**
+  - 3 slide-types: hook, point (2-col bilingüe EN/ES), CTA
+  - Logo Pinnacle top-right en todos los slides, inlined como base64 (sin dependencia de red)
+  - Puppeteer HTML→JPG q90, 42 tests automatizados pasando
+  - Integración Airtable (read pending / parse JSON / update) + Cloudinary (signed upload) completa
+  - Secrets via Doppler (`pinnacle-social-publisher` / `dev_personal`): AIRTABLE_SM_TOKEN, AIRTABLE_SM_BASE_ID, AIRTABLE_SM_TABLE_ID, CLOUDINARY_*, GEMINI_API_KEY, REPLICATE_API_TOKEN
+  - `npm run prod` / `npm run prod:dry` via Doppler
+- **Pendientes NO bloqueantes** (Sprint 2 futuro, si surge la necesidad):
+  - Slide-types adicionales: media, quote, stat, comparison
+  - Hero images con Nano Banana
+  - Random theme rotation automática
+- **Bloqueos conocidos para operación autónoma completa:**
+  - Social Media Agent debe emitir Visual_Prompt en JSON (formato documentado en `docs/superpowers/plans/2026-04-24-creativo-v2-prod.md` Task 9)
+  - Legacy Record Backfill pendiente (se ejecuta una sola vez después del update del Social Media Agent)
+- **Siguiente paso:** El Director v2 (videos 7-15s, HeyGen+ElevenLabs+Kling+ffmpeg) — Sprint 3 del roadmap
+
 ### 2026-04-24 — REGLA "LEGACY RECORD BACKFILL" ES OBLIGATORIA EN TODO FLOW (NO NEGOCIABLE — APROBADO POR JORGE)
 - **Orden de Jorge, 2026-04-24:** cuando se construye un nuevo flujo que procesa records existentes (Airtable, DB, JSON, cualquier almacén) y el nuevo flujo espera un **formato distinto** al que tenían los records antiguos, **es OBLIGATORIO** incluir un paso de **backfill one-time** que:
   1. Lea todos los records antiguos que no cumplen el nuevo formato
