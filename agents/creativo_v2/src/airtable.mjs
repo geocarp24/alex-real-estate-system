@@ -31,3 +31,41 @@ export async function listPending() {
   const data = await res.json();
   return data.records || [];
 }
+
+const VALID_THEMES = new Set(['T1', 'T2', 'T3', 'T4', 'T5']);
+
+function stripCodeFences(s) {
+  const trimmed = s.trim();
+  if (trimmed.startsWith('```')) {
+    return trimmed.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '').trim();
+  }
+  return trimmed;
+}
+
+export function parseVisualPrompt(raw) {
+  if (typeof raw !== 'string' || !raw.trim()) {
+    throw new Error('parseVisualPrompt: empty input');
+  }
+  const clean = stripCodeFences(raw);
+  let spec;
+  try {
+    spec = JSON.parse(clean);
+  } catch (e) {
+    throw new Error(`parseVisualPrompt: invalid JSON — ${e.message}`);
+  }
+  if (!spec || typeof spec !== 'object') {
+    throw new Error('parseVisualPrompt: spec is not an object');
+  }
+  if (!spec.theme || !VALID_THEMES.has(spec.theme)) {
+    throw new Error(`parseVisualPrompt: invalid theme "${spec.theme}" (expected T1-T5)`);
+  }
+  if (!spec.hook || typeof spec.hook.en !== 'string' || !spec.hook.en.trim()) {
+    throw new Error('parseVisualPrompt: missing hook.en');
+  }
+  if (!spec.hook.es || typeof spec.hook.es !== 'string') {
+    throw new Error('parseVisualPrompt: missing hook.es');
+  }
+  if (!Array.isArray(spec.points)) spec.points = [];
+  if (!spec.cta) spec.cta = {};
+  return spec;
+}
