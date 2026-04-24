@@ -149,4 +149,158 @@ agents/director_v2/
 
 Cada módulo es testeable independientemente con mocks.
 
-<!-- SECTION_BREAK_AFTER_1 -->
+## 4. Flujo de datos (Sección 2/6 del design)
+
+### 4.1 Input contract — el JSON de `Visual_Prompt` en Airtable
+
+El Social Media Agent emite un record en `tblAj0Pkj1jW4p5Ld` (base `appU9s3kGkVpdrJkw`) con el campo `Visual_Prompt` que contiene un JSON stringificado. El Director v2 lee records con `Media_Type='reel'`.
+
+**Formato común a todas las narrativas:**
+```json
+{
+  "media_type": "reel",
+  "theme": "T1",
+  "aspect": "9:16",
+  "narrative": "B",
+  "duration": 10,
+  "mood": "upbeat",
+  "hero_hints": {
+    "1": { "source": "nano_banana", "prompt": "..." },
+    "5": { "source": "nano_banana", "prompt": "..." }
+  }
+}
+```
+
+**Campos específicos por narrativa** — ver Sección 5 del design (expansión de narrativas).
+
+### 4.2 Output — lo que escribe de vuelta a Airtable
+
+Después de procesar exitosamente un record, el Director hace `PATCH` al mismo `recordId` con:
+
+| Campo | Tipo | Valor |
+|---|---|---|
+| `visual_url` | URL | Cloudinary secure_url del MP4 |
+| `video_duration` | number (decimal 1) | segundos reales del MP4 renderizado |
+| `video_cost_cents` | number (int) | costo en centavos (Nano Banana × 4) |
+| `Status` | single select | `"Lista"` (exitoso) o `"Error"` |
+| `Error_Reason` | long text | vacío en éxito, short msg en error |
+
+`director_version` se omite intencionalmente — el prefijo `directorv2/` en el Cloudinary `public_id` identifica al agente y el suffix `.mp4` de `visual_url` distingue reel de carrusel.
+
+### 4.3 Pipeline end-to-end (lo que ejecuta `main.mjs`)
+
+```
+ 1. Airtable.listPending() filtra por:
+    Status='Nueva' AND Visual_Prompt!='' AND visual_url='' AND Media_Type='reel'
+
+ 2. Por cada record:
+    2a. parseVisualPrompt(record) → spec JSON
+         (acepta ```json fenced o JSON plano)
+    2b. validateSpec(spec) valida:
+         - theme ∈ T1-T5
+         - aspect === '9:16'
+         - narrative ∈ A|B|C
+         - 7 ≤ duration ≤ 15
+         - campos específicos de la narrativa presentes
+         → throw con mensaje específico si falla
+
+ 3. narratives.expandNarrative(spec) → scenes[]:
+    scene = {
+      index,
+      duration,              // segundos
+      layoutType,            // 'hook'|'layout_d'|'cta'
+      captionEn, captionEs,
+      heroSource,            // 'pexels'|'nano_banana'|'local'|'theme_solid'
+      heroQuery,             // para pexels
+      heroPrompt,            // para nano_banana
+      heroLocalId,           // para local (Cloudinary URL o pool curado)
+      kinetic,               // boolean
+      zoompan,               // { from, to } | null
+      transitionOut,         // 'cut'|'crossfade'|'wipeleft'|'slideup'
+      mood
+    }
+
+ 4. Por cada scene:
+    4a. Resolver hero image:
+         - pexels      → pexels.searchPhoto(query, 1080, 1920) → download a tmp/
+         - nano_banana → nano_banana.generate(prompt, 1080, 1920) → download a tmp/
+         - local       → si URL remota, descargar con fetch; si id, leer de assets/hero/
+         - theme_solid → generar PNG sólido del theme (1080×1920) con node-canvas
+                         o inyectar directo como CSS background en el HTML
+    4b. scene_layout.buildSceneHtml(scene, heroImagePath, theme, aspect)
+    4c. render.renderScene(html, scene):
+         - kinetic=false → 1 JPG a tmp/{recordId}/scene_{index}.jpg
+         - kinetic=true  → N PNGs (N = fps × duration, ej. 30 × 2 = 60)
+                           a tmp/{recordId}/scene_{index}_{frame}.png
+
+ 5. audio.pickMusic(spec.mood, totalDuration):
+     → path a track mp3 de assets/music/
+     → cacheado en disco (no re-lectura por video)
+
+ 6. ffmpeg.buildVideo({
+      scenes: [
+        { imagePath, duration, transitionOut, zoompan, kinetic }
+      ],
+      musicPath,
+      outputPath: `tmp/{recordId}.mp4`,
+      width: 1080, height: 1920, fps: 30
+    }):
+     → comando ffmpeg construido como argv[] (no shell string)
+     → xfade entre scenes (0.3s overlap cada transición)
+     → zoompan por scene (Ken Burns)
+     → amix con música (volume=0.3 default, -4dB LUFS target)
+     → libx264 -pix_fmt yuv420p -r 30 -movflags +faststart
+     → -c:a aac -b:a 128k
+
+ 7. cloudinary.uploadVideo(mp4Path, {
+      publicId: `directorv2/{recordId}`,
+      folder: 'pinnacle-social-media/videos',
+      resource_type: 'video'
+    }) → secure_url
+
+ 8. airtable.updateRecord(recordId, {
+      visual_url: cloudinaryUrl,
+      video_duration: actualDurationSeconds,
+      video_cost_cents: totalCostCents,
+      Status: 'Lista',
+      Error_Reason: ''
+    })
+
+ 9. Cleanup tmp/{recordId}/  (borrar frames temporales)
+```
+
+### 4.4 Dry-run mode
+
+Flag CLI: `doppler run -- node main.mjs --dry-run`
+
+**Qué cambia:**
+- Paso 1: igual (lee Airtable real)
+- Pasos 2-6: igual (render real con Pexels + Nano Banana + ffmpeg)
+- Paso 7: **skip** Cloudinary upload
+- Paso 8: **skip** Airtable PATCH
+- Output local: `samples/dry_run_{recordId}.mp4` para revisión antes de commitear
+
+Utilidad: probar cambios en narratives/scene_layout sin gastar cloud budget ni contaminar Airtable.
+
+### 4.5 Error isolation
+
+**Principio:** un fallo en el procesamiento de 1 record NUNCA rompe el batch.
+
+Estructura del loop:
+```javascript
+for (const record of pending) {
+  try {
+    await processRecord(record, { dryRun });
+    stats.ok++;
+  } catch (err) {
+    await safePatchError(record.id, shortMessage(err));
+    stats.error++;
+    log.error({ recordId: record.id, err: err.message });
+    continue;
+  }
+}
+```
+
+`safePatchError()` también envuelve PATCH en try/catch — si Airtable está caído, se loguea a `logs/patch_failures.ndjson` para recovery manual.
+
+<!-- SECTION_BREAK_AFTER_2 -->
