@@ -18,7 +18,10 @@ export function buildSceneHtml(scene, heroImagePath, themeCode, aspect) {
   const overlayColor = theme.bg;
   const overlay = `<div style="position:absolute; inset:0; background:linear-gradient(180deg, transparent 0%, ${overlayColor}D9 60%, ${overlayColor} 100%);"></div>`;
 
-  const logo = `<img src="__LOGO_DATA_URI__" style="${LOGO_TOP_RIGHT}" alt="Pinnacle" />`;
+  // Use the same REMOTE_LOGO_URL that wrapper.mjs (creativo_v2) inlines as base64 data URI.
+  // Keeping the URL string identical so wrapper's inlineLogo() string-replace catches it
+  // and Puppeteer doesn't hang waiting for an unresolvable placeholder URL.
+  const logo = `<img src="https://pinnaclegroupwi.com/wp-content/uploads/2026/03/logo-pinnacle.png" style="${LOGO_TOP_RIGHT}" alt="Pinnacle" />`;
 
   const captionEn = escapeHtml(scene.captionEn);
   const captionEs = escapeHtml(scene.captionEs || '');
