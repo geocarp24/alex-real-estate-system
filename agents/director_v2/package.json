@@ -1,0 +1,15 @@
+{
+  "name": "@pinnacle/director-v2",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "engines": { "node": ">=22.0.0" },
+  "scripts": {
+    "test":             "node --test test/*.test.mjs",
+    "schema":           "doppler run -- node scripts/airtable_schema_setup.mjs",
+    "schema:dry-run":   "doppler run -- node scripts/airtable_schema_setup.mjs --dry-run"
+  },
+  "dependencies": {
+    "puppeteer": "^23.0.0"
+  }
+}
