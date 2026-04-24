@@ -11,7 +11,7 @@
       "src": {
         "original":  "https://images.pexels.com/photos/12345/sample.jpg",
         "large2x":   "https://images.pexels.com/photos/12345/sample.jpg?auto=compress&cs=tinysrgb&w=1920&h=2880",
-        "portrait":  "https://images.pexels.com/photos/12345/sample.jpg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop"
+        "portrait":  "https://images.pexels.com/photos/12345/sample-portrait.jpg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop"
       }
     }
   ],
