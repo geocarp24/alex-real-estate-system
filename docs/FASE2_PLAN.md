@@ -110,8 +110,10 @@ Decidir en la sesión de Fase 2.3.
 - Sin lógica de horarios todavía
 
 ### Fase 2.4 — Agente Creativo
-- Conectar Claude al flujo para generar el contenido
-- El Jefe da un tema → el Creativo genera el post → el Organizador lo encola → el Publicador lo publica
+- Conectar NotebookLM como fuente de contexto del negocio
+- Conectar Replicate (`pinnacle-alex`) para generación de imágenes
+- Conectar Nano Banana / Gemini API (cuenta `admin@geocarpentry.com`) para imágenes premium
+- El Jefe da un tema → el Creativo genera texto + imagen → el Organizador lo encola → el Publicador lo publica
 
 ### Fase 2.5 — Polish + App Review de Meta
 - Publicar la Política de Privacidad (requisito de Meta)
