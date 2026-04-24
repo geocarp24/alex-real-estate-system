@@ -35,6 +35,6 @@ export function wrapSlideHtml(bodyHtml, themeCode = 'T1') {
   img { max-width:100%; display:block; }
 </style>
 </head>
-<body>${bodyHtml}</body>
+<body>${inlineLogo(bodyHtml)}</body>
 </html>`;
 }
