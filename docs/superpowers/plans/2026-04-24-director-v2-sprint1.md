@@ -2403,7 +2403,7 @@ let _fetch = globalThis.fetch;
 export function __setFetch(fn) { _fetch = fn; }
 
 const BASE = 'https://api.airtable.com/v0';
-const PENDING_FILTER = "AND({Media_Type}='reel',{Status}='Nueva',{Visual_Prompt}!='',{visual_url}='')";
+const PENDING_FILTER = "AND({Formato}='Reel',{Status}='Nueva',{Visual_Prompt}!='',{visual_url}='')";
 
 export async function listPending({ token, baseId, tableId, baseDelayMs = 1000 }) {
   const url = `${BASE}/${baseId}/${tableId}?filterByFormula=${encodeURIComponent(PENDING_FILTER)}&pageSize=10`;
