@@ -193,7 +193,7 @@ Después de procesar exitosamente un record, el Director hace `PATCH` al mismo `
 
 ```
  1. Airtable.listPending() filtra por:
-    Status='Nueva' AND Visual_Prompt!='' AND visual_url='' AND Media_Type='reel'
+    AND({Formato}='Reel', {Status}='Nueva', {Visual_Prompt}!='', {visual_url}='')
 
  2. Por cada record:
     2a. parseVisualPrompt(record) → spec JSON
