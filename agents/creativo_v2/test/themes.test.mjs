@@ -70,6 +70,63 @@ test('slidePoint (2-col) contains BOTH EN and ES content: heading and body', () 
   assert.ok(pt.includes('ESPANOL'), 'point must label the ES column');
 });
 
+test('VALID_ASPECTS contains 4:5, 1:1, 9:16', () => {
+  assert.deepEqual(VALID_ASPECTS.sort(), ['1:1', '4:5', '9:16']);
+});
+
+test('dimsForAspect returns correct dimensions', () => {
+  assert.deepEqual(dimsForAspect('4:5'),  { width: 1080, height: 1350 });
+  assert.deepEqual(dimsForAspect('1:1'),  { width: 1080, height: 1080 });
+  assert.deepEqual(dimsForAspect('9:16'), { width: 1080, height: 1920 });
+});
+
+test('dimsForAspect defaults to 4:5 for unknown aspect', () => {
+  assert.deepEqual(dimsForAspect('garbage'), { width: 1080, height: 1350 });
+});
+
+test('buildCarousel defaults to 4:5 when aspect not in spec', () => {
+  const slides = buildCarousel({
+    theme: 'T1', hook: { en: 'h', es: 'h' }, points: [], cta: { en: 'c', es: 'c' },
+  });
+  assert.ok(slides[0].includes('height:1350px'), 'slide 1 must be 1350 tall (4:5 default)');
+  assert.ok(slides[0].includes('data-aspect="4:5"'));
+});
+
+test('buildCarousel propagates aspect 1:1 to all slides', () => {
+  const slides = buildCarousel({
+    theme: 'T1', aspect: '1:1',
+    hook: { en: 'h', es: 'h' },
+    points: [{ headingEn: 'a', headingEs: 'b', bodyEn: 'c', bodyEs: 'd' }],
+    cta: { en: 'c', es: 'c' },
+  });
+  slides.forEach((s, i) => {
+    assert.ok(s.includes('height:1080px'), `slide ${i+1} must be 1080 tall (1:1)`);
+    assert.ok(s.includes('data-aspect="1:1"'), `slide ${i+1} must mark aspect 1:1`);
+  });
+});
+
+test('buildCarousel propagates aspect 9:16 to all slides', () => {
+  const slides = buildCarousel({
+    theme: 'T1', aspect: '9:16',
+    hook: { en: 'h', es: 'h' },
+    points: [{ headingEn: 'a', headingEs: 'b', bodyEn: 'c', bodyEs: 'd' }],
+    cta: { en: 'c', es: 'c' },
+  });
+  slides.forEach((s, i) => {
+    assert.ok(s.includes('height:1920px'), `slide ${i+1} must be 1920 tall (9:16)`);
+    assert.ok(s.includes('data-aspect="9:16"'), `slide ${i+1} must mark aspect 9:16`);
+  });
+});
+
+test('buildCarousel with invalid aspect falls back to 4:5', () => {
+  const slides = buildCarousel({
+    theme: 'T1', aspect: 'garbage',
+    hook: { en: 'h', es: 'h' }, points: [], cta: { en: 'c', es: 'c' },
+  });
+  assert.ok(slides[0].includes('height:1350px'));
+  assert.ok(slides[0].includes('data-aspect="4:5"'));
+});
+
 test('all slides place the Pinnacle logo in top-right corner', () => {
   const spec = {
     theme: 'T1',
