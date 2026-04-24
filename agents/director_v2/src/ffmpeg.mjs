@@ -14,7 +14,7 @@ export function buildVideoCommand({ scenes, musicPath, outputPath, width = 1080,
   const args = ['-y'];
 
   for (const s of scenes) {
-    args.push('-loop', '1', '-t', String(s.duration), '-i', s.imagePaths[0]);
+    args.push('-loop', '1', '-framerate', String(FPS), '-i', s.imagePaths[0]);
   }
   args.push('-i', musicPath);
 
