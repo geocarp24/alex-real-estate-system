@@ -1,0 +1,38 @@
+{
+  "theme": "T1",
+  "hook": {
+    "en": "5 Reasons to Sell for Cash",
+    "es": "5 Razones para Vender por Efectivo",
+    "badge": "WISCONSIN"
+  },
+  "points": [
+    {
+      "headingEn": "No Repairs Needed",
+      "headingEs": "Sin Reparaciones",
+      "bodyEn": "We buy your house as-is. No upgrades, no cleaning, no stress.",
+      "bodyEs": "Compramos tu casa como esta. Sin arreglos, sin limpieza, sin estres."
+    },
+    {
+      "headingEn": "Close in 7 Days",
+      "headingEs": "Cierre en 7 Dias",
+      "bodyEn": "From offer to cash in your hand in one week.",
+      "bodyEs": "De la oferta al efectivo en tu mano en una semana."
+    },
+    {
+      "headingEn": "No Commissions",
+      "headingEs": "Sin Comisiones",
+      "bodyEn": "You keep 100% of the offer. No realtor fees, no closing costs.",
+      "bodyEs": "Te quedas con el 100% de la oferta. Sin comisiones ni costos de cierre."
+    },
+    {
+      "headingEn": "No Showings",
+      "headingEs": "Sin Visitas",
+      "bodyEn": "Skip open houses, strangers walking through, and staging costs.",
+      "bodyEs": "Sin visitas, sin extranos en tu casa, sin costos de presentacion."
+    }
+  ],
+  "cta": {
+    "en": "We Buy Houses. Cash. Fast. Fair.",
+    "es": "Compramos Casas. Efectivo. Rapido. Justo."
+  }
+}
