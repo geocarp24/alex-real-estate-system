@@ -26,8 +26,9 @@ export async function renderScene(html, scene, outDir, { fps = 30 } = {}) {
   const browser = await getBrowser();
   const page = await browser.newPage();
   await page.setViewport({ width: 1080, height: 1920, deviceScaleFactor: 1 });
-  await page.setContent(html, { waitUntil: 'networkidle0' });
-  await page.evaluate(() => document.fonts?.ready);
+  // networkidle0 with a hard timeout — slow Google Fonts must not block forever
+  await page.setContent(html, { waitUntil: 'networkidle0', timeout: 10000 }).catch(() => {});
+  await page.evaluate(() => document.fonts?.ready).catch(() => {});
 
   const outputs = [];
   if (!scene.kinetic) {
