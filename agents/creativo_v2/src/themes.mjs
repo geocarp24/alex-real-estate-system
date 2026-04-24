@@ -85,45 +85,69 @@ export function slideHook(themeCode, { hookEn, hookEs, badge } = {}) {
 // POINT SLIDE — numbered body point with heading + body text, logo small
 // Used as Slides 2 through N-1.
 // ---------------------------------------------------------------------------
-export function slidePoint(themeCode, { index, total, headingEn, bodyEs, headingEs, bodyEn } = {}) {
+export function slidePoint(themeCode, { index, total, headingEn, bodyEn, headingEs, bodyEs } = {}) {
   const theme = THEMES[themeCode] || THEMES.T1;
-  const numColor = theme.bg;  // number shown ON accent-color circle
-  const heading = headingEs || headingEn || "";
-  const body    = bodyEn || bodyEs || "";
+  const numColor = theme.bg;
+  const idx = String(index ?? "1").padStart(2, "0");
 
   const inner = `
-    <div style="display:flex; align-items:center; gap:24px; margin-bottom:48px;">
+    <!-- Ghost number decoration: big faded number in background -->
+    <div style="
+      position:absolute; top:46%; left:-40px; transform:translateY(-50%);
+      font-size:560px; font-weight:900; line-height:.85; color:${theme.subtle || "rgba(255,255,255,.06)"};
+      letter-spacing:-0.05em; pointer-events:none; user-select:none; z-index:0;">
+      ${esc(idx)}
+    </div>
+
+    <!-- Top-left index badge -->
+    <div style="position:absolute; top:48px; left:48px; display:flex; align-items:center; gap:22px; z-index:2;">
       <div style="
-        width:96px; height:96px; border-radius:50%;
+        width:88px; height:88px; border-radius:50%;
         background:${theme.accent}; color:${numColor};
         display:flex; align-items:center; justify-content:center;
-        font-size:52px; font-weight:800; line-height:1;">
+        font-size:46px; font-weight:800; line-height:1;">
         ${esc(index ?? "1")}
       </div>
       <div style="
-        flex:1; font-size:24px; color:${theme.muted};
-        font-weight:500; letter-spacing:.06em; text-transform:uppercase;">
+        font-size:22px; color:${theme.muted};
+        font-weight:700; letter-spacing:.14em; text-transform:uppercase;">
         Punto ${esc(index ?? "1")} / ${esc(total ?? "5")}
       </div>
     </div>
 
-    <h2 style="
-      font-size:78px; font-weight:800; line-height:1.12; letter-spacing:-0.015em;
-      color:${theme.text}; margin-bottom:36px;">
-      ${esc(heading)}
-    </h2>
+    <!-- Main content: 2-column bilingual -->
+    <div style="position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:72px; z-index:1;">
+      <div style="display:flex; gap:56px; align-items:stretch; width:100%; max-width:920px;">
+        <!-- EN column -->
+        <div style="flex:1; display:flex; flex-direction:column; text-align:left;">
+          <div style="font-size:18px; color:${theme.accent}; font-weight:800; letter-spacing:.22em; margin-bottom:20px;">ENGLISH</div>
+          <h2 style="font-size:52px; font-weight:800; line-height:1.05; letter-spacing:-0.015em; color:${theme.text}; margin:0 0 20px 0;">
+            ${esc(headingEn || "")}
+          </h2>
+          <div style="width:56px; height:4px; background:${theme.accent}; border-radius:4px; margin-bottom:24px;"></div>
+          <p style="font-size:26px; font-weight:400; line-height:1.4; color:${theme.muted}; margin:0;">
+            ${esc(bodyEn || "")}
+          </p>
+        </div>
+        <!-- Divider -->
+        <div style="width:2px; background:${theme.subtle || "rgba(255,255,255,.12)"};"></div>
+        <!-- ES column -->
+        <div style="flex:1; display:flex; flex-direction:column; text-align:left;">
+          <div style="font-size:18px; color:${theme.accent}; font-weight:800; letter-spacing:.22em; margin-bottom:20px;">ESPANOL</div>
+          <h2 style="font-size:52px; font-weight:800; line-height:1.05; letter-spacing:-0.015em; color:${theme.text}; margin:0 0 20px 0;">
+            ${esc(headingEs || headingEn || "")}
+          </h2>
+          <div style="width:56px; height:4px; background:${theme.accent}; border-radius:4px; margin-bottom:24px;"></div>
+          <p style="font-size:26px; font-weight:400; line-height:1.4; color:${theme.muted}; margin:0;">
+            ${esc(bodyEs || bodyEn || "")}
+          </p>
+        </div>
+      </div>
+    </div>
 
-    <div style="width:72px; height:4px; background:${theme.accent}; border-radius:4px; margin-bottom:36px;"></div>
-
-    <p style="
-      font-size:40px; font-weight:400; line-height:1.45;
-      color:${theme.muted};">
-      ${esc(body)}
-    </p>
-
-    ${logoWatermark(theme, 56)}
+    ${logoCorner(theme, 140)}
   `;
-  return baseWrapper(theme, inner);
+  return baseWrapper(theme, inner, { pad: 0 });
 }
 
 // ---------------------------------------------------------------------------
