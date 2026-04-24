@@ -2325,7 +2325,7 @@ const PENDING = JSON.parse(readFileSync(join(HERE, 'fixtures/airtable_records_pe
 
 const ENV = { token: 'tok', baseId: 'appU9s3kGkVpdrJkw', tableId: 'tblAj0Pkj1jW4p5Ld' };
 
-test('listPending filters by Media_Type=reel AND Status=Nueva AND visual_url empty', async () => {
+test('listPending filters by Formato=Reel AND Status=Nueva AND visual_url empty', async () => {
   let calledUrl;
   __setFetch(async (url) => {
     calledUrl = url;
@@ -2333,9 +2333,11 @@ test('listPending filters by Media_Type=reel AND Status=Nueva AND visual_url emp
   });
   const records = await listPending(ENV);
   assert.equal(records.length, 1);
-  assert.ok(calledUrl.includes("Media_Type") && calledUrl.includes('reel'));
-  assert.ok(calledUrl.includes('Status') && calledUrl.includes('Nueva'));
-  assert.ok(calledUrl.includes('visual_url'));
+  // URL is encoded; the formula contains {Formato}='Reel'
+  const decoded = decodeURIComponent(calledUrl);
+  assert.ok(decoded.includes("{Formato}='Reel'"), `expected Formato='Reel' in ${decoded}`);
+  assert.ok(decoded.includes("{Status}='Nueva'"));
+  assert.ok(decoded.includes('visual_url'));
 });
 
 test('parseVisualPrompt parses plain JSON', () => {
