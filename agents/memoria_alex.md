@@ -6,6 +6,9 @@
 
 ---
 
+## REGLA "LEGACY RECORD BACKFILL" (2026-04-24) — NO NEGOCIABLE
+Orden de Jorge: cuando un flujo nuevo procesa records existentes con formato distinto al esperado, **es OBLIGATORIO** incluir una Task final de **backfill one-time**: lee records viejos → regenera en nuevo formato → PATCH → tabla consistente. Aplica a Airtable, DB, JSON, cualquier storage. Sin backfill la tabla acumula "Error" para siempre. Script idempotente + dry-run mode + log de actualizados/fallidos + commit explícito. Aplicado desde hoy para Creativo v2, Fer, Tracy, todo flujo con legacy.
+
 ## REGLA "POR PARTES" (2026-04-24) — NO NEGOCIABLE
 Orden de Jorge: aplicar SIEMPRE la regla de Fase 4 del PROTOCOLO_EJECUCION para **cualquier output >300 líneas** — planes, specs, código, docs, reportes. Dividir en partes pequeñas (<300 líneas cada Write/Edit), reportar "✅ Parte N/M lista. Sigo." después de cada una, usar Write/Edit al disco (no stream del chat). Comprobado funcional 2026-04-24 con plan Fase 2 Creativo v2 (982 líneas en 9 partes).
 
