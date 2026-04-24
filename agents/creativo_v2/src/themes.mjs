@@ -156,37 +156,36 @@ export function slidePoint(themeCode, { index, total, headingEn, bodyEn, heading
 // ---------------------------------------------------------------------------
 export function slideCTA(themeCode, { ctaEn, ctaEs } = {}) {
   const theme = THEMES[themeCode] || THEMES.T1;
-  const cta_en = ctaEn || "We Buy Houses — Cash. Fast. Fair.";
-  const cta_es = ctaEs || "Compramos Casas — Efectivo. Rápido. Justo.";
+  const cta_en = ctaEn || "We Buy Houses. Cash. Fast. Fair.";
+  const cta_es = ctaEs || "Compramos Casas. Efectivo. Rapido. Justo.";
 
   const inner = `
-    <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; gap:36px;">
-      <img src="${LOGO_URL}" alt="Pinnacle Holdings" style="width:320px; height:auto; margin-bottom:18px;" />
-
+    <div style="position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:72px;">
       <h2 style="
-        font-size:62px; font-weight:800; line-height:1.1; letter-spacing:-0.015em;
-        color:${theme.text}; max-width:900px;">
+        font-size:82px; font-weight:800; line-height:1.08; letter-spacing:-0.02em;
+        color:${theme.text}; max-width:940px; margin:0 0 24px 0;">
         ${esc(cta_en)}
       </h2>
       <p style="
-        font-size:34px; font-weight:500; line-height:1.3;
-        color:${theme.accent}; max-width:900px;">
+        font-size:44px; font-weight:500; line-height:1.22;
+        color:${theme.accent}; max-width:920px; margin:0 0 42px 0;">
         ${esc(cta_es)}
       </p>
 
-      <div style="width:96px; height:4px; background:${theme.accent}; border-radius:4px; margin:12px 0;"></div>
+      <div style="width:120px; height:5px; background:${theme.accent}; border-radius:4px; margin-bottom:48px;"></div>
 
-      <div style="display:flex; flex-direction:column; align-items:center; gap:14px; margin-top:20px;">
-        <div style="font-size:52px; font-weight:800; color:${theme.text}; letter-spacing:-0.01em;">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:18px;">
+        <div style="font-size:72px; font-weight:800; color:${theme.text}; letter-spacing:-0.01em;">
           ${PHONE}
         </div>
-        <div style="font-size:32px; font-weight:500; color:${theme.muted};">
+        <div style="font-size:40px; font-weight:500; color:${theme.muted};">
           ${WEBSITE}
         </div>
       </div>
     </div>
+    ${logoCorner(theme, 160)}
   `;
-  return baseWrapper(theme, inner, { pad: 96 });
+  return baseWrapper(theme, inner, { pad: 0 });
 }
 
 // ---------------------------------------------------------------------------
