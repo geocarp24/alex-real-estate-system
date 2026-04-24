@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Idempotent Airtable schema migration for Director v2.
-// Adds: Media_Type option 'reel', fields 'video_duration' (number), 'video_cost_cents' (number).
-// Requires AIRTABLE_SM_SCHEMA_TOKEN (scope: schema.bases:write) — delete after run.
+// Adds: fields 'video_duration' (number, precision 1) and 'video_cost_cents' (number, precision 0).
+// The 'Formato' single-select already includes 'Reel' option in production — no change there.
+// Requires AIRTABLE_SM_SCHEMA_TOKEN with scopes schema.bases:read + schema.bases:write — delete after run.
 
 let _fetch = globalThis.fetch;
 export function __setFetch(fn) { _fetch = fn; }
@@ -21,10 +22,6 @@ export async function discoverTable(baseId, tableId, token) {
 
 export function diffSchema(table) {
   const changes = [];
-  const mediaType = table.fields.find(f => f.name === 'Media_Type');
-  if (mediaType && !mediaType.options?.choices?.some(c => c.name === 'reel')) {
-    changes.push({ action: 'add_option', fieldName: 'Media_Type', fieldId: mediaType.id, option: 'reel' });
-  }
   if (!table.fields.some(f => f.name === 'video_duration')) {
     changes.push({ action: 'add_field', name: 'video_duration', type: 'number', options: { precision: 1 } });
   }
@@ -34,23 +31,17 @@ export function diffSchema(table) {
   return changes;
 }
 
-async function applyChange(baseId, tableId, change, token, currentChoices) {
+async function applyChange(baseId, tableId, change, token) {
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-  if (change.action === 'add_option') {
-    const newChoices = [...currentChoices, { name: change.option }];
-    const res = await _fetch(`${BASE}/meta/bases/${baseId}/tables/${tableId}/fields/${change.fieldId}`, {
-      method: 'PATCH',
-      headers,
-      body: JSON.stringify({ options: { choices: newChoices } }),
-    });
-    if (!res.ok) throw new Error(`add_option failed: ${res.status} ${await res.text()}`);
-  } else if (change.action === 'add_field') {
+  if (change.action === 'add_field') {
     const res = await _fetch(`${BASE}/meta/bases/${baseId}/tables/${tableId}/fields`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ name: change.name, type: change.type, options: change.options }),
     });
     if (!res.ok) throw new Error(`add_field ${change.name} failed: ${res.status} ${await res.text()}`);
+  } else {
+    throw new Error(`unknown change action: ${change.action}`);
   }
 }
 
@@ -71,14 +62,13 @@ async function main() {
   if (changes.length === 0) { console.log('No changes needed — schema is already up to date.'); return; }
 
   console.log(`Pending changes (${changes.length}):`);
-  changes.forEach((c, i) => console.log(`  ${i+1}. ${c.action} ${c.name || c.option}`));
+  changes.forEach((c, i) => console.log(`  ${i+1}. ${c.action} ${c.name}`));
 
   if (dryRun) { console.log('--dry-run — not applying.'); return; }
 
-  const mediaType = table.fields.find(f => f.name === 'Media_Type');
   for (const change of changes) {
-    console.log(`Applying: ${change.action} ${change.name || change.option} ...`);
-    await applyChange(baseId, tableId, change, token, mediaType?.options?.choices || []);
+    console.log(`Applying: ${change.action} ${change.name} ...`);
+    await applyChange(baseId, tableId, change, token);
     console.log('  OK');
   }
   console.log('Done. Delete AIRTABLE_SM_SCHEMA_TOKEN from Doppler now.');
