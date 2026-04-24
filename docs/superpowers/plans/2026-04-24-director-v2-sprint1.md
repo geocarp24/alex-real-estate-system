@@ -1934,4 +1934,195 @@ git commit -m "feat(director_v2): Task 8 — narrative B expander + dispatcher +
 
 ---
 
-<!-- PLAN_PART_8_END -->
+## Task 9: ffmpeg assembler — build video with xfade + zoompan + audio mix
+
+**Goal:** Take an array of scene outputs (JPG or PNG sequence) + a music track + transitions + zoompan and produce a single MP4 1080×1920 H.264 with audio. Command is built as argv array (no shell string → zero shell injection). Function also exports a pure `buildVideoCommand` for testing without actually running ffmpeg.
+
+**Files:**
+- Create: `agents/director_v2/src/ffmpeg.mjs`
+- Create: `agents/director_v2/test/ffmpeg.test.mjs`
+
+- [ ] **Step 1: Write failing tests**
+
+Create `agents/director_v2/test/ffmpeg.test.mjs`:
+```javascript
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { buildVideoCommand } from '../src/ffmpeg.mjs';
+
+function sampleScenes() {
+  return [
+    { index: 1, duration: 2.5, imagePaths: ['/tmp/s1.jpg'], zoompan: { from: 1.0, to: 1.05 }, transitionOut: 'crossfade', kinetic: false },
+    { index: 2, duration: 2.0, imagePaths: ['/tmp/s2.jpg'], zoompan: { from: 1.0, to: 1.03 }, transitionOut: 'wipeleft',  kinetic: false },
+    { index: 3, duration: 2.0, imagePaths: ['/tmp/s3.jpg'], zoompan: { from: 1.0, to: 1.03 }, transitionOut: 'crossfade', kinetic: false },
+    { index: 4, duration: 2.0, imagePaths: ['/tmp/s4.jpg'], zoompan: { from: 1.0, to: 1.03 }, transitionOut: 'slideup',   kinetic: false },
+    { index: 5, duration: 2.5, imagePaths: ['/tmp/s5.jpg'], zoompan: { from: 1.0, to: 1.05 }, transitionOut: 'none',      kinetic: false },
+  ];
+}
+
+test('buildVideoCommand returns argv ARRAY (not string) — zero shell injection', () => {
+  const cmd = buildVideoCommand({ scenes: sampleScenes(), musicPath: '/tmp/m.mp3', outputPath: '/tmp/out.mp4' });
+  assert.ok(Array.isArray(cmd.args), 'args must be an array');
+  assert.equal(cmd.bin, 'ffmpeg');
+  for (const a of cmd.args) assert.equal(typeof a, 'string', `every arg must be string, got ${typeof a}`);
+});
+
+test('buildVideoCommand output args include H.264 + faststart + 1080x1920', () => {
+  const cmd = buildVideoCommand({ scenes: sampleScenes(), musicPath: '/tmp/m.mp3', outputPath: '/tmp/out.mp4' });
+  const s = cmd.args.join(' ');
+  assert.ok(s.includes('libx264'));
+  assert.ok(s.includes('yuv420p'));
+  assert.ok(s.includes('+faststart'));
+  assert.ok(s.includes('1080') && s.includes('1920'));
+});
+
+test('buildVideoCommand includes audio codec aac 128k and loops music', () => {
+  const cmd = buildVideoCommand({ scenes: sampleScenes(), musicPath: '/tmp/m.mp3', outputPath: '/tmp/out.mp4' });
+  const s = cmd.args.join(' ');
+  assert.ok(s.includes('aac'));
+  assert.ok(s.includes('128k'));
+  assert.ok(s.includes('aloop'));
+});
+
+test('buildVideoCommand uses xfade with correct transitions from scene.transitionOut', () => {
+  const cmd = buildVideoCommand({ scenes: sampleScenes(), musicPath: '/tmp/m.mp3', outputPath: '/tmp/out.mp4' });
+  const filter = cmd.args[cmd.args.indexOf('-filter_complex') + 1];
+  assert.ok(filter.includes('xfade=transition=fade'));
+  assert.ok(filter.includes('xfade=transition=wipeleft'));
+  assert.ok(filter.includes('xfade=transition=slideup'));
+});
+
+test('buildVideoCommand uses zoompan filter per scene', () => {
+  const cmd = buildVideoCommand({ scenes: sampleScenes(), musicPath: '/tmp/m.mp3', outputPath: '/tmp/out.mp4' });
+  const filter = cmd.args[cmd.args.indexOf('-filter_complex') + 1];
+  const zoompanCount = (filter.match(/zoompan/g) || []).length;
+  assert.ok(zoompanCount >= 5, `expected at least 5 zoompan filters, got ${zoompanCount}`);
+});
+
+test('buildVideoCommand duration roughly matches sum of scenes minus xfade overlap', () => {
+  const cmd = buildVideoCommand({ scenes: sampleScenes(), musicPath: '/tmp/m.mp3', outputPath: '/tmp/out.mp4' });
+  const tIdx = cmd.args.indexOf('-t');
+  const durArg = parseFloat(cmd.args[tIdx + 1]);
+  // sum(2.5+2.0+2.0+2.0+2.5)=11, minus 4×0.3 overlap = 9.8. Allow ±0.5
+  assert.ok(durArg > 9.0 && durArg < 10.5, `expected ~9.8, got ${durArg}`);
+});
+```
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+```bash
+cd agents/director_v2 && node --test test/ffmpeg.test.mjs
+```
+Expected: FAIL with `Cannot find module '../src/ffmpeg.mjs'`.
+
+- [ ] **Step 3: Implement ffmpeg.mjs**
+
+Create `agents/director_v2/src/ffmpeg.mjs`:
+```javascript
+import { spawn } from 'node:child_process';
+
+const FPS = 30;
+const XFADE_OVERLAP = 0.3;
+const TRANSITION_MAP = {
+  crossfade: 'fade',
+  wipeleft:  'wipeleft',
+  slideup:   'slideup',
+  cut:       'fade',
+  none:      null,
+};
+
+export function buildVideoCommand({ scenes, musicPath, outputPath, width = 1080, height = 1920 }) {
+  const args = ['-y'];
+
+  for (const s of scenes) {
+    args.push('-loop', '1', '-t', String(s.duration), '-i', s.imagePaths[0]);
+  }
+  args.push('-i', musicPath);
+
+  const filterParts = [];
+  scenes.forEach((s, i) => {
+    const z0 = s.zoompan?.from ?? 1.0;
+    const z1 = s.zoompan?.to   ?? 1.0;
+    const frames = Math.max(1, Math.round(FPS * s.duration));
+    const zExpr = `min(${z0}+(${z1}-${z0})*on/${frames-1 || 1},${Math.max(z0, z1)})`;
+    filterParts.push(
+      `[${i}:v]scale=${width}:${height}:force_original_aspect_ratio=cover,crop=${width}:${height},zoompan=z='${zExpr}':d=${frames}:s=${width}x${height}:fps=${FPS}[v${i}]`
+    );
+  });
+
+  let lastLabel = 'v0';
+  let offset = scenes[0].duration - XFADE_OVERLAP;
+  for (let i = 1; i < scenes.length; i++) {
+    const prev = scenes[i - 1];
+    const transition = TRANSITION_MAP[prev.transitionOut] || 'fade';
+    const inLabel = `v${i}`;
+    const outLabel = i === scenes.length - 1 ? 'vout' : `x${i}`;
+    filterParts.push(
+      `[${lastLabel}][${inLabel}]xfade=transition=${transition}:duration=${XFADE_OVERLAP}:offset=${offset.toFixed(2)}[${outLabel}]`
+    );
+    lastLabel = outLabel;
+    offset += scenes[i].duration - XFADE_OVERLAP;
+  }
+  if (scenes.length === 1) lastLabel = 'v0';
+
+  filterParts.push(`[${scenes.length}:a]volume=0.35,aloop=loop=-1:size=2e+09[aout]`);
+
+  const filterComplex = filterParts.join(';');
+  const totalDuration = scenes.reduce((t, s) => t + s.duration, 0) - XFADE_OVERLAP * (scenes.length - 1);
+
+  args.push('-filter_complex', filterComplex);
+  args.push('-map', scenes.length === 1 ? '[v0]' : '[vout]');
+  args.push('-map', '[aout]');
+  args.push('-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-r', String(FPS), '-movflags', '+faststart');
+  args.push('-c:a', 'aac', '-b:a', '128k');
+  args.push('-t', totalDuration.toFixed(2));
+  args.push(outputPath);
+
+  return { bin: 'ffmpeg', args };
+}
+
+export function runFfmpeg(cmd, { onStderr } = {}) {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(cmd.bin, cmd.args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    let stderrBuf = '';
+    proc.stderr.on('data', chunk => {
+      const text = chunk.toString();
+      stderrBuf += text;
+      if (onStderr) onStderr(text);
+    });
+    proc.on('close', code => {
+      if (code === 0) resolve({ stderr: stderrBuf });
+      else {
+        const lastLine = stderrBuf.trim().split('\n').pop() || 'ffmpeg failed';
+        reject(new Error(`ffmpeg exit=${code}: ${lastLine}`));
+      }
+    });
+    proc.on('error', reject);
+  });
+}
+```
+
+- [ ] **Step 4: Run tests to verify all pass**
+
+```bash
+cd agents/director_v2 && node --test test/ffmpeg.test.mjs
+```
+Expected: `# pass 6`.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add agents/director_v2/src/ffmpeg.mjs \
+        agents/director_v2/test/ffmpeg.test.mjs
+git commit -m "feat(director_v2): Task 9 — ffmpeg builder (argv array) with xfade + zoompan + amix, 6 tests"
+```
+
+**Acceptance criteria:**
+- 6 tests passing
+- `buildVideoCommand` returns argv ARRAY, never a shell string
+- Filter complex includes zoompan + xfade + amix
+- Total `-t` duration accounts for xfade overlap (sum - (N-1) × 0.3s)
+
+---
+
+<!-- PLAN_PART_9_END -->
