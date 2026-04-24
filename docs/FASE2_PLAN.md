@@ -112,5 +112,31 @@ Decidir en la sesión de Fase 2.3.
 
 ---
 
+---
+
+## Integraciones Pendientes — Mencionadas por el Jefe
+
+> El Jefe mencionó dos herramientas de Google que podrían alimentar el Agente Creativo.
+> **No hay código de estas en el repo todavía.** Quedan pendientes de diseñar.
+
+### NotebookLM (Google)
+- **Qué es:** Herramienta de Google que lee documentos y genera resúmenes, podcasts, y análisis.
+- **Uso potencial en el Creativo:** Alimentar al Agente Creativo con investigación estructurada.
+  Ejemplo: el Jefe sube un PDF de tendencias de carpintería → NotebookLM lo procesa →
+  el Creativo usa esa info para generar posts más precisos y con datos reales.
+- **Estado:** Sin código en el repo. Decisión de diseño pendiente (Fase 2.4).
+
+### Nano Banana / Imagen (Google)
+- **Qué es:** Modelo de generación de imágenes de Google (posiblemente Imagen 3 o Gemini Imagen).
+- **Uso potencial en el Creativo:** En lugar de usar DALL-E o Midjourney,
+  generar imágenes de posts directamente con la API de Google.
+- **Estado:** Sin código en el repo. Evaluar en Fase 2.4 cuando lleguemos al Agente Creativo.
+  Comparar con alternativas (DALL-E 3, Stable Diffusion, Flux) antes de decidir.
+
+> **Próximo paso:** Cuando el Jefe confirme qué APIs de Google está usando (cuál es exactamente
+> "Nano Banana") y si ya tiene acceso/API key, lo integramos al diseño del Agente Creativo.
+
+---
+
 *Documento creado: 2026-04-23*
 *Autor: ALEX — Sistema Multi-Agente de Inversión Inmobiliaria + Marketing*
