@@ -54,32 +54,31 @@ export function slideHook(themeCode, { hookEn, hookEs, badge } = {}) {
   const theme = THEMES[themeCode] || THEMES.T1;
   const badgeChip = badge ? `
     <div style="
-      align-self:center;
       background:${theme.accent};
       color:${theme.bg};
-      font-size:22px; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
-      padding:10px 22px; border-radius:999px; margin-bottom:36px;">
+      font-size:28px; font-weight:800; letter-spacing:.14em; text-transform:uppercase;
+      padding:14px 30px; border-radius:999px; margin-bottom:42px;">
       ${esc(badge)}
     </div>` : "";
 
   const inner = `
-    <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; gap:32px;">
+    <div style="position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:72px;">
       ${badgeChip}
       <h1 style="
-        font-size:104px; font-weight:800; line-height:1.05; letter-spacing:-0.02em;
-        color:${theme.text}; max-width:920px;">
+        font-size:132px; font-weight:800; line-height:1.02; letter-spacing:-0.025em;
+        color:${theme.text}; max-width:960px; margin:0;">
         ${esc(hookEn || "")}
       </h1>
       ${hookEs ? `<p style="
-        font-size:44px; font-weight:500; line-height:1.25;
-        color:${theme.accent}; max-width:900px; margin-top:12px;">
+        font-size:56px; font-weight:500; line-height:1.22;
+        color:${theme.accent}; max-width:920px; margin-top:36px;">
         ${esc(hookEs)}
       </p>` : ""}
-      <div style="margin-top:48px; width:96px; height:4px; background:${theme.accent}; border-radius:4px;"></div>
+      <div style="margin-top:56px; width:120px; height:5px; background:${theme.accent}; border-radius:4px;"></div>
     </div>
-    ${logoWatermark(theme, 72)}
+    ${logoCorner(theme, 150)}
   `;
-  return baseWrapper(theme, inner);
+  return baseWrapper(theme, inner, { pad: 0 });
 }
 
 // ---------------------------------------------------------------------------
