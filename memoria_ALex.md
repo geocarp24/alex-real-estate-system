@@ -7,6 +7,18 @@
 
 ## REGLAS DEL JEFE (aplican a TODOS los agentes, siempre)
 
+### 2026-04-24 — REGLA "POR PARTES" ES OBLIGATORIA EN TODOS LOS PROCESOS (NO NEGOCIABLE — APROBADO POR JORGE)
+- **Orden de Jorge, 2026-04-24:** la metodología "por partes" (Fase 4 del `agents/PROTOCOLO_EJECUCION.md`) se aplica **SIN EXCUSA en TODOS los procesos**, no solo en los que generan mucho código.
+- **Aplica a:** planes de implementación, specs, generación de código, documentación larga, reportes, respuestas extensas al Jefe, memoria updates, análisis de deals, cualquier output >300 líneas.
+- **Reglas operativas:**
+  1. Cada Write/Edit **< 300 líneas**. Nunca pegar >400 líneas inline (stream idle timeout garantizado).
+  2. Reportar progreso después de cada parte: **"✅ Parte N/M lista. Sigo."**
+  3. Usar `Write`/`Edit` al disco — NO el stream del chat para bloques grandes.
+  4. Dividir por responsabilidad: una parte = un archivo/sección = un mensaje corto.
+  5. Si se necesita bundle final, generarlo con script (`build.py`), nunca pegarlo inline.
+- **Comprobado 2026-04-24:** plan Fase 2 (982 líneas, 8 tasks, 48 steps) escrito en 9 partes sin timeout después de que el intento inline anterior falló con timeout.
+- **Confirmación al inicio de sesión:** añadir a la checklist — "Regla por-partes activa para cualquier output >300 líneas."
+
 ### 2026-04-22 — PROTOCOLO DE EJECUCIÓN (NO NEGOCIABLE — APROBADO POR JORGE)
 - **Documento:** `agents/PROTOCOLO_EJECUCION.md` — leer al inicio de cada sesión junto con esta memoria.
 - **Aplica a:** toda operación no trivial (WP, Airtable, VPS, Hostinger, integraciones, scripts de agentes).
