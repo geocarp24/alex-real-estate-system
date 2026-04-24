@@ -851,7 +851,7 @@ Duración total:     4m 12s
 - `parseVisualPrompt` con nuevo formato (incluye `narrative`, `media_type`)
 - `parseVisualPrompt` con fenced JSON (` ```json {...} ``` `) retorna el objeto limpio
 - `validateSpec` retorna error específico con field name
-- `listPending` filter incluye `Media_Type='reel'`
+- `listPending` filter incluye `{Formato}='Reel'`
 - `updateRecord` envía exactamente los campos pasados (no añade extras)
 - `updateRecord` maneja 429 con retry
 
