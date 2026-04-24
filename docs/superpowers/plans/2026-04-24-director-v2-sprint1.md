@@ -932,4 +932,206 @@ git commit -m "feat(director_v2): Task 3 — retry + sanitize utilities with 10 
 
 ---
 
-<!-- PLAN_PART_4_END -->
+## Task 4: Pexels client (search + download)
+
+**Goal:** Wrap Pexels API in a small client that (a) sanitizes user query, (b) searches for a photo matching 9:16 aspect, (c) downloads the binary to `tmp/`, (d) retries on 429, (e) throws a specific error when no results so the caller can fallback to `theme_solid`.
+
+**Files:**
+- Create: `agents/director_v2/src/pexels.mjs`
+- Create: `agents/director_v2/test/pexels.test.mjs`
+- Create: `agents/director_v2/test/fixtures/pexels_response_ok.json`
+- Create: `agents/director_v2/test/fixtures/pexels_response_empty.json`
+- Create: `agents/director_v2/test/fixtures/pexels_response_429.json`
+
+**Dependencies:** `PEXELS_API_KEY` in Doppler (confirmed by Jorge).
+
+- [ ] **Step 1: Create Pexels response fixtures**
+
+Create `agents/director_v2/test/fixtures/pexels_response_ok.json`:
+```json
+{
+  "page": 1,
+  "per_page": 1,
+  "photos": [
+    {
+      "id": 12345,
+      "width": 4000,
+      "height": 6000,
+      "url": "https://www.pexels.com/photo/sample-12345/",
+      "photographer": "Test Photographer",
+      "src": {
+        "original":  "https://images.pexels.com/photos/12345/sample.jpg",
+        "large2x":   "https://images.pexels.com/photos/12345/sample.jpg?auto=compress&cs=tinysrgb&w=1920&h=2880",
+        "portrait":  "https://images.pexels.com/photos/12345/sample.jpg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop"
+      }
+    }
+  ],
+  "total_results": 1000
+}
+```
+
+Create `agents/director_v2/test/fixtures/pexels_response_empty.json`:
+```json
+{ "page": 1, "per_page": 1, "photos": [], "total_results": 0 }
+```
+
+Create `agents/director_v2/test/fixtures/pexels_response_429.json`:
+```json
+{ "error": "Rate limit exceeded" }
+```
+
+- [ ] **Step 2: Write failing tests for pexels client**
+
+Create `agents/director_v2/test/pexels.test.mjs`:
+```javascript
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { searchPortrait, PexelsNoResultsError, __setFetch } from '../src/pexels.mjs';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const OK    = JSON.parse(readFileSync(join(HERE, 'fixtures/pexels_response_ok.json'), 'utf8'));
+const EMPTY = JSON.parse(readFileSync(join(HERE, 'fixtures/pexels_response_empty.json'), 'utf8'));
+
+test('searchPortrait sanitizes the query before calling API', async () => {
+  let calledUrl;
+  __setFetch(async (url, opts) => {
+    calledUrl = url;
+    assert.equal(opts.headers.Authorization, 'test_pexels_key');
+    return { ok: true, json: async () => OK };
+  });
+  const result = await searchPortrait('home renovation; rm -rf /', { apiKey: 'test_pexels_key' });
+  assert.ok(calledUrl.includes('query=home+renovation+rm+rf'), `query should be sanitized: ${calledUrl}`);
+  assert.equal(result.id, 12345);
+  assert.ok(result.downloadUrl.includes('portrait'));
+});
+
+test('searchPortrait throws PexelsNoResultsError on empty results', async () => {
+  __setFetch(async () => ({ ok: true, json: async () => EMPTY }));
+  await assert.rejects(
+    searchPortrait('zzznonsense', { apiKey: 'k' }),
+    (err) => err instanceof PexelsNoResultsError
+  );
+});
+
+test('searchPortrait retries 3 times on 429 then throws', async () => {
+  let calls = 0;
+  __setFetch(async () => {
+    calls++;
+    return { ok: false, status: 429, text: async () => 'rate limit' };
+  });
+  await assert.rejects(
+    searchPortrait('anything', { apiKey: 'k', baseDelayMs: 1 }),
+    /429/
+  );
+  assert.equal(calls, 3);
+});
+
+test('searchPortrait prefers portrait URL over original', async () => {
+  __setFetch(async () => ({ ok: true, json: async () => OK }));
+  const result = await searchPortrait('anything', { apiKey: 'k' });
+  assert.ok(result.downloadUrl.includes('portrait'));
+  assert.ok(result.downloadUrl.includes('w=1080'));
+});
+```
+
+- [ ] **Step 3: Run tests to verify they fail**
+
+```bash
+cd agents/director_v2 && node --test test/pexels.test.mjs
+```
+Expected: FAIL with `Cannot find module '../src/pexels.mjs'`.
+
+- [ ] **Step 4: Implement pexels.mjs**
+
+Create `agents/director_v2/src/pexels.mjs`:
+```javascript
+import { writeFile } from 'node:fs/promises';
+import { sanitizePexelsQuery } from './util/sanitize.mjs';
+import { withRetry } from './util/retry.mjs';
+
+let _fetch = globalThis.fetch;
+export function __setFetch(fn) { _fetch = fn; }
+
+export class PexelsNoResultsError extends Error {
+  constructor(query) { super(`Pexels: no results for "${query}"`); this.name = 'PexelsNoResultsError'; this.query = query; }
+}
+
+const API = 'https://api.pexels.com/v1';
+
+export async function searchPortrait(rawQuery, { apiKey, baseDelayMs = 2000 } = {}) {
+  const query = sanitizePexelsQuery(rawQuery);
+  if (!query) throw new Error('searchPortrait: empty query after sanitize');
+  if (!apiKey) throw new Error('searchPortrait: apiKey required');
+
+  const url = `${API}/search?orientation=portrait&size=large&per_page=1&query=${encodeURIComponent(query).replace(/%20/g, '+')}`;
+
+  const data = await withRetry(
+    async () => {
+      const res = await _fetch(url, { headers: { Authorization: apiKey } });
+      if (res.status === 429) throw new Error(`Pexels 429 rate limit`);
+      if (!res.ok) throw new Error(`Pexels HTTP ${res.status}`);
+      return res.json();
+    },
+    { attempts: 3, baseDelayMs }
+  );
+
+  if (!data.photos || data.photos.length === 0) {
+    throw new PexelsNoResultsError(query);
+  }
+  const photo = data.photos[0];
+  const downloadUrl = photo.src.portrait || photo.src.large2x || photo.src.original;
+  return {
+    id: photo.id,
+    photographer: photo.photographer,
+    downloadUrl,
+    query,
+  };
+}
+
+export async function downloadToFile(url, destPath) {
+  const res = await _fetch(url);
+  if (!res.ok) throw new Error(`download failed: HTTP ${res.status}`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  await writeFile(destPath, buf);
+  return destPath;
+}
+```
+
+- [ ] **Step 5: Run tests to verify all pass**
+
+```bash
+cd agents/director_v2 && node --test test/pexels.test.mjs
+```
+Expected: `# pass 4`.
+
+- [ ] **Step 6: Verify live — one real call with doppler**
+
+```bash
+cd agents/director_v2 && doppler run -- node -e "import('./src/pexels.mjs').then(async m => { const r = await m.searchPortrait('modern house wisconsin', { apiKey: process.env.PEXELS_API_KEY }); console.log(r); })"
+```
+Expected: prints `{ id: ..., photographer: '...', downloadUrl: 'https://images.pexels.com/.../portrait...', query: 'modern house wisconsin' }`.
+
+If this fails with 401 → `PEXELS_API_KEY` is wrong in Doppler; fix before continuing.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add agents/director_v2/src/pexels.mjs \
+        agents/director_v2/test/pexels.test.mjs \
+        agents/director_v2/test/fixtures/pexels_response_ok.json \
+        agents/director_v2/test/fixtures/pexels_response_empty.json \
+        agents/director_v2/test/fixtures/pexels_response_429.json
+git commit -m "feat(director_v2): Task 4 — Pexels client with sanitize + retry + 4 tests"
+```
+
+**Acceptance criteria:**
+- 4 tests passing
+- Live Pexels call returns a valid portrait URL with a real API key
+- `PexelsNoResultsError` exported and testable
+
+---
+
+<!-- PLAN_PART_5_END -->
