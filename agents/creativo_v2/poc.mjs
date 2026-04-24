@@ -4,7 +4,7 @@
 import { readFile, mkdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildCarousel } from './src/themes.mjs';
+import { buildCarousel, dimsForAspect } from './src/themes.mjs';
 import { wrapSlideHtml } from './src/wrapper.mjs';
 import { renderJpg, closeBrowser } from './src/render.mjs';
 
