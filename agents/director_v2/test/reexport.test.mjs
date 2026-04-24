@@ -17,7 +17,8 @@ test('VALID_ASPECTS includes 9:16', () => {
 });
 
 test('wrapper.wrapSlideHtml returns HTML with inlined logo', () => {
-  const html = wrapSlideHtml('<div>test</div>', 'T1', '9:16');
+  const REMOTE_LOGO_URL = 'https://pinnaclegroupwi.com/wp-content/uploads/2026/03/logo-pinnacle.png';
+  const html = wrapSlideHtml(`<div><img src="${REMOTE_LOGO_URL}"/>test</div>`, 'T1', '9:16');
   assert.ok(html.includes('height:1920px'));
   assert.ok(html.includes('data:image/png;base64,'));
 });
