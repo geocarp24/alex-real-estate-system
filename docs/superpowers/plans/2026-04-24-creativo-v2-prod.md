@@ -812,3 +812,146 @@ git add agents/creativo_v2/main.mjs agents/creativo_v2/test/main.test.mjs agents
 git -c commit.gpgsign=false commit -m "creativo_v2: main.mjs production orchestrator + dry-run"
 ```
 
+---
+
+## Task 7: Stop tracking POC output — add `output/` to .gitignore
+
+**Files:**
+- Modify: `agents/creativo_v2/.gitignore`
+- Delete from git: `agents/creativo_v2/output/*.jpg`
+
+- [ ] **Step 1: Update .gitignore**
+
+Edit `agents/creativo_v2/.gitignore` — add `output/`:
+
+```
+node_modules/
+logs/
+output/
+*.log
+```
+
+- [ ] **Step 2: Remove tracked JPGs (keep files on disk for POC reference)**
+
+```bash
+cd /home/user/alex-real-estate-system
+git rm --cached agents/creativo_v2/output/poc_t1_slide_*.jpg
+```
+
+Expected output: `rm 'agents/creativo_v2/output/poc_t1_slide_1.jpg'` × 6.
+
+- [ ] **Step 3: Verify git status**
+
+```bash
+git status 2>&1 | head -20
+```
+
+Expected: modifications to `.gitignore` + deletions of 6 JPGs from index, but JPG files still exist on disk (`ls agents/creativo_v2/output/` still shows them).
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add agents/creativo_v2/.gitignore
+git -c commit.gpgsign=false commit -m "creativo_v2: stop tracking output/ (Fase 2 uses Cloudinary)"
+```
+
+---
+
+## Task 8: End-to-end integration test with real Airtable record
+
+**Prerequisites:** Tasks 1-7 complete. Doppler has all 8 secrets. Puppeteer tested OK from Fase 1.
+
+- [ ] **Step 1: Create ONE test record in Airtable `tblAj0Pkj1jW4p5Ld`**
+
+Jefe (or ALEX via curl) creates via Airtable UI or API, with these fields:
+
+```
+Título de Idea:  POC-Fase2-Test
+Status:          Nueva
+Semana:          0
+Formato:         Carrusel
+Plataforma:      FB+IG
+Visual_Prompt:   (valid JSON matching schema — see below)
+visual_url:      (empty)
+```
+
+Visual_Prompt JSON:
+
+```json
+{
+  "theme": "T1",
+  "hook": { "en": "POC Fase 2 Test", "es": "Prueba POC Fase 2", "badge": "TEST" },
+  "points": [
+    { "headingEn": "First Point", "headingEs": "Primer Punto", "bodyEn": "Integration test body EN.", "bodyEs": "Cuerpo de prueba ES." },
+    { "headingEn": "Second Point", "headingEs": "Segundo Punto", "bodyEn": "More content EN.", "bodyEs": "Mas contenido ES." }
+  ],
+  "cta": { "en": "Call Us.", "es": "Llamanos." }
+}
+```
+
+- [ ] **Step 2: Dry-run — no Airtable writes, no Cloudinary uploads**
+
+```bash
+cd agents/creativo_v2 && npm run prod:dry 2>&1 | tail -15
+```
+
+Expected:
+- `Pending records: 1` (or more if other records exist; only the test one should be processed successfully)
+- Log lines `[recXXX] rendered 4 slides to /tmp/creativo_v2_recXXX_...`
+- `DRY-RUN ok — not uploading or updating Airtable`
+- `Summary: N ok, 0 fail` where N ≥ 1
+
+Manual check: visit the `/tmp/creativo_v2_recXXX_.../` folder, verify 4 JPGs exist.
+
+- [ ] **Step 3: Full run — writes to Airtable + Cloudinary**
+
+```bash
+cd agents/creativo_v2 && npm run prod 2>&1 | tail -15
+```
+
+Expected: `uploaded 4 to Cloudinary` + `Airtable updated Status=Lista para Publicar`.
+
+- [ ] **Step 4: Verify via Airtable**
+
+Check test record in Airtable UI:
+- Status = `Lista para Publicar`
+- `visual_url` populated with `https://res.cloudinary.com/dzzlhhk0m/...`
+
+Verify Cloudinary URL is accessible:
+
+```bash
+curl -sI "$(paste_visual_url_here)" | head -3
+```
+
+Expected: `HTTP/2 200`, `content-type: image/jpeg`.
+
+- [ ] **Step 5: Error-path test — malformed Visual_Prompt**
+
+Create a second test record with Visual_Prompt = `this is not valid json`. Run `npm run prod`. Verify:
+- Record Status becomes `Error`
+- `Error_Reason` contains "invalid JSON"
+- The batch did NOT stop (other pending records still processed)
+
+- [ ] **Step 6: Commit any fixes found during E2E**
+
+If tests revealed bugs, fix them with small TDD commits. Each fix = one commit.
+
+- [ ] **Step 7: Push the full Fase 2 work**
+
+```bash
+git push origin claude/greeting-setup-yOfqf 2>&1 | tail -5
+```
+
+Retry up to 4 times with exponential backoff (2s, 4s, 8s, 16s) on network errors.
+
+- [ ] **Step 8: Report to Jefe**
+
+Post summary:
+- Tasks 1-8 complete
+- Commits pushed
+- 1 record processed end-to-end successfully
+- 1 error-path validated
+- Ready for cron/production scheduling (out of scope of this plan)
+
+---
+
