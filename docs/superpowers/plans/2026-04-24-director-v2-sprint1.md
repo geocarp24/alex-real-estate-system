@@ -165,13 +165,15 @@ Social Media Agent writes valid JSON to Airtable `Visual_Prompt` (table `tblAj0P
 
 ## Task 0: Airtable schema setup (idempotent one-time migration)
 
-**Goal:** Before any Director v2 code runs, ensure the Airtable base has the 2 new fields and the `reel` option. Script is idempotent — can be re-run safely.
+**Goal:** Before any Director v2 code runs, ensure the Airtable base has the 2 new fields needed for video metadata. The existing `Formato` single-select already has the `Reel` option (no new option needed). Script is idempotent — can be re-run safely.
 
 **Files:**
 - Create: `agents/director_v2/scripts/airtable_schema_setup.mjs`
 - Create: `agents/director_v2/test/schema_setup.test.mjs`
 
-**Dependencies:** `AIRTABLE_SM_SCHEMA_TOKEN` in Doppler (see Prerequisites), `AIRTABLE_SM_BASE_ID`, `AIRTABLE_SM_TABLE_ID`.
+**Dependencies:** `AIRTABLE_SM_SCHEMA_TOKEN` in Doppler (with BOTH `schema.bases:read` AND `schema.bases:write` scopes), `AIRTABLE_SM_BASE_ID`, `AIRTABLE_SM_TABLE_ID`.
+
+**Live schema verified 2026-04-24:** the production table is `Ideas de Contenido` (id `tblAj0Pkj1jW4p5Ld`). It has a `Formato` single-select with choices `Post | Reel | Carrusel | Story` — NOT a `Media_Type` field. Director v2 filters by `{Formato}='Reel'` (Task 11). Task 0 only needs to add the 2 new number fields.
 
 - [ ] **Step 1: Create directory and package.json**
 
@@ -215,8 +217,8 @@ test('discoverTable returns table metadata for given tableId', async () => {
       ok: true,
       json: async () => ({
         tables: [
-          { id: 'tblAj0Pkj1jW4p5Ld', name: 'SocialMedia', fields: [
-            { id: 'fldMT', name: 'Media_Type', type: 'singleSelect', options: { choices: [{ name: 'carousel' }] } },
+          { id: 'tblAj0Pkj1jW4p5Ld', name: 'Ideas de Contenido', fields: [
+            { id: 'fldF', name: 'Formato', type: 'singleSelect', options: { choices: [{ name: 'Post' }, { name: 'Reel' }] } },
             { id: 'fldVU', name: 'visual_url', type: 'url' }
           ]}
         ]
@@ -229,24 +231,23 @@ test('discoverTable returns table metadata for given tableId', async () => {
   assert.equal(table.fields.length, 2);
 });
 
-test('diffSchema returns list of pending changes when fields missing', () => {
+test('diffSchema returns 2 add_field changes when both numeric fields missing', () => {
   const table = {
     fields: [
-      { name: 'Media_Type', type: 'singleSelect', options: { choices: [{ name: 'carousel' }] } },
+      { name: 'Formato', type: 'singleSelect', options: { choices: [{ name: 'Reel' }] } },
       { name: 'visual_url', type: 'url' },
     ]
   };
   const changes = diffSchema(table);
-  assert.equal(changes.length, 3);
-  assert.ok(changes.find(c => c.action === 'add_option' && c.option === 'reel'));
+  assert.equal(changes.length, 2);
   assert.ok(changes.find(c => c.action === 'add_field' && c.name === 'video_duration'));
   assert.ok(changes.find(c => c.action === 'add_field' && c.name === 'video_cost_cents'));
 });
 
-test('diffSchema returns empty when all 3 changes already applied', () => {
+test('diffSchema returns empty when both numeric fields already present', () => {
   const table = {
     fields: [
-      { name: 'Media_Type', type: 'singleSelect', options: { choices: [{ name: 'carousel' }, { name: 'reel' }] } },
+      { name: 'Formato', type: 'singleSelect', options: { choices: [{ name: 'Reel' }] } },
       { name: 'video_duration', type: 'number', options: { precision: 1 } },
       { name: 'video_cost_cents', type: 'number', options: { precision: 0 } },
     ]
@@ -269,8 +270,9 @@ Create `agents/director_v2/scripts/airtable_schema_setup.mjs`:
 ```javascript
 #!/usr/bin/env node
 // Idempotent Airtable schema migration for Director v2.
-// Adds: Media_Type option 'reel', fields 'video_duration' (number), 'video_cost_cents' (number).
-// Requires AIRTABLE_SM_SCHEMA_TOKEN (scope: schema.bases:write) — delete after run.
+// Adds: fields 'video_duration' (number, precision 1) and 'video_cost_cents' (number, precision 0).
+// The 'Formato' single-select already includes 'Reel' option in production — no change there.
+// Requires AIRTABLE_SM_SCHEMA_TOKEN with scopes schema.bases:read + schema.bases:write — delete after run.
 
 let _fetch = globalThis.fetch;
 export function __setFetch(fn) { _fetch = fn; }
@@ -290,10 +292,6 @@ export async function discoverTable(baseId, tableId, token) {
 
 export function diffSchema(table) {
   const changes = [];
-  const mediaType = table.fields.find(f => f.name === 'Media_Type');
-  if (mediaType && !mediaType.options?.choices?.some(c => c.name === 'reel')) {
-    changes.push({ action: 'add_option', fieldName: 'Media_Type', fieldId: mediaType.id, option: 'reel' });
-  }
   if (!table.fields.some(f => f.name === 'video_duration')) {
     changes.push({ action: 'add_field', name: 'video_duration', type: 'number', options: { precision: 1 } });
   }
@@ -303,23 +301,17 @@ export function diffSchema(table) {
   return changes;
 }
 
-async function applyChange(baseId, tableId, change, token, currentChoices) {
+async function applyChange(baseId, tableId, change, token) {
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-  if (change.action === 'add_option') {
-    const newChoices = [...currentChoices, { name: change.option }];
-    const res = await _fetch(`${BASE}/meta/bases/${baseId}/tables/${tableId}/fields/${change.fieldId}`, {
-      method: 'PATCH',
-      headers,
-      body: JSON.stringify({ options: { choices: newChoices } }),
-    });
-    if (!res.ok) throw new Error(`add_option failed: ${res.status} ${await res.text()}`);
-  } else if (change.action === 'add_field') {
+  if (change.action === 'add_field') {
     const res = await _fetch(`${BASE}/meta/bases/${baseId}/tables/${tableId}/fields`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ name: change.name, type: change.type, options: change.options }),
     });
     if (!res.ok) throw new Error(`add_field ${change.name} failed: ${res.status} ${await res.text()}`);
+  } else {
+    throw new Error(`unknown change action: ${change.action}`);
   }
 }
 
@@ -340,14 +332,13 @@ async function main() {
   if (changes.length === 0) { console.log('No changes needed — schema is already up to date.'); return; }
 
   console.log(`Pending changes (${changes.length}):`);
-  changes.forEach((c, i) => console.log(`  ${i+1}. ${c.action} ${c.name || c.option}`));
+  changes.forEach((c, i) => console.log(`  ${i+1}. ${c.action} ${c.name}`));
 
   if (dryRun) { console.log('--dry-run — not applying.'); return; }
 
-  const mediaType = table.fields.find(f => f.name === 'Media_Type');
   for (const change of changes) {
-    console.log(`Applying: ${change.action} ${change.name || change.option} ...`);
-    await applyChange(baseId, tableId, change, token, mediaType?.options?.choices || []);
+    console.log(`Applying: ${change.action} ${change.name} ...`);
+    await applyChange(baseId, tableId, change, token);
     console.log('  OK');
   }
   console.log('Done. Delete AIRTABLE_SM_SCHEMA_TOKEN from Doppler now.');
@@ -370,14 +361,14 @@ Expected: `# pass 3` with 0 failures.
 ```bash
 cd agents/director_v2 && doppler run -- node scripts/airtable_schema_setup.mjs --dry-run
 ```
-Expected output: lists the 3 pending changes (or says "no changes needed" if already applied).
+Expected output: lists `add_field video_duration` and `add_field video_cost_cents` (or "No changes needed" if already applied).
 
 - [ ] **Step 7: Apply schema changes**
 
 ```bash
 cd agents/director_v2 && doppler run -- node scripts/airtable_schema_setup.mjs
 ```
-Expected: 3 × "OK" lines + "Done. Delete AIRTABLE_SM_SCHEMA_TOKEN..."
+Expected: 2 × "OK" lines + "Done. Delete AIRTABLE_SM_SCHEMA_TOKEN..."
 
 - [ ] **Step 8: Delete elevated token from Doppler**
 
@@ -392,12 +383,13 @@ Expected: confirmation that the secret is removed. This token is no longer neede
 git add agents/director_v2/package.json \
         agents/director_v2/scripts/airtable_schema_setup.mjs \
         agents/director_v2/test/schema_setup.test.mjs
-git commit -m "feat(director_v2): Task 0 — idempotent Airtable schema setup for reel media type"
+git commit -m "feat(director_v2): Task 0 — idempotent Airtable schema setup (2 numeric fields)"
 ```
 
 **Acceptance criteria:**
 - `node --test test/schema_setup.test.mjs` passes 3 tests
-- Airtable base `appU9s3kGkVpdrJkw` has: `Media_Type` option `reel`, field `video_duration` (number, precision 1), field `video_cost_cents` (number, precision 0)
+- Airtable base `appU9s3kGkVpdrJkw` table `tblAj0Pkj1jW4p5Ld` has new fields `video_duration` (number, precision 1) and `video_cost_cents` (number, precision 0)
+- The pre-existing `Formato` single-select with options `Post | Reel | Carrusel | Story` is **untouched**
 - `AIRTABLE_SM_SCHEMA_TOKEN` deleted from Doppler
 
 ---
