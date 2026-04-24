@@ -1166,4 +1166,214 @@ Checklist que replica el cierre del Creativo v2 (2026-04-24):
 - ✅ `agents/director.md` (v2.0 legacy Blotato) reemplazado o marcado como deprecated
 - Sprint 2 (A + C) y Sprint 3 (HeyGen/ElevenLabs/Kling) marcados como **"pendientes no-bloqueantes"**
 
-<!-- SECTION_BREAK_AFTER_6 -->
+## 9. Appendix
+
+### 9.1 Doppler secrets breakdown
+
+**Project:** `pinnacle-social-publisher`  
+**Config:** `dev_personal` (local y producción)
+
+| Secret | Usado por | Scope |
+|---|---|---|
+| `AIRTABLE_SM_TOKEN` | Creativo + Director | data.records:read + write, base `appU9s3kGkVpdrJkw` |
+| `AIRTABLE_SM_BASE_ID` | Creativo + Director | `appU9s3kGkVpdrJkw` |
+| `AIRTABLE_SM_TABLE_ID` | Creativo + Director | `tblAj0Pkj1jW4p5Ld` |
+| `AIRTABLE_SM_SCHEMA_TOKEN` | Director Task 0 únicamente | schema.bases:write — TEMPORAL, se borra post-Task 0 |
+| `CLOUDINARY_NAME` | Creativo + Director | `dzzlhhk0m` |
+| `CLOUDINARY_API_KEY` | Creativo + Director | upload signed |
+| `CLOUDINARY_API_SECRET` | Creativo + Director | signature |
+| `GEMINI_API_KEY` | Director (nano_banana) | Nano Banana image gen |
+| `PEXELS_API_KEY` | Director (pexels) | **NUEVO** — stock photos |
+| `REPLICATE_API_TOKEN` | Director Sprint 3+ | Kling video (bloqueado) |
+
+### 9.2 Ejemplos de heroPrompt por theme
+
+Para Nano Banana hook/cta — el prompt se construye concatenando el copy del hook con guardrails del theme:
+
+| Theme | Prompt suffix para hook |
+|---|---|
+| T1 Dark Premium | `", cinematic, dark moody lighting, emerald green and gold accents, Pinnacle Holdings brand aesthetic, 9:16 vertical"` |
+| T2 White Clean | `", bright clean minimalist, white background, natural lighting, modern real estate aesthetic, 9:16 vertical"` |
+| T3 Gold & Black | `", luxury aesthetic, black and gold, dramatic contrast, premium real estate, 9:16 vertical"` |
+| T4 Soft Cream | `", warm cream and beige tones, soft natural lighting, cozy home aesthetic, 9:16 vertical"` |
+| T5 Vibrant Blue | `", vibrant energetic, blue and pink accents, modern urban aesthetic, bold, 9:16 vertical"` |
+
+### 9.3 Ejemplos de heroQuery derivation (Pexels)
+
+Mapeo de `headingEn` frecuentes en wholesale/fix&flip a query de Pexels:
+
+| heading | query |
+|---|---|
+| Faster Than Banks | `clock time money` |
+| No Commissions | `real estate contract` |
+| No Showings | `house closed sign` |
+| No Repairs | `home renovation` |
+| Cash Offer | `cash money deal` |
+| Close in 7 Days | `calendar keys house` |
+| Any Condition | `vintage house exterior` |
+| Sell As-Is | `house vintage interior` |
+| _fallback_ | `real estate wisconsin` |
+
+### 9.4 ffmpeg command example (narrativa B POC)
+
+Para referencia, el comando que se genera para 5 scenes con xfade y zoompan:
+
+```
+ffmpeg -y \
+  -loop 1 -t 2.5 -i tmp/rec123/scene_1.jpg \
+  -loop 1 -t 2.0 -i tmp/rec123/scene_2.jpg \
+  -loop 1 -t 2.0 -i tmp/rec123/scene_3.jpg \
+  -loop 1 -t 2.0 -i tmp/rec123/scene_4.jpg \
+  -loop 1 -t 2.5 -i tmp/rec123/scene_5.jpg \
+  -i assets/music/upbeat_1.mp3 \
+  -filter_complex "\
+    [0:v]scale=1080:1920,zoompan=z='min(1.0+0.05*on/75,1.05)':d=75:s=1080x1920:fps=30[v0]; \
+    [1:v]scale=1080:1920,zoompan=z='min(1.0+0.03*on/60,1.03)':d=60:s=1080x1920:fps=30[v1]; \
+    [2:v]scale=1080:1920,zoompan=z='min(1.0+0.03*on/60,1.03)':d=60:s=1080x1920:fps=30[v2]; \
+    [3:v]scale=1080:1920,zoompan=z='min(1.0+0.03*on/60,1.03)':d=60:s=1080x1920:fps=30[v3]; \
+    [4:v]scale=1080:1920,zoompan=z='min(1.0+0.05*on/75,1.05)':d=75:s=1080x1920:fps=30[v4]; \
+    [v0][v1]xfade=transition=fade:duration=0.3:offset=2.2[x01]; \
+    [x01][v2]xfade=transition=wipeleft:duration=0.3:offset=3.9[x012]; \
+    [x012][v3]xfade=transition=fade:duration=0.3:offset=5.6[x0123]; \
+    [x0123][v4]xfade=transition=slideup:duration=0.3:offset=7.3[vout]; \
+    [5:a]volume=0.35,aloop=loop=-1:size=2e+09[aout] \
+  " \
+  -map "[vout]" -map "[aout]" \
+  -c:v libx264 -pix_fmt yuv420p -r 30 -movflags +faststart \
+  -c:a aac -b:a 128k \
+  -t 10.0 \
+  tmp/rec123.mp4
+```
+
+Todos los `[i]` vienen de argv indices, nunca de string concat. `spawn('ffmpeg', [...])` acepta arrays.
+
+### 9.5 package.json (draft)
+
+```json
+{
+  "name": "@pinnacle/director-v2",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "engines": { "node": ">=22.0.0" },
+  "scripts": {
+    "test":         "node --test test/*.test.mjs",
+    "test:smoke":   "RUN_SMOKE=1 node --test test/smoke.test.mjs",
+    "prod":         "doppler run -- node main.mjs",
+    "prod:dry-run": "doppler run -- node main.mjs --dry-run",
+    "poc":          "doppler run -- node render_poc.mjs",
+    "backfill":             "doppler run -- node scripts/backfill_legacy_reels.mjs",
+    "backfill:dry-run":     "doppler run -- node scripts/backfill_legacy_reels.mjs --dry-run",
+    "schema":               "doppler run -- node scripts/airtable_schema_setup.mjs",
+    "schema:dry-run":       "doppler run -- node scripts/airtable_schema_setup.mjs --dry-run"
+  },
+  "dependencies": {
+    "puppeteer": "^23.0.0"
+  }
+}
+```
+
+Sin otras deps runtime — usa node built-ins (`node:fetch`, `node:fs/promises`, `node:crypto`, `node:child_process` para ffmpeg, `node:test` para tests).
+
+### 9.6 .gitignore additions
+
+```
+# Director v2
+agents/director_v2/tmp/
+agents/director_v2/samples/
+agents/director_v2/logs/
+agents/director_v2/state/nano_banana_usage.json
+agents/director_v2/node_modules/
+```
+
+### 9.7 Dependencies en sistema (no-Node)
+
+- **ffmpeg** 6.1.1+ con libx264, libass, libmp3lame, libvorbis — ya instalado (`apt-get install ffmpeg`)
+- **Chromium** (viene con Puppeteer) — descargado automáticamente en `npm install`
+- **Doppler CLI** 3.76.0+ — ya instalado en la máquina de Jorge y en Claude Code env
+
+---
+
+## 10. Resumen ejecutivo del design (las 6 secciones)
+
+| Sección | Decisión clave |
+|---|---|
+| 1. Arquitectura | `agents/director_v2/` con 7 módulos nuevos + 4 reuse del Creativo |
+| 2. Flujo de datos | Input JSON en `Visual_Prompt` Airtable; pipeline de 9 steps; `--dry-run` flag |
+| 3. Narrativas | 3 presets (B default, A wholesale, C rehab) que expanden a 5 scenes cada uno |
+| 4. Errores/Cost/Sec | Fallback chain Nano Banana → Pexels → theme_solid; cap $10/mes; Doppler only; sanitización multi-capa |
+| 5. Testing | ≥40 tests Node built-in; unit + integration mocked + smoke opcional |
+| 6. Plan | Task 0 schema + Sprint 1 MVP + POC + Task Backfill + Sprints 2-3 futuros |
+
+**Costo operacional estimado:** ~$2-4/mes en Nano Banana para 30 reels/mes.  
+**Tiempo de render por video:** ≤ 60s (browser reuse + paralelismo).  
+**Duración del Sprint 1:** 3-5 sesiones de trabajo continuo aplicando regla "por partes".
+
+---
+
+## 11. Abiertas / riesgos conocidos / dependencias externas
+
+### 11.1 Riesgos técnicos
+- **Puppeteer headless Chromium** puede tener crashes intermitentes en servidores con poca RAM — mitigación: browser singleton + restart on crash + retry por scene
+- **ffmpeg xfade** con filter_complex complejo puede fallar en versiones antiguas — requerimos 6.0+ (tenemos 6.1.1 verificado)
+- **Nano Banana puede generar imágenes con textos mal escritos o caras deformadas** — mitigación: NO usar Nano Banana para puntos intermedios (solo hook + CTA), y el re-roll con prompt refinado
+
+### 11.2 Riesgos de producto
+- **Reels sin audio** penalizados por algoritmo IG — mitigación: música royalty-free siempre presente, nunca generar MP4 sin audio stream
+- **Captions ilegibles en mobile small screens** — mitigación: font-size mínimo 48px, backdrop blur + dark tint garantizados en layout_d
+- **Duración efectiva < 7s** (por overlaps de xfade agresivos) — mitigación: `ffmpeg.mjs` valida duración final post-render, warning si <7s
+
+### 11.3 Bloqueos externos
+| Bloqueo | Impacto | Mitigación |
+|---|---|---|
+| PEXELS_API_KEY no registrado aún | bloquea Sprint 1 task 4 | Jorge registra cuenta free en pexels.com/api (5 minutos), copia key a Doppler |
+| HeyGen account | bloquea Sprint 3 task 21 | bloqueo explícito Sprint 3+ |
+| ElevenLabs account | bloquea Sprint 3 task 22 | bloqueo explícito Sprint 3+ |
+| Consent escrito de testimonios | bloquea Sprint 3 task 23 (narrativa D) | bloqueo explícito Sprint 3+ |
+
+### 11.4 Items para revisar antes de empezar
+- Confirmar con Jorge que el token `AIRTABLE_SM_TOKEN` actual tiene permiso sobre la tabla `tblAj0Pkj1jW4p5Ld` (debería — lo usa Creativo)
+- Confirmar cantidad de records legacy con `Media_Type='reel'` antes de ejecutar backfill (`curl GET` con filter)
+- Validar que `agents/director.md` antiguo (v2.0 Blotato) no está siendo invocado por Social Media Agent — si lo está, marcar como deprecated antes de reemplazar
+
+---
+
+## 12. Post-deployment follow-up (Sprint 3+ roadmap)
+
+Items documentados aquí para referencia pero fuera del scope MVP:
+
+1. **A/B testing de narrativas:** instrumentar qué narrativa (A/B/C) genera mejor engagement cuando se publique en IG/FB, guardar métricas en Airtable `engagement_score`
+2. **Random theme rotation:** en vez de `theme: "T1"` fijo, el Social Media Agent emite `theme: "random"` y el Director elige entre T1-T5 con pesos configurables
+3. **Multi-duration:** soportar 7s (Stories quick) + 10s (Reels standard) + 15s (Reels long) con narrativas adaptadas
+4. **Voice-over bilingüe con ElevenLabs:** el Director narra hook y CTA en EN y ES en dos versiones del MP4 (2 Cloudinary URLs, 1 record)
+5. **HeyGen avatar integration:** escena 1 o escena final con Jorge hablando (talking head) superpuesto al hero
+6. **Replicate Kling video:** para escenas específicas con movimiento (ej. puerta abriéndose, casa transformándose)
+7. **Video variant A/B with caption styles:** 2 versiones del mismo video con captions kinetic vs estáticos para testear qué performa mejor
+8. **Analytics loop-back:** después de publicar, el Programador lee engagement de FB/IG Graph API y actualiza record con métricas; el Creativo y Director aprenden qué narrativa + theme + mood genera mejor resultado
+
+---
+
+## 13. Historial de decisiones y cambios
+
+| Fecha | Decisión/Cambio | Autor |
+|---|---|---|
+| 2026-04-24 | Creativo v2 marcado como 100% operativo (42 tests, 5 temas × 3 aspects × 3 slide-types) | Jorge + Claude (Opus 4.7) |
+| 2026-04-24 | Brainstorming Director v2 — 7 decisiones aprobadas (B MVP, mezcla B+A+C, preset C, music B, anim B+C, hero C→D, layout D) | Jorge + Claude (Opus 4.7) |
+| 2026-04-24 | Spec Director v2 escrito y commiteado (7 partes por regla "por partes") | Claude (Opus 4.7) |
+| — | Pendiente: review de Jorge antes de pasar a `writing-plans` | — |
+
+---
+
+## 14. Próximo paso (terminal state del skill `brainstorming`)
+
+Después de que Jorge apruebe este spec:
+
+1. ✅ Spec self-review (placeholders, consistencia, ambigüedad, scope)
+2. ⏳ Jorge revisa el spec escrito y da aprobación
+3. ⏳ Invocar skill `writing-plans` para crear plan de implementación detallado del Sprint 1, aplicando regla "por partes" (<300 líneas por Write/Edit)
+4. ⏳ Invocar skill `executing-plans` para comenzar la ejecución paso a paso del Sprint 1
+
+Ninguna implementación comienza hasta que Jorge apruebe el plan detallado.
+
+— Fin del spec —
+
