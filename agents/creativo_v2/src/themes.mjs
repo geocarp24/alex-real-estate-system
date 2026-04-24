@@ -216,22 +216,25 @@ export function buildCarousel(spec) {
   if (!spec || !spec.theme || !VALID_THEME_CODES.includes(spec.theme)) {
     throw new Error(`buildCarousel: invalid or missing theme, expected one of ${VALID_THEME_CODES.join(",")}`);
   }
+  const aspect = spec.aspect && VALID_ASPECTS.includes(spec.aspect) ? spec.aspect : "4:5";
   const slides = [];
   const hook = spec.hook || {};
   slides.push(slideHook(spec.theme, {
     hookEn: hook.hookEn ?? hook.en,
     hookEs: hook.hookEs ?? hook.es,
     badge:  hook.badge,
+    aspect,
   }));
   const pts = Array.isArray(spec.points) ? spec.points : [];
   const total = pts.length;
   pts.forEach((p, i) => {
-    slides.push(slidePoint(spec.theme, { ...p, index: i + 1, total }));
+    slides.push(slidePoint(spec.theme, { ...p, index: i + 1, total, aspect }));
   });
   const cta = spec.cta || {};
   slides.push(slideCTA(spec.theme, {
     ctaEn: cta.ctaEn ?? cta.en,
     ctaEs: cta.ctaEs ?? cta.es,
+    aspect,
   }));
   return slides;
 }
