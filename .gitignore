@@ -29,3 +29,10 @@ secretario/google_creds/token.json
 # OS
 .DS_Store
 Thumbs.db
+
+# Director v2
+agents/director_v2/node_modules/
+agents/director_v2/tmp/
+agents/director_v2/samples/
+agents/director_v2/logs/
+agents/director_v2/state/nano_banana_usage.json
