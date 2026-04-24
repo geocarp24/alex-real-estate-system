@@ -2913,4 +2913,198 @@ git commit -m "feat(director_v2): Task 13 — cost_control with per-video + mont
 
 ---
 
-<!-- PLAN_PART_11_END -->
+## Task 14: POC — render_poc.mjs + Jorge's manual review
+
+**Goal:** Standalone runner that takes `spec/poc_narrative_b.json`, runs the full pipeline (with `--no-airtable` so it doesn't pull from Airtable, just uses the local spec), and outputs the MP4 to `samples/poc_narrative_b.mp4`. Optionally uploads to Cloudinary so Jorge can preview the URL.
+
+**Files:**
+- Create: `agents/director_v2/spec/poc_narrative_b.json`
+- Create: `agents/director_v2/render_poc.mjs`
+
+- [ ] **Step 1: Create POC spec**
+
+Create `agents/director_v2/spec/poc_narrative_b.json`:
+```json
+{
+  "media_type": "reel",
+  "theme": "T1",
+  "aspect": "9:16",
+  "narrative": "B",
+  "duration": 10,
+  "mood": "upbeat",
+  "hook": {
+    "en": "3 REASONS TO SELL OFF-MARKET",
+    "es": "3 RAZONES PARA VENDER OFF-MARKET",
+    "badge": "WISCONSIN"
+  },
+  "points": [
+    { "headingEn": "Faster Than Banks", "headingEs": "Más Rápido Que Los Bancos", "bodyEn": "No waiting for approval", "bodyEs": "Sin esperar aprobación" },
+    { "headingEn": "No Commissions",    "headingEs": "Sin Comisiones",             "bodyEn": "Keep 100% of offer",      "bodyEs": "Quedate con el 100%" },
+    { "headingEn": "No Showings",       "headingEs": "Sin Visitas",                "bodyEn": "Sell as-is, today",       "bodyEs": "Vende como está, hoy" }
+  ],
+  "cta": {
+    "en": "Get your cash offer today",
+    "es": "Reciba su oferta en efectivo hoy"
+  }
+}
+```
+
+- [ ] **Step 2: Implement render_poc.mjs**
+
+Create `agents/director_v2/render_poc.mjs`:
+```javascript
+#!/usr/bin/env node
+// POC runner — renders spec/poc_narrative_b.json to samples/poc_narrative_b.mp4
+// Optionally uploads to Cloudinary if --upload flag is passed.
+// Usage:   doppler run -- node render_poc.mjs [--upload]
+
+import { readFile, mkdir, rm, stat } from 'node:fs/promises';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import { expandNarrative, validateSpec } from './src/narratives/index.mjs';
+import { buildSceneHtml } from './src/scene_layout.mjs';
+import { wrapSlideHtml } from './src/wrapper.mjs';
+import { renderScene, closeBrowser } from './src/render.mjs';
+import { searchPortrait, downloadToFile, PexelsNoResultsError } from './src/pexels.mjs';
+import { generateImage, NanoBananaFailedError } from './src/nano_banana.mjs';
+import { pickMusic } from './src/audio.mjs';
+import { buildVideoCommand, runFfmpeg } from './src/ffmpeg.mjs';
+import { uploadVideo } from './src/cloudinary.mjs';
+import { writeFile } from 'node:fs/promises';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const TMP = join(HERE, 'tmp', 'poc');
+const SAMPLES = join(HERE, 'samples');
+const SPEC_PATH = join(HERE, 'spec', 'poc_narrative_b.json');
+
+async function resolveHero(scene, tmpDir, env) {
+  const heroPath = join(tmpDir, `hero_${scene.index}.bin`);
+  if (scene.heroSource === 'nano_banana') {
+    try {
+      const { imageBuffer } = await generateImage(scene.heroPrompt, { apiKey: env.GEMINI_API_KEY });
+      await writeFile(heroPath, imageBuffer);
+      return heroPath;
+    } catch (err) {
+      if (!(err instanceof NanoBananaFailedError)) throw err;
+      console.warn(`[fallback] scene ${scene.index}: nano_banana → pexels`);
+      scene.heroQuery = 'real estate wisconsin modern home';
+    }
+  }
+  if (scene.heroSource === 'pexels' || scene.heroQuery) {
+    try {
+      const photo = await searchPortrait(scene.heroQuery, { apiKey: env.PEXELS_API_KEY });
+      await downloadToFile(photo.downloadUrl, heroPath);
+      return heroPath;
+    } catch (err) {
+      if (err instanceof PexelsNoResultsError) console.warn(`[fallback] scene ${scene.index}: pexels → theme_solid`);
+      else throw err;
+    }
+  }
+  scene.heroSource = 'theme_solid';
+  return null;
+}
+
+async function main() {
+  const upload = process.argv.includes('--upload');
+  const env = process.env;
+  for (const k of ['PEXELS_API_KEY', 'GEMINI_API_KEY']) {
+    if (!env[k]) { console.error(`ERROR: ${k} missing (run with doppler run --)`); process.exit(1); }
+  }
+  if (upload) {
+    for (const k of ['CLOUDINARY_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET']) {
+      if (!env[k]) { console.error(`ERROR: ${k} missing for --upload`); process.exit(1); }
+    }
+  }
+
+  const spec = JSON.parse(await readFile(SPEC_PATH, 'utf8'));
+  validateSpec(spec);
+
+  await rm(TMP, { recursive: true, force: true });
+  await mkdir(TMP, { recursive: true });
+  await mkdir(SAMPLES, { recursive: true });
+
+  console.log(`POC — spec=${SPEC_PATH}, theme=${spec.theme}, narrative=${spec.narrative}, duration=${spec.duration}s`);
+
+  const scenes = expandNarrative(spec);
+  console.log(`Expanded to ${scenes.length} scenes.`);
+
+  const t0 = Date.now();
+  const sceneFrames = [];
+  for (const scene of scenes) {
+    console.log(`  scene ${scene.index} (${scene.layoutType}, ${scene.duration}s, hero=${scene.heroSource}) ...`);
+    const heroPath = await resolveHero(scene, TMP, env);
+    const body = buildSceneHtml(scene, heroPath, spec.theme, spec.aspect);
+    const html = wrapSlideHtml(body, spec.theme, spec.aspect);
+    const files = await renderScene(html, scene, TMP);
+    sceneFrames.push({
+      index: scene.index, duration: scene.duration, imagePaths: files,
+      zoompan: scene.zoompan, transitionOut: scene.transitionOut, kinetic: scene.kinetic,
+    });
+  }
+
+  const musicPath = pickMusic(spec.mood || 'upbeat', scenes.reduce((t, s) => t + s.duration, 0));
+  console.log(`  music: ${musicPath.split('/').pop()}`);
+
+  const outputPath = join(SAMPLES, 'poc_narrative_b.mp4');
+  console.log(`  ffmpeg → ${outputPath}`);
+  const cmd = buildVideoCommand({ scenes: sceneFrames, musicPath, outputPath });
+  await runFfmpeg(cmd);
+
+  const { size } = await stat(outputPath);
+  await closeBrowser();
+  console.log(`  OK: ${(size / 1_048_576).toFixed(1)} MB, ${((Date.now() - t0) / 1000).toFixed(1)}s render`);
+
+  if (upload) {
+    console.log('  uploading to Cloudinary...');
+    const upRes = await uploadVideo(outputPath, {
+      publicId: 'directorv2/poc_narrative_b',
+      folder: 'pinnacle-social-media/videos',
+      cloudName: env.CLOUDINARY_NAME, apiKey: env.CLOUDINARY_API_KEY, apiSecret: env.CLOUDINARY_API_SECRET,
+    });
+    console.log(`\n  ✅ Cloudinary URL:\n  ${upRes.secure_url}\n`);
+  }
+}
+
+main().catch(err => { console.error('FAIL:', err); process.exit(1); });
+```
+
+- [ ] **Step 3: Run POC locally (no upload)**
+
+```bash
+cd agents/director_v2 && doppler run -- node render_poc.mjs
+```
+Expected: prints scene-by-scene progress, ends with `OK: <N>.0 MB, <T>s render`. The MP4 at `samples/poc_narrative_b.mp4` should:
+- Be 1080×1920 (verify with `ffprobe -v error -select_streams v -show_entries stream=width,height samples/poc_narrative_b.mp4`)
+- Be ~10s (verify with `ffprobe -v error -show_entries format=duration samples/poc_narrative_b.mp4`)
+- Have audio (verify with `ffprobe -v error -select_streams a -show_entries stream=codec_name samples/poc_narrative_b.mp4`)
+
+- [ ] **Step 4: Upload to Cloudinary for Jorge review**
+
+```bash
+cd agents/director_v2 && doppler run -- node render_poc.mjs --upload
+```
+Expected: prints Cloudinary URL at the end. Send URL to Jorge via Telegram or paste here.
+
+- [ ] **Step 5: Jorge approves the POC**
+
+PAUSE here. Jorge reviews the URL on his phone (mobile preview) and:
+- ✅ Approves → continue to Task 15
+- 🔄 Wants changes → log what he wants in `memoria_ALex.md` regla R-? and apply targeted fixes (likely on `scene_layout.mjs` or `narrative_B.mjs`), re-run, re-upload, re-approve
+
+- [ ] **Step 6: Commit (after approval)**
+
+```bash
+git add agents/director_v2/spec/poc_narrative_b.json \
+        agents/director_v2/render_poc.mjs
+git commit -m "feat(director_v2): Task 14 — POC narrative B render approved by Jorge"
+```
+
+**Acceptance criteria:**
+- `samples/poc_narrative_b.mp4` exists, 1080×1920, ~10s with audio
+- Cloudinary URL renders correctly when previewed in browser/mobile
+- Jorge's explicit approval (verbal in chat or written) before Task 15
+
+---
+
+<!-- PLAN_PART_12A_END -->
