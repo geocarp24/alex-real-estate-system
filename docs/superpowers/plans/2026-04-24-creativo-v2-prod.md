@@ -955,3 +955,28 @@ Post summary:
 
 ---
 
+## Verification Checklist (after Task 8)
+
+- [ ] `npm test` in `agents/creativo_v2/` — all 19+ tests pass (13 from Fase 1 + 10 airtable + 3 cloudinary + 4 main = 30 minimum)
+- [ ] Git log shows 8 new commits (one per task)
+- [ ] No plaintext secrets remaining in the repo (`grep -r "patSlNwngu7SJoa52" -- agents/` returns nothing)
+- [ ] `output/` folder no longer tracked by git
+- [ ] At least 1 Airtable record transitioned `Nueva → Lista para Publicar` with valid Cloudinary URL
+- [ ] At least 1 record transitioned `Nueva → Error` with Error_Reason populated
+
+---
+
+## Out of Scope (explicit — do NOT implement in this plan)
+
+- Nano Banana / Gemini hero images (Fase 3)
+- Slide-type "media" for testimonials or Jorge photos (Fase 3)
+- Cron scheduling / GitHub Actions / VPS deployment (mini-Fase 2.5)
+- Retry with exponential backoff on Airtable/Cloudinary (POC uses fail-fast; add in 2.5 if needed)
+- Logging to JSONL file (POC uses console.log only; structured logs in 2.5)
+- Multi-theme testing T2-T5 (Fase 1 validated theme variable swap already)
+
+---
+
+*End of plan. Once executed, El Creativo v2 runs autonomously: a content idea lands in Airtable with valid Visual_Prompt JSON → within one cron tick, the carousel is rendered, uploaded to Cloudinary, and Airtable flagged ready to publish.*
+
+
