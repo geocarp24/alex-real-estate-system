@@ -2125,4 +2125,352 @@ git commit -m "feat(director_v2): Task 9 — ffmpeg builder (argv array) with xf
 
 ---
 
-<!-- PLAN_PART_9_END -->
+## Task 10: cloudinary — extend with uploadVideo
+
+**Goal:** Copy the signed-upload logic from `agents/creativo_v2/src/cloudinary.mjs` into `agents/director_v2/src/cloudinary.mjs` and extend with an `uploadVideo` function that uses `resource_type=video`. Keeping the module local (not re-export) avoids coupling the two sub-projects.
+
+**Files:**
+- Create: `agents/director_v2/src/cloudinary.mjs`
+- Create: `agents/director_v2/test/cloudinary.test.mjs`
+- Create: `agents/director_v2/test/fixtures/cloudinary_video_response.json`
+
+- [ ] **Step 1: Create fixture**
+
+Create `agents/director_v2/test/fixtures/cloudinary_video_response.json`:
+```json
+{
+  "public_id": "directorv2/rec123",
+  "version": 1713966000,
+  "format": "mp4",
+  "resource_type": "video",
+  "duration": 10.1,
+  "bytes": 2400000,
+  "secure_url": "https://res.cloudinary.com/dzzlhhk0m/video/upload/v1713966000/directorv2/rec123.mp4"
+}
+```
+
+- [ ] **Step 2: Write failing tests**
+
+Create `agents/director_v2/test/cloudinary.test.mjs`:
+```javascript
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { buildSignature, uploadVideo, __setFetch } from '../src/cloudinary.mjs';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const VIDEO_RESP = JSON.parse(readFileSync(join(HERE, 'fixtures/cloudinary_video_response.json'), 'utf8'));
+
+test('buildSignature with resource_type=video is deterministic SHA1', () => {
+  const sig = buildSignature({
+    folder: 'pinnacle-social-media/videos',
+    public_id: 'directorv2/rec123',
+    resource_type: 'video',
+    timestamp: 1713966000,
+    overwrite: 'true',
+  }, 'test_secret');
+  assert.equal(sig.length, 40);
+  assert.match(sig, /^[a-f0-9]{40}$/);
+});
+
+test('uploadVideo POSTs resource_type=video to /video/upload endpoint', async () => {
+  let captured;
+  __setFetch(async (url, opts) => {
+    captured = { url, opts };
+    return { ok: true, json: async () => VIDEO_RESP };
+  });
+  const res = await uploadVideo('/tmp/test.mp4', {
+    publicId: 'directorv2/rec123',
+    folder: 'pinnacle-social-media/videos',
+    cloudName: 'dzzlhhk0m',
+    apiKey: 'K',
+    apiSecret: 'S',
+    timestampProvider: () => 1713966000,
+    fileReader: async () => Buffer.from('fakevideo'),
+  });
+  assert.ok(captured.url.includes('/video/upload'));
+  assert.equal(res.secure_url, VIDEO_RESP.secure_url);
+});
+
+test('uploadVideo sanitizes public_id before signing', async () => {
+  let captured;
+  __setFetch(async (url, opts) => { captured = opts.body; return { ok: true, json: async () => VIDEO_RESP }; });
+  await uploadVideo('/tmp/t.mp4', {
+    publicId: 'BAD-chars!@#',
+    folder: 'pinnacle-social-media/videos',
+    cloudName: 'dzzlhhk0m',
+    apiKey: 'K', apiSecret: 'S',
+    timestampProvider: () => 1,
+    fileReader: async () => Buffer.from('x'),
+  });
+  // FormData body should contain only the sanitized version
+  const raw = Buffer.isBuffer(captured) ? captured.toString() : String(captured);
+  // loose check — formdata boundary text
+  assert.ok(!raw.includes('BAD-chars!@#'));
+});
+```
+
+- [ ] **Step 3: Run tests to verify they fail**
+
+```bash
+cd agents/director_v2 && node --test test/cloudinary.test.mjs
+```
+Expected: FAIL (module missing).
+
+- [ ] **Step 4: Implement cloudinary.mjs**
+
+Create `agents/director_v2/src/cloudinary.mjs`:
+```javascript
+import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { sanitizePublicId } from './util/sanitize.mjs';
+
+let _fetch = globalThis.fetch;
+export function __setFetch(fn) { _fetch = fn; }
+
+export function buildSignature(params, apiSecret) {
+  const keys = Object.keys(params).sort();
+  const toSign = keys.map(k => `${k}=${params[k]}`).join('&') + apiSecret;
+  return createHash('sha1').update(toSign).digest('hex');
+}
+
+export async function uploadVideo(localPath, {
+  publicId, folder, cloudName, apiKey, apiSecret,
+  overwrite = true,
+  timestampProvider = () => Math.floor(Date.now() / 1000),
+  fileReader = readFile,
+} = {}) {
+  const safePublicId = sanitizePublicId(publicId);
+  const timestamp = timestampProvider();
+  const params = {
+    folder, public_id: safePublicId, resource_type: 'video',
+    timestamp, overwrite: overwrite ? 'true' : 'false',
+  };
+  const signature = buildSignature(params, apiSecret);
+
+  const form = new FormData();
+  form.append('file', new Blob([await fileReader(localPath)]));
+  form.append('api_key', apiKey);
+  form.append('timestamp', String(timestamp));
+  form.append('signature', signature);
+  form.append('folder', folder);
+  form.append('public_id', safePublicId);
+  form.append('resource_type', 'video');
+  form.append('overwrite', overwrite ? 'true' : 'false');
+
+  const url = `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`;
+  const res = await _fetch(url, { method: 'POST', body: form });
+  if (!res.ok) throw new Error(`Cloudinary video upload failed: HTTP ${res.status}: ${await res.text()}`);
+  return res.json();
+}
+```
+
+- [ ] **Step 5: Run tests to verify all pass**
+
+```bash
+cd agents/director_v2 && node --test test/cloudinary.test.mjs
+```
+Expected: `# pass 3`.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add agents/director_v2/src/cloudinary.mjs \
+        agents/director_v2/test/cloudinary.test.mjs \
+        agents/director_v2/test/fixtures/cloudinary_video_response.json
+git commit -m "feat(director_v2): Task 10 — cloudinary.uploadVideo with 3 tests"
+```
+
+**Acceptance criteria:**
+- 3 tests passing
+- `uploadVideo` hits `/video/upload` endpoint with `resource_type=video`
+- `public_id` is sanitized before signing
+
+---
+
+## Task 11: airtable — list pending reels + parse + update
+
+**Goal:** Airtable client that (a) lists records with `Media_Type='reel' AND Status='Nueva' AND Visual_Prompt!='' AND visual_url=''`, (b) parses the JSON from `Visual_Prompt` (tolerating markdown fencing), (c) PATCHes the record with video results.
+
+**Files:**
+- Create: `agents/director_v2/src/airtable.mjs`
+- Create: `agents/director_v2/test/airtable.test.mjs`
+- Create: `agents/director_v2/test/fixtures/airtable_records_pending.json`
+
+- [ ] **Step 1: Create fixture**
+
+Create `agents/director_v2/test/fixtures/airtable_records_pending.json`:
+```json
+{
+  "records": [
+    {
+      "id": "recABC123",
+      "fields": {
+        "Media_Type": "reel",
+        "Status": "Nueva",
+        "Visual_Prompt": "{\"media_type\":\"reel\",\"theme\":\"T1\",\"aspect\":\"9:16\",\"narrative\":\"B\",\"duration\":10,\"hook\":{\"en\":\"x\",\"es\":\"y\"},\"points\":[{\"headingEn\":\"a\",\"headingEs\":\"b\"},{\"headingEn\":\"c\",\"headingEs\":\"d\"},{\"headingEn\":\"e\",\"headingEs\":\"f\"}],\"cta\":{\"en\":\"x\",\"es\":\"y\"}}"
+      }
+    }
+  ]
+}
+```
+
+- [ ] **Step 2: Write failing tests**
+
+Create `agents/director_v2/test/airtable.test.mjs`:
+```javascript
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { listPending, parseVisualPrompt, updateRecord, __setFetch } from '../src/airtable.mjs';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const PENDING = JSON.parse(readFileSync(join(HERE, 'fixtures/airtable_records_pending.json'), 'utf8'));
+
+const ENV = { token: 'tok', baseId: 'appU9s3kGkVpdrJkw', tableId: 'tblAj0Pkj1jW4p5Ld' };
+
+test('listPending filters by Media_Type=reel AND Status=Nueva AND visual_url empty', async () => {
+  let calledUrl;
+  __setFetch(async (url) => {
+    calledUrl = url;
+    return { ok: true, json: async () => PENDING };
+  });
+  const records = await listPending(ENV);
+  assert.equal(records.length, 1);
+  assert.ok(calledUrl.includes("Media_Type") && calledUrl.includes('reel'));
+  assert.ok(calledUrl.includes('Status') && calledUrl.includes('Nueva'));
+  assert.ok(calledUrl.includes('visual_url'));
+});
+
+test('parseVisualPrompt parses plain JSON', () => {
+  const spec = parseVisualPrompt('{"narrative":"B","theme":"T1","hook":{"en":"h","es":"h"},"aspect":"9:16","duration":10,"points":[],"cta":{"en":"c","es":"c"}}');
+  assert.equal(spec.narrative, 'B');
+});
+
+test('parseVisualPrompt tolerates markdown code-fence wrapping', () => {
+  const text = '```json\n{"narrative":"B","theme":"T1","aspect":"9:16","duration":10,"hook":{"en":"h","es":"h"},"points":[],"cta":{"en":"c","es":"c"}}\n```';
+  const spec = parseVisualPrompt(text);
+  assert.equal(spec.narrative, 'B');
+});
+
+test('parseVisualPrompt throws clear error for malformed input', () => {
+  assert.throws(() => parseVisualPrompt('not json at all'), /parse/i);
+});
+
+test('updateRecord PATCHes with provided fields only', async () => {
+  let capturedBody, capturedUrl, capturedMethod;
+  __setFetch(async (url, opts) => {
+    capturedUrl = url;
+    capturedMethod = opts.method;
+    capturedBody = JSON.parse(opts.body);
+    return { ok: true, json: async () => ({ id: 'recABC123' }) };
+  });
+  await updateRecord('recABC123', {
+    visual_url: 'https://x/y.mp4', Status: 'Lista', video_duration: 10.1, video_cost_cents: 8,
+  }, ENV);
+  assert.equal(capturedMethod, 'PATCH');
+  assert.ok(capturedUrl.endsWith('recABC123'));
+  assert.equal(capturedBody.fields.visual_url, 'https://x/y.mp4');
+  assert.equal(capturedBody.fields.Status, 'Lista');
+  assert.equal(capturedBody.fields.video_duration, 10.1);
+  assert.equal(capturedBody.fields.video_cost_cents, 8);
+});
+
+test('updateRecord retries on 429', async () => {
+  let calls = 0;
+  __setFetch(async () => {
+    calls++;
+    if (calls < 2) return { ok: false, status: 429, text: async () => 'rate limit' };
+    return { ok: true, json: async () => ({ id: 'x' }) };
+  });
+  await updateRecord('recX', { Status: 'Lista' }, { ...ENV, baseDelayMs: 1 });
+  assert.equal(calls, 2);
+});
+```
+
+- [ ] **Step 3: Run tests to verify they fail**
+
+```bash
+cd agents/director_v2 && node --test test/airtable.test.mjs
+```
+Expected: FAIL (module missing).
+
+- [ ] **Step 4: Implement airtable.mjs**
+
+Create `agents/director_v2/src/airtable.mjs`:
+```javascript
+import { withRetry } from './util/retry.mjs';
+
+let _fetch = globalThis.fetch;
+export function __setFetch(fn) { _fetch = fn; }
+
+const BASE = 'https://api.airtable.com/v0';
+const PENDING_FILTER = "AND({Media_Type}='reel',{Status}='Nueva',{Visual_Prompt}!='',{visual_url}='')";
+
+export async function listPending({ token, baseId, tableId, baseDelayMs = 1000 }) {
+  const url = `${BASE}/${baseId}/${tableId}?filterByFormula=${encodeURIComponent(PENDING_FILTER)}&pageSize=10`;
+  const data = await withRetry(
+    async () => {
+      const res = await _fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error(`Airtable HTTP ${res.status}`);
+      return res.json();
+    },
+    { attempts: 3, baseDelayMs }
+  );
+  return data.records || [];
+}
+
+export function parseVisualPrompt(raw) {
+  if (!raw) throw new Error('parseVisualPrompt: empty input');
+  let text = String(raw).trim();
+  const fence = text.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
+  if (fence) text = fence[1].trim();
+  try { return JSON.parse(text); }
+  catch (err) { throw new Error(`parseVisualPrompt: JSON parse failed: ${err.message}`); }
+}
+
+export async function updateRecord(recordId, fields, { token, baseId, tableId, baseDelayMs = 1000 }) {
+  const url = `${BASE}/${baseId}/${tableId}/${recordId}`;
+  return withRetry(
+    async () => {
+      const res = await _fetch(url, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields }),
+      });
+      if (!res.ok) throw new Error(`Airtable PATCH ${res.status}: ${await res.text()}`);
+      return res.json();
+    },
+    { attempts: 3, baseDelayMs }
+  );
+}
+```
+
+- [ ] **Step 5: Run tests to verify all pass**
+
+```bash
+cd agents/director_v2 && node --test test/airtable.test.mjs
+```
+Expected: `# pass 6`.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add agents/director_v2/src/airtable.mjs \
+        agents/director_v2/test/airtable.test.mjs \
+        agents/director_v2/test/fixtures/airtable_records_pending.json
+git commit -m "feat(director_v2): Task 11 — airtable listPending+parse+update with 6 tests"
+```
+
+**Acceptance criteria:**
+- 6 tests passing
+- `listPending` filter matches spec: `Media_Type='reel' AND Status='Nueva' AND Visual_Prompt!='' AND visual_url=''`
+- `parseVisualPrompt` tolerates ```` ```json ... ``` ```` fencing
+
+---
+
+<!-- PLAN_PART_10_END -->
