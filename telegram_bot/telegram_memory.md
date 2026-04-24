@@ -5,6 +5,11 @@ Se actualiza con /guardar o /reset. ALEX lo lee al inicio de cada sesión.
 
 ---
 
+## 2026-04-24 — REGLA "POR PARTES" (orden de Jorge, NO NEGOCIABLE)
+Aplicar SIEMPRE la regla de Fase 4 del PROTOCOLO_EJECUCION en **todos los procesos con output >300 líneas** (planes, specs, código, docs, reportes). Dividir en partes pequeñas (<300 líneas por Write/Edit), reportar "✅ Parte N/M lista. Sigo." tras cada una, usar Write/Edit al disco, nunca stream del chat. Validado con plan Fase 2 Creativo v2 (982 líneas, 9 partes, sin timeout) después de que el intento inline previo falló. Aplica a Claude Code, Telegram Bot, Claude.ai y cualquier instancia de ALEX.
+
+---
+
 ## 2026-04-22 — Sesión Claude Code (resumen para continuidad)
 
 Jorge cerró la fase pública del sitio Pinnacle. Quedaron en producción:
