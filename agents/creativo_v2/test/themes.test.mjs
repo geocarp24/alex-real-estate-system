@@ -37,3 +37,18 @@ test('buildCarousel throws on missing theme', () => {
 test('buildCarousel throws on invalid theme code', () => {
   assert.throws(() => buildCarousel({ theme: 'T99', hook: {}, points: [], cta: {} }), /theme/);
 });
+
+test('buildCarousel maps spec.hook.en/es to hookEn/hookEs in output HTML', () => {
+  const spec = {
+    theme: 'T1',
+    hook: { en: 'My Hook EN', es: 'Mi Hook ES', badge: 'BADGE' },
+    points: [{ headingEn: 'H', bodyEs: 'b' }],
+    cta: { en: 'My CTA EN', es: 'Mi CTA ES' },
+  };
+  const slides = buildCarousel(spec);
+  assert.ok(slides[0].includes('My Hook EN'), 'slide 1 must contain hook EN');
+  assert.ok(slides[0].includes('Mi Hook ES'), 'slide 1 must contain hook ES');
+  assert.ok(slides[0].includes('BADGE'), 'slide 1 must contain badge');
+  assert.ok(slides[slides.length - 1].includes('My CTA EN'), 'last slide must contain CTA EN');
+  assert.ok(slides[slides.length - 1].includes('Mi CTA ES'), 'last slide must contain CTA ES');
+});
