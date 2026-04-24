@@ -1,0 +1,17 @@
+{
+  "name": "creativo_v2",
+  "version": "0.1.0",
+  "description": "Pinnacle Holdings static carousel renderer (replaces Blotato)",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "poc": "node poc.mjs",
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "puppeteer": "^23.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
