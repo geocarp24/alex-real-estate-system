@@ -76,7 +76,7 @@ export function slideHook(themeCode, { hookEn, hookEs, badge } = {}) {
       </p>` : ""}
       <div style="margin-top:56px; width:120px; height:5px; background:${theme.accent}; border-radius:4px;"></div>
     </div>
-    ${logoCorner(theme, 150)}
+    ${logoCorner(theme, 200)}
   `;
   return baseWrapper(theme, inner, { pad: 0 });
 }
