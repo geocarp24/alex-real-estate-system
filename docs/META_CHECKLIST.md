@@ -5,7 +5,8 @@
 | Campo | Valor |
 |-------|-------|
 | Nombre | Pinnacle Social Publisher |
-| App ID | termina en ...564604 |
+| App ID | `4233439163564604` |
+| Business ID | `800555019765952` |
 | Estado | Unpublished (modo desarrollo) |
 | Plataforma | Meta for Developers |
 
