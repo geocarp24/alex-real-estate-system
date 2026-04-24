@@ -5,6 +5,9 @@ Se actualiza con /guardar o /reset. ALEX lo lee al inicio de cada sesión.
 
 ---
 
+## 2026-04-24 — EL CREATIVO v2 100% OPERATIVO (ESTÁTICOS)
+ACTIVADO. `agents/creativo_v2/`. 5 temas (T1-T5) rotativos + 3 aspects (4:5, 1:1, 9:16) + 3 slide-types. 42 tests verdes. Airtable + Cloudinary + Doppler integrados. Bloqueo para autonomía: Social Media Agent debe emitir Visual_Prompt JSON. Siguiente fase: Director v2 (videos 7-15s con HeyGen + ElevenLabs + Kling + ffmpeg).
+
 ## 2026-04-24 — REGLA "LEGACY RECORD BACKFILL" (orden de Jorge, NO NEGOCIABLE)
 Cuando un flujo nuevo procesa records existentes con formato distinto al que espera el nuevo pipeline, **es OBLIGATORIO** incluir una Task final de backfill one-time: read → regenerate → PATCH → tabla consistente. Aplica a cualquier storage (Airtable, DB, JSON, archivos). Evita que records queden como Status=Error eternamente. Requiere: script idempotente + dry-run + log + commit explícito. Aplicado a Creativo v2, Fer, Tracy, cualquier flujo con records legacy. Aplica a Claude Code, Telegram Bot, Claude.ai.
 
