@@ -21,6 +21,8 @@ async function main() {
   console.log(`Theme: ${spec.theme} | Hook: ${spec.hook.en}`);
   console.log(`Points: ${spec.points.length} | Total slides: ${1 + spec.points.length + 1}`);
 
+  const aspect = spec.aspect || "4:5";
+  const dims = dimsForAspect(aspect);
   const slides = buildCarousel(spec);
   if (slides.length !== 6) {
     throw new Error(`Expected 6 slides, got ${slides.length}`);
@@ -32,9 +34,9 @@ async function main() {
   for (let i = 0; i < slides.length; i++) {
     const idx = i + 1;
     const outPath = path.join(OUTPUT_DIR, `poc_t1_slide_${idx}.jpg`);
-    const html = wrapSlideHtml(slides[i], spec.theme);
-    process.stdout.write(`  Rendering slide ${idx}/6... `);
-    await renderJpg(html, outPath);
+    const html = wrapSlideHtml(slides[i], spec.theme, aspect);
+    process.stdout.write(`  Rendering slide ${idx}/6 (${aspect})... `);
+    await renderJpg(html, outPath, dims);
     const s = await stat(outPath);
     results.push({ idx, outPath, bytes: s.size });
     console.log(`${(s.size / 1024).toFixed(1)} KB`);
