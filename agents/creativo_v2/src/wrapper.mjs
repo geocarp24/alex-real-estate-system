@@ -1,7 +1,7 @@
 // Wraps a slide body HTML in a full HTML document with Montserrat fonts loaded.
 // The returned string is Puppeteer-ready.
 
-import { THEMES } from './themes.mjs';
+import { THEMES, dimsForAspect } from './themes.mjs';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
