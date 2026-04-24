@@ -229,11 +229,11 @@ Execution pattern: `doppler run -- node src/main.mjs`. No `.env` files. No secre
 
 ---
 
-## 11. Open Questions (to resolve during implementation)
+## 11. Resolved Implementation Decisions
 
-- Do we move `themes.mjs` physically to `creativo_v2/src/` or import from `creativo_runner/`? Recommend move for autonomy.
-- Puppeteer chromium download: bundled (~170MB in node_modules) vs system chromium? Bundled is more reliable but bigger.
-- Airtable `parseVisualPrompt` parsing strategy: regex on TEMA/Slide N markers vs full LLM parse? Recommend regex first, LLM fallback if fails.
+- **themes.mjs location:** move physically to `creativo_v2/src/themes.mjs`. Makes `creativo_v2/` a self-contained module. Old location `agents/creativo_runner/themes.mjs` deleted in same commit.
+- **Puppeteer chromium:** use bundled chromium (~170MB in node_modules). Reliability over disk size — CI/CD environments rarely have a system chromium.
+- **parseVisualPrompt strategy (Fase 2):** regex-first on `TEMA:`, `Slide N:` markers produced by Social Media Agent. If parse fails, PATCH Airtable with `Status=Error` and `Error_Reason="parse failed"` — do NOT fall back to LLM parse in Fase 2 (adds cost and non-determinism). LLM fallback is a Fase 3+ consideration only if parse error rate exceeds 5%.
 
 ---
 
