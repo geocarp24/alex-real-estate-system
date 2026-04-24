@@ -100,7 +100,7 @@ export function slideHook(themeCode, { hookEn, hookEs, badge, aspect = "4:5" } =
 // POINT SLIDE — numbered body point with heading + body text, logo small
 // Used as Slides 2 through N-1.
 // ---------------------------------------------------------------------------
-export function slidePoint(themeCode, { index, total, headingEn, bodyEn, headingEs, bodyEs } = {}) {
+export function slidePoint(themeCode, { index, total, headingEn, bodyEn, headingEs, bodyEs, aspect = "4:5" } = {}) {
   const theme = THEMES[themeCode] || THEMES.T1;
   const numColor = theme.bg;
   const idx = String(index ?? "1").padStart(2, "0");
