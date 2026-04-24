@@ -163,4 +163,243 @@ Social Media Agent writes valid JSON to Airtable `Visual_Prompt` (table `tblAj0P
 
 ---
 
-<!-- PLAN_PART_1_END -->
+## Task 0: Airtable schema setup (idempotent one-time migration)
+
+**Goal:** Before any Director v2 code runs, ensure the Airtable base has the 2 new fields and the `reel` option. Script is idempotent — can be re-run safely.
+
+**Files:**
+- Create: `agents/director_v2/scripts/airtable_schema_setup.mjs`
+- Create: `agents/director_v2/test/schema_setup.test.mjs`
+
+**Dependencies:** `AIRTABLE_SM_SCHEMA_TOKEN` in Doppler (see Prerequisites), `AIRTABLE_SM_BASE_ID`, `AIRTABLE_SM_TABLE_ID`.
+
+- [ ] **Step 1: Create directory and package.json**
+
+Run:
+```bash
+mkdir -p agents/director_v2/scripts agents/director_v2/test
+```
+
+Create `agents/director_v2/package.json`:
+```json
+{
+  "name": "@pinnacle/director-v2",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "engines": { "node": ">=22.0.0" },
+  "scripts": {
+    "test":             "node --test test/*.test.mjs",
+    "schema":           "doppler run -- node scripts/airtable_schema_setup.mjs",
+    "schema:dry-run":   "doppler run -- node scripts/airtable_schema_setup.mjs --dry-run"
+  },
+  "dependencies": {
+    "puppeteer": "^23.0.0"
+  }
+}
+```
+
+- [ ] **Step 2: Write failing test for discoverTable**
+
+Create `agents/director_v2/test/schema_setup.test.mjs`:
+```javascript
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { discoverTable, diffSchema, __setFetch } from '../scripts/airtable_schema_setup.mjs';
+
+test('discoverTable returns table metadata for given tableId', async () => {
+  __setFetch(async (url, opts) => {
+    assert.ok(url.includes('/meta/bases/appU9s3kGkVpdrJkw/tables'));
+    assert.equal(opts.headers.Authorization, 'Bearer test_token');
+    return {
+      ok: true,
+      json: async () => ({
+        tables: [
+          { id: 'tblAj0Pkj1jW4p5Ld', name: 'SocialMedia', fields: [
+            { id: 'fldMT', name: 'Media_Type', type: 'singleSelect', options: { choices: [{ name: 'carousel' }] } },
+            { id: 'fldVU', name: 'visual_url', type: 'url' }
+          ]}
+        ]
+      }),
+    };
+  });
+
+  const table = await discoverTable('appU9s3kGkVpdrJkw', 'tblAj0Pkj1jW4p5Ld', 'test_token');
+  assert.equal(table.id, 'tblAj0Pkj1jW4p5Ld');
+  assert.equal(table.fields.length, 2);
+});
+
+test('diffSchema returns list of pending changes when fields missing', () => {
+  const table = {
+    fields: [
+      { name: 'Media_Type', type: 'singleSelect', options: { choices: [{ name: 'carousel' }] } },
+      { name: 'visual_url', type: 'url' },
+    ]
+  };
+  const changes = diffSchema(table);
+  assert.equal(changes.length, 3);
+  assert.ok(changes.find(c => c.action === 'add_option' && c.option === 'reel'));
+  assert.ok(changes.find(c => c.action === 'add_field' && c.name === 'video_duration'));
+  assert.ok(changes.find(c => c.action === 'add_field' && c.name === 'video_cost_cents'));
+});
+
+test('diffSchema returns empty when all 3 changes already applied', () => {
+  const table = {
+    fields: [
+      { name: 'Media_Type', type: 'singleSelect', options: { choices: [{ name: 'carousel' }, { name: 'reel' }] } },
+      { name: 'video_duration', type: 'number', options: { precision: 1 } },
+      { name: 'video_cost_cents', type: 'number', options: { precision: 0 } },
+    ]
+  };
+  const changes = diffSchema(table);
+  assert.equal(changes.length, 0);
+});
+```
+
+- [ ] **Step 3: Run test to verify it fails**
+
+```bash
+cd agents/director_v2 && node --test test/schema_setup.test.mjs
+```
+Expected: FAIL with `Cannot find module '../scripts/airtable_schema_setup.mjs'`
+
+- [ ] **Step 4: Implement airtable_schema_setup.mjs**
+
+Create `agents/director_v2/scripts/airtable_schema_setup.mjs`:
+```javascript
+#!/usr/bin/env node
+// Idempotent Airtable schema migration for Director v2.
+// Adds: Media_Type option 'reel', fields 'video_duration' (number), 'video_cost_cents' (number).
+// Requires AIRTABLE_SM_SCHEMA_TOKEN (scope: schema.bases:write) — delete after run.
+
+let _fetch = globalThis.fetch;
+export function __setFetch(fn) { _fetch = fn; }
+
+const BASE = 'https://api.airtable.com/v0';
+
+export async function discoverTable(baseId, tableId, token) {
+  const res = await _fetch(`${BASE}/meta/bases/${baseId}/tables`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!res.ok) throw new Error(`discoverTable failed: HTTP ${res.status}`);
+  const data = await res.json();
+  const table = data.tables?.find(t => t.id === tableId);
+  if (!table) throw new Error(`Table ${tableId} not found in base ${baseId}`);
+  return table;
+}
+
+export function diffSchema(table) {
+  const changes = [];
+  const mediaType = table.fields.find(f => f.name === 'Media_Type');
+  if (mediaType && !mediaType.options?.choices?.some(c => c.name === 'reel')) {
+    changes.push({ action: 'add_option', fieldName: 'Media_Type', fieldId: mediaType.id, option: 'reel' });
+  }
+  if (!table.fields.some(f => f.name === 'video_duration')) {
+    changes.push({ action: 'add_field', name: 'video_duration', type: 'number', options: { precision: 1 } });
+  }
+  if (!table.fields.some(f => f.name === 'video_cost_cents')) {
+    changes.push({ action: 'add_field', name: 'video_cost_cents', type: 'number', options: { precision: 0 } });
+  }
+  return changes;
+}
+
+async function applyChange(baseId, tableId, change, token, currentChoices) {
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  if (change.action === 'add_option') {
+    const newChoices = [...currentChoices, { name: change.option }];
+    const res = await _fetch(`${BASE}/meta/bases/${baseId}/tables/${tableId}/fields/${change.fieldId}`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ options: { choices: newChoices } }),
+    });
+    if (!res.ok) throw new Error(`add_option failed: ${res.status} ${await res.text()}`);
+  } else if (change.action === 'add_field') {
+    const res = await _fetch(`${BASE}/meta/bases/${baseId}/tables/${tableId}/fields`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ name: change.name, type: change.type, options: change.options }),
+    });
+    if (!res.ok) throw new Error(`add_field ${change.name} failed: ${res.status} ${await res.text()}`);
+  }
+}
+
+async function main() {
+  const token  = process.env.AIRTABLE_SM_SCHEMA_TOKEN;
+  const baseId = process.env.AIRTABLE_SM_BASE_ID;
+  const tableId= process.env.AIRTABLE_SM_TABLE_ID;
+  const dryRun = process.argv.includes('--dry-run');
+
+  if (!token) { console.error('ERROR: AIRTABLE_SM_SCHEMA_TOKEN missing'); process.exit(1); }
+  if (!baseId || !tableId) { console.error('ERROR: base/table env missing'); process.exit(1); }
+
+  console.log(`Discovering base=${baseId} table=${tableId} ...`);
+  const table = await discoverTable(baseId, tableId, token);
+  console.log(`  Found table '${table.name}' with ${table.fields.length} fields.`);
+
+  const changes = diffSchema(table);
+  if (changes.length === 0) { console.log('No changes needed — schema is already up to date.'); return; }
+
+  console.log(`Pending changes (${changes.length}):`);
+  changes.forEach((c, i) => console.log(`  ${i+1}. ${c.action} ${c.name || c.option}`));
+
+  if (dryRun) { console.log('--dry-run — not applying.'); return; }
+
+  const mediaType = table.fields.find(f => f.name === 'Media_Type');
+  for (const change of changes) {
+    console.log(`Applying: ${change.action} ${change.name || change.option} ...`);
+    await applyChange(baseId, tableId, change, token, mediaType?.options?.choices || []);
+    console.log('  OK');
+  }
+  console.log('Done. Delete AIRTABLE_SM_SCHEMA_TOKEN from Doppler now.');
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch(err => { console.error('FAIL:', err.message); process.exit(1); });
+}
+```
+
+- [ ] **Step 5: Run tests to verify they pass**
+
+```bash
+cd agents/director_v2 && node --test test/schema_setup.test.mjs
+```
+Expected: `# pass 3` with 0 failures.
+
+- [ ] **Step 6: Dry-run the schema script**
+
+```bash
+cd agents/director_v2 && doppler run -- node scripts/airtable_schema_setup.mjs --dry-run
+```
+Expected output: lists the 3 pending changes (or says "no changes needed" if already applied).
+
+- [ ] **Step 7: Apply schema changes**
+
+```bash
+cd agents/director_v2 && doppler run -- node scripts/airtable_schema_setup.mjs
+```
+Expected: 3 × "OK" lines + "Done. Delete AIRTABLE_SM_SCHEMA_TOKEN..."
+
+- [ ] **Step 8: Delete elevated token from Doppler**
+
+```bash
+doppler secrets delete AIRTABLE_SM_SCHEMA_TOKEN --yes
+```
+Expected: confirmation that the secret is removed. This token is no longer needed and leaving it in Doppler is unnecessary risk.
+
+- [ ] **Step 9: Commit**
+
+```bash
+git add agents/director_v2/package.json \
+        agents/director_v2/scripts/airtable_schema_setup.mjs \
+        agents/director_v2/test/schema_setup.test.mjs
+git commit -m "feat(director_v2): Task 0 — idempotent Airtable schema setup for reel media type"
+```
+
+**Acceptance criteria:**
+- `node --test test/schema_setup.test.mjs` passes 3 tests
+- Airtable base `appU9s3kGkVpdrJkw` has: `Media_Type` option `reel`, field `video_duration` (number, precision 1), field `video_cost_cents` (number, precision 0)
+- `AIRTABLE_SM_SCHEMA_TOKEN` deleted from Doppler
+
+---
+
+<!-- PLAN_PART_2_END -->
