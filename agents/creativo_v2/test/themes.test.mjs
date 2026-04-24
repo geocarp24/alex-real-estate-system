@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { THEMES, buildCarousel } from '../src/themes.mjs';
+import { THEMES, buildCarousel, ASPECTS, VALID_ASPECTS, dimsForAspect } from '../src/themes.mjs';
 
 test('THEMES contains all 5 codes T1-T5', () => {
   const codes = Object.keys(THEMES);
