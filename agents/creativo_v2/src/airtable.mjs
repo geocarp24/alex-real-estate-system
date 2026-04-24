@@ -69,3 +69,18 @@ export function parseVisualPrompt(raw) {
   if (!spec.cta) spec.cta = {};
   return spec;
 }
+
+export async function updateRecord(recordId, fields) {
+  if (!recordId) throw new Error('updateRecord: recordId required');
+  const url = `${baseUrl()}/${recordId}`;
+  const res = await _fetch(url, {
+    method: 'PATCH',
+    headers: authHeaders(),
+    body: JSON.stringify({ fields }),
+  });
+  if (!res.ok) {
+    const body = typeof res.text === 'function' ? await res.text() : '';
+    throw new Error(`Airtable update failed: ${res.status} ${body.slice(0, 200)}`);
+  }
+  return await res.json();
+}
