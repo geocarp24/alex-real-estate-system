@@ -252,12 +252,18 @@ Subtitle: Spanish translation of script as subtitles throughout video
 
 ## CREDENCIALES AIRTABLE
 
+Secrets en Doppler — project `pinnacle-social-publisher` / config `dev_personal`:
+- `AIRTABLE_SM_TOKEN`
+- `AIRTABLE_SM_BASE_ID`  = `appU9s3kGkVpdrJkw`
+- `AIRTABLE_SM_TABLE_ID` = `tblAj0Pkj1jW4p5Ld` (Ideas de Contenido)
+
+Otras tablas en la misma base:
+- Scripts de Video:   `tbli9BsyIwrhwa3aS`
+- Publicaciones:      `tblP1CSi35fNgbSwK`
+
+Ejecutar con Doppler:
 ```
-Token:    patSlNwngu7SJoa52.003c83df8f6e378af5309237e310a36568a037448709d94b10739d032f9e8ef7
-Base ID:  appU9s3kGkVpdrJkw
-Ideas de Contenido: tblAj0Pkj1jW4p5Ld
-Scripts de Video:   tbli9BsyIwrhwa3aS
-Publicaciones:      tblP1CSi35fNgbSwK
+doppler run --project pinnacle-social-publisher --config dev_personal -- node agents/creativo_v2/main.mjs
 ```
 
 ## MAKE.COM WEBHOOK
