@@ -75,7 +75,7 @@ Social Media Agent writes **valid JSON** to the Visual_Prompt field matching thi
 
 ---
 
-## Task 2: Airtable `listPending()` — read records ready for rendering
+## Task 2_PLACEHOLDER: Airtable `listPending()` — read records ready for rendering
 
 **Files:**
 - Create: `agents/creativo_v2/src/airtable.mjs`
