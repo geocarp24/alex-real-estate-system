@@ -75,6 +75,130 @@ Social Media Agent writes **valid JSON** to the Visual_Prompt field matching thi
 
 ---
 
+## Task 2: Airtable `listPending()` — read records ready for rendering
+
+**Files:**
+- Create: `agents/creativo_v2/src/airtable.mjs`
+- Create: `agents/creativo_v2/test/airtable.test.mjs`
+
+- [ ] **Step 1: Write failing test**
+
+Write `agents/creativo_v2/test/airtable.test.mjs`:
+
+```javascript
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { listPending, __setFetch } from '../src/airtable.mjs';
+
+test('listPending builds correct URL with filterByFormula', async () => {
+  let capturedUrl = '';
+  let capturedHeaders = {};
+  __setFetch(async (url, opts) => {
+    capturedUrl = url;
+    capturedHeaders = opts.headers;
+    return { ok: true, status: 200, json: async () => ({ records: [] }) };
+  });
+
+  process.env.AIRTABLE_SM_TOKEN = 'tok_test';
+  process.env.AIRTABLE_SM_BASE_ID = 'appTEST';
+  process.env.AIRTABLE_SM_TABLE_ID = 'tblTEST';
+
+  await listPending();
+
+  assert.ok(capturedUrl.startsWith('https://api.airtable.com/v0/appTEST/tblTEST'));
+  assert.ok(capturedUrl.includes('filterByFormula='));
+  assert.ok(decodeURIComponent(capturedUrl).includes("{Status}='Nueva'"));
+  assert.ok(decodeURIComponent(capturedUrl).includes("{Visual_Prompt}"));
+  assert.equal(capturedHeaders.Authorization, 'Bearer tok_test');
+});
+
+test('listPending returns parsed records array', async () => {
+  __setFetch(async () => ({
+    ok: true,
+    status: 200,
+    json: async () => ({
+      records: [
+        { id: 'rec1', fields: { 'Visual_Prompt': '{}', 'Status': 'Nueva' } },
+        { id: 'rec2', fields: { 'Visual_Prompt': '{}', 'Status': 'Nueva' } },
+      ],
+    }),
+  }));
+  const recs = await listPending();
+  assert.equal(recs.length, 2);
+  assert.equal(recs[0].id, 'rec1');
+});
+
+test('listPending throws on non-200', async () => {
+  __setFetch(async () => ({ ok: false, status: 401, text: async () => 'Unauthorized' }));
+  await assert.rejects(listPending(), /401/);
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+```bash
+cd agents/creativo_v2 && node --test test/airtable.test.mjs 2>&1 | tail -5
+```
+
+Expected: FAIL with `Cannot find module '../src/airtable.mjs'`.
+
+- [ ] **Step 3: Implement airtable.mjs (listPending only for now)**
+
+Write `agents/creativo_v2/src/airtable.mjs`:
+
+```javascript
+// Airtable REST client for creativo_v2. No SDK — native fetch.
+// Secrets from env (inject via Doppler): AIRTABLE_SM_TOKEN, AIRTABLE_SM_BASE_ID, AIRTABLE_SM_TABLE_ID.
+
+let _fetch = globalThis.fetch;
+export function __setFetch(fn) { _fetch = fn; }   // test seam
+
+const PENDING_FILTER =
+  "AND({Status}='Nueva',{Visual_Prompt}!='',{visual_url}='')";
+
+function env(name) {
+  const v = process.env[name];
+  if (!v) throw new Error(`Missing env ${name} (expected via doppler run)`);
+  return v;
+}
+
+function baseUrl() {
+  return `https://api.airtable.com/v0/${env('AIRTABLE_SM_BASE_ID')}/${env('AIRTABLE_SM_TABLE_ID')}`;
+}
+
+function authHeaders() {
+  return { Authorization: `Bearer ${env('AIRTABLE_SM_TOKEN')}`, 'Content-Type': 'application/json' };
+}
+
+export async function listPending() {
+  const url = `${baseUrl()}?filterByFormula=${encodeURIComponent(PENDING_FILTER)}&pageSize=50`;
+  const res = await _fetch(url, { headers: authHeaders() });
+  if (!res.ok) {
+    const body = typeof res.text === 'function' ? await res.text() : '';
+    throw new Error(`Airtable list failed: ${res.status} ${body}`);
+  }
+  const data = await res.json();
+  return data.records || [];
+}
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+```bash
+cd agents/creativo_v2 && node --test test/airtable.test.mjs 2>&1 | tail -8
+```
+
+Expected: `pass 3`, `fail 0`.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add agents/creativo_v2/src/airtable.mjs agents/creativo_v2/test/airtable.test.mjs
+git -c commit.gpgsign=false commit -m "creativo_v2: airtable listPending + tests"
+```
+
+---
+
 ## Task 1: Migrate Airtable secrets to Doppler
 
 **Files:**
