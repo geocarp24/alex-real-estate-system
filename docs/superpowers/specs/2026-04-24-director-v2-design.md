@@ -950,4 +950,220 @@ jobs:
 
 No se corre el smoke test en CI (requiere Pexels API real). Se ejecuta manualmente antes de cada push significativo.
 
-<!-- SECTION_BREAK_AFTER_5 -->
+## 8. POC + Sprints + Task 0 + Backfill (Sección 6/6 del design)
+
+### 8.1 POC concreto (primera demo que rendenderamos)
+
+**Archivo:** `agents/director_v2/spec/poc_narrative_b.json`
+
+**Concepto:** el mismo mensaje del carrusel POC del Creativo v2 ("5 reasons to sell off-market"), adaptado a 10s con 3 puntos top. Mismo theme T1 (Dark Premium). Cohesión cross-format: el carrusel (Creativo) y el reel (Director) forman una misma pieza de comunicación para publicación paralela.
+
+**Contenido del spec:**
+```json
+{
+  "media_type": "reel",
+  "theme": "T1",
+  "aspect": "9:16",
+  "narrative": "B",
+  "duration": 10,
+  "mood": "upbeat",
+  "hook": {
+    "en": "3 REASONS TO SELL OFF-MARKET",
+    "es": "3 RAZONES PARA VENDER OFF-MARKET",
+    "badge": "WISCONSIN"
+  },
+  "points": [
+    { "headingEn": "Faster Than Banks",   "headingEs": "Más Rápido Que Los Bancos", "bodyEn": "No waiting for approval", "bodyEs": "Sin esperar aprobación" },
+    { "headingEn": "No Commissions",      "headingEs": "Sin Comisiones",             "bodyEn": "Keep 100% of offer",      "bodyEs": "Quedate con el 100%" },
+    { "headingEn": "No Showings",         "headingEs": "Sin Visitas",                "bodyEn": "Sell as-is, today",       "bodyEs": "Vende como está, hoy" }
+  ],
+  "cta": {
+    "en": "Get your cash offer today",
+    "es": "Reciba su oferta en efectivo hoy"
+  }
+}
+```
+
+### 8.2 Criterios de éxito del POC
+
+El POC se considera aprobado si TODOS estos se cumplen:
+
+1. **Formato correcto:** MP4 H.264, 1080×1920, duración 10±1s
+2. **Audio:** stream de audio presente (AAC 128kbps stereo/mono), música audible
+3. **Branding:** Pinnacle logo visible en top-right de las 5 scenes
+4. **Assets:** hook + CTA con Nano Banana hero branded; points 2-4 con Pexels stock
+5. **Animación:** kinetic typography en scene 1 y scene 5; xfade entre todas las transiciones; zoompan sutil en todas las scenes
+6. **Deploy:** Cloudinary URL retornado y funcional (abre en browser, reproduce)
+7. **Costo real:** ≤ $0.10 (2 Nano Banana × $0.04 + margen)
+8. **Performance:** tiempo total de render ≤ 60s (browser reuse + paralelismo en fetch de Pexels)
+9. **Preview social:** el URL se puede previsualizar en IG Stories / FB Reels sin errors de formato
+
+Jorge revisa la URL → da "go" → POC aprobado → pasamos a productivizar.
+
+### 8.3 Task 0 — Airtable schema setup (pre-Sprint 1)
+
+**Script:** `scripts/airtable_schema_setup.mjs` (idempotente, con dry-run).
+
+**Acciones:**
+1. Verificar conexión con base `appU9s3kGkVpdrJkw` usando `AIRTABLE_SM_SCHEMA_TOKEN`
+2. Descubrir tabla `tblAj0Pkj1jW4p5Ld` via `GET /meta/bases/{baseId}/tables`
+3. Verificar si `Media_Type` tiene opción `"reel"`:
+   - Si no, `PATCH /meta/bases/{baseId}/tables/{tableId}/fields/{fieldId}` con `options.choices += [{name: 'reel'}]`
+4. Verificar si campo `video_duration` existe:
+   - Si no, `POST /meta/bases/{baseId}/tables/{tableId}/fields` con `{name: 'video_duration', type: 'number', options: {precision: 1}}`
+5. Verificar si campo `video_cost_cents` existe:
+   - Si no, `POST /meta/bases/{baseId}/tables/{tableId}/fields` con `{name: 'video_cost_cents', type: 'number', options: {precision: 0}}`
+6. Log de cambios aplicados o `"no changes needed"` si ya está todo
+
+**Instrucciones para Jorge (una sola vez, antes de Task 0):**
+> 1. Airtable → Account → Developer Hub → Create PAT
+> 2. Scopes: `schema.bases:write` + acceso a base `appU9s3kGkVpdrJkw`
+> 3. Copiar token
+> 4. `doppler secrets set AIRTABLE_SM_SCHEMA_TOKEN=patXXXXX.YYYYY`
+> 5. Después de correr Task 0 exitoso:
+>    `doppler secrets delete AIRTABLE_SM_SCHEMA_TOKEN`
+>    (limpieza del token elevado — el Director en producción sólo necesita scope read/write de data, nunca schema)
+
+**Dry-run:**
+```bash
+doppler run -- node scripts/airtable_schema_setup.mjs --dry-run
+```
+Imprime las operaciones que haría sin ejecutarlas.
+
+**Ejecución real:**
+```bash
+doppler run -- node scripts/airtable_schema_setup.mjs
+```
+
+### 8.4 Sprint 1 — MVP Narrativa B + stack completo (~3-5 sesiones)
+
+| # | Task | Output esperado | Tests |
+|---|---|---|---|
+| 0 | Task 0 Airtable schema setup | 2 campos creados + opción `reel` añadida | N/A |
+| 1 | Scaffold `agents/director_v2/` + package.json + doppler setup local | árbol de archivos + `npm test` corre vacío (OK) | — |
+| 2 | Descargar 5-8 tracks CC0 de Pixabay + LICENSES.md + `src/audio.mjs` | tracks en `assets/music/` + selector | 5 |
+| 3 | `src/util/retry.mjs` + `src/util/sanitize.mjs` | utilities | 3 retry tests |
+| 4 | `src/pexels.mjs` con sanitization + retry + cliente | cliente Pexels | 4 |
+| 5 | `src/nano_banana.mjs` con re-roll + cost counter + atomic write | cliente Gemini | 5 |
+| 6 | `src/scene_layout.mjs` — layout D con theme_solid fallback | HTML renderizable | 8 |
+| 7 | `src/render.mjs` — JPG único o PNG sequence con browser singleton | renderer | 3 |
+| 8 | `src/narratives/narrative_B.mjs` + `narratives/index.mjs` dispatcher | expander B + validator | 4 (B only) |
+| 9 | `src/ffmpeg.mjs` — build command con xfade, zoompan, amix | ensamblador video | 6 |
+| 10 | `src/cloudinary.mjs` (extend desde Creativo con `uploadVideo`) | uploader video | 3 |
+| 11 | `src/airtable.mjs` (adaptar desde Creativo con narrative validation) | lister + parser + updater | 6 |
+| 12 | `main.mjs` + `--dry-run` flag + error isolation | orquestador | 4 integration |
+| 13 | `src/cost_control.mjs` + persistent usage counter | cost tracker | 4 |
+| 14 | **POC render** (`render_poc.mjs`) + review manual de Jorge | MP4 en Cloudinary | smoke 1 |
+| 15 | Commit + push branch `claude/greeting-setup-yOfqf` | historial git limpio | — |
+
+**Total tests Sprint 1:** ~55 (supera threshold de 40).
+
+### 8.5 Sprint 2 — Narrativas A + C (~2 sesiones, no bloqueante)
+
+| # | Task |
+|---|---|
+| 16 | `src/narratives/narrative_A.mjs` + fixture spec |
+| 17 | `src/narratives/narrative_C.mjs` + soporte `heroSource='local'` (descargar before/after Cloudinary URLs) |
+| 18 | Soporte `heroSource='theme_solid'` completo en scene_layout (ya existe parcial en Sprint 1 para narrativa C scene 4) |
+| 19 | 8 tests nuevos para narratives A y C |
+| 20 | POCs opcionales: 1 video narrativa A + 1 video narrativa C para validar los 3 formatos |
+
+### 8.6 Sprint 3 — Enhancements futuros (bloqueados)
+
+| # | Task | Bloqueo |
+|---|---|---|
+| 21 | `src/heygen.mjs` — avatar Jorge talking head | Jorge compra HeyGen |
+| 22 | `src/elevenlabs.mjs` — voice-over bilingüe | Jorge compra ElevenLabs |
+| 23 | `narratives/narrative_D.mjs` (testimoniales) | Consent escrito de clientes reales |
+| 24 | `src/replicate.mjs` — Kling generative video clips | Cuando aparezca caso de uso específico |
+| 25 | Kinetic typography avanzado (FFmpeg libass con ASS subtitles) | Sprint 3 |
+| 26 | Cloudinary video cleanup cron (30 días) | Sprint 3 |
+| 27 | Migración a pool local de heros (opción D de la Pregunta 6) | Pinnacle tiene portfolio fotográfico documentado con consent |
+
+### 8.7 Task Backfill — Legacy Record Backfill (obligatoria post-Sprint 1)
+
+Según la **regla del Jefe del 2026-04-24 "LEGACY RECORD BACKFILL" (no negociable)**, cualquier flujo nuevo que procese records con formato distinto debe incluir una Task final de backfill one-time.
+
+**Script:** `scripts/backfill_legacy_reels.mjs`
+
+**Lógica:**
+```
+1. Leer Airtable records con:
+   Media_Type='reel' AND (visual_url='' OR Status='Error')
+
+2. Para cada record legacy:
+   2a. Leer Visual_Prompt actual
+   2b. Intentar JSON.parse:
+       - Si parsea y tiene {narrative, theme, hook, points, cta} → YA ES NUEVO FORMATO → skip
+       - Si parsea pero es formato viejo → migrar a nuevo formato con heurísticas:
+           narrative: "B" (default más común)
+           theme: "T1" (default)
+           aspect: "9:16"
+           duration: 10
+           mood: "upbeat"
+           hook: extraer de campos { text, title, idea } o generar desde Caption_EN
+           points: mapear de campos { reasons, bullets, benefits } o parsear Caption_EN por "-" / "•" / "\n"
+           cta: extraer de { cta, call_to_action } o default "Get your cash offer today"
+       - Si NO parsea (es string descriptivo tipo "A modern real estate ad with..."): construir JSON mínimo desde Caption_EN splitting por líneas, asumiendo narrativa B
+
+   2c. PATCH Airtable con:
+       - Visual_Prompt: nuevo JSON stringificado
+       - Status: 'Nueva' (re-activa para el próximo run del Director)
+       - Error_Reason: '' (limpia errores previos)
+       - video_duration: null (lo llenará el Director)
+       - video_cost_cents: null
+
+3. Dry-run mode: imprime diff propuesto (antes → después) por record, no PATCH
+
+4. Log NDJSON a disco: logs/backfill_reels_YYYY-MM-DD.ndjson
+   - Cada línea: {recordId, action: 'migrated'|'skipped'|'failed', reason}
+
+5. Resumen al final:
+   ════════════════════════════════
+   Backfill Legacy Reels Summary
+   ════════════════════════════════
+   Total records escaneados:  N
+   Migrados:                  N
+   Skip (ya eran v2):         N
+   Failed (no parseable):     N   (listados para revisión manual)
+   ════════════════════════════════
+
+6. Commit explícito: "backfill: migrate legacy reel records to v2 format"
+
+7. Una vez ejecutado → main.mjs procesa los records migrados en el próximo run normal
+```
+
+**Idempotencia:** el script detecta records que ya tienen JSON v2 válido y los saltea. Puede correrse N veces sin efectos laterales.
+
+**Dry-run obligatorio antes de ejecutar en producción:**
+```bash
+doppler run -- node scripts/backfill_legacy_reels.mjs --dry-run
+# Revisar output
+doppler run -- node scripts/backfill_legacy_reels.mjs
+```
+
+### 8.8 Criterio de cierre "Director v2 al 100% operativo"
+
+Checklist que replica el cierre del Creativo v2 (2026-04-24):
+
+- ✅ Sprint 1 completo (Tasks 0-15)
+- ✅ ≥40 tests verdes (target: ~55)
+- ✅ POC narrativa B aprobado por Jorge manualmente
+- ✅ Doppler con 8+ secrets:
+  - AIRTABLE_SM_TOKEN, AIRTABLE_SM_BASE_ID, AIRTABLE_SM_TABLE_ID
+  - CLOUDINARY_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
+  - GEMINI_API_KEY
+  - **PEXELS_API_KEY** (nuevo)
+  - (temporalmente: AIRTABLE_SM_SCHEMA_TOKEN durante Task 0, se borra después)
+- ✅ Task 0 Airtable schema setup ejecutado OK (2 campos + opción reel)
+- ✅ Task Backfill legacy reels ejecutado (dry-run + producción)
+- ✅ Commit + push a `claude/greeting-setup-yOfqf` con historial limpio
+- ✅ Memorias actualizadas con entrada "2026-XX-XX — EL DIRECTOR v2 100% OPERATIVO":
+  - `memoria_ALex.md`
+  - `agents/memoria_alex.md`
+  - `telegram_bot/telegram_memory.md`
+- ✅ `CLAUDE.md` actualizado con referencia a Director v2 (sub-agente listado)
+- ✅ `agents/director.md` (v2.0 legacy Blotato) reemplazado o marcado como deprecated
+- Sprint 2 (A + C) y Sprint 3 (HeyGen/ElevenLabs/Kling) marcados como **"pendientes no-bloqueantes"**
+
+<!-- SECTION_BREAK_AFTER_6 -->
