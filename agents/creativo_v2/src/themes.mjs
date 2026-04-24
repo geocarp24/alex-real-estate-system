@@ -93,7 +93,7 @@ export function slideHook(themeCode, { hookEn, hookEs, badge, aspect = "4:5" } =
     </div>
     ${logoCorner(theme, 200)}
   `;
-  return baseWrapper(theme, inner, { pad: 0 });
+  return baseWrapper(theme, inner, { pad: 0, aspect });
 }
 
 // ---------------------------------------------------------------------------
