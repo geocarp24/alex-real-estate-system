@@ -26,6 +26,7 @@ Si no tienes respuestas claras a las tres — **para y responde al Jefe primero.
 4. Leer `agents/protocolo_seguro.md` (credenciales + seguridad).
 5. Verificar `.env.sandbox` existe y credenciales del bridge funcionan (ping).
 6. **Si falta alguna credencial:** pedirla UNA SOLA VEZ al Jefe y guardarla persistente.
+7. **SKILLS-FIRST (2026-04-23, NO NEGOCIABLE):** antes de generar/publicar/auditar/diseñar, el agente consulta skills disponibles (`claude plugin list` + `ls .claude/skills/`) y USA el skill apropiado en vez de construir desde cero. Tabla de los 11 skills Phase 2 en `CLAUDE.md` sección "SKILLS SIEMPRE DISPONIBLES". Si falta setup: `bash scripts/setup-skills.sh`.
 
 ### FASE 2 — DIAGNÓSTICO ANTES DE ACCIÓN
 Nunca modifiques algo sin antes leerlo. Para cualquier cambio en WP / Airtable / archivo:

@@ -1,0 +1,69 @@
+name: Validate Plugin
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check SKILL.md line count
+        shell: bash
+        run: |
+          lines=$(wc -l < skills/banana/SKILL.md)
+          echo "SKILL.md: ${lines} lines"
+          if [ "${lines}" -gt 500 ]; then
+            echo "::error::SKILL.md exceeds 500 lines"
+            exit 1
+          fi
+
+      - name: Verify required files exist
+        shell: bash
+        run: |
+          files=(
+            .claude-plugin/plugin.json
+            skills/banana/SKILL.md
+            skills/banana/references/gemini-models.md
+            skills/banana/references/mcp-tools.md
+            skills/banana/references/post-processing.md
+            skills/banana/references/prompt-engineering.md
+            skills/banana/references/cost-tracking.md
+            skills/banana/references/presets.md
+            skills/banana/scripts/setup_mcp.py
+            skills/banana/scripts/validate_setup.py
+            skills/banana/scripts/generate.py
+            skills/banana/scripts/edit.py
+            skills/banana/scripts/cost_tracker.py
+            skills/banana/scripts/presets.py
+            skills/banana/scripts/batch.py
+            install.sh
+          )
+          for f in "${files[@]}"; do
+            test -f "${f}" && echo "OK: ${f}" || { echo "::error::Missing ${f}"; exit 1; }
+          done
+
+      - name: Check Python syntax
+        shell: bash
+        run: |
+          for f in skills/banana/scripts/*.py; do
+            python3 -m py_compile "$f" && echo "OK: $f" || { echo "::error::Syntax error in $f"; exit 1; }
+          done
+
+      - name: Check for outdated rate limits
+        shell: bash
+        run: |
+          if grep -rEl "~10 RPM / ~500 RPD" skills/banana/ README.md 2>/dev/null; then
+            echo "::error::Found outdated rate limits (pre-Dec 2025 cut values)"
+            exit 1
+          fi
+          echo "No outdated rate limits found"

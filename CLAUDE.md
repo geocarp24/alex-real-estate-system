@@ -107,6 +107,32 @@ Síntoma ≠ causa. Ante "volvió el formato viejo / no funciona / falta algo":
 
 ---
 
+## SKILLS SIEMPRE DISPONIBLES — CONSULTA OBLIGATORIA (2026-04-23)
+
+**Regla NO NEGOCIABLE:** al inicio de cada sesión, ALEX y todos los sub-agentes deben auditar `.claude/skills/` + `.claude/plugins/marketplaces/` (via `claude plugin list`) y cargar los skills relevantes **antes de empezar a trabajar**. Cada modelo (Opus/Sonnet/Haiku) respeta esta regla.
+
+**Si falta setup en una sesión fresca:** correr `bash scripts/setup-skills.sh` — re-registra los 4 marketplaces desde `plugin-marketplaces/` del repo + reinstala los 4 plugins Phase 2.
+
+**11 plugins Phase 2 instalados (cuándo usar cada uno):**
+
+| Skill | Cuándo usarlo |
+|---|---|
+| `banana-claude` | Cualquier generación/edición de imagen (posts, hero, slides, thumbnails). Powered by Gemini nano-banana |
+| `claude-ads` | Audit o generación de creative para Meta/Google/TikTok/LinkedIn Ads — incluye `ads-generate`, `ads-creative`, `ads-photoshoot` |
+| `claude-seo` | Technical SEO, schema, backlinks, local SEO (crítico para Pinnacle WI), SXO, GEO/AEO, 20 sub-skills |
+| `document-skills` | Crear/editar xlsx, docx, pptx, pdf (oficial Anthropic) |
+| `remotion-ads` | Ad videos — Reels 9:16, explainers 16:9, carruseles 4:5, con ElevenLabs voiceover + Meta campaign management |
+| `instagram` | Publicar posts/reels/stories/carruseles a IG Business vía Meta Graph API |
+| `claude-video-shorts` | Convertir video largo a 10+ shorts virales (longform→shortform). Triggers: "reels", "shorts", "clips", "tiktok clips", "viral" |
+| `claude-video-generate` | Text/image-to-video con Google Veo 3.1, Runway Gen-4 Turbo, o Stable Video Diffusion local |
+| `claude-video-caption` | Subtítulos animados karaoke-style con Whisper + FFmpeg (SRT/ASS/VTT) |
+| `claude-video-create` | Videos programáticos con Remotion — intros/outros branded, title cards, motion graphics, data viz |
+| `claude-youtube` | YouTube channel audits, video SEO, Shorts optimization, scripts, thumbnails, content calendar |
+
+**Regla para sub-agentes (Creativo, Mercader, Posicionador, Programador, Director, Cazador, Oráculo):** ANTES de empezar cualquier trabajo, consultar la tabla de arriba + `claude plugin list` y usar el skill apropiado. No construir desde cero lo que un skill ya resuelve.
+
+---
+
 ## INICIO DE SESIÓN — PROTOCOLO OBLIGATORIO
 
 Al comenzar cada sesión:

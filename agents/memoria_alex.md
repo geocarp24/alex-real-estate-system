@@ -148,6 +148,9 @@ Todo componente nuevo (popup, form, page, chatbot, email, creative, CTA) se dise
 ### SAAS-READY / MULTI-TENANT-FIRST (2026-04-23)
 Todo lo construido para Pinnacle se diseña como producto vendible. Pinnacle = tenant cero. Reglas: nada hardcodeado, tenant isolation, separación core/config/deployment, onboarding documentado, billing hooks desde día 1, validar licencias de deps (AGPL restringe monetización), security defaults, naming genérico. Detalle en `memoria_ALex.md` regla R8 y `CLAUDE.md` sección 1c.
 
+### SKILLS SIEMPRE DISPONIBLES — consulta obligatoria (2026-04-23, NO NEGOCIABLE)
+Cada modelo (Opus/Sonnet/Haiku) y cada sub-agente (Creativo, Mercader, Posicionador, Programador, Director, Cazador, Oráculo) consulta `claude plugin list` + `ls .claude/skills/` al arrancar y usa el skill apropiado antes de generar/publicar/auditar. **11 plugins Phase 2 instalados:** `banana-claude` (imagen nano-banana), `claude-ads` (250+ checks paid ads), `claude-seo` (20 sub-skills), `document-skills` (xlsx/docx/pptx/pdf oficial), `remotion-ads` (Reels 9:16 + ElevenLabs), `instagram` (IG Graph API), `claude-video-shorts` (longform→shortform auto-clip — el skill que Jorge recordaba), `claude-video-generate` (Veo/Runway/SVD), `claude-video-caption` (Whisper karaoke), `claude-video-create` (Remotion programmatic), `claude-youtube` (audits + scripts). Marketplaces versionados en `plugin-marketplaces/` del repo para persistencia cross-session. Bootstrap idempotente: `bash scripts/setup-skills.sh`. Tabla completa con "cuándo usar cada uno" en `CLAUDE.md` sección "SKILLS SIEMPRE DISPONIBLES".
+
 ---
 
-*Última actualización: 2026-04-22*
+*Última actualización: 2026-04-23*
