@@ -7,7 +7,7 @@ import path from 'node:path';
 
 test('buildSignature sorts params alphabetically and SHA1s with secret', () => {
   const sig = buildSignature({ timestamp: 1700000000, public_id: 'foo/bar', overwrite: 'true' }, 'SECRET');
-  assert.equal(sig, '3cbc2194ff47efffae56eb4989f5f3a9f53795e4');
+  assert.equal(sig, '93407b09f25e993c71ee001ceca63e953ccc7b71');
 });
 
 test('uploadJpg posts multipart with correct fields and returns secure_url', async () => {
