@@ -125,29 +125,39 @@ Decidir en la sesión de Fase 2.3.
 
 ---
 
-## Integraciones Pendientes — Mencionadas por el Jefe
+## Integraciones Confirmadas del Agente Creativo
 
-> El Jefe mencionó dos herramientas de Google que podrían alimentar el Agente Creativo.
-> **No hay código de estas en el repo todavía.** Quedan pendientes de diseñar.
+> Estas cuentas y tokens ya existen — el Jefe los configuró fuera del repo.
+> No hay código aún, pero las credenciales están listas para cuando lleguemos a Fase 2.4.
 
 ### NotebookLM (Google)
-- **Qué es:** Herramienta de Google que lee documentos y genera resúmenes, podcasts, y análisis.
-- **Uso potencial en el Creativo:** Alimentar al Agente Creativo con investigación estructurada.
-  Ejemplo: el Jefe sube un PDF de tendencias de carpintería → NotebookLM lo procesa →
-  el Creativo usa esa info para generar posts más precisos y con datos reales.
-- **Estado:** Sin código en el repo. Decisión de diseño pendiente (Fase 2.4).
+- **Cuenta:** `geocarpentryllc@gmail.com`
+- **Notebook activo:** "Pinnacle WI Knowledge Base" (10 sources cargados)
+- **Rol en el sistema:** Fuente de conocimiento del negocio. El Creativo consulta este notebook
+  para generar posts con contexto real de Pinnacle Wisconsin (servicios, zonas, proyectos, tono).
+- **Estado:** Cuenta configurada. Código pendiente (Fase 2.4).
 
-### Nano Banana / Imagen (Google)
-- **Qué es:** Modelo de generación de imágenes de Google (posiblemente Imagen 3 o Gemini Imagen).
-- **Uso potencial en el Creativo:** En lugar de usar DALL-E o Midjourney,
-  generar imágenes de posts directamente con la API de Google.
-- **Estado:** Sin código en el repo. Evaluar en Fase 2.4 cuando lleguemos al Agente Creativo.
-  Comparar con alternativas (DALL-E 3, Stable Diffusion, Flux) antes de decidir.
+### Replicate
+- **Usuario:** `geocarp24`
+- **Token:** `pinnacle-alex` (prefijo `r8_Z3w...`) — el valor completo va en `.env` local.
+- **Rol en el sistema:** Generación de imágenes y videos variados con modelos open-source.
+  Más flexible que una API única — permite probar distintos modelos (Flux, SDXL, etc.).
+- **Estado:** Cuenta configurada. Código pendiente (Fase 2.4).
 
-> **Próximo paso:** Cuando el Jefe confirme qué APIs de Google está usando (cuál es exactamente
-> "Nano Banana") y si ya tiene acceso/API key, lo integramos al diseño del Agente Creativo.
+### Nano Banana — Gemini API (Google)
+- **IMPORTANTE — dos cuentas, usar la correcta:**
+  - `geocarpentryllc@gmail.com` → Free tier. Tiene API key pero es la secundaria. No usar en producción.
+  - `admin@geocarpentry.com` → **cuenta Pro con Nano Banana. ESTA es la de producción.**
+- **Rol en el sistema:** Generación de imágenes premium. Complementa a Replicate para posts de mayor calidad.
+- **Estado:** Cuenta Pro activa. API key pendiente de copiar en `.env`. Código pendiente (Fase 2.4).
+
+### Meta for Developers
+- **App:** Pinnacle Social Publisher
+- **App ID:** `4233439163564604`
+- **Business ID:** `800555019765952`
+- **Estado:** App creada, Unpublished (modo desarrollo). Configurando permisos — Fase 2.1 en curso.
 
 ---
 
-*Documento creado: 2026-04-23*
+*Documento creado: 2026-04-23 | Última actualización: 2026-04-23*
 *Autor: ALEX — Sistema Multi-Agente de Inversión Inmobiliaria + Marketing*
