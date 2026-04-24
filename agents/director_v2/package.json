@@ -6,6 +6,10 @@
   "engines": { "node": ">=22.0.0" },
   "scripts": {
     "test":             "node --test test/*.test.mjs",
+    "test:smoke":       "RUN_SMOKE=1 node --test test/smoke.test.mjs",
+    "prod":             "doppler run -- node main.mjs",
+    "prod:dry-run":     "doppler run -- node main.mjs --dry-run",
+    "poc":              "doppler run -- node render_poc.mjs",
     "schema":           "doppler run -- node scripts/airtable_schema_setup.mjs",
     "schema:dry-run":   "doppler run -- node scripts/airtable_schema_setup.mjs --dry-run"
   },
