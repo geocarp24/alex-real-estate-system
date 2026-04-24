@@ -155,7 +155,7 @@ Cada módulo es testeable independientemente con mocks.
 
 ### 4.1 Input contract — el JSON de `Visual_Prompt` en Airtable
 
-El Social Media Agent emite un record en `tblAj0Pkj1jW4p5Ld` (base `appU9s3kGkVpdrJkw`) con el campo `Visual_Prompt` que contiene un JSON stringificado. El Director v2 lee records con `Media_Type='reel'`.
+El Social Media Agent emite un record en `tblAj0Pkj1jW4p5Ld` (base `appU9s3kGkVpdrJkw`, tabla "Ideas de Contenido") con el campo `Visual_Prompt` que contiene un JSON stringificado. El Director v2 lee records con `{Formato}='Reel'` (el campo single-select `Formato` ya tiene `Reel` como opción de producción; no se usa un campo `Media_Type` separado).
 
 **Formato común a todas las narrativas:**
 ```json
