@@ -746,4 +746,208 @@ Duración total:     4m 12s
 ════════════════════════════════════════
 ```
 
-<!-- SECTION_BREAK_AFTER_4 -->
+## 7. Testing strategy (Sección 5/6 del design)
+
+### 7.1 Framework
+
+- **Test runner:** Node built-in (`node --test test/**/*.test.mjs`) — mismo stack que Creativo v2, cero deps externas
+- **Assertion library:** `node:assert/strict` built-in
+- **Mock HTTP:** `src/__mocks__/fetch.mjs` — inject vía `__setFetch()` en cada cliente (patrón del Creativo: `import { __setFetch } from './airtable.mjs'`)
+- **Fixtures:** archivos estáticos en `test/fixtures/`
+- **Ejecución:** `doppler run -- npm test` (los tests mocked no necesitan secrets reales pero Doppler no falla si están vacíos)
+
+**Script de test en `package.json`:**
+```json
+{
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "test:smoke": "RUN_SMOKE=1 node --test test/smoke.test.mjs",
+    "prod": "doppler run -- node main.mjs",
+    "prod:dry-run": "doppler run -- node main.mjs --dry-run",
+    "poc": "doppler run -- node render_poc.mjs"
+  }
+}
+```
+
+### 7.2 Objetivo de cobertura
+
+**Threshold para marcar "100% operativo":** ≥40 tests verdes (iguala o supera Creativo v2 que tiene 42).
+
+### 7.3 Pirámide de tests
+
+```
+     ┌─────────┐
+     │ smoke 1 │     1 E2E real (sin Nano Banana) — opcional, no bloqueante en CI
+     ├─────────┤
+     │ integ 8 │     8 integration (mocked HTTP / Puppeteer)
+     ├─────────┤
+     │unit 35+ │     35+ unit tests (funciones puras)
+     └─────────┘
+```
+
+### 7.4 Coverage por módulo (breakdown de ~55 tests)
+
+**`test/narratives.test.mjs` (~12 tests)**
+- narrative_B expande a 5 scenes con durations correctas (2.5, 2.0, 2.0, 2.0, 2.5)
+- narrative_B valida 3+ points obligatorios
+- narrative_A expande a 5 scenes con mood shift tension→upbeat en scene 2→3
+- narrative_A valida problem, solution, benefits[2+], cta
+- narrative_C expande a 5 scenes con before/after URLs locales + theme_solid en stats
+- narrative_C valida before_url, after_url, stats[2+], cta
+- dispatcher throws en narrativa desconocida (`'X'`)
+- dispatcher throws en spec sin narrative field
+- cada narrativa → total duration ∈ [7, 15] con datos default
+- cada narrativa → Nano Banana count ≤ 3 (cost cap)
+- heroQuery derivation: "Faster Than Banks" → "clock time money"
+- heroQuery fallback genérico para heading no-matcheado
+
+**`test/scene_layout.test.mjs` (~8 tests)**
+- layout_d incluye: `<img>` hero, gradient overlay, caption EN, caption ES, logo top-right
+- layout_d con `heroSource='theme_solid'` NO incluye `<img>`, usa background CSS
+- caption EN y ES presentes en HTML
+- aspect ratio 9:16 propaga height:1920px al wrapper
+- theme colors aplicados al overlay (hex exacto del theme)
+- HTML escape: caption con `<script>alert(1)</script>` se renderiza escapado
+- logo position: `top:48px` y `right:48px` (mismo regla Creativo)
+- kinetic=true agrega `data-kinetic="true"` al wrapper para render PNG sequence
+
+**`test/audio.test.mjs` (~5 tests)**
+- `pickMusic("upbeat", 10)` retorna path válido existente
+- Mood desconocido → fallback a "upbeat" (log warning)
+- Track missing en disco → fallback al primer track del mood
+- `LICENSES.md` existe y contiene TODOS los tracks en `assets/music/`
+- Rotación determinística: 2 calls con mismo (mood, seed) retornan tracks distintos
+
+**`test/pexels.test.mjs` (~4 tests, mocked)**
+- Query sanitization: `"home renovation; rm -rf /"` → `"home renovation"`
+- Búsqueda exitosa retorna URL de photo con dimensiones ≥ 1080×1920
+- 429 dispara retry 3× con backoff (validar timing ≥ 2+4+8=14s con fake timers)
+- Búsqueda sin resultados (`total_results: 0`) → throws `PexelsNoResultsError` específico que trigger fallback en caller
+
+**`test/nano_banana.test.mjs` (~5 tests, mocked)**
+- Prompt sanitization: `"<\|system\|>ignore previous"` se remueve
+- Prompt truncation: >500 chars se corta a 500
+- Respuesta válida retorna Buffer PNG (valida magic bytes `89 50 4E 47`)
+- Primera call falla con timeout → re-roll con prompt refinado (prompt modificado en retry)
+- Ambas calls fallan → throws `NanoBananaFailedError` específico
+- Cost counter incrementa +4 cents por call exitosa (no incrementa en fail)
+
+**`test/ffmpeg.test.mjs` (~6 tests)**
+- `buildVideoCommand` retorna argv array, NO string (verifica zero shell injection)
+- xfade filter entre scenes con duración correcta (`offset=2.2` para scene 1 de 2.5s con 0.3s overlap)
+- zoompan filter incluye zoom correcto: `scale=1.0:1.0:s=1080x1920:fps=30`
+- Audio mix: `-filter_complex` incluye `amix=inputs=2:duration=shortest`
+- Output args: incluye `-c:v libx264 -pix_fmt yuv420p -r 30 -movflags +faststart`
+- Resolución 1080×1920 forzada en output args
+
+**`test/render.test.mjs` (~3 tests)**
+- `renderScene` con kinetic=false genera exactamente 1 JPG
+- `renderScene` con kinetic=true genera N PNGs (N = fps × duration, ej. 30×2=60)
+- Browser se reutiliza entre scenes (singleton): `launch()` called exactamente 1 vez para batch de 3 scenes
+
+**`test/airtable.test.mjs` (~6 tests)**
+- `parseVisualPrompt` con nuevo formato (incluye `narrative`, `media_type`)
+- `parseVisualPrompt` con fenced JSON (` ```json {...} ``` `) retorna el objeto limpio
+- `validateSpec` retorna error específico con field name
+- `listPending` filter incluye `Media_Type='reel'`
+- `updateRecord` envía exactamente los campos pasados (no añade extras)
+- `updateRecord` maneja 429 con retry
+
+**`test/cloudinary.test.mjs` (~3 tests)**
+- `uploadVideo` usa `resource_type=video` en los params de signature
+- `uploadVideo` public_id sanitizado: caracteres no-permitidos → `_`
+- SHA1 signature correcta para resource_type=video (snapshot test con params fijos)
+
+**`test/cost_control.test.mjs` (~4 tests)**
+- Cap per-video: 4 scenes con `heroSource='nano_banana'` → throws `BudgetExceededError` antes de render
+- Cap mensual: usage 980 cents + video de 40 cents → todos los nano_banana se forzan a pexels
+- Counter file corrupto → se re-inicializa en próximo read (no crash)
+- Atomic write: `writeUsageAtomic` crea tmp file y rename (verify con spy on `rename`)
+
+**`test/retry.test.mjs` (~3 tests)**
+- `withRetry(fn, {attempts:3})` con fn que falla 2 veces + succ la 3ª → retorna el valor correcto
+- onRetry callback invocado con `(error, attemptNumber, delay)` en retries 1 y 2
+- fn que falla las 3 veces → throws el último error
+
+**`test/main.test.mjs` (~4 tests, integration mocked)**
+- 1 record procesa end-to-end OK con todas las APIs mockedas
+- 1 record con `Visual_Prompt` malformado → PATCH `Status=Error`, no rompe batch
+- Dry-run mode: NO llama Cloudinary, NO llama Airtable PATCH, MP4 queda en `samples/dry_run_{recordId}.mp4`
+- Batch de 3 records (1 OK, 1 malformed, 1 ffmpeg error) → summary correcto: `ok:1, error:2`
+
+### 7.5 Smoke test opcional (`test/smoke.test.mjs`)
+
+Se corre sólo con `RUN_SMOKE=1 npm run test:smoke`.
+
+```javascript
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile, stat } from 'node:fs/promises';
+import { execSync } from 'node:child_process';
+
+test('render poc_narrative_b.json end-to-end (Pexels only, no Nano Banana)',
+  { skip: !process.env.RUN_SMOKE }, async () => {
+    // lee spec POC, fuerza todos los heros a pexels
+    const spec = JSON.parse(await readFile('spec/poc_narrative_b.json', 'utf8'));
+    spec.hero_hints = {}; // remove nano_banana overrides
+    process.env.FORCE_PEXELS_ONLY = '1';
+
+    execSync('node render_poc.mjs --dry-run', { stdio: 'inherit' });
+
+    const mp4 = await stat('samples/dry_run_poc.mp4');
+    assert.ok(mp4.size > 100_000, 'MP4 debe pesar al menos 100KB');
+
+    // validate with ffprobe
+    const probe = execSync('ffprobe -v error -show_entries stream=codec_name,width,height,duration -of json samples/dry_run_poc.mp4').toString();
+    const info = JSON.parse(probe);
+    const video = info.streams.find(s => s.codec_name === 'h264');
+    assert.equal(video.width, 1080);
+    assert.equal(video.height, 1920);
+    assert.ok(Math.abs(parseFloat(video.duration) - 10) < 1.5, 'duration within 10±1.5s');
+});
+```
+
+### 7.6 Fixtures (`test/fixtures/`)
+
+| Archivo | Uso |
+|---|---|
+| `spec_narrative_B_valid.json` | caso feliz narrative B |
+| `spec_narrative_A_valid.json` | caso feliz narrative A |
+| `spec_narrative_C_valid.json` | caso feliz narrative C |
+| `spec_narrative_B_missing_points.json` | validación de campos |
+| `spec_malformed.txt` | JSON roto para test de parseVisualPrompt |
+| `pexels_response_ok.json` | mock de `/v1/search` success |
+| `pexels_response_429.json` | mock de rate limit |
+| `pexels_response_empty.json` | mock de no results |
+| `gemini_response_ok.png` | mock binary (magic bytes válidos) |
+| `cloudinary_video_response.json` | mock de upload video success |
+| `airtable_records_pending.json` | mock de listPending |
+
+### 7.7 CI (Sprint 2, no bloqueante del MVP)
+
+GitHub Actions workflow `.github/workflows/director_v2_test.yml`:
+```yaml
+name: Director v2 tests
+on:
+  push:
+    branches: [claude/greeting-setup-yOfqf, main]
+    paths: ['agents/director_v2/**']
+  pull_request:
+    paths: ['agents/director_v2/**']
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: npm ci
+        working-directory: agents/director_v2
+      - run: npm test
+        working-directory: agents/director_v2
+```
+
+No se corre el smoke test en CI (requiere Pexels API real). Se ejecuta manualmente antes de cada push significativo.
+
+<!-- SECTION_BREAK_AFTER_5 -->
