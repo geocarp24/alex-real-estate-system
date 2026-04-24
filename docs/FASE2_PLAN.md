@@ -47,24 +47,26 @@ El resultado: publicamos posts, imágenes y videos desde ALEX, sin intermediario
 ## Flujo del Sistema
 
 ```
-El Jefe
-   │
-   ▼
-ALEX (Orquestador)
-   │
-   ├──► Agente Creativo
-   │         │ genera texto + imagen
-   │         ▼
-   ├──► Organizador
-   │         │ pone en cola, decide cuándo
-   │         ▼
-   └──► Publicador
-              │ llama a la API
-              ▼
-        Meta Graph API
-         /          \
-   Facebook         Instagram
-   Page(s)          Business Account
+NotebookLM (Pinnacle WI KB)        ──► contexto / knowledge base
+Replicate   (pinnacle-alex token)  ──► imágenes y videos variados
+Nano Banana (admin@geocarpentry)   ──► imágenes premium (Gemini API Pro)
+                    │
+                    ▼
+             Agente Creativo
+             (texto + imagen)
+                    │
+                    ▼
+             Organizador
+             (cola / calendario)
+                    │
+                    ▼
+             Publicador
+                    │
+                    ▼
+          Meta Graph API
+           /            \
+     Facebook          Instagram
+     Page(s)           Business Account
 ```
 
 ---
