@@ -9,7 +9,8 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const OK = JSON.parse(readFileSync(join(HERE, 'fixtures/replicate_response_ok.json'), 'utf8'));
 
 // 1×1 PNG bytes (89 50 4E 47 ...) for downloaded image
-const PNG_BYTES = Buffer.from([0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A,0,0,0,13,73,72,68,82,0,0,0,1,0,0,0,1,1,0,0,0,0,55,110,249,36]);
+// Use Uint8Array so .buffer is the dedicated ArrayBuffer (not pooled)
+const PNG_BYTES = new Uint8Array([0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A,0,0,0,13,73,72,68,82,0,0,0,1,0,0,0,1,1,0,0,0,0,55,110,249,36]);
 
 test('generateImage sanitizes prompt before calling Replicate', async () => {
   let body;
