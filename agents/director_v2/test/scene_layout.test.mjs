@@ -56,6 +56,15 @@ test('layoutType hook uses large centered caption (hero slide treatment)', () =>
   assert.ok(html.match(/font-size:\s*1[0-9][0-9]px/), 'hook caption should be ≥100px font-size');
 });
 
+test('layoutType point uses centered caption with accent color', () => {
+  const html = buildSceneHtml(mkScene({ layoutType: 'point', captionEn: 'CASH OFFER', captionEs: 'Oferta En Efectivo' }), '/tmp/h.jpg', 'T1', '9:16');
+  assert.ok(html.includes('CASH OFFER'), 'must include EN caption');
+  assert.ok(html.includes('Oferta En Efectivo'), 'must include ES caption');
+  assert.ok(html.includes('justify-content:center') && html.includes('align-items:center'), 'point caption must be centered');
+  assert.ok(html.includes(THEMES.T1.accent), 'point EN caption must use theme accent color');
+  assert.ok(!html.includes('backdrop-filter'), 'point layout must NOT use bottom-third backdrop-blur band');
+});
+
 test('layoutType cta includes Pinnacle phone and URL', () => {
   const html = buildSceneHtml(mkScene({ layoutType: 'cta', captionEn: 'Call now' }), '/tmp/h.jpg', 'T1', '9:16');
   assert.ok(html.includes('(920) 777-9886') || html.includes('920.777.9886') || html.includes('9207779886'));
