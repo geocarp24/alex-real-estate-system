@@ -33,6 +33,12 @@ export function buildSceneHtml(scene, heroImagePath, themeCode, aspect) {
         <div style="font-family:Montserrat,sans-serif; font-weight:900; font-size:128px; line-height:1.05; color:${theme.text}; text-shadow:0 4px 32px rgba(0,0,0,.6);">${captionEn}</div>
         ${captionEs ? `<div style="font-family:Montserrat,sans-serif; font-weight:500; font-size:56px; margin-top:32px; color:${theme.muted}; opacity:.92;">${captionEs}</div>` : ''}
       </div>`;
+  } else if (scene.layoutType === 'point') {
+    captionBlock = `
+      <div style="position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:96px; text-align:center; z-index:5;">
+        <div style="font-family:Montserrat,sans-serif; font-weight:900; font-size:96px; line-height:1.05; color:${theme.accent}; text-shadow:0 4px 32px rgba(0,0,0,.6);">${captionEn}</div>
+        ${captionEs ? `<div style="font-family:Montserrat,sans-serif; font-weight:500; font-size:48px; margin-top:24px; color:${theme.muted}; opacity:.92;">${captionEs}</div>` : ''}
+      </div>`;
   } else if (scene.layoutType === 'cta') {
     captionBlock = `
       <div style="position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:80px; text-align:center; z-index:5;">
