@@ -1,10 +1,14 @@
+// IMPORTANT: All keys are "empty" phrases — NO specific time commitments.
+// Rule (Jorge 2026-04-25): PROHIBIDO usar promesas con plazos numéricos
+// (ej. "Close in 7 Days") — riesgo legal/compliance si no se cumple.
+// USAR comparativos vagos: "Faster Than Banks", "Weeks Not Months", etc.
 const HERO_QUERY_TABLE = {
   'faster than banks':   'clock time money',
+  'weeks not months':    'calendar keys house',
   'no commissions':      'real estate contract',
   'no showings':         'house closed sign',
   'no repairs':          'home renovation',
   'cash offer':          'cash money deal',
-  'close in 7 days':     'calendar keys house',
   'any condition':       'vintage house exterior',
   'sell as-is':          'house vintage interior',
 };
