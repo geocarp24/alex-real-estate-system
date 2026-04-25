@@ -7,6 +7,29 @@
 
 ## REGLAS DEL JEFE (aplican a TODOS los agentes, siempre)
 
+### 2026-04-25 — REELS COPY: PROHIBIDO COMPROMISOS TEMPORALES ESPECÍFICOS (NO NEGOCIABLE — APROBADO POR JORGE)
+**Aplica a:** Director v2, Social Media Agent, Creativo v2, cualquier agent que genere copy para reels/videos/posts/ads de Pinnacle Holdings Group.
+
+**REGLA:** PROHIBIDO usar frases con plazos numéricos específicos (ej. "Close in 7 Days", "Sold in 14 Days", "Cash in 24 Hours", "X-day guarantee", "We Buy in 5 Days"). **Razón:** riesgo legal/compliance — promesas temporales específicas crean obligación si no se cumplen.
+
+**USAR frases vacías sin números — pool aprobado:**
+- Cash Offer
+- No Commissions
+- No Repairs
+- No Showings
+- Faster Than Banks
+- Weeks Not Months
+- Any Condition
+- Sell As-Is
+
+**Implementación técnica (Director v2):**
+- `agents/director_v2/src/narratives/narrative_B.mjs` → `HERO_QUERY_TABLE` solo contiene frases del pool aprobado (NO incluir 'close in X days')
+- `agents/director_v2/render_poc.mjs` → `APPROVED_POINTS` array + `pickRandomPoints(3)` selecciona aleatoriamente para variedad en cada POC
+
+**Para Social Media Agent (futuro):** al generar `Visual_Prompt` JSON con `narrative: 'B'`, los `points[].headingEn` deben venir EXCLUSIVAMENTE del pool aprobado. Si el Jefe aprueba una nueva frase vacía, añadirla al pool en ambos lugares (narrative_B.mjs HERO_QUERY_TABLE + render_poc.mjs APPROVED_POINTS) y registrarla en esta sección.
+
+---
+
 ### 2026-04-24 — EL CREATIVO v2 AL 100% OPERATIVO (ESTÁTICOS)
 - **Status:** ACTIVADO — listo para producción en generación de contenido visual estático
 - **Ubicación:** `agents/creativo_v2/`
