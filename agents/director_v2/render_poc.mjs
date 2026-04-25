@@ -24,6 +24,29 @@ const HERE    = dirname(fileURLToPath(import.meta.url));
 const TMP     = join(HERE, 'tmp', 'poc');
 const SAMPLES = join(HERE, 'samples');
 
+// Approved phrase pool — NO specific time commitments (Jorge rule 2026-04-25).
+// POC picks 3 at random per run for variety.
+const APPROVED_POINTS = [
+  { headingEn: 'Cash Offer',         headingEs: 'Oferta En Efectivo'    },
+  { headingEn: 'No Commissions',     headingEs: 'Sin Comisiones'        },
+  { headingEn: 'No Repairs',         headingEs: 'Sin Reparaciones'      },
+  { headingEn: 'No Showings',        headingEs: 'Sin Visitas'           },
+  { headingEn: 'Faster Than Banks',  headingEs: 'Mas Rapido Que Bancos' },
+  { headingEn: 'Weeks Not Months',   headingEs: 'Semanas No Meses'      },
+  { headingEn: 'Any Condition',      headingEs: 'Cualquier Condicion'   },
+  { headingEn: 'Sell As-Is',         headingEs: 'Vende Tal Como Esta'   },
+];
+
+function pickRandomPoints(n = 3) {
+  const pool = [...APPROVED_POINTS];
+  const out = [];
+  for (let i = 0; i < n && pool.length; i++) {
+    const idx = Math.floor(Math.random() * pool.length);
+    out.push(pool.splice(idx, 1)[0]);
+  }
+  return out;
+}
+
 const POC_SPEC = {
   narrative: 'B',
   aspect: '9:16',
@@ -31,11 +54,7 @@ const POC_SPEC = {
   duration: 11,
   mood: 'upbeat',
   hook:   { en: 'Sell Your House Fast in Wisconsin', es: 'Vende Tu Casa Rapido en Wisconsin' },
-  points: [
-    { headingEn: 'Cash Offer',     headingEs: 'Oferta En Efectivo' },
-    { headingEn: 'No Commissions', headingEs: 'Sin Comisiones'    },
-    { headingEn: 'Close In 7 Days', headingEs: 'Cierre En 7 Dias' },
-  ],
+  points: pickRandomPoints(3),
   cta: { en: 'Call Pinnacle Today', es: 'Llama A Pinnacle Hoy' },
 };
 
