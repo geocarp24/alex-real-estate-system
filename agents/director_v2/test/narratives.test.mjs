@@ -20,10 +20,10 @@ test('narrative B expands to 5 scenes with correct durations', () => {
   assert.equal(scenes[4].layoutType, 'cta');
 });
 
-test('narrative B uses Nano Banana only on scene 1 and scene 5 (cost cap)', () => {
+test('narrative B uses AI-generated images only on scene 1 and scene 5 (cost cap)', () => {
   const scenes = expandNarrative(B_VALID);
-  const nanoCount = scenes.filter(s => s.heroSource === 'nano_banana').length;
-  assert.equal(nanoCount, 2, 'exactly 2 Nano Banana calls per narrative B video');
+  const aiCount = scenes.filter(s => s.heroSource === 'nano_banana' || s.heroSource === 'flux_schnell').length;
+  assert.equal(aiCount, 2, 'exactly 2 AI-generated image calls per narrative B video');
 });
 
 test('narrative B maps points[i].headingEn to scene captionEn', () => {
