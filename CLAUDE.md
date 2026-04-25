@@ -140,7 +140,7 @@ Usa el **Agent tool** para invocar cada sub-agente. Pasa como prompt el contenid
 - **El Fact-Checker:** prompt base en `agents/fact-checker.md`
 - **Tracy:** prompt base en `agents/tracy.md`
 - **El Creativo:** prompt base en `agents/creativo.md`
-- **El Director:** prompt base en `agents/director.md`
+- **El Director v2:** sistema de generación de videos Reels/Stories 9:16 — `agents/director_v2/` (Sprint 1 al 100% desde 2026-04-25, 85 tests verdes). Stack code-first: Puppeteer + ffmpeg + Replicate Flux Schnell + Nano Banana + Pexels + Cloudinary. `npm run prod` en `agents/director_v2/` para batch producción. **Deprecado:** `agents/director.md` (legacy Blotato).
 - **El Programador:** prompt base en `agents/programador.md`
 
 Flujo recomendado:
