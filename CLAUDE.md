@@ -150,7 +150,7 @@ Flujo recomendado:
 
 **Flujo de Social Media (cadena secuencial):**
 1. **Social Media Agent** (tú mismo) → genera ideas de contenido con Caption EN/ES, Hook, Visual_Prompt (con TEMA T1-T5), Blotato_Template_ID, Hashtags → guarda en Airtable `tblAj0Pkj1jW4p5Ld`
-2. **El Director** → solo para Reels/Video — genera video con Blotato, guarda `visual_url`
+2. **El Director v2** → solo para Reels/Video — genera video MP4 9:16 (1080×1920, 7-15s) con Puppeteer+ffmpeg+Replicate+Pexels, sube a Cloudinary, guarda `visual_url` en Airtable. `cd agents/director_v2 && npm run prod`. NO usa Blotato para video (fue reemplazado por stack code-first).
 3. **El Creativo** → lee registros con `visual_url` vacío y `Visual_Prompt` no vacío (no Reel/Video) → genera carrusel/imagen con template `53cfec04` usando el TEMA especificado → guarda `visual_url` + `Blotato_Visual_ID` en Airtable
 4. **El Programador** → lee registros con `visual_url` no vacío y `Blotato_Post_IDs` vacío → publica en FB+IG via Blotato → slots disponibles: Mar/Jue/Sáb 10am-12pm CST
 
