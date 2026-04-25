@@ -67,3 +67,19 @@ test('validateSpec throws on duration out of 7-15', () => {
 test('dispatcher throws on unknown narrative code', () => {
   assert.throws(() => expandNarrative({ narrative: 'X' }), /Unknown narrative/);
 });
+
+test('narrative B with image_quality=undefined uses flux_schnell (cheap default)', () => {
+  const scenes = expandNarrative(B_VALID);
+  assert.equal(scenes[0].heroSource, 'flux_schnell');
+  assert.equal(scenes[4].heroSource, 'flux_schnell');
+});
+
+test('narrative B with image_quality="premium" uses nano_banana', () => {
+  const scenes = expandNarrative({ ...B_VALID, image_quality: 'premium' });
+  assert.equal(scenes[0].heroSource, 'nano_banana');
+  assert.equal(scenes[4].heroSource, 'nano_banana');
+});
+
+test('validateSpec rejects invalid image_quality', () => {
+  assert.throws(() => validateSpec({ ...B_VALID, image_quality: 'ultra' }), /image_quality must be/);
+});
