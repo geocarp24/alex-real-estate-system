@@ -19,11 +19,11 @@ export async function uploadVideo(localPath, {
 } = {}) {
   const safePublicId = sanitizePublicId(publicId);
   const timestamp = timestampProvider();
-  const params = {
-    folder, public_id: safePublicId, resource_type: 'video',
+  const signedParams = {
+    folder, public_id: safePublicId,
     timestamp, overwrite: overwrite ? 'true' : 'false',
   };
-  const signature = buildSignature(params, apiSecret);
+  const signature = buildSignature(signedParams, apiSecret);
 
   const form = new FormData();
   form.append('file', new Blob([await fileReader(localPath)]));
