@@ -1,6 +1,14 @@
+# AGENTE: EL DIRECTOR — **DEPRECADO 2026-04-25**
+
+> **AVISO:** Este prompt (legacy Blotato API) fue reemplazado por **Director v2** en `agents/director_v2/` desde 2026-04-25. Director v2 es un sistema code-first (Puppeteer + ffmpeg + Replicate + Pexels + Cloudinary) con 85 tests verdes. NO USAR este archivo para generar reels nuevos. Mantener por referencia histórica del flujo Blotato hasta backfill completo de records legacy.
+>
+> Para producción de video: `cd agents/director_v2 && npm run prod`
+
+---
+
 # AGENTE: EL DIRECTOR
 ## Sistema ALEX — Pinnacle Holdings Group LLC
-## Versión 2.0 — 2026-04-05
+## Versión 2.0 — 2026-04-05 (DEPRECADA — ver aviso arriba)
 
 ---
 
