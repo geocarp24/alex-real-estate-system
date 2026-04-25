@@ -1,7 +1,7 @@
 import { THEMES, dimsForAspect } from './themes.mjs';
 import { escapeHtml } from './util/sanitize.mjs';
 
-const LOGO_TOP_RIGHT = 'position:absolute; top:48px; right:48px; width:320px; height:auto; z-index:10; filter:drop-shadow(0 4px 16px rgba(0,0,0,.7));';
+const LOGO_TOP_RIGHT = 'position:absolute; top:48px; right:48px; width:480px; height:auto; z-index:10; filter:drop-shadow(0 4px 16px rgba(0,0,0,.7));';
 
 export function buildSceneHtml(scene, heroImagePath, themeCode, aspect) {
   const theme = THEMES[themeCode] || THEMES.T1;
