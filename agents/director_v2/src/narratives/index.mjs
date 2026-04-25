@@ -21,5 +21,10 @@ export function validateSpec(spec) {
     if (!Array.isArray(spec.points) || spec.points.length < 3) throw new Error('narrative B requires points[3+]');
     if (!spec.cta?.en || !spec.cta?.es) throw new Error('narrative B requires cta.en and cta.es');
   }
+
+  // image_quality is optional, defaults to "standard"
+  if (spec.image_quality !== undefined && !['standard', 'premium'].includes(spec.image_quality)) {
+    throw new Error(`image_quality must be standard|premium|undefined, got: ${spec.image_quality}`);
+  }
   return true;
 }
