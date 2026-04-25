@@ -6,6 +6,9 @@
 
 ---
 
+## REGLA "REELS COPY: NO PROMESAS TEMPORALES" (2026-04-25) — NO NEGOCIABLE
+Orden Jorge: PROHIBIDO usar frases con plazos numéricos específicos en copy de reels/videos/ads/posts (ej. "Close in 7 Days", "Sold in 14 Days", "Cash in 24 Hours"). Razón: legal/compliance, promesas temporales crean obligación si no se cumplen. USAR pool aprobado de frases vacías: Cash Offer | No Commissions | No Repairs | No Showings | Faster Than Banks | Weeks Not Months | Any Condition | Sell As-Is. Implementado en `agents/director_v2/src/narratives/narrative_B.mjs` (HERO_QUERY_TABLE) y `agents/director_v2/render_poc.mjs` (APPROVED_POINTS + pickRandomPoints(3) para variedad random). Aplica a Director v2, Creativo v2, Social Media Agent y cualquier agent que genere copy para Pinnacle. Detalle completo en `memoria_ALex.md` sección 2026-04-25.
+
 ## EL CREATIVO v2 — 100% OPERATIVO (ESTÁTICOS) — 2026-04-24
 ACTIVADO. `agents/creativo_v2/`. 5 temas (T1-T5) + 3 aspects (4:5, 1:1, 9:16) + 3 slide-types (hook, point 2-col bilingüe, CTA). Puppeteer HTML→JPG. 42 tests. Integración Airtable + Cloudinary vía Doppler. `npm run prod`. Pendientes no-bloqueantes: slide-types media/quote/stat, hero Nano Banana. Bloqueos: Social Media Agent debe emitir Visual_Prompt JSON (spec en `docs/superpowers/plans/2026-04-24-creativo-v2-prod.md`). Siguiente: Director v2 (videos 7-15s).
 
