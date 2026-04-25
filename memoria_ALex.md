@@ -7,6 +7,31 @@
 
 ## REGLAS DEL JEFE (aplican a TODOS los agentes, siempre)
 
+### 2026-04-25 — EL DIRECTOR v2 AL 100% OPERATIVO (REELS/STORIES VIDEO)
+- **Status:** ACTIVADO — listo para producción de Reels/Stories 9:16 (1080×1920, 7-15s)
+- **Ubicación:** `agents/director_v2/`
+- **Branch:** `claude/greeting-setup-yOfqf`
+- **Tests:** 85/85 verdes (`npm test`)
+- **Capacidades confirmadas en POC end-to-end:**
+  - Narrativa B (Hook + 3 Points + CTA) — los otros 2 (A, C) en backlog post-Sprint 1
+  - 5 temas T1-T5 + Montserrat (re-exports de Creativo v2)
+  - 3 layouts: `hook` (centrado 128px), `point` (centrado 96px accent — todos los slides centrados por orden de Jorge), `cta` (caption + phone + URL), más `layout_d` disponible para narrativas A/C
+  - Logo Pinnacle 480px top-right con drop-shadow (orden de Jorge 2026-04-25)
+  - Two-tier image strategy: **standard** (Replicate Flux Schnell, 1c/img, $0.42/mes proyectado) vs **premium** (Nano Banana, 4c/img, $2.40/mes) — orden de Jorge 2026-04-25
+  - Hero fallback chain: flux_schnell → nano_banana → pexels → theme_solid
+  - Music CC0 royalty-free local (5 tracks subidos por Jorge: upbeat×2, chill, cinematic, tension)
+  - Cloudinary upload (bug signature fix: `resource_type` NO se firma)
+  - Airtable schema migrado: `Formato='Reel'`, `video_duration` (number, precision 1), `video_cost_cents` (number, precision 0)
+  - Cost control: max 3 nano_banana per video, monthly cap 1000 cents, atomic state file `state/nano_banana_usage.json`
+- **Comandos:** `npm test` | `npm run prod` (batch Airtable) | `npm run prod:dry-run` | `npm run poc` (POC standalone — random points del pool aprobado) | `npm run schema` (idempotent migration)
+- **Doppler:** `pinnacle-social-publisher / dev_personal` — secrets: PEXELS_API_KEY, GEMINI_API_KEY, REPLICATE_API_TOKEN, CLOUDINARY_*, AIRTABLE_SM_*
+- **POC final aprobado por Jorge:** https://res.cloudinary.com/dzzlhhk0m/video/upload/v1777139409/pinnacle-social-media/videos/poc/directorv2/poc_1777139409279.mp4
+- **Deprecado:** `agents/director.md` (legacy Blotato) — reemplazado por este sistema
+- **Pendientes post-Sprint 1:**
+  - Task 16 polish concerns acumulados (precision drift, weak assertions, JSDoc, hardcoded phone/URL → SaaS multi-tenancy)
+  - Backfill legacy records (regla NO NEGOCIABLE)
+  - Narrativas A (problem→solution) y C (before/after)
+
 ### 2026-04-25 — REELS COPY: PROHIBIDO COMPROMISOS TEMPORALES ESPECÍFICOS (NO NEGOCIABLE — APROBADO POR JORGE)
 **Aplica a:** Director v2, Social Media Agent, Creativo v2, cualquier agent que genere copy para reels/videos/posts/ads de Pinnacle Holdings Group.
 
