@@ -17,6 +17,7 @@ export function deriveHeroQuery(heading) {
 
 export function expand(spec) {
   const mood = spec.mood || 'upbeat';
+  const tier = spec.image_quality === 'premium' ? 'nano_banana' : 'flux_schnell';
   const hookPrompt = `Modern real estate scene matching: "${spec.hook.en}", Pinnacle Holdings brand, cinematic, golden hour, 9:16 vertical`;
   const ctaPrompt  = 'Pinnacle Holdings Group branded CTA scene, modern craftsman home exterior at twilight, cinematic, 9:16 vertical';
 
@@ -24,7 +25,7 @@ export function expand(spec) {
     {
       index: 1, duration: 2.5, layoutType: 'hook',
       captionEn: spec.hook.en, captionEs: spec.hook.es,
-      heroSource: 'nano_banana', heroPrompt: hookPrompt, heroQuery: null,
+      heroSource: tier, heroPrompt: hookPrompt, heroQuery: null,
       kinetic: true, zoompan: { from: 1.0, to: 1.05 },
       transitionOut: 'crossfade', mood,
     },
@@ -52,7 +53,7 @@ export function expand(spec) {
     {
       index: 5, duration: 2.5, layoutType: 'cta',
       captionEn: spec.cta.en, captionEs: spec.cta.es,
-      heroSource: 'nano_banana', heroPrompt: ctaPrompt, heroQuery: null,
+      heroSource: tier, heroPrompt: ctaPrompt, heroQuery: null,
       kinetic: true, zoompan: { from: 1.0, to: 1.05 },
       transitionOut: 'none', mood,
     },
