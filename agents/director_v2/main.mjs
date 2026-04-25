@@ -173,6 +173,7 @@ async function main() {
     tableId: process.env.AIRTABLE_SM_TABLE_ID,
     PEXELS_API_KEY: process.env.PEXELS_API_KEY,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    REPLICATE_API_TOKEN: process.env.REPLICATE_API_TOKEN,
     CLOUDINARY_NAME: process.env.CLOUDINARY_NAME,
     CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
     CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
