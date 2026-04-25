@@ -118,7 +118,7 @@ async function processRecord(record, { env, dryRun, stats }) {
   const frameOutputs = [];
   for (const scene of scenes) {
     const hero = await resolveHero(scene, {
-      pexelsKey: env.PEXELS_API_KEY, geminiKey: env.GEMINI_API_KEY, tmpDir: recordTmp, stats, forcePexels,
+      pexelsKey: env.PEXELS_API_KEY, geminiKey: env.GEMINI_API_KEY, replicateKey: env.REPLICATE_API_TOKEN, tmpDir: recordTmp, stats, forcePexels,
     });
     const body = buildSceneHtml(scene, hero.path, spec.theme, spec.aspect);
     const html = wrapSlideHtml(body, spec.theme, spec.aspect);
