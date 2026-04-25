@@ -14,9 +14,9 @@ test('narrative B expands to 5 scenes with correct durations', () => {
   const total = scenes.reduce((s, sc) => s + sc.duration, 0);
   assert.ok(total >= 7 && total <= 15, `total duration ${total} must be 7-15s`);
   assert.equal(scenes[0].layoutType, 'hook');
-  assert.equal(scenes[1].layoutType, 'layout_d');
-  assert.equal(scenes[2].layoutType, 'layout_d');
-  assert.equal(scenes[3].layoutType, 'layout_d');
+  assert.equal(scenes[1].layoutType, 'point');
+  assert.equal(scenes[2].layoutType, 'point');
+  assert.equal(scenes[3].layoutType, 'point');
   assert.equal(scenes[4].layoutType, 'cta');
 });
 
