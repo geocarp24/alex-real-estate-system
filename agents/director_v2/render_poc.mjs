@@ -144,6 +144,7 @@ async function main() {
   const start  = Date.now();
 
   console.log(`Director v2 POC — narrative=${POC_SPEC.narrative} theme=${POC_SPEC.theme} tier=${premium ? 'premium' : 'standard'}`);
+  console.log(`Random points selected: ${POC_SPEC.points.map(p => p.headingEn).join(' / ')}`);
 
   const frameOutputs = [];
   for (const scene of scenes) {
