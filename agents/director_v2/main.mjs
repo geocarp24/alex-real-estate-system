@@ -49,10 +49,27 @@ Duración total:     ${mins}m ${secs}s
 ════════════════════════════════════════`.trim();
 }
 
-async function resolveHero(scene, { pexelsKey, geminiKey, tmpDir, stats, forcePexels }) {
+async function resolveHero(scene, { pexelsKey, geminiKey, replicateKey, tmpDir, stats, forcePexels }) {
   const heroPath = join(tmpDir, `hero_${scene.index}.bin`);
   let effectiveSource = scene.heroSource;
-  if (forcePexels && effectiveSource === 'nano_banana') effectiveSource = 'pexels';
+  if (forcePexels && (effectiveSource === 'nano_banana' || effectiveSource === 'flux_schnell')) {
+    effectiveSource = 'pexels';
+  }
+
+  if (effectiveSource === 'flux_schnell') {
+    try {
+      const replicateMod = await import('./src/replicate_image.mjs');
+      const { imageBuffer, costCents } = await replicateMod.generateImage(scene.heroPrompt, { apiKey: replicateKey });
+      stats.replicateCalls = (stats.replicateCalls || 0) + 1;
+      stats.replicateCents = (stats.replicateCents || 0) + costCents;
+      await writeFile(heroPath, imageBuffer);
+      return { path: heroPath, sourceActual: 'flux_schnell' };
+    } catch (err) {
+      if (!(err instanceof (await import('./src/replicate_image.mjs')).ReplicateFailedError)) throw err;
+      stats.fallback++;
+      effectiveSource = 'nano_banana';
+    }
+  }
 
   if (effectiveSource === 'nano_banana') {
     try {
