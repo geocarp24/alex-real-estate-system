@@ -464,14 +464,59 @@ async function main() {
     });
   }
 
-  // Telegram alerting policy
-  const shouldAlert =
-    score.health === "red" ||
-    (args.mode === "evolve") ||
-    (args.mode === "deep" && (score.warnings.length > 0 || repair.applied > 0));
+  // Telegram alerting policy — dedup by warning-set vs last alerted run.
+  // Always alert: red health, evolve mode, auto-fixes applied.
+  // For deep mode with same recurring warnings: alert at most once per 24h.
+  const currentWarnings = score.warnings.slice().sort().join("|");
+  const currentCriticals = score.critical.slice().sort().join("|");
+  let shouldAlert = false;
+  let alertReason = "";
+
+  if (score.health === "red") {
+    shouldAlert = true; alertReason = "red_health";
+  } else if (args.mode === "evolve") {
+    shouldAlert = true; alertReason = "evolve_mode";
+  } else if (repair.applied > 0) {
+    shouldAlert = true; alertReason = "autofix_applied";
+  } else if (args.mode === "deep" && (score.warnings.length > 0 || score.critical.length > 0)) {
+    // Compare against last 24h of alerted deep runs (look for same warning/critical set).
+    try {
+      const since = new Date(Date.now() - 24 * 3_600_000).toISOString();
+      const filter = encodeURIComponent(
+        `AND({check_type}='deep', IS_AFTER({started_at}, '${since}'), {alerted}=1)`
+      );
+      const recent = await airtableFetch(
+        cfg, TABLE_KEY,
+        `filterByFormula=${filter}&maxRecords=10&sort[0][field]=started_at&sort[0][direction]=desc`
+      ).catch(() => ({ records: [] }));
+      const sameAsRecent = (recent.records || []).some((r) => {
+        const w = ((r.fields?.warnings || "").split("\n").filter(Boolean)).sort().join("|");
+        const c = ((r.fields?.critical_issues || "").split("\n").filter(Boolean)).sort().join("|");
+        return w === currentWarnings && c === currentCriticals;
+      });
+      if (sameAsRecent) {
+        shouldAlert = false;
+        alertReason = "suppressed_dedup_24h";
+        console.error(`[supervisor] alert suppressed — same warning set already alerted in last 24h`);
+      } else {
+        shouldAlert = true;
+        alertReason = "new_or_changed_warnings";
+      }
+    } catch (e) {
+      // On dedup failure, fail-safe to alert (preserve old behavior).
+      shouldAlert = true;
+      alertReason = `dedup_check_failed:${e.message}`;
+    }
+  }
+
   if (shouldAlert) {
     await telegramSend(cfg, formatTelegram(cfg, args, runId, infra, pipeline, score, repair, evolve));
   }
+  // Mark whether this run produced an alert so future dedup queries can use it.
+  await airtableUpsert(cfg, TABLE_KEY, runId, {
+    alerted: shouldAlert ? 1 : 0,
+    alert_reason: alertReason,
+  }).catch(() => { /* alerted/alert_reason fields optional — ignore if missing */ });
 
   // Auto-escalation: heartbeat detected RED → spawn incident deep-dive in background.
   // Guardrail: only from heartbeat mode (avoid recursion from an incident run itself).
