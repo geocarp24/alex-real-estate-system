@@ -464,11 +464,20 @@ async function main() {
     });
   }
 
-  // Telegram alerting policy — dedup by warning-set vs last alerted run.
+  // Telegram alerting policy — dedup by NORMALIZED warning-set vs last alerted run.
   // Always alert: red health, evolve mode, auto-fixes applied.
   // For deep mode with same recurring warnings: alert at most once per 24h.
-  const currentWarnings = score.warnings.slice().sort().join("|");
-  const currentCriticals = score.critical.slice().sort().join("|");
+  // Normalize: strip numbers/decimals/UUIDs so warnings like "stale 40.6h" and
+  // "stale 38.2h" dedup as the same recurring issue.
+  const normalizeWarning = (s) =>
+    String(s || "")
+      .replace(/\d+(?:\.\d+)?/g, "N")        // 40.6 → N, 12 → N
+      .replace(/[a-f0-9]{8,}/gi, "ID")        // run_ids/uuids → ID
+      .replace(/\s+/g, " ")
+      .trim();
+  const normalizeSet = (arr) => arr.map(normalizeWarning).sort().join("|");
+  const currentWarnings = normalizeSet(score.warnings);
+  const currentCriticals = normalizeSet(score.critical);
   let shouldAlert = false;
   let alertReason = "";
 
