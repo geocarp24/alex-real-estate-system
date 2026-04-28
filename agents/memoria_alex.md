@@ -150,4 +150,16 @@ Todo lo construido para Pinnacle se diseña como producto vendible. Pinnacle = t
 
 ---
 
-*Última actualización: 2026-04-22*
+## 2026-04-28 — Fix spam Supervisor + memoria desync
+
+Jorge reportó "el auditor me está enviando mensajes a cada rato y en fila". Diagnóstico: era el **Supervisor deep mode** (cada 1h) alertando 24x/día por el mismo warning recurrente "seg_sms_sent stale 40h" (falso positivo: el reloj suizo SÍ corre, no hay contactos due en Seguimiento).
+
+**Fix:** `agents/supervisor/supervisor.mjs` — añadido dedup 24h: compara warnings+critical_issues contra runs deep en últimas 24h. Si idéntico → suprime alerta. Si cambió → notifica. Campos opcionales `alerted`/`alert_reason` para auditoría.
+
+**Memoria desync identificado:** `agents/shared_conversation.json` congelado desde 2026-04-06 (bot VPS no pushea a git). Memoria canonical sigue siendo `memoria_ALex.md` raíz (actualizada hasta hoy).
+
+Detalle completo en `memoria_ALex.md` raíz, sección 2026-04-28.
+
+---
+
+*Última actualización: 2026-04-28*
