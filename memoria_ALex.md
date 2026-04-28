@@ -2520,3 +2520,39 @@ Todo lo que se construya para Pinnacle debe diseñarse desde el día 1 como **pr
 **Reconciliación con Phase 1 actual:** el código actual está lleno de hardcodes (webform, chatbot, popup, bridges). Eso se refactoriza gradualmente — no bloquea Phase 2. Regla aplica FORWARD desde 2026-04-23. Refactor retroactivo a Phase 1 se hace cuando armemos la primera venta a un segundo cliente.
 
 **Aprobado por:** Jorge Cruz — 2026-04-23
+
+---
+
+### 2026-04-28 — Fix spam Supervisor + audit memoria desync
+
+**Síntoma reportado por Jorge:** "el auditor me está enviando mensajes a cada rato y en fila".
+
+**Diagnóstico:**
+- NO era el R9 Auditor (solo 1 run en Airtable Apr-24, status=Failed).
+- ERA **El Supervisor** (`supervisor-cron.yml`): heartbeat cada 15 min + deep cada 1h = ~120 ejecuciones/día.
+- Bug raíz en `agents/supervisor/supervisor.mjs:467-474`: el modo `deep` mandaba Telegram **siempre que hubiera warnings**. Como el warning "Sin seg_sms_sent desde hace 40h (esperado daily)" se repite hora tras hora, generaba **24 mensajes idénticos/día**.
+- El warning en sí es **falso positivo crónico** — verificado: `Last contact date: 2026-04-28`, `SMS Sent: true` en Contacts → reloj suizo Hostinger SÍ está corriendo. El campo `seg_sms_sent` que rastrea el log no se registra porque no hay contactos due en Seguimiento (solo 5 en stage, ninguno necesita toque hoy).
+
+**Fix aplicado (`supervisor.mjs`):** Dedup 24h por warning-set.
+- Antes de enviar Telegram en modo `deep`, fetch últimos 30 runs en ventana 24h.
+- Comparar `warnings + critical_issues` ordenados contra runs anteriores.
+- Si el set es idéntico a algún run alertado en últimas 24h → **suprimir alerta**.
+- Si el set cambió (nuevo warning, warning resuelto, etc.) → enviar.
+- Campos opcionales `alerted` y `alert_reason` se persisten para auditoría (graceful fallback si Airtable no los tiene aún).
+- Resultado esperado: máximo **1 mensaje/día** por warning recurrente. Cambios reales en salud siguen alertando inmediatamente.
+
+**Memoria desync detectado:**
+- `agents/shared_conversation.json` congelado en `2026-04-06T03:21:09` — última escritura del bot Telegram hace 22 días.
+- Causa probable: el bot escribe el archivo en `/opt/alex-bot/` (o `/home/alexuser/alex-bot/`) en el VPS, NO hace `git push` después → el local repo queda desincronizado.
+- `memoria_ALex.md` raíz SÍ tiene actualizaciones hasta 2026-04-23 (canonical). El hueco está solo en shared_conversation.
+- **Pendiente arquitectural:** decidir si (a) bot auto-pushea cambios, (b) cron periódico VPS→repo sync, o (c) deprecar shared_conversation.json y basarnos solo en memoria_ALex.md. Hablar con Jorge.
+
+**Lección:**
+- Cuando un check de salud reporta el MISMO warning hora tras hora, el sistema debe deduplicar antes de notificar. Este fix establece el patrón para todos los R9 sub-agentes futuros.
+- Falsos positivos crónicos en checks deben mejorarse en root cause, no aceptarse como ruido — pero mientras tanto, dedup salva la sanidad del Jefe.
+
+**Skills invocados:** systematic-debugging (síntoma → causa raíz vía Airtable + código), simplify (fix surgical en bloque de alerta).
+
+**Verificación pendiente Jorge:** próximo deep-run del supervisor (~1h después del push) debe alertar UNA vez, luego silencio 23h.
+
+---
