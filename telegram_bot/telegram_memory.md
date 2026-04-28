@@ -55,3 +55,17 @@ Todo el trabajo de Pinnacle se optimiza mobile-first como prioridad #1. Mayor tr
 Todo se construye como producto vendible a terceros. Pinnacle = tenant cero. Reglas: nada hardcodeado (todo por-tenant config), tenant isolation, separación core/config/deployment, onboarding documentado, billing hooks upfront, validar licencias deps (AGPL no-go para mono core, MIT/Apache safe), security defaults día 1, naming genérico. Detalle completo en `memoria_ALex.md` regla R8 y `CLAUDE.md` sección 1c.
 
 ---
+
+## 2026-04-28 — Sesión Claude Code — Fix spam Supervisor
+
+Jorge reportó "el auditor me está enviando mensajes a cada rato y en fila". Causa: El **Supervisor deep mode** (cada 1h) alertaba a Telegram cada vez que había warnings, y el warning "seg_sms_sent stale 40h" (falso positivo crónico) generaba 24 mensajes idénticos/día.
+
+**Fix aplicado:** dedup 24h en `agents/supervisor/supervisor.mjs` — compara warning-set contra runs deep en ventana 24h, suprime si idéntico, notifica si cambió.
+
+**Falso positivo del warning:** verificado en Airtable que `Last contact date=2026-04-28` y `SMS Sent=true` → el reloj suizo Hostinger SÍ corre. El warning aparece porque no hay contactos due en Seguimiento (5 en stage, ninguno necesita toque hoy). El log no registra `seg_sms_sent` cuando no hay nada que enviar — el threshold dispara warning falso. Mejora futura: hacer threshold dinámico según pipeline real.
+
+**Memoria desync detectado:** `shared_conversation.json` congelado en 2026-04-06. Bot Telegram en VPS escribe el archivo localmente pero nunca pushea a git. Por eso al abrir Claude Code, el JSON está stale. Memoria canonical sigue siendo `memoria_ALex.md` raíz (actualizada hasta hoy). Pendiente decisión arquitectónica: bot auto-push vs cron VPS→repo sync vs deprecar el JSON.
+
+Resto del estado al cierre 2026-04-23 sigue válido — ver `memoria_ALex.md` sección "2026-04-23 NIGHT" para plantel R9 (10 agentes) y crons activos (17 GHA + 4 Hostinger = 21 jobs).
+
+---
