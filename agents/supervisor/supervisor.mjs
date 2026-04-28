@@ -502,8 +502,8 @@ async function main() {
       const sameAsRecent = (recent.records || [])
         .filter((r) => r.fields?.run_id !== runId) // exclude current run
         .some((r) => {
-          const w = ((r.fields?.warnings || "").split("\n").filter(Boolean)).sort().join("|");
-          const c = ((r.fields?.critical_issues || "").split("\n").filter(Boolean)).sort().join("|");
+          const w = normalizeSet((r.fields?.warnings || "").split("\n").filter(Boolean));
+          const c = normalizeSet((r.fields?.critical_issues || "").split("\n").filter(Boolean));
           return w === currentWarnings && c === currentCriticals;
         });
       if (sameAsRecent) {
