@@ -479,25 +479,28 @@ async function main() {
   } else if (repair.applied > 0) {
     shouldAlert = true; alertReason = "autofix_applied";
   } else if (args.mode === "deep" && (score.warnings.length > 0 || score.critical.length > 0)) {
-    // Compare against last 24h of alerted deep runs (look for same warning/critical set).
+    // Dedup: suppress alert if a deep run in the last 24h already had the same
+    // warning+critical set. New or changed warnings still alert.
     try {
       const since = new Date(Date.now() - 24 * 3_600_000).toISOString();
       const filter = encodeURIComponent(
-        `AND({check_type}='deep', IS_AFTER({started_at}, '${since}'), {alerted}=1)`
+        `AND({check_type}='deep', {status}='Done', IS_AFTER({started_at}, '${since}'))`
       );
       const recent = await airtableFetch(
         cfg, TABLE_KEY,
-        `filterByFormula=${filter}&maxRecords=10&sort[0][field]=started_at&sort[0][direction]=desc`
+        `filterByFormula=${filter}&maxRecords=30&sort[0][field]=started_at&sort[0][direction]=desc`
       ).catch(() => ({ records: [] }));
-      const sameAsRecent = (recent.records || []).some((r) => {
-        const w = ((r.fields?.warnings || "").split("\n").filter(Boolean)).sort().join("|");
-        const c = ((r.fields?.critical_issues || "").split("\n").filter(Boolean)).sort().join("|");
-        return w === currentWarnings && c === currentCriticals;
-      });
+      const sameAsRecent = (recent.records || [])
+        .filter((r) => r.fields?.run_id !== runId) // exclude current run
+        .some((r) => {
+          const w = ((r.fields?.warnings || "").split("\n").filter(Boolean)).sort().join("|");
+          const c = ((r.fields?.critical_issues || "").split("\n").filter(Boolean)).sort().join("|");
+          return w === currentWarnings && c === currentCriticals;
+        });
       if (sameAsRecent) {
         shouldAlert = false;
         alertReason = "suppressed_dedup_24h";
-        console.error(`[supervisor] alert suppressed — same warning set already alerted in last 24h`);
+        console.error(`[supervisor] alert suppressed — identical warning set in last 24h`);
       } else {
         shouldAlert = true;
         alertReason = "new_or_changed_warnings";
