@@ -877,7 +877,9 @@ async function gitCommitAndPushBranch(branchName, commitMsg) {
 async function createDraftPR(branchName, title, body) {
   const repo = await ghApiFetch("");
   if (!repo.ok) return { ok: false, reason: `repo info: ${repo.status}` };
-  const base = repo.json?.default_branch || "main";
+  // Default branch fallback: prefer detected, then GITHUB_REF_NAME (current branch
+  // for workflow_dispatch), then "master" since this repo's default is master not main.
+  const base = repo.json?.default_branch || process.env.GITHUB_REF_NAME || "master";
 
   const pr = await ghApiFetch("/pulls", {
     method: "POST",
