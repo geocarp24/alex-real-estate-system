@@ -32,11 +32,12 @@ function baseWrapper(theme, inner, opts = {}) {
   </div>`;
 }
 
-function logoWatermark(theme, size = 64) {
+function logoWatermark(theme, size = 220) {
+  // Logo Pinnacle es 677×369 (rectangular). Tamaño visible: 220px width = ~120px height.
   return `<img src="${LOGO_URL}" alt="Pinnacle Holdings" style="
-    position:absolute; bottom:48px; right:48px; width:${size}px; height:auto;
-    opacity:${theme.name === "White Clean" || theme.name === "Soft Cream" ? ".85" : ".9"};
-    filter:${theme.name === "White Clean" || theme.name === "Soft Cream" ? "none" : "brightness(1.05)"};" />`;
+    position:absolute; bottom:56px; right:56px; width:${size}px; height:auto;
+    opacity:${theme.name === "White Clean" || theme.name === "Soft Cream" ? "1" : "1"};
+    filter:${theme.name === "White Clean" || theme.name === "Soft Cream" ? "none" : "drop-shadow(0 2px 6px rgba(0,0,0,.25))"};" />`;
 }
 
 // ---------------------------------------------------------------------------
