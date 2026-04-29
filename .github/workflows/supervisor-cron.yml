@@ -2,12 +2,13 @@ name: Supervisor — Autonomous Ops Watchdog
 
 on:
   schedule:
-    # heartbeat every 15 min (uses UTC — cron's min:00/15/30/45)
-    - cron: "*/15 * * * *"
-    # deep every 1h at :05 (offset from heartbeat to avoid collision)
-    - cron: "5 * * * *"
-    # evolve weekly Saturday 07:00 America/Chicago = 12:00 UTC winter / 13:00 UTC summer (we pick 13 UTC — will be 8am CT Sat in winter, 7am CT Sat in summer. Good enough.)
-    - cron: "0 13 * * 6"
+    # 2026-04-29 Jorge directive (low contact volume):
+    #   heartbeat — every 6 hours (lightweight watchdog, 4/day)
+    #   deep     — every 3 days  (auto-repair + Learning + Diagnosis Phase 2)
+    #   evolve   — every 3 days  (pattern recognition)
+    - cron: "0 */6 * * *"            # heartbeat
+    - cron: "30 21 */3 * *"          # deep
+    - cron: "0 22 */3 * *"            # evolve
   workflow_dispatch:
     inputs:
       mode:
@@ -32,10 +33,10 @@ jobs:
         id: mode
         run: |
           case "${{ github.event.schedule }}" in
-            "*/15 * * * *") echo "mode=heartbeat" >> $GITHUB_OUTPUT ;;
-            "5 * * * *")    echo "mode=deep"      >> $GITHUB_OUTPUT ;;
-            "0 13 * * 6")   echo "mode=evolve"    >> $GITHUB_OUTPUT ;;
-            *)              echo "mode=${{ inputs.mode || 'heartbeat' }}" >> $GITHUB_OUTPUT ;;
+            "0 */6 * * *")    echo "mode=heartbeat" >> $GITHUB_OUTPUT ;;
+            "30 21 */3 * *")  echo "mode=deep"      >> $GITHUB_OUTPUT ;;
+            "0 22 */3 * *")   echo "mode=evolve"    >> $GITHUB_OUTPUT ;;
+            *)                echo "mode=${{ inputs.mode || 'heartbeat' }}" >> $GITHUB_OUTPUT ;;
           esac
 
       - uses: actions/setup-node@v4

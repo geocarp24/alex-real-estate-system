@@ -2520,3 +2520,379 @@ Todo lo que se construya para Pinnacle debe diseñarse desde el día 1 como **pr
 **Reconciliación con Phase 1 actual:** el código actual está lleno de hardcodes (webform, chatbot, popup, bridges). Eso se refactoriza gradualmente — no bloquea Phase 2. Regla aplica FORWARD desde 2026-04-23. Refactor retroactivo a Phase 1 se hace cuando armemos la primera venta a un segundo cliente.
 
 **Aprobado por:** Jorge Cruz — 2026-04-23
+
+---
+
+### 2026-04-28 — Fix spam Supervisor + audit memoria desync
+
+**Síntoma reportado por Jorge:** "el auditor me está enviando mensajes a cada rato y en fila".
+
+**Diagnóstico:**
+- NO era el R9 Auditor (solo 1 run en Airtable Apr-24, status=Failed).
+- ERA **El Supervisor** (`supervisor-cron.yml`): heartbeat cada 15 min + deep cada 1h = ~120 ejecuciones/día.
+- Bug raíz en `agents/supervisor/supervisor.mjs:467-474`: el modo `deep` mandaba Telegram **siempre que hubiera warnings**. Como el warning "Sin seg_sms_sent desde hace 40h (esperado daily)" se repite hora tras hora, generaba **24 mensajes idénticos/día**.
+- El warning en sí es **falso positivo crónico** — verificado: `Last contact date: 2026-04-28`, `SMS Sent: true` en Contacts → reloj suizo Hostinger SÍ está corriendo. El campo `seg_sms_sent` que rastrea el log no se registra porque no hay contactos due en Seguimiento (solo 5 en stage, ninguno necesita toque hoy).
+
+**Fix aplicado (`supervisor.mjs`):** Dedup 24h por warning-set NORMALIZADO.
+- Antes de enviar Telegram en modo `deep`, fetch últimos 30 runs en ventana 24h.
+- **Normalización crítica:** los warnings con números variables ("stale 40.6h" vs "stale 38.2h" vs "stale 32.1h") se reducen a un mismo string ("stale Nh") via regex `\d+(?:\.\d+)?` → `N` y `[a-f0-9]{8,}` → `ID`. Sin esto, el dedup nunca matchearía porque las horas cambian cada hora.
+- Verificado: las 5 variaciones de warnings observadas en últimas 24h colapsan a 2 únicos normalizados.
+- Si el set normalizado es idéntico a algún run alertado en últimas 24h → **suprimir alerta**.
+- Si el set cambió (nuevo warning aparece o uno desaparece) → enviar.
+- Campos opcionales `alerted` y `alert_reason` se persisten para auditoría (graceful fallback si Airtable no los tiene aún).
+- Resultado esperado: máximo **1 mensaje/día** por warning recurrente. Cambios reales en salud siguen alertando inmediatamente.
+
+**Memoria desync detectado:**
+- `agents/shared_conversation.json` congelado en `2026-04-06T03:21:09` — última escritura del bot Telegram hace 22 días.
+- Causa probable: el bot escribe el archivo en `/opt/alex-bot/` (o `/home/alexuser/alex-bot/`) en el VPS, NO hace `git push` después → el local repo queda desincronizado.
+- `memoria_ALex.md` raíz SÍ tiene actualizaciones hasta 2026-04-23 (canonical). El hueco está solo en shared_conversation.
+- **Pendiente arquitectural:** decidir si (a) bot auto-pushea cambios, (b) cron periódico VPS→repo sync, o (c) deprecar shared_conversation.json y basarnos solo en memoria_ALex.md. Hablar con Jorge.
+
+**Lección:**
+- Cuando un check de salud reporta el MISMO warning hora tras hora, el sistema debe deduplicar antes de notificar. Este fix establece el patrón para todos los R9 sub-agentes futuros.
+- Falsos positivos crónicos en checks deben mejorarse en root cause, no aceptarse como ruido — pero mientras tanto, dedup salva la sanidad del Jefe.
+
+**Skills invocados:** systematic-debugging (síntoma → causa raíz vía Airtable + código), simplify (fix surgical en bloque de alerta).
+
+**Verificación pendiente Jorge:** próximo deep-run del supervisor (~1h después del push) debe alertar UNA vez, luego silencio 23h.
+
+---
+
+### 2026-04-28 — FASE 1 SUPERVISOR AUTÓNOMO: Learning + Recognition (aprobado por Jorge)
+
+**Visión aprobada:** convertir El Supervisor en agente auto-curativo, auto-mejorable y autosuficiente. Roadmap por fases (1=memoria de lecciones · 2=confidence scoring + LLM diagnosis · 3=auto-fix expandido + rollback · 4=self-modification propose-only · 5=auto-merge con whitelist). Empezando por Fase 1 que es 100% no-destructiva (solo añade memoria, no toca infraestructura).
+
+**Implementado en esta sesión (Fase 1 completa):**
+
+1. **Tabla `Lessons_Learned` en Airtable** (id `tbloCtdxSukBI3R3j`, base appfQbDA750Oihy9J).
+   Campos: lesson_id, tenant_id, symptom_normalized, symptom_raw, category {infra/pipeline/code/data/unknown}, severity {critical/warning/info}, first_seen_at, last_seen_at, occurrence_count, root_cause, attempted_fixes, last_outcome {resolved/no_effect/worsened/pending}, confidence_score (0-1), recommended_action, requires_human, last_run_id, notes.
+
+2. **Módulo Learning en `agents/supervisor/supervisor.mjs`:**
+   - `normalizeSymptom(s)` — exportable global, reemplaza el normalizer inline anterior. Quita `\d+(?:\.\d+)?` → `N` y `[a-f0-9]{8,}` → `ID`. Compartido con dedup de alertas.
+   - `classifySymptom(raw)` — Recognition expandido. Regex por categoría:
+     * **infra**: APIs, endpoints, crons, services (telegram, airtable, openphone, quo, anthropic, claude, firecrawl, hostinger, dns, smtp), HTTP codes, "X API no responde", "API down/offline/unreachable/timeout/invalid".
+     * **pipeline**: contact, seguimiento, fer_first, tbc, ghost/fantasma, seg_sms, stage, lead, deal.
+     * **code**: error, exception, failed, throw, stack trace, undefined, null pointer, syntax.
+     * **data**: stale, missing, desync, mismatch, orphan, empty, no record, "sin X desde".
+     * **unknown**: fallback (debe ser raro tras refinamiento).
+   - `loadLessons(cfg, normalized)` — fetch lecciones por symptom_normalized exacto.
+   - `recordLessonObservation(cfg, raw, severity, runId)` — upsert: si existe, increment occurrence_count + refresh last_seen_at + symptom_raw sample. Si no, create con occurrence_count=1 y last_outcome="pending".
+   - `recordAllObservations(cfg, score, runId)` — paraleliza para todos los warnings + criticals del run actual. Tolerante a fallos individuales.
+
+3. **Integración al main loop:**
+   - Solo modos `deep` e `incident` registran observaciones (heartbeat es fast-path, evolve es analítico). Esto evita spam de la tabla.
+   - Las observaciones se registran ANTES de la decisión de alerta — la tabla siempre tiene la verdad aunque Telegram esté silenciado por dedup.
+   - Failure-tolerant: si Lessons_Learned no existe o Airtable falla, el supervisor completa su run normal.
+
+4. **Config:** `agents/tenants/pinnacle.json` ahora tiene `lessons_learned_table_id: "tbloCtdxSukBI3R3j"`.
+
+5. **Validación end-to-end realizada:**
+   - Syntax check: ✓
+   - Dry-run deep: ✓ (detectó 2 críticos + 1 warning como esperado)
+   - Live test del Learning module contra Airtable: ✓ — primera observación CREATE, segunda con número diferente INCREMENT (count 1→2), tercera (síntoma distinto) CREATE.
+   - Classifier: 7/8 samples bien clasificados — único "unknown" residual es el fallback default.
+
+**Lo que el sistema ya puede hacer hoy (post-Fase-1):**
+- Recordar cada warning/critical visto, con frecuencia y categoría.
+- Detectar lecciones recurrentes (occurrence_count creciente = problema crónico no resuelto).
+- Próxima fase puede consultar `loadLessons()` antes de actuar para ver si ya intentamos un fix antes y cómo le fue.
+
+**Pendiente Fase 2 (próxima sesión, requiere aprobación de Jefe):**
+- LLM diagnosis: Sonnet 4.6 lee Lessons + signals → propone root_cause + recommended_action por lesson.
+- Confidence scoring: basado en historia de outcomes previos (si fix X resolvió este síntoma 3 veces seguidas → confidence 0.9 para volver a aplicarlo).
+- Auto-fix decision: HIGH (>0.9) auto-apply | MED apply+alert | LOW propose-only.
+
+**Pendiente Fase 3 (después de Fase 2):**
+- Auto-fix expandido más allá de ghost-detection: restart cron stuck, purge cache stale, reset API connections, retry failed sends.
+- Verification post-fix: re-run health check 5min después; si health degrada → rollback automático.
+- Outcome recording: actualizar `last_outcome` y `attempted_fixes` después de verificación.
+
+**Guardrails operativos NO NEGOCIABLES (recordatorio):**
+- Whitelist de acciones: solo operativas, NUNCA credenciales/finanzas/comunicaciones-a-clientes/deletes.
+- Circuit breaker: 3 fixes consecutivos que empeoran salud → STOP + escalar.
+- Max actions per run, audit trail completo (Airtable + git).
+- Self-modification = propose-only. Auto-merge nunca habilitado por el agente solo — decisión humana.
+
+**Skills invocados esta sesión:** systematic-debugging, simplify, agent-designer (visión), brainstorming (arquitectura).
+
+---
+
+### 2026-04-28/29 — FASE 2 SUPERVISOR AUTÓNOMO: LLM Diagnosis + Confidence + Decision (aprobado por Jorge)
+
+**Fase 2 implementada en la misma sesión, inmediatamente después de Fase 1.**
+
+**1. LLM Diagnosis (Sonnet 4.6 vía Anthropic API directa):**
+- `callAnthropicAPI(systemPrompt, userPrompt, model, maxTokens)` — fetch directo a `https://api.anthropic.com/v1/messages` con `claude-sonnet-4-5-20250929`. Más liviano que `runClaude` (no spawn CLI). Graceful fallback si `ANTHROPIC_API_KEY` no está disponible.
+- `parseFirstJSON(text)` — extrae primer JSON object del output, tolerante a markdown fences y prosa.
+- `diagnoseLesson(cfg, lessonRecord, signals)` — para cada lesson nueva o crítica o multiplo de 5 occurrences:
+  - System prompt: "senior SRE diagnosing operational symptoms in real estate SaaS automation".
+  - Schema JSON estricto: `{ root_cause, recommended_action, requires_human, action_category, safety_notes }`.
+  - `action_category` ∈ {cron_restart, cache_purge, api_retry, data_repair, config_update, code_fix, escalate}.
+  - `requires_human=true` MANDATORIO si action toca: credenciales, finanzas, comunicaciones-cliente, deletes, schema, fuera de whitelist.
+  - El prompt incluye: symptom_raw, category, severity, occurrence_count, last 5 attempted_fixes, signals del run actual (health, pipeline, infra, log freshness).
+
+**2. Confidence Scoring (determinístico, sin LLM):**
+- `computeConfidence(lessonFields)` — fórmula:
+  - Base: 0 si `requires_human=true` OR sin attempted_fixes.
+  - 0.3 baseline cuando hay al menos 1 fix attempted.
+  - +0.25 por cada outcome=resolved en últimos 3.
+  - -0.1 por cada outcome=no_effect.
+  - +0.1 si occurrence_count >= 5, +0.2 si >= 20 (well-known issue bonus).
+  - **HARD FLOOR:** any outcome=worsened en últimos 3 → 0.0 (kill-switch absoluto).
+  - Clamp [0, 1].
+- Verificado con 7 casos: brand new=0, 1 resolved=0.55, 3 resolved consecutive=1.0, 1 worsened in history=0.0, 2 no_effect+1 resolved=0.55, requires_human=siempre 0.
+
+**3. Decision Layer:**
+- `decideAction(confidence)`:
+  - `>= 0.9` → tier=HIGH, auto_apply=true (Phase 3 ejecutará — Phase 2 solo lo marca).
+  - `>= 0.6` → tier=MED, auto_apply=false, alert=true (propone, espera aprobación).
+  - `< 0.6` → tier=LOW, escalate_human=true (humano decide).
+- **Phase 2 NUNCA ejecuta** — `auto_apply` es flag persistido al lesson para Phase 3.
+
+**4. Integración al main loop:**
+- `diagnoseAndDecide(cfg, observations, score, signalsText, runId)` — orquesta diagnosis + scoring + decision por lesson.
+- Re-fetch cada lesson (post-recordObservation) para tener `occurrence_count` fresco.
+- Skip diagnosis si ya hay `root_cause` y la lección no escaló (severity=critical o occurrence multiple de 5 forza re-diagnosis).
+- Persiste a la lesson: `root_cause`, `recommended_action`, `requires_human`, `confidence_score`, `notes` (audit trail con timestamp + action_category + safety_notes).
+- **Force-alert override:** si hay decisiones HIGH o MED, anula dedup y manda Telegram aunque warnings sean idénticos al run anterior. Razón: una propuesta nueva es información nueva para el operador.
+- Telegram message extendido con `formatDecisionsForTelegram(decisions)`: 3 buckets HIGH/MED/LOW, top 5 por bucket, count de LOW.
+
+**5. Runtime characteristics:**
+- Heartbeat (cada 15min): NO hace diagnosis — fast-path.
+- Deep (cada 1h): registra observaciones + diagnosis selectiva + decision por cada lesson tocada.
+- Incident: igual que deep + spawn automático cuando heartbeat detecta red.
+- Evolve (semanal): NO hace diagnosis per-lesson (eso es deep), hace análisis macro de 7 días.
+
+**6. Costo estimado por deep-run (Pinnacle):**
+- ~3-5 lessons activas en un run típico → 3-5 calls a Sonnet 4.6.
+- ~600 tokens prompt + ~200 tokens output por call.
+- Sonnet 4.6 input: $3/Mtok, output: $15/Mtok.
+- ~$0.005 per lesson diagnosed × 5 lessons × 24 deep runs/día = ~$0.60/día por tenant. Aceptable.
+- Optimización futura: cache diagnosis con hash del symptom_normalized + last_outcome para no re-diagnosticar el mismo problema sin cambios.
+
+**7. Validación realizada:**
+- Syntax check: ✓
+- Dry-run deep: ✓ (no rompe el flow existente).
+- Confidence scoring: 7/7 casos validados localmente.
+- LLM diagnosis: pendiente validar contra prod (requiere ANTHROPIC_API_KEY que solo está en GHA secrets). Próximo deep-run scheduled (~1h en GHA) lo ejercitará automáticamente. Graceful fallback si falla.
+
+**Lo que el sistema ya puede hacer hoy (post-Fase-2):**
+- Para cada problema recurrente, propone un root_cause hipotético y una acción recomendada.
+- Calcula automáticamente cuánta confianza tiene en su propia propuesta basado en historia de fixes previos.
+- Decide: HIGH (listo para auto-fix en Fase 3), MED (proponer al humano), LOW (escalar — no sabe qué hacer).
+- Nunca actúa solo. Persiste todo a Lessons_Learned para audit trail completo.
+
+**Pendiente Fase 3 (próxima sesión, requiere aprobación):**
+- Auto-fix expandido — lee `auto_apply=true` lessons y ejecuta acciones whitelisted (cron restart, cache purge, API retry, data repair).
+- Verification post-fix: re-run health check 5min después; si health degrada → rollback automático + outcome=worsened.
+- Outcome recording: si después del fix el symptom desaparece del próximo deep-run → outcome=resolved + confidence sube. Si persiste → outcome=no_effect.
+- Circuit breaker: 3 fixes consecutivos worsened en cualquier categoría → freeze auto-apply global hasta que humano resetee.
+
+**Skills invocados Fase 2:** agent-designer, error-handling-patterns (graceful fallback), prompt-engineering-patterns (system prompt + JSON schema enforcement), simplify (surgical edits).
+
+---
+
+### 2026-04-29 — TODOS los runs GHA bajados a cada 3 días (orden directa Jorge)
+
+**Razón:** flujo bajo de contactos hoy. Jorge optimiza créditos.
+
+**Cambios:**
+- `agents-cron.yml`: 16 schedules R9 → todos `* * */3 * *`. Espaciados cada 30min entre 12:00-20:00 UTC (07:00-15:00 CT verano) para evitar colisiones GHA.
+- `supervisor-cron.yml`:
+  - **heartbeat** → cada 6 horas (`0 */6 * * *`, 4 runs/día) — watchdog liviano se mantiene activo.
+  - **deep** → cada 3 días (`30 21 */3 * *`) — auto-repair + Learning + Diagnosis Fase 2.
+  - **evolve** → cada 3 días (`0 22 */3 * *`).
+- **Implicación:** detección de fallos críticos en 6h max (no real-time, pero no ciego 3 días). Auto-repair + diagnosis cada 3 días. Jorge consciente, aprobado.
+- Hostinger crons (fer_first_contact, fer_seguimiento, fer_stale_cron, fer_morning_brief) **NO se tocaron desde aquí** — están en hPanel manual y son operacionales del pipeline real (Jorge los ajusta si quiere).
+
+**Volumen post-cambio:**
+- Antes: ~138 runs/día (~970/sem)
+- Ahora: ~0 GHA/día baseline + 16 R9 runs cada 3 días + 3 supervisor cada 3 días = ~19 runs cada 3 días = ~6/día.
+- Reducción ~95%.
+
+**Lección:** SaaS cadence debe ser tenant-configurable (R8). Hardcodearlo en yml es deuda. Próxima iteración: leer schedules desde `pinnacle.json` y generar el cron yml por tenant.
+
+---
+
+### 2026-04-29 — FASE 3 SUPERVISOR AUTÓNOMO: Auto-fix + Verification + Rollback + Circuit Breaker
+
+**Aprobado por Jorge — implementado misma sesión que Fases 1+2.**
+
+**1. Whitelist conservadora de acciones automáticas:**
+- `api_retry` — re-probe del endpoint que falló (read-only, sin side-effects). Mapeo automático: openphone/airtable/telegram según el symptom.
+- `data_repair` — sub-case `stage_drift`: contacts con `Stage='New'` pero `First Contact Step>0` (atascados) → reset a `'To Be Contacted'`. Guarda priorState para rollback.
+- **Excluidos (propose-only, no auto):** cron_restart, cache_purge (404 — endpoint pendiente), config_update, code_fix, escalate.
+- `requires_human=true` = veto absoluto, jamás se ejecuta automáticamente.
+
+**2. Verification inmediata in-run:**
+- Snapshot de `score` antes del fix (warnings + critical).
+- Aplica el fix.
+- Re-corre `runInfrastructureChecks` + `runPipelineChecks` + `scoreHealth` post-fix.
+- `detectOutcome(beforeScore, afterScore, lessonNormalized)`:
+  - Si symptom estaba en before pero NO en after → `resolved`.
+  - Si symptom persiste → `no_effect`.
+  - Si aparecen criticals NUEVOS no presentes antes → `worsened` (trigger rollback).
+
+**3. Rollback automático:**
+- Solo para acciones con inverse definido. `data_repair_stage_drift` guarda `priorState` (Stage anterior por record) y `rollbackStageDrift()` los restaura via PATCH bulk a Airtable.
+- `api_retry` no necesita rollback (read-only).
+- Si rollback no es posible y outcome=worsened → registra en lesson + alert humano.
+
+**4. Circuit Breaker:**
+- `checkCircuitBreaker(cfg)` fetcha últimos 5 deeps de Ops_Health, cuenta `phase3_outcomes` que contengan "worsened".
+- Si **>= 3 deeps con worsened en últimos 5** → estado OPEN (freeze global). Phase 3 no ejecuta nada en este run, registra razón.
+- Reset: humano ajusta tenant config o espera hasta que historial limpio.
+- Hard floor: si la query del breaker falla → asume OPEN (fail-safe pesimista).
+
+**5. Recording outcomes:**
+- `recordFixAttempt(cfg, lessonRecord, attemptData)`:
+  - Append `{run_id, action_category, action, executed, outcome, details, rollback, timestamp}` al array `attempted_fixes` de la lesson.
+  - Cap a últimas 20 entries (bounded growth).
+  - Update `last_outcome` field.
+- Estos outcomes son los que la Fase 2 lee para calcular confidence — **el loop de aprendizaje se cierra aquí**: fix se aplica → outcome registrado → próximo deep, confidence sube/baja según resultado real.
+
+**6. Caps operativos:**
+- `PHASE3_MAX_FIXES_PER_RUN = 5` — nunca más de 5 acciones por run (limita blast radius).
+- Solo se ejecutan candidatos HIGH-tier (`confidence >= 0.9`) con `auto_apply=true` y action_category en whitelist.
+- Modos: solo `deep` e `incident`. Nunca heartbeat (fast-path) ni evolve (analítico).
+
+**7. Persistencia para auditoría:**
+- Cada run de Phase 3 escribe a Ops_Health: `phase3_executed` (count), `phase3_outcomes` (CSV), `phase3_breaker_open` (0/1).
+- Telegram alert con bloque dedicado:
+  - `🔧 *Phase 3 auto-fix (N)*` + lista de actions/outcomes.
+  - `⛔ *Phase 3 FROZEN*` si breaker abierto.
+
+**8. Validación:**
+- Syntax check: ✓
+- Dry-run deep: ✓ (Phase 3 gated correctamente — no ejecuta en dry-run).
+- Circuit breaker test contra Ops_Health real: ✓ — 0/5 recent deeps con worsened → CLOSED.
+- Stage drift detection contra Airtable real: ✓ — 0 contacts atascados actualmente.
+- LLM diagnosis pendiente validar en GHA con `ANTHROPIC_API_KEY`. Graceful fallback si falla.
+
+**El loop completo de auto-curación ya cierra:**
+```
+1. Recognition → classify(symptom) → infra/pipeline/code/data
+2. Recording → Lessons_Learned (occurrence_count, history)
+3. Diagnosis → Sonnet 4.6 propone root_cause + recommended_action + safety
+4. Confidence → score determinístico desde history of outcomes
+5. Decision → HIGH/MED/LOW
+6. Action (Phase 3) → ejecuta whitelist si HIGH+auto_apply+breaker closed
+7. Verification → re-check inmediato + outcome detection
+8. Rollback → si worsened y reversible
+9. Recording outcome → cierra el loop, alimenta confidence next time
+```
+
+**Lo que el Supervisor YA hace solo:**
+- Detecta symptoms recurrentes
+- Diagnostica con LLM
+- Propone action + safety notes
+- Calcula su propia confianza basado en historia
+- **EJECUTA fixes whitelisted con confidence alta**
+- **VERIFICA que el fix funcionó**
+- **HACE ROLLBACK si empeoró**
+- Aprende del resultado para próxima vez
+- Se congela solo si serie de errores
+
+**Pendiente Fase 4 (next session, requiere aprobación):**
+- Self-modification propose-only — el agente puede abrir PRs draft con cambios al código del Supervisor (nunca mergea solo).
+- Expandir whitelist con cache_purge cuando endpoint exista en Hostinger.
+- Añadir más sub-cases de data_repair (orphan ghost records, duplicate phone numbers).
+- Cron restart vía endpoint Hostinger (pendiente: crear `/Tools/cron_trigger.php` con auth).
+
+**Pendiente Fase 5 (requiere mucha confianza acumulada):**
+- Auto-merge de PRs propose con whitelist de cambios safe — decisión del humano siempre.
+
+**Skills invocados:** agent-designer, error-handling-patterns, systematic-debugging, simplify, code-review-excellence (revisé surgical edits antes de aplicar).
+
+**Aprobado por:** Jorge Cruz — 2026-04-29
+
+---
+
+### 2026-04-29 — FASE 4 SUPERVISOR AUTÓNOMO: Self-Modification PROPOSE-ONLY
+
+**Aprobado por Jorge — implementado mismo día que Fases 1+2+3.**
+
+**Visión:** el agente puede proponer mejoras a su propio código, NUNCA mergearlas. Cada propuesta = un PR DRAFT etiquetado `human-review-required`.
+
+**Disparador:** SOLO modo `evolve` (cada 3 días con la nueva cadencia, ~10 propuestas potenciales/mes max).
+
+**1. Detector de oportunidades (`detectImprovementOpportunities`):**
+- Class A: lessons con `category='unknown'` y `occurrence_count >= 3` → señal de que el classifier no las matchea, hay que añadir regex.
+- Class B: lessons con `last_outcome='no_effect'` y `occurrence_count >= 5` → señal de que el threshold actual produce false positives crónicos, hay que ajustar.
+- Top 1 opportunity (highest occurrence) se procesa por run.
+
+**2. Patch generator (`proposeSelfPatch` con Sonnet 4.6):**
+- Lee snippets actuales: bloque `supervisor + alert_thresholds` de `pinnacle.json` y función `classifySymptom` de `supervisor.mjs`.
+- Sonnet propone JSON estricto: `{ file, change_type, search, replace, rationale, test_plan }`.
+- `change_type` ∈ `{threshold_adjust, classifier_regex_add}`. NADA más permitido.
+- Si el modelo no encuentra cambio safe → retorna `rationale: "no_safe_change"` y se aborta.
+
+**3. Validator (`validatePatch`) — guardrails NO NEGOCIABLES:**
+- File whitelist estricta: `agents/tenants/pinnacle.json` y `agents/supervisor/supervisor.mjs`. Cualquier otro = BLOCK.
+- Diff size ≤ 50 líneas combinadas (search + replace).
+- Para `supervisor.mjs`: forbidden patterns regex que SIEMPRE bloquean: `requires_human`, `PHASE3_WHITELIST`, `PHASE3_MAX_FIXES_PER_RUN`, `PHASE4_*`, `circuit_breaker`, `telegram|airtable|anthropic|api_key`. Y la edición DEBE estar dentro de `classifySymptom`.
+- Para `pinnacle.json`: search y replace DEBEN contener un valor numérico (regex `:\s*\d+(?:\.\d+)?\b`). Cualquier cambio no numérico = BLOCK.
+- **Test del validator (atajos de ataque):**
+  - "Disable requires_human" → BLOCK (forbidden pattern)
+  - "Edit credentials" → BLOCK (forbidden pattern)
+  - "Edit workflow file" → BLOCK (file not in whitelist)
+  - "Non-numeric pinnacle.json change" → BLOCK
+  - Threshold adjust válido → PASS
+  - Classifier extension válida → PASS
+
+**4. Apply + validate (`applyPatchAndValidate`):**
+- Verifica que `search` aparece exactamente UNA vez en el archivo (sin ambigüedad).
+- Aplica el reemplazo + escribe.
+- Para `.mjs`: corre `node --check`. Si falla → revierte automáticamente.
+- Para `.json`: hace `JSON.parse`. Si falla → revierte.
+
+**5. Git ops + PR creation (`gitCommitAndPushBranch` + `createDraftPR`):**
+- Branch: `supervisor-autopatch-{run_id_8chars}`.
+- Identity local: `supervisor-bot@pinnaclegroupwi.com` (no muta global git config).
+- Commit con `change_type` + `lesson_id` + rationale.
+- Push a `origin/{branch}`.
+- PR via GitHub REST API (`POST /repos/{repo}/pulls` con `draft: true`).
+- Body del PR incluye: lesson context, diff summary, rationale, test plan, warning de DRAFT.
+- Labels best-effort: `supervisor-self-mod`, `human-review-required`.
+
+**6. Hard caps (`runPhase4SelfModification`):**
+- `PHASE4_MAX_OPEN_AUTOPRS = 3`: si ya hay 3+ auto-PRs abiertos sin revisar, FREEZE — no se proponen nuevos.
+- `PHASE4_MAX_DIFF_LINES = 50`.
+- 1 propuesta máxima por run.
+- Solo en evolve mode.
+- Requiere `GITHUB_TOKEN` (auto-disponible en GHA, ausente local → graceful skip).
+
+**7. Telegram alert si proposed:**
+- Bloque dedicado `🤖 *Phase 4 self-modification PR*` con: change_type, file, lesson_id, PR url, status (DRAFT — requires review).
+- Force-alert override: cualquier PR auto rompe dedup 24h.
+
+**8. Validación realizada:**
+- Syntax check: ✓
+- Validator con 6 casos (4 ataques + 2 válidos): 6/6 correctos.
+- Opportunity detector live (Airtable real): 0 oportunidades hoy (esperado, sistema joven sin lessons recurrentes aún).
+- Dry-run evolve: tarda por evolveAnalysis sin API key local — comportamiento esperado, en GHA con secrets corre normal.
+
+**Lo que el sistema ya hace SOLO:**
+1. Detecta su propio código tiene un bug recurrente o un threshold mal calibrado.
+2. Pide a Sonnet 4.6 una propuesta de patch surgical.
+3. Valida que el patch no toca guardrails críticos ni sale del whitelist.
+4. Aplica localmente, valida sintaxis.
+5. Crea branch, commitea, pushea.
+6. Abre PR DRAFT con rationale completo.
+7. Te alerta a Telegram con el link.
+8. **NUNCA mergea.** Tú revisas, ajustas, mergeas o cierras.
+
+**Defensa contra prompt injection / jailbreak:**
+- Aunque el LLM proponga un patch que intente disable requires_human o tocar credenciales, el `validatePatch` lo BLOQUEA antes de aplicar.
+- Aunque el LLM intente cambiar un workflow, el file whitelist lo BLOQUEA.
+- El cap de 3 PRs abiertos previene que un loop runaway abra cientos de PRs.
+
+**Pendiente Fase 5 (decisión humana, NUNCA habilitada por el agente):**
+- Auto-merge de PRs auto cuando: (a) hayan acumulado N éxitos consecutivos sin reverts, (b) el cambio esté en una sub-whitelist aún más estrecha, (c) jorge habilite manualmente vía tenant config flag.
+- Mientras Phase 5 no exista, todo cambio queda en DRAFT esperando revisión humana — eso es by design.
+
+**Skills invocados Fase 4:** agent-designer, security-pen-testing (validator attack tests), prompt-engineering-patterns (system prompt + JSON schema), error-handling-patterns (graceful fallback + auto-revert), simplify.
+
+**Aprobado por:** Jorge Cruz — 2026-04-29
+
+---

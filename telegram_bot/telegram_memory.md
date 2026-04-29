@@ -55,3 +55,103 @@ Todo el trabajo de Pinnacle se optimiza mobile-first como prioridad #1. Mayor tr
 Todo se construye como producto vendible a terceros. Pinnacle = tenant cero. Reglas: nada hardcodeado (todo por-tenant config), tenant isolation, separación core/config/deployment, onboarding documentado, billing hooks upfront, validar licencias deps (AGPL no-go para mono core, MIT/Apache safe), security defaults día 1, naming genérico. Detalle completo en `memoria_ALex.md` regla R8 y `CLAUDE.md` sección 1c.
 
 ---
+
+## 2026-04-28 — Sesión Claude Code — Fix spam Supervisor
+
+Jorge reportó "el auditor me está enviando mensajes a cada rato y en fila". Causa: El **Supervisor deep mode** (cada 1h) alertaba a Telegram cada vez que había warnings, y el warning "seg_sms_sent stale 40h" (falso positivo crónico) generaba 24 mensajes idénticos/día.
+
+**Fix aplicado:** dedup 24h en `agents/supervisor/supervisor.mjs` — compara warning-set contra runs deep en ventana 24h, suprime si idéntico, notifica si cambió.
+
+**Falso positivo del warning:** verificado en Airtable que `Last contact date=2026-04-28` y `SMS Sent=true` → el reloj suizo Hostinger SÍ corre. El warning aparece porque no hay contactos due en Seguimiento (5 en stage, ninguno necesita toque hoy). El log no registra `seg_sms_sent` cuando no hay nada que enviar — el threshold dispara warning falso. Mejora futura: hacer threshold dinámico según pipeline real.
+
+**Memoria desync detectado:** `shared_conversation.json` congelado en 2026-04-06. Bot Telegram en VPS escribe el archivo localmente pero nunca pushea a git. Por eso al abrir Claude Code, el JSON está stale. Memoria canonical sigue siendo `memoria_ALex.md` raíz (actualizada hasta hoy). Pendiente decisión arquitectónica: bot auto-push vs cron VPS→repo sync vs deprecar el JSON.
+
+Resto del estado al cierre 2026-04-23 sigue válido — ver `memoria_ALex.md` sección "2026-04-23 NIGHT" para plantel R9 (10 agentes) y crons activos (17 GHA + 4 Hostinger = 21 jobs).
+
+---
+
+## 2026-04-28 PM — FASE 1 SUPERVISOR AUTÓNOMO
+
+Jorge aprobó visión de convertir El Supervisor en agente auto-curativo, auto-mejorable y autosuficiente. Roadmap 5 fases (1=memoria · 2=confidence + LLM diagnosis · 3=auto-fix expandido + rollback · 4=self-modification propose-only · 5=auto-merge whitelist).
+
+**Fase 1 implementada hoy (no-destructiva):**
+- Tabla `Lessons_Learned` en Airtable (`tbloCtdxSukBI3R3j`) — síntoma + categoría + outcome + occurrence_count + recommended_action.
+- Módulo Learning en `supervisor.mjs`: cada warning/critical observado se registra (CREATE primera vez, INCREMENT recurrencias).
+- Recognition: classifier con 5 categorías (infra/pipeline/code/data/unknown).
+- Normalizer compartido con dedup de alertas — variantes "stale 40h"/"stale 38h" colapsan al mismo lesson.
+- Failure-tolerant: si la tabla no existe, supervisor sigue corriendo.
+
+**Próximas fases requieren aprobación explícita.** El sistema todavía NO toca código solo, NO hace fixes nuevos, NO mergea PRs. Solo aprende.
+
+---
+
+## 2026-04-28/29 — FASE 2 SUPERVISOR AUTÓNOMO
+
+Aprobada y implementada inmediatamente. Construido:
+
+- **LLM Diagnosis** con Sonnet 4.6 (Anthropic API directa) → root_cause + recommended_action + requires_human + action_category por cada lesson recurrente.
+- **Confidence Scoring** determinístico — 0 si requires_human o sin fixes; sube por resolved consecutive; HARD FLOOR 0 ante worsened reciente.
+- **Decision Layer** — HIGH (>=0.9) auto-apply candidate | MED propone+alerta | LOW escala a humano.
+- **Force-alert** para HIGH/MED — rompe dedup porque propuesta nueva = info nueva.
+- Costo: ~$0.60/día/tenant.
+
+Phase 2 SIGUE siendo no-destructiva: auto_apply es FLAG para que Fase 3 actúe, no acción inmediata.
+
+**Pendientes:** Fase 3 (auto-fix + rollback + outcome recording), Fase 4 (self-modification propose-only), Fase 5 (auto-merge — siempre decisión humana).
+
+---
+
+## 2026-04-29 — FASE 3 SUPERVISOR AUTÓNOMO
+
+**El loop de auto-curación cierra solo ahora.** Implementada misma sesión que Fases 1+2.
+
+**Whitelist conservadora:**
+- `api_retry` — re-probe read-only de openphone/airtable/telegram
+- `data_repair` stage_drift — contacts con Stage=New + step>0 → reset a TBC, con rollback
+
+**Verification inmediata:** snapshot before → fix → snapshot after → outcome (resolved/no_effect/worsened).
+
+**Rollback automático** si worsened y action tiene inverse.
+
+**Circuit breaker:** 3+ worsened en últimos 5 deeps → freeze global hasta reset humano.
+
+**Caps:** max 5 fixes/run. Solo deep/incident + HIGH-tier + auto_apply + whitelist + breaker closed.
+
+**Excluidos (propose-only):** cron_restart, cache_purge, config_update, code_fix.
+
+**Loop completo:** Recognition → Recording → Diagnosis (LLM) → Confidence (history-based) → Decision → Action → Verification → Rollback → Outcome → feedback al confidence siguiente.
+
+---
+
+## 2026-04-29 — FASE 4 SUPERVISOR AUTÓNOMO
+
+**Self-modification PROPOSE-ONLY.** El agente puede proponer cambios a su propio código mediante PRs draft, NUNCA mergea solo.
+
+**Disparador:** SOLO modo evolve (cada 3 días con la nueva cadencia).
+
+**Detector:**
+- Lessons con `category=unknown` y `occurrence ≥ 3` → propone añadir regex al classifier
+- Lessons con `last_outcome=no_effect` y `occurrence ≥ 5` → propone ajustar threshold
+
+**Sonnet 4.6 propone JSON:** `{file, change_type, search, replace, rationale, test_plan}` con `change_type ∈ {threshold_adjust, classifier_regex_add}`.
+
+**Validator (anti-jailbreak):**
+- File whitelist estricta: solo `pinnacle.json` (numeric only) y `supervisor.mjs` (solo dentro de classifySymptom)
+- Forbidden patterns SIEMPRE bloquean: `requires_human`, `PHASE3_WHITELIST`, `circuit_breaker`, credenciales/API keys
+- Diff cap 50 líneas
+- Test 6/6: 4 ataques bloqueados, 2 válidos pasaron
+
+**Apply + revert automático** si `node --check` o `JSON.parse` falla.
+
+**Git ops** crean branch `supervisor-autopatch-{run_id_8}`, commit, push, abren PR DRAFT con label `human-review-required`.
+
+**Hard caps:**
+- Max 3 PRs auto abiertos total → freeze
+- Max 1 propuesta por run
+- 1/3 días = ~10 propuestas/mes max
+
+**Telegram alert** con PR link cada vez que se abra uno.
+
+**Pendiente Fase 5 (NUNCA del agente, decisión humana):** auto-merge con sub-whitelist más estrecha + N éxitos consecutivos.
+
+---

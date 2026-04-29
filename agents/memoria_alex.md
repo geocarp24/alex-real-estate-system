@@ -150,4 +150,96 @@ Todo lo construido para Pinnacle se diseña como producto vendible. Pinnacle = t
 
 ---
 
-*Última actualización: 2026-04-22*
+## 2026-04-28 — Fix spam Supervisor + memoria desync
+
+Jorge reportó "el auditor me está enviando mensajes a cada rato y en fila". Diagnóstico: era el **Supervisor deep mode** (cada 1h) alertando 24x/día por el mismo warning recurrente "seg_sms_sent stale 40h" (falso positivo: el reloj suizo SÍ corre, no hay contactos due en Seguimiento).
+
+**Fix:** `agents/supervisor/supervisor.mjs` — añadido dedup 24h: compara warnings+critical_issues contra runs deep en últimas 24h. Si idéntico → suprime alerta. Si cambió → notifica. Campos opcionales `alerted`/`alert_reason` para auditoría.
+
+**Memoria desync identificado:** `agents/shared_conversation.json` congelado desde 2026-04-06 (bot VPS no pushea a git). Memoria canonical sigue siendo `memoria_ALex.md` raíz (actualizada hasta hoy).
+
+Detalle completo en `memoria_ALex.md` raíz, sección 2026-04-28.
+
+---
+
+## 2026-04-28 — FASE 1 SUPERVISOR AUTÓNOMO completa
+
+Jorge aprobó visión: Supervisor auto-curativo y auto-mejorable. Roadmap 5 fases. Implementada Fase 1 (memoria de lecciones, no-destructiva).
+
+**Construido:**
+- Tabla `Lessons_Learned` en Airtable (id `tbloCtdxSukBI3R3j`)
+- Módulo Learning: `loadLessons`, `recordLessonObservation`, `recordAllObservations`
+- Recognition: `classifySymptom()` con 5 categorías (infra/pipeline/code/data/unknown)
+- Normalizer compartido entre alert dedup y lesson keying
+- Integración no-destructiva al main loop (solo modos deep e incident registran)
+- Failure-tolerant (si la tabla falla, supervisor sigue funcional)
+
+**Pendiente para próximas sesiones:** Fase 3 (auto-fix expandido + rollback), Fase 4 (self-modification propose-only), Fase 5 (auto-merge — decisión humana).
+
+---
+
+## 2026-04-28/29 — FASE 2 SUPERVISOR AUTÓNOMO completa
+
+Implementada inmediatamente después de Fase 1 (misma sesión).
+
+**Construido:**
+- LLM Diagnosis (Sonnet 4.6 vía Anthropic API directa) — propone root_cause + recommended_action + requires_human + action_category por lesson.
+- Confidence Scoring determinístico — 0 si requires_human o sin fixes, sube +0.25 por resolved consecutive, baja por no_effect, hard-floor 0 ante worsened reciente. Clamp [0,1].
+- Decision Layer — HIGH (>=0.9) auto-apply candidate | MED (0.6-0.9) propose+alert | LOW (<0.6) escalate human.
+- Integración al main loop deep + incident + persistencia a Lessons_Learned.
+- Force-alert override: HIGH/MED rompen dedup para que el operador siempre vea propuestas nuevas.
+
+**Phase 2 NUNCA ejecuta acciones reales** — auto_apply es flag para Phase 3. Solo aprende, propone y registra.
+
+**Costo estimado:** ~$0.60/día por tenant (5 lessons × 24 deep-runs × ~$0.005/diagnosis). Aceptable.
+
+Detalle completo en `memoria_ALex.md` raíz.
+
+---
+
+## 2026-04-29 — FASE 3 SUPERVISOR AUTÓNOMO completa
+
+Implementada misma sesión que Fases 1+2. **El loop de auto-curación ya cierra solo.**
+
+**Construido:**
+- Whitelist conservadora: `api_retry` (read-only re-probe de openphone/airtable/telegram) + `data_repair` sub-case stage_drift (con rollback).
+- Verification inmediata in-run: snapshot before → fix → snapshot after → detectOutcome (resolved/no_effect/worsened).
+- Rollback automático para fixes con inverse definido. stage_drift restaura priorState via PATCH bulk.
+- Circuit breaker: 3+ worsened en últimos 5 deeps → freeze global hasta reset humano.
+- Recording outcomes: append a `attempted_fixes` JSON (cap 20). Update `last_outcome`.
+- Caps: max 5 fixes/run. Solo deep/incident. HIGH-tier + auto_apply + whitelist + breaker closed.
+- Persistencia: `phase3_executed`, `phase3_outcomes`, `phase3_breaker_open` en Ops_Health.
+- Force-alert: si Phase 3 actuó o breaker abierto, anula dedup.
+
+**Excluidos de auto-execution (propose-only):** cron_restart, cache_purge (endpoint pendiente), config_update, code_fix, escalate.
+
+**Validación:** syntax ✓, dry-run ✓, circuit breaker live ✓, stage drift live ✓.
+
+Detalle completo en `memoria_ALex.md` raíz.
+
+---
+
+## 2026-04-29 — FASE 4 SUPERVISOR AUTÓNOMO completa
+
+**Self-modification PROPOSE-ONLY** — el agente puede proponer mejoras a su propio código vía PRs draft, NUNCA mergea.
+
+**Construido:**
+- `detectImprovementOpportunities()` — class A: unknown ≥3 occurrences. Class B: no_effect ≥5 occurrences.
+- `proposeSelfPatch()` — Sonnet 4.6 propone JSON `{file, change_type, search, replace, rationale, test_plan}`.
+- `validatePatch()` — file whitelist + change_type whitelist + forbidden patterns regex + diff size cap.
+- `applyPatchAndValidate()` — auto-revert si syntax falla (`node --check` + `JSON.parse`).
+- `gitCommitAndPushBranch()` + `createDraftPR()` via GitHub REST API.
+- Hard caps: max 3 open auto-PRs total → freeze. Max 1/run. Max 50 diff lines. Solo evolve mode.
+- Telegram alert con PR link.
+
+**Defensa anti-jailbreak:** validator bloquea ataques al `requires_human`, credenciales, workflows, files fuera de whitelist, non-numeric edits a JSON. Test 6/6 correcto.
+
+**Excluidos NO NEGOCIABLES:** workflows, secrets, otros agentes, guardrails (PHASE3_*, PHASE4_*, circuit breaker).
+
+**Pendiente Fase 5:** auto-merge — decisión humana, NUNCA del agente.
+
+Detalle completo en `memoria_ALex.md` raíz.
+
+---
+
+*Última actualización: 2026-04-29*
