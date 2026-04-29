@@ -319,6 +319,13 @@ async function diagnoseAndDecide(cfg, observations, score, signalsText, runId) {
       // Persist diagnosis details into notes for audit (append, don't overwrite).
       const diagNote = `[${isoNow()}] action_category=${diagnosis.action_category || "?"} | safety=${(diagnosis.safety_notes || "").slice(0, 200)}`;
       updated.notes = `${(f.notes || "").slice(-1500)}\n${diagNote}`.trim();
+    } else if (shouldDiagnose && diagError) {
+      // Persist the diagnosis error so we can debug without GHA log access.
+      const errNote = `[${isoNow()}] DIAG_FAIL: ${String(diagError).slice(0, 300)}`;
+      updated.notes = `${(f.notes || "").slice(-1500)}\n${errNote}`.trim();
+    } else if (shouldDiagnose && !diagnosis && !diagError) {
+      // Diagnosis was attempted but returned nothing usable.
+      updated.notes = `${(f.notes || "").slice(-1500)}\n[${isoNow()}] DIAG_SKIP: no diagnosis returned (no error either)`.trim();
     }
 
     const confidence = computeConfidence(updated);
