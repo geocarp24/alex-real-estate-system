@@ -1117,6 +1117,11 @@ async function runPipelineChecks(cfg) {
     const last = f["Last contact date"] ? new Date(f["Last contact date"]) : null;
     const nextD = f["Next follow up date"] ? new Date(f["Next follow up date"]) : null;
 
+    // Track Seguimiento contacts due TODAY (for seg_sms_sent warning gating).
+    if (stage === "Seguimiento" && nextD && nextD <= today) {
+      seguimientoDueToday++;
+    }
+
     // Ghost detection
     let ghostReason = null;
     if (stage === "Contacted") {
