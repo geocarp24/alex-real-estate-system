@@ -1247,8 +1247,12 @@ function scoreHealth(infra, pipeline, cfg) {
   if (inWindow && hasFcWork && (infra.last_fc_hours == null || infra.last_fc_hours > 4)) {
     critical.push(`Sin eventos fc_sms_sent desde hace ${infra.last_fc_hours ?? "∞"}h Y hay ${pipeline.contacts_tbc} leads en "To Be Contacted". Cron caído.`);
   }
-  if (infra.last_seg_hours != null && infra.last_seg_hours > 30) {
-    warnings.push(`Sin seg_sms_sent desde hace ${infra.last_seg_hours}h (esperado daily).`);
+  // Only warn if there's actual Seguimiento work due — otherwise daily silence is correct.
+  // Without this gate, a tenant with 0 leads due TODAY produces a chronic false-positive
+  // every hour, polluting Lessons_Learned and burning LLM credits on a phantom symptom.
+  const segDue = pipeline.contacts_seguimiento_due_today || 0;
+  if (infra.last_seg_hours != null && infra.last_seg_hours > 30 && segDue > 0) {
+    warnings.push(`Sin seg_sms_sent desde hace ${infra.last_seg_hours}h (${segDue} contactos due hoy).`);
   }
   if (infra.airtable_422_today > 3) warnings.push(`${infra.airtable_422_today} errores Airtable 422 hoy — posible schema drift.`);
 
