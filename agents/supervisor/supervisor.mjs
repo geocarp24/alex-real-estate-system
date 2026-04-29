@@ -1120,6 +1120,22 @@ Log freshness: fc=${infra.last_fc_hours ?? "?"}h seg=${infra.last_seg_hours ?? "
       console.error(`[supervisor] phase2: ${decisions.length} decisions — HIGH=${buckets.HIGH} MED=${buckets.MED} LOW=${buckets.LOW}`);
     }
   }
+
+  // ── Phase 3: execute HIGH-tier whitelisted fixes + verify + rollback ──
+  // Only deep/incident modes. Honors circuit breaker. Persists outcomes per
+  // attempted fix into Lessons_Learned (attempted_fixes JSON) and a summary
+  // string into Ops_Health (phase3_outcomes) so the breaker can see history.
+  let phase3Result = { executed: 0, summary: "", attempts: [], breaker: { open: false } };
+  if ((args.mode === "deep" || args.mode === "incident") && decisions.length > 0 && !args.dryRun) {
+    phase3Result = await executeAndVerifyPhase3(cfg, decisions, score, runId, args.dryRun).catch((e) => {
+      console.error(`[supervisor] phase3 failed: ${e.message}`);
+      return { executed: 0, summary: `phase3_error: ${e.message}`, attempts: [], breaker: { open: false } };
+    });
+    if (phase3Result.executed > 0 || phase3Result.breaker.open) {
+      console.error(`[supervisor] ${phase3Result.summary}`);
+    }
+  }
+
   let shouldAlert = false;
   let alertReason = "";
 
