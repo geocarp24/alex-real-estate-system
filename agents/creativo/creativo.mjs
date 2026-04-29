@@ -254,12 +254,16 @@ async function processOne(record) {
     return { id: record.id, titulo, status: "skip", reason: "no Visual_Prompt" };
   }
 
-  // 1. Sonnet builds spec.
+  // 1. Build spec — try Sonnet for quality, fall back to deterministic.
   let spec;
-  try {
-    spec = await buildSpecWithSonnet(f);
-  } catch (e) {
-    return { id: record.id, titulo, status: "spec_failed", error: String(e.message).slice(0, 150) };
+  if (ANTHROPIC_KEY) {
+    try { spec = await buildSpecWithSonnet(f); }
+    catch (e) {
+      console.error(`[creativo] Sonnet failed (${e.message.slice(0, 80)}), falling back to deterministic`);
+      spec = buildSpecDeterministic(f);
+    }
+  } else {
+    spec = buildSpecDeterministic(f);
   }
 
   // 2. themes.mjs builds BODY HTML for each slide.
