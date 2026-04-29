@@ -2807,3 +2807,92 @@ Todo lo que se construya para Pinnacle debe diseñarse desde el día 1 como **pr
 **Aprobado por:** Jorge Cruz — 2026-04-29
 
 ---
+
+### 2026-04-29 — FASE 4 SUPERVISOR AUTÓNOMO: Self-Modification PROPOSE-ONLY
+
+**Aprobado por Jorge — implementado mismo día que Fases 1+2+3.**
+
+**Visión:** el agente puede proponer mejoras a su propio código, NUNCA mergearlas. Cada propuesta = un PR DRAFT etiquetado `human-review-required`.
+
+**Disparador:** SOLO modo `evolve` (cada 3 días con la nueva cadencia, ~10 propuestas potenciales/mes max).
+
+**1. Detector de oportunidades (`detectImprovementOpportunities`):**
+- Class A: lessons con `category='unknown'` y `occurrence_count >= 3` → señal de que el classifier no las matchea, hay que añadir regex.
+- Class B: lessons con `last_outcome='no_effect'` y `occurrence_count >= 5` → señal de que el threshold actual produce false positives crónicos, hay que ajustar.
+- Top 1 opportunity (highest occurrence) se procesa por run.
+
+**2. Patch generator (`proposeSelfPatch` con Sonnet 4.6):**
+- Lee snippets actuales: bloque `supervisor + alert_thresholds` de `pinnacle.json` y función `classifySymptom` de `supervisor.mjs`.
+- Sonnet propone JSON estricto: `{ file, change_type, search, replace, rationale, test_plan }`.
+- `change_type` ∈ `{threshold_adjust, classifier_regex_add}`. NADA más permitido.
+- Si el modelo no encuentra cambio safe → retorna `rationale: "no_safe_change"` y se aborta.
+
+**3. Validator (`validatePatch`) — guardrails NO NEGOCIABLES:**
+- File whitelist estricta: `agents/tenants/pinnacle.json` y `agents/supervisor/supervisor.mjs`. Cualquier otro = BLOCK.
+- Diff size ≤ 50 líneas combinadas (search + replace).
+- Para `supervisor.mjs`: forbidden patterns regex que SIEMPRE bloquean: `requires_human`, `PHASE3_WHITELIST`, `PHASE3_MAX_FIXES_PER_RUN`, `PHASE4_*`, `circuit_breaker`, `telegram|airtable|anthropic|api_key`. Y la edición DEBE estar dentro de `classifySymptom`.
+- Para `pinnacle.json`: search y replace DEBEN contener un valor numérico (regex `:\s*\d+(?:\.\d+)?\b`). Cualquier cambio no numérico = BLOCK.
+- **Test del validator (atajos de ataque):**
+  - "Disable requires_human" → BLOCK (forbidden pattern)
+  - "Edit credentials" → BLOCK (forbidden pattern)
+  - "Edit workflow file" → BLOCK (file not in whitelist)
+  - "Non-numeric pinnacle.json change" → BLOCK
+  - Threshold adjust válido → PASS
+  - Classifier extension válida → PASS
+
+**4. Apply + validate (`applyPatchAndValidate`):**
+- Verifica que `search` aparece exactamente UNA vez en el archivo (sin ambigüedad).
+- Aplica el reemplazo + escribe.
+- Para `.mjs`: corre `node --check`. Si falla → revierte automáticamente.
+- Para `.json`: hace `JSON.parse`. Si falla → revierte.
+
+**5. Git ops + PR creation (`gitCommitAndPushBranch` + `createDraftPR`):**
+- Branch: `supervisor-autopatch-{run_id_8chars}`.
+- Identity local: `supervisor-bot@pinnaclegroupwi.com` (no muta global git config).
+- Commit con `change_type` + `lesson_id` + rationale.
+- Push a `origin/{branch}`.
+- PR via GitHub REST API (`POST /repos/{repo}/pulls` con `draft: true`).
+- Body del PR incluye: lesson context, diff summary, rationale, test plan, warning de DRAFT.
+- Labels best-effort: `supervisor-self-mod`, `human-review-required`.
+
+**6. Hard caps (`runPhase4SelfModification`):**
+- `PHASE4_MAX_OPEN_AUTOPRS = 3`: si ya hay 3+ auto-PRs abiertos sin revisar, FREEZE — no se proponen nuevos.
+- `PHASE4_MAX_DIFF_LINES = 50`.
+- 1 propuesta máxima por run.
+- Solo en evolve mode.
+- Requiere `GITHUB_TOKEN` (auto-disponible en GHA, ausente local → graceful skip).
+
+**7. Telegram alert si proposed:**
+- Bloque dedicado `🤖 *Phase 4 self-modification PR*` con: change_type, file, lesson_id, PR url, status (DRAFT — requires review).
+- Force-alert override: cualquier PR auto rompe dedup 24h.
+
+**8. Validación realizada:**
+- Syntax check: ✓
+- Validator con 6 casos (4 ataques + 2 válidos): 6/6 correctos.
+- Opportunity detector live (Airtable real): 0 oportunidades hoy (esperado, sistema joven sin lessons recurrentes aún).
+- Dry-run evolve: tarda por evolveAnalysis sin API key local — comportamiento esperado, en GHA con secrets corre normal.
+
+**Lo que el sistema ya hace SOLO:**
+1. Detecta su propio código tiene un bug recurrente o un threshold mal calibrado.
+2. Pide a Sonnet 4.6 una propuesta de patch surgical.
+3. Valida que el patch no toca guardrails críticos ni sale del whitelist.
+4. Aplica localmente, valida sintaxis.
+5. Crea branch, commitea, pushea.
+6. Abre PR DRAFT con rationale completo.
+7. Te alerta a Telegram con el link.
+8. **NUNCA mergea.** Tú revisas, ajustas, mergeas o cierras.
+
+**Defensa contra prompt injection / jailbreak:**
+- Aunque el LLM proponga un patch que intente disable requires_human o tocar credenciales, el `validatePatch` lo BLOQUEA antes de aplicar.
+- Aunque el LLM intente cambiar un workflow, el file whitelist lo BLOQUEA.
+- El cap de 3 PRs abiertos previene que un loop runaway abra cientos de PRs.
+
+**Pendiente Fase 5 (decisión humana, NUNCA habilitada por el agente):**
+- Auto-merge de PRs auto cuando: (a) hayan acumulado N éxitos consecutivos sin reverts, (b) el cambio esté en una sub-whitelist aún más estrecha, (c) jorge habilite manualmente vía tenant config flag.
+- Mientras Phase 5 no exista, todo cambio queda en DRAFT esperando revisión humana — eso es by design.
+
+**Skills invocados Fase 4:** agent-designer, security-pen-testing (validator attack tests), prompt-engineering-patterns (system prompt + JSON schema), error-handling-patterns (graceful fallback + auto-revert), simplify.
+
+**Aprobado por:** Jorge Cruz — 2026-04-29
+
+---
