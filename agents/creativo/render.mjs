@@ -3,22 +3,35 @@
  * Used by El Creativo runner. Server-side rendering = perfect text, deterministic branding.
  */
 import { chromium } from "playwright-chromium";
+import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 
 const LOGO_URL_REMOTE = "https://pinnaclegroupwi.com/wp-content/uploads/2026/03/logo-pinnacle.png";
+const LOGO_LOCAL_PATH = join(dirname(fileURLToPath(import.meta.url)), "assets", "logo-pinnacle.png");
 let _logoDataUri = null;
 
-// Pre-fetch logo once, convert to base64 data URI so HTML render doesn't depend
-// on external network during page.setContent (avoids invisible logo).
+// Load logo as base64 data URI. Tries local file first (always works in repo
+// checkout) then remote URL as fallback. Cached after first success.
 async function getLogoDataUri() {
   if (_logoDataUri) return _logoDataUri;
+  // Try local file first (immune to network issues).
   try {
-    const r = await fetch(LOGO_URL_REMOTE);
-    if (!r.ok) throw new Error(`logo fetch HTTP ${r.status}`);
+    const buf = await readFile(LOGO_LOCAL_PATH);
+    _logoDataUri = `data:image/png;base64,${buf.toString("base64")}`;
+    return _logoDataUri;
+  } catch (e) {
+    console.error(`[render] logo local read failed: ${e.message} — trying remote`);
+  }
+  // Fallback: remote fetch.
+  try {
+    const r = await fetch(LOGO_URL_REMOTE, { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const buf = Buffer.from(await r.arrayBuffer());
     _logoDataUri = `data:image/png;base64,${buf.toString("base64")}`;
     return _logoDataUri;
   } catch (e) {
-    console.error(`[render] logo prefetch failed: ${e.message} — falling back to remote URL`);
+    console.error(`[render] logo remote fetch failed: ${e.message} — using URL`);
     return LOGO_URL_REMOTE;
   }
 }
