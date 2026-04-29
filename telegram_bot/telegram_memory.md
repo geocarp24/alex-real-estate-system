@@ -84,3 +84,19 @@ Jorge aprobó visión de convertir El Supervisor en agente auto-curativo, auto-m
 **Próximas fases requieren aprobación explícita.** El sistema todavía NO toca código solo, NO hace fixes nuevos, NO mergea PRs. Solo aprende.
 
 ---
+
+## 2026-04-28/29 — FASE 2 SUPERVISOR AUTÓNOMO
+
+Aprobada y implementada inmediatamente. Construido:
+
+- **LLM Diagnosis** con Sonnet 4.6 (Anthropic API directa) → root_cause + recommended_action + requires_human + action_category por cada lesson recurrente.
+- **Confidence Scoring** determinístico — 0 si requires_human o sin fixes; sube por resolved consecutive; HARD FLOOR 0 ante worsened reciente.
+- **Decision Layer** — HIGH (>=0.9) auto-apply candidate | MED propone+alerta | LOW escala a humano.
+- **Force-alert** para HIGH/MED — rompe dedup porque propuesta nueva = info nueva.
+- Costo: ~$0.60/día/tenant.
+
+Phase 2 SIGUE siendo no-destructiva: auto_apply es FLAG para que Fase 3 actúe, no acción inmediata.
+
+**Pendientes:** Fase 3 (auto-fix + rollback + outcome recording), Fase 4 (self-modification propose-only), Fase 5 (auto-merge — siempre decisión humana).
+
+---
