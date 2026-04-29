@@ -2616,3 +2616,78 @@ Todo lo que se construya para Pinnacle debe diseñarse desde el día 1 como **pr
 **Skills invocados esta sesión:** systematic-debugging, simplify, agent-designer (visión), brainstorming (arquitectura).
 
 ---
+
+### 2026-04-28/29 — FASE 2 SUPERVISOR AUTÓNOMO: LLM Diagnosis + Confidence + Decision (aprobado por Jorge)
+
+**Fase 2 implementada en la misma sesión, inmediatamente después de Fase 1.**
+
+**1. LLM Diagnosis (Sonnet 4.6 vía Anthropic API directa):**
+- `callAnthropicAPI(systemPrompt, userPrompt, model, maxTokens)` — fetch directo a `https://api.anthropic.com/v1/messages` con `claude-sonnet-4-5-20250929`. Más liviano que `runClaude` (no spawn CLI). Graceful fallback si `ANTHROPIC_API_KEY` no está disponible.
+- `parseFirstJSON(text)` — extrae primer JSON object del output, tolerante a markdown fences y prosa.
+- `diagnoseLesson(cfg, lessonRecord, signals)` — para cada lesson nueva o crítica o multiplo de 5 occurrences:
+  - System prompt: "senior SRE diagnosing operational symptoms in real estate SaaS automation".
+  - Schema JSON estricto: `{ root_cause, recommended_action, requires_human, action_category, safety_notes }`.
+  - `action_category` ∈ {cron_restart, cache_purge, api_retry, data_repair, config_update, code_fix, escalate}.
+  - `requires_human=true` MANDATORIO si action toca: credenciales, finanzas, comunicaciones-cliente, deletes, schema, fuera de whitelist.
+  - El prompt incluye: symptom_raw, category, severity, occurrence_count, last 5 attempted_fixes, signals del run actual (health, pipeline, infra, log freshness).
+
+**2. Confidence Scoring (determinístico, sin LLM):**
+- `computeConfidence(lessonFields)` — fórmula:
+  - Base: 0 si `requires_human=true` OR sin attempted_fixes.
+  - 0.3 baseline cuando hay al menos 1 fix attempted.
+  - +0.25 por cada outcome=resolved en últimos 3.
+  - -0.1 por cada outcome=no_effect.
+  - +0.1 si occurrence_count >= 5, +0.2 si >= 20 (well-known issue bonus).
+  - **HARD FLOOR:** any outcome=worsened en últimos 3 → 0.0 (kill-switch absoluto).
+  - Clamp [0, 1].
+- Verificado con 7 casos: brand new=0, 1 resolved=0.55, 3 resolved consecutive=1.0, 1 worsened in history=0.0, 2 no_effect+1 resolved=0.55, requires_human=siempre 0.
+
+**3. Decision Layer:**
+- `decideAction(confidence)`:
+  - `>= 0.9` → tier=HIGH, auto_apply=true (Phase 3 ejecutará — Phase 2 solo lo marca).
+  - `>= 0.6` → tier=MED, auto_apply=false, alert=true (propone, espera aprobación).
+  - `< 0.6` → tier=LOW, escalate_human=true (humano decide).
+- **Phase 2 NUNCA ejecuta** — `auto_apply` es flag persistido al lesson para Phase 3.
+
+**4. Integración al main loop:**
+- `diagnoseAndDecide(cfg, observations, score, signalsText, runId)` — orquesta diagnosis + scoring + decision por lesson.
+- Re-fetch cada lesson (post-recordObservation) para tener `occurrence_count` fresco.
+- Skip diagnosis si ya hay `root_cause` y la lección no escaló (severity=critical o occurrence multiple de 5 forza re-diagnosis).
+- Persiste a la lesson: `root_cause`, `recommended_action`, `requires_human`, `confidence_score`, `notes` (audit trail con timestamp + action_category + safety_notes).
+- **Force-alert override:** si hay decisiones HIGH o MED, anula dedup y manda Telegram aunque warnings sean idénticos al run anterior. Razón: una propuesta nueva es información nueva para el operador.
+- Telegram message extendido con `formatDecisionsForTelegram(decisions)`: 3 buckets HIGH/MED/LOW, top 5 por bucket, count de LOW.
+
+**5. Runtime characteristics:**
+- Heartbeat (cada 15min): NO hace diagnosis — fast-path.
+- Deep (cada 1h): registra observaciones + diagnosis selectiva + decision por cada lesson tocada.
+- Incident: igual que deep + spawn automático cuando heartbeat detecta red.
+- Evolve (semanal): NO hace diagnosis per-lesson (eso es deep), hace análisis macro de 7 días.
+
+**6. Costo estimado por deep-run (Pinnacle):**
+- ~3-5 lessons activas en un run típico → 3-5 calls a Sonnet 4.6.
+- ~600 tokens prompt + ~200 tokens output por call.
+- Sonnet 4.6 input: $3/Mtok, output: $15/Mtok.
+- ~$0.005 per lesson diagnosed × 5 lessons × 24 deep runs/día = ~$0.60/día por tenant. Aceptable.
+- Optimización futura: cache diagnosis con hash del symptom_normalized + last_outcome para no re-diagnosticar el mismo problema sin cambios.
+
+**7. Validación realizada:**
+- Syntax check: ✓
+- Dry-run deep: ✓ (no rompe el flow existente).
+- Confidence scoring: 7/7 casos validados localmente.
+- LLM diagnosis: pendiente validar contra prod (requiere ANTHROPIC_API_KEY que solo está en GHA secrets). Próximo deep-run scheduled (~1h en GHA) lo ejercitará automáticamente. Graceful fallback si falla.
+
+**Lo que el sistema ya puede hacer hoy (post-Fase-2):**
+- Para cada problema recurrente, propone un root_cause hipotético y una acción recomendada.
+- Calcula automáticamente cuánta confianza tiene en su propia propuesta basado en historia de fixes previos.
+- Decide: HIGH (listo para auto-fix en Fase 3), MED (proponer al humano), LOW (escalar — no sabe qué hacer).
+- Nunca actúa solo. Persiste todo a Lessons_Learned para audit trail completo.
+
+**Pendiente Fase 3 (próxima sesión, requiere aprobación):**
+- Auto-fix expandido — lee `auto_apply=true` lessons y ejecuta acciones whitelisted (cron restart, cache purge, API retry, data repair).
+- Verification post-fix: re-run health check 5min después; si health degrada → rollback automático + outcome=worsened.
+- Outcome recording: si después del fix el symptom desaparece del próximo deep-run → outcome=resolved + confidence sube. Si persiste → outcome=no_effect.
+- Circuit breaker: 3 fixes consecutivos worsened en cualquier categoría → freeze auto-apply global hasta que humano resetee.
+
+**Skills invocados Fase 2:** agent-designer, error-handling-patterns (graceful fallback), prompt-engineering-patterns (system prompt + JSON schema enforcement), simplify (surgical edits).
+
+---
