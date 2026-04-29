@@ -2122,15 +2122,48 @@ def load_shared_conv() -> list:
 
 
 def save_shared_conv(messages: list):
-    """Guarda el historial compartido, manteniendo solo los últimos SHARED_CONV_MAX mensajes."""
+    """Guarda el historial compartido, manteniendo solo los últimos SHARED_CONV_MAX mensajes.
+
+    Dual-write: local file (always) + GitHub via Hostinger bridge (best-effort, throttled).
+    Without the GitHub mirror, Claude Code sessions see a stale copy frozen at the last
+    git pull — breaking cross-channel continuity. Throttled to 1 push/min to avoid
+    hammering the bridge during conversation bursts.
+    """
     trimmed = messages[-SHARED_CONV_MAX:]
-    SHARED_CONV.write_text(
-        json.dumps({
-            "messages": trimmed,
-            "updated": datetime.now().isoformat()
-        }, ensure_ascii=False, indent=2),
-        encoding="utf-8"
-    )
+    payload = json.dumps({
+        "messages": trimmed,
+        "updated": datetime.now().isoformat()
+    }, ensure_ascii=False, indent=2)
+
+    # 1. Write local file (canonical for the bot).
+    SHARED_CONV.write_text(payload, encoding="utf-8")
+
+    # 2. Push to GitHub via Hostinger bridge (best-effort; never blocks the bot).
+    global _LAST_SHARED_CONV_PUSH
+    try:
+        now_ts = time.time()
+        last_push = globals().get("_LAST_SHARED_CONV_PUSH", 0)
+        if now_ts - last_push < 60:
+            return  # throttle to 1 push/min
+        bridge_url = os.getenv("BRIDGE_URL", "https://pinnaclegroupwi.com/agents")
+        secret = os.getenv("ALEX_SECRET", ALEX_SECRET if "ALEX_SECRET" in globals() else "")
+        if not secret:
+            return
+        requests.post(
+            f"{bridge_url.rstrip('/')}/github_write.php",
+            headers={"X-Alex-Secret": secret, "Content-Type": "application/json"},
+            json={
+                "repo": "alex-real-estate-system",
+                "file": "agents/shared_conversation.json",
+                "content": payload,
+                "message": f"bot: shared_conversation update {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+            },
+            timeout=8,
+        )
+        globals()["_LAST_SHARED_CONV_PUSH"] = now_ts
+    except Exception:
+        # Silent failure — bot stability over GitHub mirror.
+        pass
 
 
 def append_shared_conv(role: str, content: str, channel: str = "telegram"):

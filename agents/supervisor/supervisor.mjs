@@ -1109,6 +1109,7 @@ async function runPipelineChecks(cfg) {
   const today = new Date();
   const buckets = { New: 0, "To Be Contacted": 0, Contacted: 0, Seguimiento: 0, Dead: 0, other: 0 };
   const ghosts = [];
+  let seguimientoDueToday = 0;
 
   for (const rec of recs) {
     const f = rec.fields || {};
@@ -1116,6 +1117,11 @@ async function runPipelineChecks(cfg) {
     if (stage in buckets) buckets[stage]++; else buckets.other++;
     const last = f["Last contact date"] ? new Date(f["Last contact date"]) : null;
     const nextD = f["Next follow up date"] ? new Date(f["Next follow up date"]) : null;
+
+    // Track Seguimiento contacts due TODAY (for seg_sms_sent warning gating).
+    if (stage === "Seguimiento" && nextD && nextD <= today) {
+      seguimientoDueToday++;
+    }
 
     // Ghost detection
     let ghostReason = null;
@@ -1141,6 +1147,7 @@ async function runPipelineChecks(cfg) {
     contacts_tbc: buckets["To Be Contacted"],
     contacts_contacted: buckets.Contacted,
     contacts_seguimiento: buckets.Seguimiento,
+    contacts_seguimiento_due_today: seguimientoDueToday,
     contacts_dead: buckets.Dead,
     ghosts,
   };
@@ -1240,8 +1247,12 @@ function scoreHealth(infra, pipeline, cfg) {
   if (inWindow && hasFcWork && (infra.last_fc_hours == null || infra.last_fc_hours > 4)) {
     critical.push(`Sin eventos fc_sms_sent desde hace ${infra.last_fc_hours ?? "∞"}h Y hay ${pipeline.contacts_tbc} leads en "To Be Contacted". Cron caído.`);
   }
-  if (infra.last_seg_hours != null && infra.last_seg_hours > 30) {
-    warnings.push(`Sin seg_sms_sent desde hace ${infra.last_seg_hours}h (esperado daily).`);
+  // Only warn if there's actual Seguimiento work due — otherwise daily silence is correct.
+  // Without this gate, a tenant with 0 leads due TODAY produces a chronic false-positive
+  // every hour, polluting Lessons_Learned and burning LLM credits on a phantom symptom.
+  const segDue = pipeline.contacts_seguimiento_due_today || 0;
+  if (infra.last_seg_hours != null && infra.last_seg_hours > 30 && segDue > 0) {
+    warnings.push(`Sin seg_sms_sent desde hace ${infra.last_seg_hours}h (${segDue} contactos due hoy).`);
   }
   if (infra.airtable_422_today > 3) warnings.push(`${infra.airtable_422_today} errores Airtable 422 hoy — posible schema drift.`);
 
