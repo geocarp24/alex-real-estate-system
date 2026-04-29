@@ -38,6 +38,8 @@ on:
     - cron:  "0 20 */3 * *"           # auditor:weekly
     # Social Media (full pipeline: ideas → visuals → publish to FB+IG)
     - cron:  "30 20 */3 * *"          # social_media:full_pipeline
+    # El Creativo — generates visuals via Replicate Nano Banana + Cloudinary
+    - cron:  "0 21 */3 * *"           # creativo:batch
   workflow_dispatch:
     inputs:
       agent:
@@ -45,7 +47,7 @@ on:
         type: choice
         required: true
         default: "mercader"
-        options: [mercader, posicionador, escriba, cazador, clasificador, analista, espia, auditor, remitente, social_media]
+        options: [mercader, posicionador, escriba, cazador, clasificador, analista, espia, auditor, remitente, social_media, creativo]
       mode:
         description: "Mode (depends on agent)"
         type: string
