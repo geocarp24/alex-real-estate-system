@@ -162,4 +162,22 @@ Detalle completo en `memoria_ALex.md` raíz, sección 2026-04-28.
 
 ---
 
+## 2026-04-28 — FASE 1 SUPERVISOR AUTÓNOMO completa
+
+Jorge aprobó visión: Supervisor auto-curativo y auto-mejorable. Roadmap 5 fases. Implementada Fase 1 (memoria de lecciones, no-destructiva).
+
+**Construido:**
+- Tabla `Lessons_Learned` en Airtable (id `tbloCtdxSukBI3R3j`)
+- Módulo Learning: `loadLessons`, `recordLessonObservation`, `recordAllObservations`
+- Recognition: `classifySymptom()` con 5 categorías (infra/pipeline/code/data/unknown)
+- Normalizer compartido entre alert dedup y lesson keying
+- Integración no-destructiva al main loop (solo modos deep e incident registran)
+- Failure-tolerant (si la tabla falla, supervisor sigue funcional)
+
+**Pendiente para próximas sesiones:** Fase 2 (LLM diagnosis + confidence scoring), Fase 3 (auto-fix expandido + rollback), Fase 4 (self-modification propose-only), Fase 5 (auto-merge — decisión humana).
+
+Detalle completo en `memoria_ALex.md` raíz.
+
+---
+
 *Última actualización: 2026-04-28*
