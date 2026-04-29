@@ -1708,9 +1708,13 @@ Log freshness: fc=${infra.last_fc_hours ?? "?"}h seg=${infra.last_seg_hours ?? "
   const phase2HasProposal = decisions.some((d) => d.tier === "HIGH" || d.tier === "MED");
   const phase3Acted = phase3Result.executed > 0 || phase3Result.breaker?.open;
   const phase4Proposed = phase4Result.proposed === true;
-  if ((phase2HasProposal || phase3Acted || phase4Proposed) && !shouldAlert) {
+  const phase5Merged = phase5Result.merged > 0;
+  if ((phase2HasProposal || phase3Acted || phase4Proposed || phase5Merged) && !shouldAlert) {
     shouldAlert = true;
-    alertReason = phase4Proposed ? "phase4_pr_opened" : phase3Acted ? "phase3_acted" : "phase2_proposal";
+    alertReason = phase5Merged ? "phase5_auto_merged"
+                : phase4Proposed ? "phase4_pr_opened"
+                : phase3Acted ? "phase3_acted"
+                : "phase2_proposal";
   }
 
   if (shouldAlert) {
