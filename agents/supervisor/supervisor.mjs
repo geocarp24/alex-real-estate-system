@@ -830,6 +830,29 @@ async function main() {
       console.error(`[supervisor] learning: ${observations.length} observations recorded`);
     }
   }
+
+  // ── Phase 2: LLM diagnosis + confidence scoring + decision ──
+  // Per-lesson: Sonnet 4.6 proposes root_cause + recommended_action,
+  // confidence is computed from history, decision tier picked.
+  // Phase 2 NEVER executes — auto_apply remains a flag for Phase 3 to act on.
+  let decisions = [];
+  if ((args.mode === "deep" || args.mode === "incident") && observations.length > 0) {
+    // Build a compact signals snapshot for the diagnosis prompt.
+    const signalsText = `Health: ${score.health} (${score.passed}/${score.total} checks passed, ${score.failed} failed)
+Pipeline: total=${pipeline.contacts_total} New=${pipeline.contacts_new} TBC=${pipeline.contacts_tbc} Contacted=${pipeline.contacts_contacted} Seg=${pipeline.contacts_seguimiento} Dead=${pipeline.contacts_dead}
+Ghosts: ${pipeline.ghosts.length}
+Infra: cron_first_contact=${infra.cron_first_contact_ok} cron_seguimiento=${infra.cron_seguimiento_ok} cron_stale=${infra.cron_stale_ok} airtable=${infra.airtable_api_ok} telegram=${infra.telegram_bot_ok} openphone=${infra.openphone_api_ok} webhook=${infra.webhook_recent_ok}
+Log freshness: fc=${infra.last_fc_hours ?? "?"}h seg=${infra.last_seg_hours ?? "?"}h`;
+    decisions = await diagnoseAndDecide(cfg, observations, score, signalsText, runId).catch((e) => {
+      console.error(`[supervisor] diagnosis batch failed: ${e.message}`);
+      return [];
+    });
+    if (decisions.length > 0) {
+      const buckets = { HIGH: 0, MED: 0, LOW: 0 };
+      for (const d of decisions) buckets[d.tier]++;
+      console.error(`[supervisor] phase2: ${decisions.length} decisions — HIGH=${buckets.HIGH} MED=${buckets.MED} LOW=${buckets.LOW}`);
+    }
+  }
   let shouldAlert = false;
   let alertReason = "";
 
