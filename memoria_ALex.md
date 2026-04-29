@@ -2445,9 +2445,7 @@ Jorge pidió "gistak" = **gstack** (typo de autocorrect). Confirmado + instalado
 - No es domain agent (R9) — es capa de disciplina de ingeniería transversal. ALEX invoca cuando aplica.
 
 ### R9. SUB-AGENTES DEDICADOS ALWAYS-ON POR DOMINIO (2026-04-23)
-**Orden directa de Jorge — NO NEGOCIABLE.**
-
-Cada nuevo skill de Phase 2 (marketing, SEO, ads, etc.) tiene su **sub-agente dedicado que lo usa 100% del tiempo, no on-demand**. Patrón: monitoreo continuo + alertas automáticas + reportes periódicos + histórico en Airtable.
+**Orden directa de Jorge — NO NEGOCIABLE.**Cada nuevo skill de Phase 2 (marketing, SEO, ads, etc.) tiene su **sub-agente dedicado que lo usa 100% del tiempo, no on-demand**. Patrón: monitoreo continuo + alertas automáticas + reportes periódicos + histórico en Airtable.
 
 **Arquitectura por sub-agente:**
 1. **Spec en `agents/<nombre>.md`** (tenant-aware per R8)
