@@ -23,21 +23,20 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405); die(json_encode(['error' => 'Method not allowed']));
 }
 
-if (!function_exists('sodium_crypto_box_seal')) {
-    http_response_code(500); die(json_encode(['error' => 'libsodium not available — PHP 7.2+ with sodium ext required']));
+$body            = json_decode(file_get_contents('php://input'), true);
+$name            = $body['name']            ?? '';
+$value           = $body['value']           ?? '';            // plaintext (server encrypts via libsodium)
+$encrypted_value = $body['encrypted_value'] ?? '';            // OR pre-encrypted by client (no libsodium needed)
+$key_id          = $body['key_id']          ?? '';            // required if encrypted_value is given
+$repo            = $body['repo']            ?? 'alex-real-estate-system';
+
+if (!$name || ($value === '' && $encrypted_value === '')) {
+    http_response_code(400); die(json_encode(['error' => 'Missing name or value/encrypted_value']));
 }
-
-$body  = json_decode(file_get_contents('php://input'), true);
-$name  = $body['name']  ?? '';
-$value = $body['value'] ?? '';
-$repo  = $body['repo']  ?? 'alex-real-estate-system';
-
-if (!$name || $value === '') { http_response_code(400); die(json_encode(['error' => 'Missing name or value'])); }
 
 $allowed_repos = ['alex-real-estate-system','pinnacle-agent-memory','geo-budget-pro','pinnacle-tools','geo-carpentry'];
 if (!in_array($repo, $allowed_repos)) { http_response_code(403); die(json_encode(['error' => 'Repo not authorized'])); }
 
-// Validate name format (uppercase letters, digits, underscores).
 if (!preg_match('/^[A-Z][A-Z0-9_]*$/', $name)) {
     http_response_code(400); die(json_encode(['error' => 'Secret name must match ^[A-Z][A-Z0-9_]*$']));
 }
@@ -49,33 +48,38 @@ $ghHeaders = [
     "X-GitHub-Api-Version: 2022-11-28",
 ];
 
-// 1. Fetch repo's public key for sealing.
-$ch = curl_init("https://api.github.com/repos/geocarp24/{$repo}/actions/secrets/public-key");
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_HTTPHEADER, $ghHeaders);
-curl_setopt($ch, CURLOPT_TIMEOUT, 15);
-$pkResp  = curl_exec($ch);
-$pkCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
+// If client gave plaintext, server encrypts (requires libsodium).
+if ($encrypted_value === '') {
+    if (!function_exists('sodium_crypto_box_seal')) {
+        http_response_code(500);
+        die(json_encode(['error' => 'libsodium not available — pre-encrypt on client with PyNaCl/libsodium-wrappers and send encrypted_value+key_id']));
+    }
+    // 1. Fetch repo's public key for sealing.
+    $ch = curl_init("https://api.github.com/repos/geocarp24/{$repo}/actions/secrets/public-key");
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $ghHeaders);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+    $pkResp  = curl_exec($ch);
+    $pkCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
 
-if ($pkCode !== 200) {
-    http_response_code(500);
-    die(json_encode(['error' => "public-key fetch failed HTTP {$pkCode}", 'response' => substr($pkResp, 0, 200)]));
+    if ($pkCode !== 200) {
+        http_response_code(500);
+        die(json_encode(['error' => "public-key fetch failed HTTP {$pkCode}", 'response' => substr($pkResp, 0, 200)]));
+    }
+    $pk = json_decode($pkResp, true);
+    $publicKey = $pk['key'] ?? '';
+    $key_id    = $pk['key_id'] ?? '';
+    if (!$publicKey || !$key_id) {
+        http_response_code(500); die(json_encode(['error' => 'public_key missing in response']));
+    }
+    $decodedKey       = base64_decode($publicKey);
+    $encrypted        = sodium_crypto_box_seal($value, $decodedKey);
+    $encrypted_value  = base64_encode($encrypted);
 }
-$pk = json_decode($pkResp, true);
-$publicKey = $pk['key'] ?? '';
-$keyId     = $pk['key_id'] ?? '';
-if (!$publicKey || !$keyId) {
-    http_response_code(500); die(json_encode(['error' => 'public_key missing in response']));
-}
 
-// 2. Encrypt the value with libsodium sealed box.
-$decodedKey = base64_decode($publicKey);
-$encrypted  = sodium_crypto_box_seal($value, $decodedKey);
-$encryptedBase64 = base64_encode($encrypted);
-
-// 3. PUT the secret.
-$payload = json_encode(['encrypted_value' => $encryptedBase64, 'key_id' => $keyId]);
+// At this point we have encrypted_value + key_id (either client-provided or just encrypted server-side).
+if (!$key_id) { http_response_code(400); die(json_encode(['error' => 'key_id required when sending encrypted_value'])); }
 $ch = curl_init("https://api.github.com/repos/geocarp24/{$repo}/actions/secrets/{$name}");
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
