@@ -69,3 +69,18 @@ Jorge reportó "el auditor me está enviando mensajes a cada rato y en fila". Ca
 Resto del estado al cierre 2026-04-23 sigue válido — ver `memoria_ALex.md` sección "2026-04-23 NIGHT" para plantel R9 (10 agentes) y crons activos (17 GHA + 4 Hostinger = 21 jobs).
 
 ---
+
+## 2026-04-28 PM — FASE 1 SUPERVISOR AUTÓNOMO
+
+Jorge aprobó visión de convertir El Supervisor en agente auto-curativo, auto-mejorable y autosuficiente. Roadmap 5 fases (1=memoria · 2=confidence + LLM diagnosis · 3=auto-fix expandido + rollback · 4=self-modification propose-only · 5=auto-merge whitelist).
+
+**Fase 1 implementada hoy (no-destructiva):**
+- Tabla `Lessons_Learned` en Airtable (`tbloCtdxSukBI3R3j`) — síntoma + categoría + outcome + occurrence_count + recommended_action.
+- Módulo Learning en `supervisor.mjs`: cada warning/critical observado se registra (CREATE primera vez, INCREMENT recurrencias).
+- Recognition: classifier con 5 categorías (infra/pipeline/code/data/unknown).
+- Normalizer compartido con dedup de alertas — variantes "stale 40h"/"stale 38h" colapsan al mismo lesson.
+- Failure-tolerant: si la tabla no existe, supervisor sigue corriendo.
+
+**Próximas fases requieren aprobación explícita.** El sistema todavía NO toca código solo, NO hace fixes nuevos, NO mergea PRs. Solo aprende.
+
+---
