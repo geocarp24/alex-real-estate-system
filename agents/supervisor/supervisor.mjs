@@ -1732,7 +1732,11 @@ Log freshness: fc=${infra.last_fc_hours ?? "?"}h seg=${infra.last_seg_hours ?? "
     if (phase4Proposed) {
       phase4Block = `\n\n🤖 *Phase 4 self-modification PR*\n• ${phase4Result.patch.change_type} on \`${phase4Result.patch.file}\`\n• Lesson: \`${phase4Result.lesson_id}\`\n• PR: ${phase4Result.pr_url}\n• Status: DRAFT — requires human review`;
     }
-    await telegramSend(cfg, (baseMsg + decisionsBlock + phase3Block + phase4Block).slice(0, 3800));
+    let phase5Block = "";
+    if (phase5Merged) {
+      phase5Block = `\n\n🚀 *Phase 5 AUTO-MERGED*\n• PR #${phase5Result.pr_number} merged automatically\n• Track record: ${phase5Result.track_record}\n• ${phase5Result.pr_url}`;
+    }
+    await telegramSend(cfg, (baseMsg + decisionsBlock + phase3Block + phase4Block + phase5Block).slice(0, 3800));
   }
   // Persist phase3 outcomes summary to Ops_Health for circuit breaker history.
   const phase3OutcomesString = phase3Result.attempts.map((a) => a.outcome).join(",");
