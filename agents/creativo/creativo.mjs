@@ -60,7 +60,79 @@ async function smGet(recordId) {
   return r.json();
 }
 
-// ─── Anthropic — map Airtable fields to carousel spec JSON ───
+// ─── Deterministic spec builder from Airtable fields (no LLM required) ───
+function buildSpecDeterministic(fields) {
+  const visualPrompt = String(fields.Visual_Prompt || "");
+  const titulo = fields["Título de Idea"] || "";
+  const hook = fields.Hook || "";
+  const captionEs = fields["🇲🇽 Caption ES"] || "";
+  const captionEn = fields["🇺🇸 Caption EN"] || "";
+  const mensaje = fields["Mensaje Principal"] || captionEs;
+  const cta = fields.CTA || "";
+  const formato = fields.Formato || "Post";
+  const isCarrusel = String(formato).toLowerCase() === "carrusel";
+
+  const themeMatch = visualPrompt.match(/T([1-5])\b/i);
+  const theme = themeMatch ? `T${themeMatch[1]}` : "T1";
+
+  // Hook: prefer field Hook (Spanish). Generate English version from caption EN's first sentence.
+  const hookEs = (hook || titulo).split(/\n|\.|!|\?/)[0].trim().slice(0, 80);
+  const hookEn = (captionEn || titulo).split(/\n|\.|!|\?/)[0].trim().slice(0, 80);
+
+  // Points: parse from "Mensaje Principal" or Visual_Prompt — split by "Paso N:", "•", "-", or numbered lines.
+  const points = [];
+  if (isCarrusel) {
+    const text = mensaje + "\n" + visualPrompt;
+    // Match "Paso N:" / "N." / "N)" / "•" / "-" patterns followed by content.
+    const re = /(?:Paso\s+\d+|^\d+[.\)]|^[•\-—]\s)\s*[:\-]?\s*(.+?)(?=\n(?:Paso\s+\d+|\d+[.\)]|[•\-—]\s)|\n\n|$)/gms;
+    let m;
+    while ((m = re.exec(text)) !== null && points.length < 4) {
+      const raw = m[1].trim().replace(/\s+/g, " ");
+      if (raw.length < 8) continue;
+      // Split into headingEs (first segment up to ':' or '.') and bodyEs (rest).
+      const colonIdx = raw.indexOf(":");
+      let headingEs, bodyEs;
+      if (colonIdx > 0 && colonIdx < 60) {
+        headingEs = raw.slice(0, colonIdx).trim().slice(0, 60);
+        bodyEs = raw.slice(colonIdx + 1).trim().slice(0, 200);
+      } else {
+        const dotIdx = raw.indexOf(".");
+        if (dotIdx > 0 && dotIdx < 80) {
+          headingEs = raw.slice(0, dotIdx).trim().slice(0, 60);
+          bodyEs = raw.slice(dotIdx + 1).trim().slice(0, 200);
+        } else {
+          headingEs = raw.slice(0, 60);
+          bodyEs = raw.slice(60, 240);
+        }
+      }
+      points.push({ headingEs, bodyEs });
+    }
+    // Fallback: if no points parsed, split caption ES into 2-3 sentences.
+    if (points.length === 0 && captionEs) {
+      const sentences = captionEs.split(/(?<=[.!?])\s+/).filter((s) => s.length > 15).slice(0, 4);
+      sentences.forEach((s, i) => {
+        const colonIdx = s.indexOf(":");
+        if (colonIdx > 0 && colonIdx < 60) {
+          points.push({ headingEs: s.slice(0, colonIdx).trim(), bodyEs: s.slice(colonIdx + 1).trim().slice(0, 200) });
+        } else {
+          points.push({ headingEs: `Punto ${i + 1}`, bodyEs: s.trim().slice(0, 200) });
+        }
+      });
+    }
+  }
+
+  return {
+    theme,
+    hook: { hookEn, hookEs, badge: "" },
+    points,
+    cta: {
+      ctaEn: "We Buy Houses — Cash. Fast. Fair.",
+      ctaEs: cta || "Compramos Casas — Efectivo. Rápido. Justo.",
+    },
+  };
+}
+
+// ─── Anthropic enrichment (optional — only if ANTHROPIC_API_KEY available) ───
 async function buildSpecWithSonnet(fields) {
   const visualPrompt = fields.Visual_Prompt || "";
   const titulo = fields["Título de Idea"] || "";
