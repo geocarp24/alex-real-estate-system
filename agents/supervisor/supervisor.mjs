@@ -25,12 +25,111 @@ const OUTPUT_DIR = join(__dirname, "runs");
 const VALID_MODES = ["heartbeat", "deep", "evolve", "incident"];
 const TABLE_KEY = "ops_health_table_id";
 const INSIGHTS_KEY = "ops_insights_table_id";
+const LESSONS_KEY = "lessons_learned_table_id";
 
 // ──────────────────────────────────────────────────────────────
 // Helpers
 // ──────────────────────────────────────────────────────────────
 function daysBetween(a, b) { return Math.round((b - a) / 86_400_000); }
 function hoursBetween(a, b) { return (b - a) / 3_600_000; }
+
+// Normalize symptom strings: strip variable numbers/UUIDs so recurring issues
+// dedup as the same lesson. Used for both alert dedup and Lessons_Learned key.
+function normalizeSymptom(s) {
+  return String(s || "")
+    .replace(/\d+(?:\.\d+)?/g, "N")
+    .replace(/[a-f0-9]{8,}/gi, "ID")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// ──────────────────────────────────────────────────────────────
+// LEARNING — Phase 1 self-improving memory
+// ──────────────────────────────────────────────────────────────
+//
+// Each unique normalized symptom = one Lessons_Learned row. Read on diagnosis
+// (does this look like something we've seen?) and write on every observation
+// (occurrence_count++, last_seen_at=now, severity refresh). Fix attempts and
+// outcomes will be recorded in Phase 2/3 once auto-fix expands beyond ghosts.
+//
+// Recognition: classify each symptom into infra | pipeline | code | data.
+function classifySymptom(raw) {
+  const s = String(raw || "").toLowerCase();
+  if (/cron_|_api_ok|webhook_|endpoint|http \d{3}|telegram_bot_ok|airtable_api/.test(s)) return "infra";
+  if (/contact|seguimiento|fer_first|tbc|ghost|fantasma|seg_sms|stage|pipeline/.test(s)) return "pipeline";
+  if (/error|exception|failed|throw|stack trace|undefined|null pointer|syntax/.test(s)) return "code";
+  if (/stale|missing|desync|mismatch|orphan|empty|no record|sin .* desde/.test(s)) return "data";
+  return "unknown";
+}
+
+async function loadLessons(cfg, normalized) {
+  if (!cfg.airtable?.[LESSONS_KEY]) return [];
+  try {
+    const filter = encodeURIComponent(`{symptom_normalized}='${normalized.replace(/'/g, "\\'")}'`);
+    const r = await airtableFetch(cfg, LESSONS_KEY, `filterByFormula=${filter}&maxRecords=1`);
+    return r.records || [];
+  } catch {
+    return [];
+  }
+}
+
+async function recordLessonObservation(cfg, raw, severity, runId) {
+  if (!cfg.airtable?.[LESSONS_KEY]) return null;
+  const normalized = normalizeSymptom(raw);
+  if (!normalized) return null;
+  const category = classifySymptom(raw);
+  const now = isoNow();
+
+  try {
+    const existing = await loadLessons(cfg, normalized);
+    if (existing.length > 0) {
+      const rec = existing[0];
+      const currentCount = rec.fields?.occurrence_count || 0;
+      await airtableUpdate(cfg, LESSONS_KEY, rec.id, {
+        last_seen_at: now,
+        occurrence_count: currentCount + 1,
+        severity, // may shift if same symptom escalates
+        last_run_id: runId,
+        symptom_raw: raw, // refresh sample
+      });
+      return { lesson_id: rec.fields?.lesson_id, action: "incremented", count: currentCount + 1 };
+    } else {
+      const lesson_id = `lesson_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+      await airtableCreate(cfg, LESSONS_KEY, {
+        lesson_id,
+        tenant_id: cfg.tenant_id,
+        symptom_normalized: normalized,
+        symptom_raw: raw,
+        category,
+        severity,
+        first_seen_at: now,
+        last_seen_at: now,
+        occurrence_count: 1,
+        last_outcome: "pending",
+        confidence_score: 0,
+        requires_human: false,
+        last_run_id: runId,
+      });
+      return { lesson_id, action: "created", count: 1 };
+    }
+  } catch (e) {
+    console.error(`[supervisor] recordLesson failed for "${normalized.slice(0,60)}": ${e.message}`);
+    return null;
+  }
+}
+
+async function recordAllObservations(cfg, score, runId) {
+  const observations = [];
+  for (const c of score.critical) {
+    observations.push(recordLessonObservation(cfg, c, "critical", runId));
+  }
+  for (const w of score.warnings) {
+    observations.push(recordLessonObservation(cfg, w, "warning", runId));
+  }
+  // Run all in parallel; tolerate individual failures.
+  const results = await Promise.all(observations.map(p => p.catch(() => null)));
+  return results.filter(Boolean);
+}
 
 async function fetchLog(cfg) {
   const url = `${cfg.website.replace(/\/$/, "")}/Tools/fer_agent.log`;
