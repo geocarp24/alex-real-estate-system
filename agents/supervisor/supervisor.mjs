@@ -153,7 +153,7 @@ async function recordAllObservations(cfg, score, runId) {
 // LOW (<0.6) escalate to human. Phase 2 never actually executes — auto_apply
 // is a flag persisted to the lesson; Phase 3 will read it and act.
 
-async function callAnthropicAPI(systemPrompt, userPrompt, model = "claude-sonnet-4-5", maxTokens = 800) {
+async function callAnthropicAPI(systemPrompt, userPrompt, model = "claude-sonnet-4-6", maxTokens = 800) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return { error: "ANTHROPIC_API_KEY missing", text: null };
