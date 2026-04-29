@@ -1109,6 +1109,7 @@ async function runPipelineChecks(cfg) {
   const today = new Date();
   const buckets = { New: 0, "To Be Contacted": 0, Contacted: 0, Seguimiento: 0, Dead: 0, other: 0 };
   const ghosts = [];
+  let seguimientoDueToday = 0;
 
   for (const rec of recs) {
     const f = rec.fields || {};
