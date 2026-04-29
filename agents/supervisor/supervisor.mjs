@@ -135,6 +135,250 @@ async function recordAllObservations(cfg, score, runId) {
   return results.filter(Boolean);
 }
 
+// ──────────────────────────────────────────────────────────────
+// PHASE 2 — LLM DIAGNOSIS + CONFIDENCE + DECISION
+// ──────────────────────────────────────────────────────────────
+//
+// LLM diagnosis: Sonnet 4.6 reads symptom + signals + fix history → proposes
+// root_cause, recommended_action, requires_human, action_category. Output
+// strictly JSON so downstream code stays deterministic.
+//
+// Confidence: computed from fix history. No LLM, fully deterministic.
+//   - 0 if requires_human=true OR any recent fix worsened.
+//   - +0.25 per recent resolved outcome, -0.1 per no_effect.
+//   - +0.1 occurrence_count>=5, +0.1 if >=20 (well-known issue bonus).
+//   - +0.3 base for any fix-attempt history.
+//
+// Decision: HIGH (>=0.9) auto_apply candidate | MED (0.6-0.9) propose+alert |
+// LOW (<0.6) escalate to human. Phase 2 never actually executes — auto_apply
+// is a flag persisted to the lesson; Phase 3 will read it and act.
+
+async function callAnthropicAPI(systemPrompt, userPrompt, model = "claude-sonnet-4-5-20250929", maxTokens = 800) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    return { error: "ANTHROPIC_API_KEY missing", text: null };
+  }
+  try {
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: maxTokens,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userPrompt }],
+      }),
+    });
+    if (!r.ok) {
+      const errText = await r.text();
+      return { error: `HTTP ${r.status}: ${errText.slice(0, 200)}`, text: null };
+    }
+    const j = await r.json();
+    const text = j.content?.[0]?.text || "";
+    return { text, error: null };
+  } catch (e) {
+    return { error: e.message, text: null };
+  }
+}
+
+function parseFirstJSON(text) {
+  if (!text) return null;
+  // Strip markdown code fences if present.
+  const cleaned = text.replace(/```(?:json)?\s*/g, "").replace(/```/g, "").trim();
+  // Find first { ... } block.
+  const start = cleaned.indexOf("{");
+  if (start === -1) return null;
+  let depth = 0;
+  for (let i = start; i < cleaned.length; i++) {
+    if (cleaned[i] === "{") depth++;
+    else if (cleaned[i] === "}") {
+      depth--;
+      if (depth === 0) {
+        try { return JSON.parse(cleaned.slice(start, i + 1)); } catch { return null; }
+      }
+    }
+  }
+  return null;
+}
+
+async function diagnoseLesson(cfg, lessonRecord, signals) {
+  const f = lessonRecord.fields || {};
+  const attempted = (() => {
+    try { return JSON.parse(f.attempted_fixes || "[]"); } catch { return []; }
+  })();
+
+  const systemPrompt = `You are a senior SRE diagnosing operational symptoms in a real estate SaaS automation system. The system runs Claude-powered agents on GitHub Actions and Hostinger PHP crons, with Airtable as primary CRM and Telegram for ops alerts.
+
+Output ONLY a single JSON object — no prose, no markdown, no explanation outside JSON. Schema:
+{
+  "root_cause": "1-2 sentence hypothesis",
+  "recommended_action": "1-2 sentence imperative — what to do",
+  "requires_human": boolean,
+  "action_category": "cron_restart" | "cache_purge" | "api_retry" | "data_repair" | "config_update" | "code_fix" | "escalate",
+  "safety_notes": "any guardrails or risks the operator must know"
+}
+
+requires_human MUST be true if: the action involves credentials, finances, customer-facing communications, irreversible deletes, schema changes, or anything outside an automated whitelist of: cron restarts, cache purges, API retries, data repair (stage resets, ghost cleanup), config tweaks.`;
+
+  const userPrompt = `Symptom (recurring ${f.occurrence_count || 1} times): "${f.symptom_raw || f.symptom_normalized || "?"}"
+Category: ${f.category || "unknown"}
+Severity: ${f.severity || "warning"}
+First seen: ${f.first_seen_at || "?"}
+Last seen: ${f.last_seen_at || "?"}
+
+Current run signals:
+${signals}
+
+Previous fix attempts (most recent last):
+${attempted.length === 0 ? "(none yet)" : JSON.stringify(attempted.slice(-5), null, 2)}
+
+Diagnose. Output JSON only.`;
+
+  const { text, error } = await callAnthropicAPI(systemPrompt, userPrompt);
+  if (error) return { error, diagnosis: null };
+  const diagnosis = parseFirstJSON(text);
+  if (!diagnosis) return { error: "could not parse JSON from model output", diagnosis: null, raw: text.slice(0, 300) };
+  return { diagnosis, error: null };
+}
+
+function computeConfidence(lessonFields) {
+  if (lessonFields.requires_human) return 0.0;
+
+  let attempted = [];
+  try { attempted = JSON.parse(lessonFields.attempted_fixes || "[]"); } catch { /* keep empty */ }
+  if (attempted.length === 0) return 0.0;
+
+  // Look at last 3 outcomes.
+  const recent = attempted.slice(-3);
+  const resolved = recent.filter((f) => f.outcome === "resolved").length;
+  const worsened = recent.filter((f) => f.outcome === "worsened").length;
+  const noEffect = recent.filter((f) => f.outcome === "no_effect").length;
+
+  // Hard floor: any recent worsening kills auto-trust.
+  if (worsened > 0) return 0.0;
+
+  let score = 0.3; // baseline for known issue with at least one fix attempted
+  score += resolved * 0.25;
+  score -= noEffect * 0.1;
+
+  const occ = lessonFields.occurrence_count || 0;
+  if (occ >= 20) score += 0.2;
+  else if (occ >= 5) score += 0.1;
+
+  return Math.max(0, Math.min(1, score));
+}
+
+function decideAction(confidence) {
+  if (confidence >= 0.9) return { tier: "HIGH", auto_apply: true, alert: false };
+  if (confidence >= 0.6) return { tier: "MED",  auto_apply: false, alert: true };
+  return { tier: "LOW", auto_apply: false, alert: false, escalate_human: true };
+}
+
+async function diagnoseAndDecide(cfg, observations, score, signalsText, runId) {
+  const decisions = [];
+  if (!cfg.airtable?.[LESSONS_KEY]) return decisions;
+
+  // Re-fetch each touched lesson to get fresh state (occurrence_count, attempted_fixes).
+  for (const obs of observations) {
+    if (!obs?.lesson_id) continue;
+
+    let lessonRecord = null;
+    try {
+      const filter = encodeURIComponent(`{lesson_id}='${obs.lesson_id}'`);
+      const r = await airtableFetch(cfg, LESSONS_KEY, `filterByFormula=${filter}&maxRecords=1`);
+      lessonRecord = r.records?.[0];
+    } catch { /* skip */ }
+    if (!lessonRecord) continue;
+
+    const f = lessonRecord.fields || {};
+
+    // Skip diagnosis if we already have one and the lesson hasn't escalated.
+    // Re-diagnose if: no root_cause yet, OR severity escalated, OR every 5 occurrences.
+    const hasDiagnosis = !!f.root_cause;
+    const sev = f.severity;
+    const occ = f.occurrence_count || 0;
+    const shouldDiagnose = !hasDiagnosis || sev === "critical" || (occ % 5 === 0);
+
+    let diagnosis = null;
+    let diagError = null;
+    if (shouldDiagnose) {
+      const { diagnosis: d, error } = await diagnoseLesson(cfg, lessonRecord, signalsText);
+      diagnosis = d;
+      diagError = error;
+    }
+
+    const updated = { ...f };
+    if (diagnosis) {
+      updated.root_cause = diagnosis.root_cause || f.root_cause || "";
+      updated.recommended_action = diagnosis.recommended_action || f.recommended_action || "";
+      updated.requires_human = !!diagnosis.requires_human;
+      // Persist diagnosis details into notes for audit (append, don't overwrite).
+      const diagNote = `[${isoNow()}] action_category=${diagnosis.action_category || "?"} | safety=${(diagnosis.safety_notes || "").slice(0, 200)}`;
+      updated.notes = `${(f.notes || "").slice(-1500)}\n${diagNote}`.trim();
+    }
+
+    const confidence = computeConfidence(updated);
+    const decision = decideAction(confidence);
+
+    // Persist diagnosis + confidence + decision back to lesson.
+    try {
+      await airtableUpdate(cfg, LESSONS_KEY, lessonRecord.id, {
+        root_cause: updated.root_cause,
+        recommended_action: updated.recommended_action,
+        requires_human: updated.requires_human,
+        confidence_score: confidence,
+        notes: updated.notes,
+        last_run_id: runId,
+      });
+    } catch (e) {
+      console.error(`[supervisor] persist diagnosis failed: ${e.message}`);
+    }
+
+    decisions.push({
+      lesson_id: f.lesson_id,
+      symptom: f.symptom_normalized,
+      tier: decision.tier,
+      auto_apply: decision.auto_apply,
+      alert: decision.alert,
+      escalate_human: decision.escalate_human || false,
+      confidence,
+      requires_human: updated.requires_human,
+      diagnosis,
+      diagError,
+    });
+  }
+
+  return decisions;
+}
+
+function formatDecisionsForTelegram(decisions) {
+  if (!decisions || decisions.length === 0) return "";
+  const buckets = { HIGH: [], MED: [], LOW: [] };
+  for (const d of decisions) buckets[d.tier].push(d);
+
+  const lines = [];
+  if (buckets.HIGH.length > 0) {
+    lines.push(`\n🤖 *HIGH-confidence (auto-fix candidates, Phase 3 will execute)*`);
+    for (const d of buckets.HIGH.slice(0, 5)) {
+      lines.push(`• \`${(d.symptom || "").slice(0, 60)}\` (conf=${d.confidence.toFixed(2)})`);
+    }
+  }
+  if (buckets.MED.length > 0) {
+    lines.push(`\n💡 *MED-confidence (proposed fixes, awaiting approval)*`);
+    for (const d of buckets.MED.slice(0, 5)) {
+      lines.push(`• \`${(d.symptom || "").slice(0, 60)}\` (conf=${d.confidence.toFixed(2)})`);
+    }
+  }
+  if (buckets.LOW.length > 0) {
+    lines.push(`\n🆘 *LOW-confidence (escalated to human)*: ${buckets.LOW.length} lessons`);
+  }
+  return lines.join("\n");
+}
+
 async function fetchLog(cfg) {
   const url = `${cfg.website.replace(/\/$/, "")}/Tools/fer_agent.log`;
   try {
