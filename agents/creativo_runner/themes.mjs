@@ -71,7 +71,7 @@ export function slideHook(themeCode, { hookEn, hookEs, badge } = {}) {
       </p>` : ""}
       <div style="margin-top:48px; width:96px; height:4px; background:${theme.accent}; border-radius:4px;"></div>
     </div>
-    ${logoWatermark(theme, 72)}
+    ${logoWatermark(theme, 240)}
   `;
   return baseWrapper(theme, inner);
 }
