@@ -896,8 +896,19 @@ Log freshness: fc=${infra.last_fc_hours ?? "?"}h seg=${infra.last_seg_hours ?? "
     }
   }
 
+  // Phase 2 override: any HIGH or MED decision force-alerts past dedup, since
+  // it represents a NEW proposed action the operator should know about. LOW
+  // alone is silent (already escalated_human flag in lesson).
+  const phase2HasProposal = decisions.some((d) => d.tier === "HIGH" || d.tier === "MED");
+  if (phase2HasProposal && !shouldAlert) {
+    shouldAlert = true;
+    alertReason = "phase2_proposal";
+  }
+
   if (shouldAlert) {
-    await telegramSend(cfg, formatTelegram(cfg, args, runId, infra, pipeline, score, repair, evolve));
+    const baseMsg = formatTelegram(cfg, args, runId, infra, pipeline, score, repair, evolve);
+    const decisionsBlock = formatDecisionsForTelegram(decisions);
+    await telegramSend(cfg, (baseMsg + decisionsBlock).slice(0, 3800));
   }
   // Mark whether this run produced an alert so future dedup queries can use it.
   await airtableUpsert(cfg, TABLE_KEY, runId, {
