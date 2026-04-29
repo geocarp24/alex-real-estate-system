@@ -622,6 +622,337 @@ async function executeAndVerifyPhase3(cfg, decisions, beforeScore, runId, dryRun
   return { executed, summary: `phase3: ${executed} fixes applied — outcomes: [${outcomes}]`, attempts, breaker };
 }
 
+// ──────────────────────────────────────────────────────────────
+// PHASE 4 — SELF-MODIFICATION PROPOSE-ONLY (NEVER auto-merge)
+// ──────────────────────────────────────────────────────────────
+//
+// Triggered ONLY in evolve mode. Detects improvement opportunities from
+// Lessons_Learned (unknown classifications, recurring no_effect outcomes),
+// asks Sonnet 4.6 for ONE surgical patch, validates against a tight
+// whitelist, opens a DRAFT PR, alerts the operator.
+//
+// HARD GUARDRAILS (cannot be relaxed by the agent itself):
+//   - Whitelist of files: pinnacle.json (numeric thresholds only) and
+//     supervisor.mjs (only inside classifySymptom regex literals).
+//   - Max 1 PR proposed per run.
+//   - Max 3 open auto-PRs total → freeze new proposals until reviewed.
+//   - Diff must be ≤ 50 lines and pass node --check / JSON parse.
+//   - PR is ALWAYS opened as draft + labeled human-review-required.
+//   - NEVER auto-merge. NEVER touch workflows/secrets/other agents.
+
+const PHASE4_MAX_DIFF_LINES = 50;
+const PHASE4_MAX_OPEN_AUTOPRS = 3;
+const PHASE4_FILE_WHITELIST = [
+  "agents/tenants/pinnacle.json",
+  "agents/supervisor/supervisor.mjs",
+];
+const PHASE4_BRANCH_PREFIX = "supervisor-autopatch-";
+
+async function detectImprovementOpportunities(cfg) {
+  if (!cfg.airtable?.[LESSONS_KEY]) return [];
+  const filter = encodeURIComponent(
+    "OR(AND({category}='unknown', {occurrence_count}>=3), AND({last_outcome}='no_effect', {occurrence_count}>=5))"
+  );
+  try {
+    const r = await airtableFetch(cfg, LESSONS_KEY,
+      `filterByFormula=${filter}&maxRecords=10&sort[0][field]=occurrence_count&sort[0][direction]=desc`);
+    return r.records || [];
+  } catch (e) {
+    console.error(`[supervisor] phase4 detect failed: ${e.message}`);
+    return [];
+  }
+}
+
+async function ghApiFetch(apiPath, opts = {}) {
+  const token = process.env.GITHUB_TOKEN;
+  if (!token) return { error: "no GITHUB_TOKEN", status: 0 };
+  const repo = process.env.GITHUB_REPOSITORY || "geocarp24/alex-real-estate-system";
+  const url = `https://api.github.com/repos/${repo}${apiPath}`;
+  const r = await fetch(url, {
+    method: opts.method || "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Accept": "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+      ...(opts.headers || {}),
+    },
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
+  const text = await r.text();
+  let json = null; try { json = JSON.parse(text); } catch {}
+  return { ok: r.ok, status: r.status, json, text };
+}
+
+async function countOpenAutoPRs() {
+  const r = await ghApiFetch("/pulls?state=open&per_page=50");
+  if (!r.ok) return { count: 0, error: r.error || `HTTP ${r.status}` };
+  const auto = (r.json || []).filter((pr) => pr.head?.ref?.startsWith(PHASE4_BRANCH_PREFIX));
+  return { count: auto.length };
+}
+
+function validatePatch(patch) {
+  if (!patch || typeof patch !== "object") return { ok: false, reason: "not an object" };
+  for (const k of ["file", "change_type", "search", "replace", "rationale", "test_plan"]) {
+    if (!patch[k] || typeof patch[k] !== "string") return { ok: false, reason: `missing/invalid: ${k}` };
+  }
+  if (!PHASE4_FILE_WHITELIST.includes(patch.file)) {
+    return { ok: false, reason: `file not in whitelist: ${patch.file}` };
+  }
+  if (!["threshold_adjust", "classifier_regex_add"].includes(patch.change_type)) {
+    return { ok: false, reason: `change_type not allowed: ${patch.change_type}` };
+  }
+  const totalLines = patch.search.split("\n").length + patch.replace.split("\n").length;
+  if (totalLines > PHASE4_MAX_DIFF_LINES) {
+    return { ok: false, reason: `diff too large: ${totalLines} lines` };
+  }
+  if (patch.file.endsWith("supervisor.mjs")) {
+    const forbidden = [
+      /requires_human/i,
+      /PHASE3_WHITELIST/,
+      /PHASE3_MAX_FIXES_PER_RUN/,
+      /PHASE4_/,
+      /circuit_?breaker/i,
+      /telegram|airtable|anthropic|api[_ ]?key/i,
+    ];
+    const combined = patch.search + "\n" + patch.replace;
+    for (const re of forbidden) {
+      if (re.test(combined)) return { ok: false, reason: `forbidden pattern: ${re}` };
+    }
+    if (!/classifySymptom|return ['"](?:infra|pipeline|code|data|unknown)/.test(patch.search)) {
+      return { ok: false, reason: "supervisor.mjs edit must be inside classifySymptom" };
+    }
+  }
+  if (patch.file.endsWith("pinnacle.json")) {
+    const numRe = /:\s*\d+(?:\.\d+)?\b/;
+    if (!numRe.test(patch.search) || !numRe.test(patch.replace)) {
+      return { ok: false, reason: "pinnacle.json edit must be numeric value change" };
+    }
+  }
+  return { ok: true };
+}
+
+async function proposeSelfPatch(cfg, opportunity) {
+  const fs = await import("node:fs/promises");
+  const pathMod = await import("node:path");
+  const __filename = fileURLToPath(import.meta.url);
+  const repoRoot = pathMod.join(pathMod.dirname(__filename), "..", "..");
+
+  const cfgRaw = await fs.readFile(pathMod.join(repoRoot, "agents/tenants/pinnacle.json"), "utf8");
+  const supRaw = await fs.readFile(pathMod.join(repoRoot, "agents/supervisor/supervisor.mjs"), "utf8");
+
+  const classifierMatch = supRaw.match(/function classifySymptom\([\s\S]*?\n\}/);
+  const classifierSnippet = classifierMatch ? classifierMatch[0] : "(not found)";
+
+  const cfgJson = JSON.parse(cfgRaw);
+  const cfgRelevant = JSON.stringify({
+    supervisor: cfgJson.supervisor,
+    alert_thresholds: cfgJson.alert_thresholds,
+  }, null, 2);
+
+  const f = opportunity.fields || {};
+  const systemPrompt = `You propose ONE safe, surgical self-improvement to the Supervisor agent based on a recurring lesson.
+
+Output ONLY a single JSON object — no prose:
+{
+  "file": "agents/tenants/pinnacle.json" | "agents/supervisor/supervisor.mjs",
+  "change_type": "threshold_adjust" | "classifier_regex_add",
+  "search": "EXACT existing string to find (multi-line OK, must match verbatim)",
+  "replace": "exact replacement string",
+  "rationale": "why this helps (cite the lesson)",
+  "test_plan": "how to verify the change works"
+}
+
+Rules:
+- threshold_adjust: only numeric values inside the supervisor or alert_thresholds blocks of pinnacle.json.
+- classifier_regex_add: only inside classifySymptom in supervisor.mjs, only by EXTENDING an existing regex (adding alternatives via |), never removing patterns.
+- Diff must be ≤50 lines. Be surgical.
+- NEVER touch: requires_human gates, PHASE3_WHITELIST, circuit breaker, credentials, API keys, Telegram/Airtable plumbing, or other agents.
+
+If no safe change is possible, return: {"file":"","change_type":"","search":"","replace":"","rationale":"no_safe_change","test_plan":""}`;
+
+  const userPrompt = `Lesson triggering this proposal:
+- symptom_normalized: ${f.symptom_normalized}
+- symptom_raw: ${f.symptom_raw}
+- category: ${f.category}
+- occurrence_count: ${f.occurrence_count}
+- last_outcome: ${f.last_outcome}
+- root_cause: ${f.root_cause || "(none yet)"}
+- recommended_action: ${f.recommended_action || "(none yet)"}
+
+Current pinnacle.json relevant blocks:
+\`\`\`json
+${cfgRelevant}
+\`\`\`
+
+Current classifySymptom (only place you may edit in supervisor.mjs):
+\`\`\`js
+${classifierSnippet}
+\`\`\`
+
+Propose ONE surgical patch. JSON only.`;
+
+  const { text, error } = await callAnthropicAPI(systemPrompt, userPrompt, "claude-sonnet-4-5-20250929", 1200);
+  if (error) return { error };
+  const patch = parseFirstJSON(text);
+  if (!patch) return { error: "could not parse JSON", raw: text.slice(0, 300) };
+  if (patch.rationale === "no_safe_change") return { skip: true, reason: "model returned no_safe_change" };
+  return { patch };
+}
+
+async function applyPatchAndValidate(patch) {
+  const fs = await import("node:fs/promises");
+  const pathMod = await import("node:path");
+  const __filename = fileURLToPath(import.meta.url);
+  const repoRoot = pathMod.join(pathMod.dirname(__filename), "..", "..");
+  const filePath = pathMod.join(repoRoot, patch.file);
+
+  const original = await fs.readFile(filePath, "utf8");
+  if (!original.includes(patch.search)) {
+    return { ok: false, reason: "search string not found in file" };
+  }
+  const occurrences = original.split(patch.search).length - 1;
+  if (occurrences !== 1) {
+    return { ok: false, reason: `search string ambiguous: ${occurrences} occurrences` };
+  }
+  const patched = original.replace(patch.search, patch.replace);
+  await fs.writeFile(filePath, patched, "utf8");
+
+  if (patch.file.endsWith(".mjs")) {
+    const { spawn } = await import("node:child_process");
+    const result = await new Promise((resolve) => {
+      const c = spawn(process.argv[0], ["--check", filePath]);
+      let err = "";
+      c.stderr.on("data", (d) => err += d);
+      c.on("close", (code) => resolve({ code, err }));
+    });
+    if (result.code !== 0) {
+      await fs.writeFile(filePath, original, "utf8");
+      return { ok: false, reason: `node --check failed: ${result.err.slice(0, 200)}`, reverted: true };
+    }
+  } else if (patch.file.endsWith(".json")) {
+    try { JSON.parse(patched); }
+    catch (e) {
+      await fs.writeFile(filePath, original, "utf8");
+      return { ok: false, reason: `JSON parse failed: ${e.message}`, reverted: true };
+    }
+  }
+  return { ok: true };
+}
+
+async function gitCommitAndPushBranch(branchName, commitMsg) {
+  const { spawn } = await import("node:child_process");
+  const run = (cmd, args) => new Promise((resolve) => {
+    const c = spawn(cmd, args, { stdio: ["ignore", "pipe", "pipe"] });
+    let out = "", err = "";
+    c.stdout.on("data", (d) => out += d);
+    c.stderr.on("data", (d) => err += d);
+    c.on("close", (code) => resolve({ code, out, err }));
+  });
+
+  await run("git", ["config", "user.email", "supervisor-bot@pinnaclegroupwi.com"]);
+  await run("git", ["config", "user.name", "Supervisor Auto-Patch"]);
+
+  const checkout = await run("git", ["checkout", "-b", branchName]);
+  if (checkout.code !== 0) return { ok: false, step: "checkout", err: checkout.err };
+
+  const add = await run("git", ["add", "-A"]);
+  if (add.code !== 0) return { ok: false, step: "add", err: add.err };
+
+  const commit = await run("git", ["commit", "-m", commitMsg]);
+  if (commit.code !== 0) return { ok: false, step: "commit", err: commit.err };
+
+  const push = await run("git", ["push", "-u", "origin", branchName]);
+  if (push.code !== 0) return { ok: false, step: "push", err: push.err };
+
+  return { ok: true };
+}
+
+async function createDraftPR(branchName, title, body) {
+  const repo = await ghApiFetch("");
+  if (!repo.ok) return { ok: false, reason: `repo info: ${repo.status}` };
+  const base = repo.json?.default_branch || "main";
+
+  const pr = await ghApiFetch("/pulls", {
+    method: "POST",
+    body: { title, body, head: branchName, base, draft: true },
+  });
+  if (!pr.ok) return { ok: false, reason: `PR create HTTP ${pr.status}: ${pr.text.slice(0, 200)}` };
+  const num = pr.json?.number;
+  const url = pr.json?.html_url;
+
+  await ghApiFetch(`/issues/${num}/labels`, {
+    method: "POST",
+    body: { labels: ["supervisor-self-mod", "human-review-required"] },
+  }).catch(() => null);
+
+  return { ok: true, number: num, url };
+}
+
+async function runPhase4SelfModification(cfg, runId, dryRun) {
+  const openCount = await countOpenAutoPRs();
+  if (openCount.error) {
+    return { proposed: false, reason: `open-pr-check failed: ${openCount.error}` };
+  }
+  if (openCount.count >= PHASE4_MAX_OPEN_AUTOPRS) {
+    return { proposed: false, reason: `freeze: ${openCount.count} open auto-PRs already` };
+  }
+
+  const opportunities = await detectImprovementOpportunities(cfg);
+  if (opportunities.length === 0) return { proposed: false, reason: "no opportunities detected" };
+
+  const target = opportunities[0];
+  const proposal = await proposeSelfPatch(cfg, target);
+  if (proposal.error) return { proposed: false, reason: `propose failed: ${proposal.error}` };
+  if (proposal.skip) return { proposed: false, reason: proposal.reason };
+
+  const validation = validatePatch(proposal.patch);
+  if (!validation.ok) return { proposed: false, reason: `validation: ${validation.reason}` };
+
+  if (dryRun) {
+    return { proposed: false, reason: "dry-run", patch: proposal.patch };
+  }
+
+  const apply = await applyPatchAndValidate(proposal.patch);
+  if (!apply.ok) return { proposed: false, reason: `apply: ${apply.reason}`, reverted: apply.reverted };
+
+  const branchName = `${PHASE4_BRANCH_PREFIX}${runId.slice(0, 8)}`;
+  const commitMsg = `supervisor: ${proposal.patch.change_type} for lesson ${target.fields?.lesson_id || "?"}\n\n${proposal.patch.rationale.slice(0, 500)}`;
+  const git = await gitCommitAndPushBranch(branchName, commitMsg);
+  if (!git.ok) return { proposed: false, reason: `git ${git.step}: ${(git.err || "").slice(0, 200)}` };
+
+  const title = `[Supervisor Auto-Patch] ${proposal.patch.change_type} (lesson ${target.fields?.lesson_id || "?"})`;
+  const prBody = `## Auto-proposed by Supervisor (Phase 4)
+
+**Triggering lesson:** \`${target.fields?.lesson_id}\` — ${target.fields?.symptom_normalized}
+**Occurrence count:** ${target.fields?.occurrence_count}
+**Last outcome:** ${target.fields?.last_outcome}
+**Category:** ${target.fields?.category}
+
+## Patch
+- File: \`${proposal.patch.file}\`
+- Type: \`${proposal.patch.change_type}\`
+
+## Rationale
+${proposal.patch.rationale}
+
+## Test plan
+${proposal.patch.test_plan}
+
+---
+*Auto-generated by Supervisor (run ${runId}). DRAFT only — requires human review. NEVER auto-merge.*`;
+  const pr = await createDraftPR(branchName, title, prBody);
+  if (!pr.ok) return { proposed: false, reason: `pr create: ${pr.reason}` };
+
+  return {
+    proposed: true,
+    pr_number: pr.number,
+    pr_url: pr.url,
+    branch: branchName,
+    lesson_id: target.fields?.lesson_id,
+    patch: proposal.patch,
+  };
+}
+
 function formatDecisionsForTelegram(decisions) {
   if (!decisions || decisions.length === 0) return "";
   const buckets = { HIGH: [], MED: [], LOW: [] };
