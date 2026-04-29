@@ -22,12 +22,20 @@ concurrency:
   group: supervisor-${{ github.event.schedule || 'manual' }}
   cancel-in-progress: false
 
+# Phase 4 self-modification needs to push branches and open PRs.
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   supervise:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
 
       - name: Choose mode from trigger
         id: mode
@@ -55,6 +63,8 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.FER_TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
           ANTHROPIC_API_KEY:  ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN:       ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY:  ${{ github.repository }}
           SUPERVISOR_TRIGGER: "gha_${{ steps.mode.outputs.mode }}"
         run: |
           # For modes that invoke Claude (evolve, incident) the binary path in

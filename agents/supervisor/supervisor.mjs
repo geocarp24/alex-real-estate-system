@@ -69,7 +69,8 @@ function classifySymptom(raw) {
 async function loadLessons(cfg, normalized) {
   if (!cfg.airtable?.[LESSONS_KEY]) return [];
   try {
-    const filter = encodeURIComponent(`{symptom_normalized}='${normalized.replace(/'/g, "\\'")}'`);
+    // Airtable formula escape: single quote inside quoted string = doubled '' (not backslash).
+    const filter = encodeURIComponent(`{symptom_normalized}='${normalized.replace(/'/g, "''")}'`);
     const r = await airtableFetch(cfg, LESSONS_KEY, `filterByFormula=${filter}&maxRecords=1`);
     return r.records || [];
   } catch {
@@ -153,7 +154,7 @@ async function recordAllObservations(cfg, score, runId) {
 // LOW (<0.6) escalate to human. Phase 2 never actually executes — auto_apply
 // is a flag persisted to the lesson; Phase 3 will read it and act.
 
-async function callAnthropicAPI(systemPrompt, userPrompt, model = "claude-sonnet-4-5-20250929", maxTokens = 800) {
+async function callAnthropicAPI(systemPrompt, userPrompt, model = "claude-sonnet-4-6", maxTokens = 800) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return { error: "ANTHROPIC_API_KEY missing", text: null };
@@ -319,6 +320,13 @@ async function diagnoseAndDecide(cfg, observations, score, signalsText, runId) {
       // Persist diagnosis details into notes for audit (append, don't overwrite).
       const diagNote = `[${isoNow()}] action_category=${diagnosis.action_category || "?"} | safety=${(diagnosis.safety_notes || "").slice(0, 200)}`;
       updated.notes = `${(f.notes || "").slice(-1500)}\n${diagNote}`.trim();
+    } else if (shouldDiagnose && diagError) {
+      // Persist the diagnosis error so we can debug without GHA log access.
+      const errNote = `[${isoNow()}] DIAG_FAIL: ${String(diagError).slice(0, 300)}`;
+      updated.notes = `${(f.notes || "").slice(-1500)}\n${errNote}`.trim();
+    } else if (shouldDiagnose && !diagnosis && !diagError) {
+      // Diagnosis was attempted but returned nothing usable.
+      updated.notes = `${(f.notes || "").slice(-1500)}\n[${isoNow()}] DIAG_SKIP: no diagnosis returned (no error either)`.trim();
     }
 
     const confidence = computeConfidence(updated);
@@ -791,7 +799,7 @@ ${classifierSnippet}
 
 Propose ONE surgical patch. JSON only.`;
 
-  const { text, error } = await callAnthropicAPI(systemPrompt, userPrompt, "claude-sonnet-4-5-20250929", 1200);
+  const { text, error } = await callAnthropicAPI(systemPrompt, userPrompt, "claude-sonnet-4-6", 1200);
   if (error) return { error };
   const patch = parseFirstJSON(text);
   if (!patch) return { error: "could not parse JSON", raw: text.slice(0, 300) };
@@ -870,7 +878,9 @@ async function gitCommitAndPushBranch(branchName, commitMsg) {
 async function createDraftPR(branchName, title, body) {
   const repo = await ghApiFetch("");
   if (!repo.ok) return { ok: false, reason: `repo info: ${repo.status}` };
-  const base = repo.json?.default_branch || "main";
+  // Default branch fallback: prefer detected, then GITHUB_REF_NAME (current branch
+  // for workflow_dispatch), then "master" since this repo's default is master not main.
+  const base = repo.json?.default_branch || process.env.GITHUB_REF_NAME || "master";
 
   const pr = await ghApiFetch("/pulls", {
     method: "POST",
