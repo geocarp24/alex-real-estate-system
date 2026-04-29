@@ -174,10 +174,27 @@ Jorge aprobó visión: Supervisor auto-curativo y auto-mejorable. Roadmap 5 fase
 - Integración no-destructiva al main loop (solo modos deep e incident registran)
 - Failure-tolerant (si la tabla falla, supervisor sigue funcional)
 
-**Pendiente para próximas sesiones:** Fase 2 (LLM diagnosis + confidence scoring), Fase 3 (auto-fix expandido + rollback), Fase 4 (self-modification propose-only), Fase 5 (auto-merge — decisión humana).
+**Pendiente para próximas sesiones:** Fase 3 (auto-fix expandido + rollback), Fase 4 (self-modification propose-only), Fase 5 (auto-merge — decisión humana).
+
+---
+
+## 2026-04-28/29 — FASE 2 SUPERVISOR AUTÓNOMO completa
+
+Implementada inmediatamente después de Fase 1 (misma sesión).
+
+**Construido:**
+- LLM Diagnosis (Sonnet 4.6 vía Anthropic API directa) — propone root_cause + recommended_action + requires_human + action_category por lesson.
+- Confidence Scoring determinístico — 0 si requires_human o sin fixes, sube +0.25 por resolved consecutive, baja por no_effect, hard-floor 0 ante worsened reciente. Clamp [0,1].
+- Decision Layer — HIGH (>=0.9) auto-apply candidate | MED (0.6-0.9) propose+alert | LOW (<0.6) escalate human.
+- Integración al main loop deep + incident + persistencia a Lessons_Learned.
+- Force-alert override: HIGH/MED rompen dedup para que el operador siempre vea propuestas nuevas.
+
+**Phase 2 NUNCA ejecuta acciones reales** — auto_apply es flag para Phase 3. Solo aprende, propone y registra.
+
+**Costo estimado:** ~$0.60/día por tenant (5 lessons × 24 deep-runs × ~$0.005/diagnosis). Aceptable.
 
 Detalle completo en `memoria_ALex.md` raíz.
 
 ---
 
-*Última actualización: 2026-04-28*
+*Última actualización: 2026-04-29*
