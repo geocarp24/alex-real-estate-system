@@ -355,6 +355,273 @@ async function diagnoseAndDecide(cfg, observations, score, signalsText, runId) {
   return decisions;
 }
 
+// ──────────────────────────────────────────────────────────────
+// PHASE 3 — AUTO-FIX EXECUTION + VERIFICATION + ROLLBACK + CIRCUIT BREAKER
+// ──────────────────────────────────────────────────────────────
+//
+// Whitelist (only categories actually executed automatically):
+//   - "api_retry"          → re-probe the endpoint that failed; resolve if 200
+//   - "data_repair"        → safe sub-cases only (stage drift normalization)
+//
+// Everything else (cron_restart, cache_purge*, config_update, code_fix,
+// escalate) stays propose-only. requires_human=true honored as hard veto.
+//
+// (* cache_purge will be enabled once /Tools/purge_cache.php exists; today 404.)
+//
+// Verification: in-run by re-running infra+pipeline checks AFTER fix and
+// comparing normalized warning sets. The lesson's specific symptom must
+// disappear OR not get worse for "resolved"/"no_effect" outcomes.
+//
+// Rollback: only attempted when the fix has a defined inverse. api_retry has
+// no side-effect (read-only). data_repair stage drift saves prior fields and
+// restores them on rollback.
+//
+// Circuit breaker: fetch last 5 deep runs from Ops_Health; if 3+ have any
+// fix attempt with outcome=worsened, freeze auto-apply globally for this run.
+const PHASE3_WHITELIST = ["api_retry", "data_repair"];
+const PHASE3_MAX_FIXES_PER_RUN = 5;
+
+async function checkCircuitBreaker(cfg) {
+  if (!cfg.airtable?.[TABLE_KEY]) return { open: false, reason: "no ops_health table" };
+  try {
+    const r = await airtableFetch(cfg, TABLE_KEY,
+      `filterByFormula=${encodeURIComponent("AND({check_type}='deep', {status}='Done')")}` +
+      `&maxRecords=5&sort[0][field]=started_at&sort[0][direction]=desc`);
+    const recent = r.records || [];
+    let worsenedRuns = 0;
+    for (const rec of recent) {
+      const fixesField = rec.fields?.phase3_outcomes || "";
+      if (fixesField.includes("worsened")) worsenedRuns++;
+    }
+    if (worsenedRuns >= 3) {
+      return { open: true, reason: `circuit_breaker_tripped: ${worsenedRuns}/5 recent deeps worsened` };
+    }
+    return { open: false, reason: `${worsenedRuns}/5 worsened — under threshold` };
+  } catch (e) {
+    return { open: true, reason: `circuit_breaker_check_failed: ${e.message}` };
+  }
+}
+
+async function probeApiRetry(cfg, lessonFields) {
+  // api_retry: re-probe the endpoint that triggered the symptom. Read-only.
+  // Try to extract a service name from the symptom; map to known probes.
+  const sym = String(lessonFields?.symptom_normalized || "").toLowerCase();
+  const probes = [];
+  if (sym.includes("openphone")) probes.push({ name: "openphone", url: "https://api.openphone.com/v1/phone-numbers" });
+  if (sym.includes("airtable")) probes.push({ name: "airtable", url: `https://api.airtable.com/v0/${cfg.airtable?.base_id}/${cfg.airtable?.leads_table_id}?maxRecords=1` });
+  if (sym.includes("telegram")) {
+    const tok = process.env[cfg.telegram?.bot_token_env || "TELEGRAM_BOT_TOKEN"];
+    if (tok) probes.push({ name: "telegram", url: `https://api.telegram.org/bot${tok}/getMe` });
+  }
+  if (probes.length === 0) return { ran: false, reason: "no probe match" };
+
+  const results = [];
+  for (const p of probes) {
+    try {
+      const headers = p.name === "airtable"
+        ? { Authorization: `Bearer ${process.env[cfg.airtable?.token_env || "AIRTABLE_TOKEN"]}` }
+        : p.name === "openphone"
+        ? { Authorization: process.env.QUO_API_KEY || "" }
+        : {};
+      const r = await fetch(p.url, { headers, signal: AbortSignal.timeout(8_000) });
+      results.push({ name: p.name, ok: r.ok, status: r.status });
+    } catch (e) {
+      results.push({ name: p.name, ok: false, error: e.message });
+    }
+  }
+  const allOk = results.every((r) => r.ok);
+  return { ran: true, results, ok: allOk };
+}
+
+async function repairStageDrift(cfg, dryRun) {
+  // data_repair sub-case: contacts with Stage=New but First Contact Step >0
+  // are stuck — bump them back into the cron's reach.
+  const base = cfg.airtable?.base_id;
+  const table = cfg.airtable?.contacts_table_id;
+  const token = process.env[cfg.airtable?.token_env || "AIRTABLE_TOKEN"];
+  if (!base || !table || !token) return { ran: false, reason: "missing airtable config" };
+
+  const filter = encodeURIComponent("AND({Stage}='New', {First Contact Step}>0)");
+  const r = await fetch(
+    `https://api.airtable.com/v0/${base}/${table}?filterByFormula=${filter}&maxRecords=10`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  if (!r.ok) return { ran: false, reason: `fetch HTTP ${r.status}` };
+  const j = await r.json();
+  const drifted = j.records || [];
+  if (drifted.length === 0) return { ran: true, fixed: 0, drifted: 0 };
+
+  if (dryRun) return { ran: true, fixed: 0, drifted: drifted.length, dry: true };
+
+  // Save prior state for rollback.
+  const priorState = drifted.map((rec) => ({
+    id: rec.id,
+    stage: rec.fields?.Stage,
+    step: rec.fields?.["First Contact Step"],
+  }));
+
+  // Apply: move Stage to "To Be Contacted" so cron picks them up cleanly.
+  const body = {
+    records: drifted.map((rec) => ({ id: rec.id, fields: { Stage: "To Be Contacted" } })),
+    typecast: true,
+  };
+  const u = await fetch(`https://api.airtable.com/v0/${base}/${table}`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!u.ok) return { ran: false, reason: `patch HTTP ${u.status}`, priorState };
+  return { ran: true, fixed: drifted.length, drifted: drifted.length, priorState };
+}
+
+async function rollbackStageDrift(cfg, priorState) {
+  if (!priorState || priorState.length === 0) return { rolled_back: 0 };
+  const base = cfg.airtable?.base_id;
+  const table = cfg.airtable?.contacts_table_id;
+  const token = process.env[cfg.airtable?.token_env || "AIRTABLE_TOKEN"];
+  const body = {
+    records: priorState.map((p) => ({ id: p.id, fields: { Stage: p.stage } })),
+    typecast: true,
+  };
+  const r = await fetch(`https://api.airtable.com/v0/${base}/${table}`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return { rolled_back: r.ok ? priorState.length : 0, ok: r.ok };
+}
+
+async function executeWhitelistedFix(cfg, decision, lessonRecord, dryRun) {
+  const cat = decision.diagnosis?.action_category;
+  if (!cat || !PHASE3_WHITELIST.includes(cat)) {
+    return { executed: false, reason: `category '${cat}' not in whitelist`, rollback_data: null };
+  }
+  if (decision.requires_human) {
+    return { executed: false, reason: "requires_human=true (hard veto)", rollback_data: null };
+  }
+
+  const f = lessonRecord.fields || {};
+  if (cat === "api_retry") {
+    const result = await probeApiRetry(cfg, f);
+    return { executed: result.ran, action: "api_retry", details: result, rollback_data: null };
+  }
+  if (cat === "data_repair") {
+    const sym = String(f.symptom_normalized || "").toLowerCase();
+    if (sym.includes("stage") || sym.includes("drift")) {
+      const result = await repairStageDrift(cfg, dryRun);
+      return { executed: result.ran, action: "data_repair_stage_drift", details: result, rollback_data: result.priorState || null };
+    }
+    return { executed: false, reason: "data_repair sub-case not recognized", rollback_data: null };
+  }
+  return { executed: false, reason: "unreachable", rollback_data: null };
+}
+
+function detectOutcome(beforeScore, afterScore, lessonNormalized) {
+  // Lesson-level: did the specific symptom disappear?
+  const before = beforeScore.warnings.concat(beforeScore.critical).map(normalizeSymptom);
+  const after = afterScore.warnings.concat(afterScore.critical).map(normalizeSymptom);
+  const wasPresent = before.includes(lessonNormalized);
+  const stillPresent = after.includes(lessonNormalized);
+
+  // Run-level: did total severity get worse anywhere (new criticals)?
+  const beforeCrit = new Set(beforeScore.critical.map(normalizeSymptom));
+  const afterCrit = new Set(afterScore.critical.map(normalizeSymptom));
+  const newCriticals = [...afterCrit].filter((c) => !beforeCrit.has(c));
+
+  if (newCriticals.length > 0) return "worsened";
+  if (wasPresent && !stillPresent) return "resolved";
+  if (wasPresent && stillPresent) return "no_effect";
+  return "no_effect"; // symptom wasn't even present (defensive)
+}
+
+async function recordFixAttempt(cfg, lessonRecord, attemptData) {
+  if (!cfg.airtable?.[LESSONS_KEY]) return;
+  const f = lessonRecord.fields || {};
+  let attempted = [];
+  try { attempted = JSON.parse(f.attempted_fixes || "[]"); } catch {}
+  attempted.push(attemptData);
+  // Cap history to last 20 attempts to keep the field bounded.
+  if (attempted.length > 20) attempted = attempted.slice(-20);
+  try {
+    await airtableUpdate(cfg, LESSONS_KEY, lessonRecord.id, {
+      attempted_fixes: JSON.stringify(attempted),
+      last_outcome: attemptData.outcome,
+    });
+  } catch (e) {
+    console.error(`[supervisor] recordFixAttempt failed: ${e.message}`);
+  }
+}
+
+async function executeAndVerifyPhase3(cfg, decisions, beforeScore, runId, dryRun) {
+  const breaker = await checkCircuitBreaker(cfg);
+  if (breaker.open) {
+    return { executed: 0, summary: `circuit-breaker open: ${breaker.reason}`, attempts: [], breaker };
+  }
+
+  // Filter to HIGH-tier decisions with whitelisted action_category.
+  const candidates = decisions.filter((d) =>
+    d.tier === "HIGH" &&
+    d.auto_apply === true &&
+    !d.requires_human &&
+    PHASE3_WHITELIST.includes(d.diagnosis?.action_category)
+  ).slice(0, PHASE3_MAX_FIXES_PER_RUN);
+
+  if (candidates.length === 0) {
+    return { executed: 0, summary: "no HIGH-tier whitelisted candidates", attempts: [], breaker };
+  }
+
+  const attempts = [];
+  for (const decision of candidates) {
+    let lessonRecord = null;
+    try {
+      const filter = encodeURIComponent(`{lesson_id}='${decision.lesson_id}'`);
+      const r = await airtableFetch(cfg, LESSONS_KEY, `filterByFormula=${filter}&maxRecords=1`);
+      lessonRecord = r.records?.[0];
+    } catch {}
+    if (!lessonRecord) continue;
+
+    const fix = await executeWhitelistedFix(cfg, decision, lessonRecord, dryRun);
+    const lessonNorm = lessonRecord.fields?.symptom_normalized || "";
+
+    let outcome = "pending";
+    let rollback_log = "";
+
+    if (fix.executed && !dryRun) {
+      // Re-run health checks for in-run verification.
+      const afterInfra = await runInfrastructureChecks(cfg);
+      const afterPipeline = await runPipelineChecks(cfg);
+      const afterScore = scoreHealth(afterInfra, afterPipeline, cfg);
+      outcome = detectOutcome(beforeScore, afterScore, lessonNorm);
+
+      // Auto-rollback on worsened.
+      if (outcome === "worsened" && fix.rollback_data) {
+        if (fix.action === "data_repair_stage_drift") {
+          const rb = await rollbackStageDrift(cfg, fix.rollback_data);
+          rollback_log = `rolled_back=${rb.rolled_back} ok=${rb.ok}`;
+        }
+      }
+    }
+
+    const attempt = {
+      run_id: runId,
+      action_category: decision.diagnosis?.action_category,
+      action: fix.action || "skipped",
+      executed: fix.executed,
+      outcome,
+      details: typeof fix.details === "object" ? JSON.stringify(fix.details).slice(0, 500) : String(fix.details || "").slice(0, 500),
+      rollback: rollback_log,
+      timestamp: isoNow(),
+    };
+
+    if (fix.executed) await recordFixAttempt(cfg, lessonRecord, attempt);
+    attempts.push(attempt);
+  }
+
+  const executed = attempts.filter((a) => a.executed).length;
+  const outcomes = attempts.map((a) => a.outcome).join(",");
+  return { executed, summary: `phase3: ${executed} fixes applied — outcomes: [${outcomes}]`, attempts, breaker };
+}
+
 function formatDecisionsForTelegram(decisions) {
   if (!decisions || decisions.length === 0) return "";
   const buckets = { HIGH: [], MED: [], LOW: [] };
