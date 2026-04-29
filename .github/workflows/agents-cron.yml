@@ -113,10 +113,12 @@ jobs:
       - name: Run ${{ steps.job.outputs.agent }} --mode ${{ steps.job.outputs.mode }}
         env:
           AIRTABLE_TOKEN:           ${{ secrets.AIRTABLE_TOKEN }}
+          SM_AIRTABLE_TOKEN:        ${{ secrets.SM_AIRTABLE_TOKEN }}
           QUO_API_KEY:              ${{ secrets.QUO_API_KEY }}
           TELEGRAM_BOT_TOKEN:       ${{ secrets.FER_TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:         ${{ secrets.TELEGRAM_CHAT_ID }}
           ANTHROPIC_API_KEY:        ${{ secrets.ANTHROPIC_API_KEY }}
+          BLOTATO_API_KEY:          ${{ secrets.BLOTATO_API_KEY }}
           MERCADER_TRIGGER:         "gha"
           POSICIONADOR_TRIGGER:     "gha"
           ESCRIBA_TRIGGER:          "gha"
