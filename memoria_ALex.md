@@ -2444,6 +2444,40 @@ Jorge pidió "gistak" = **gstack** (typo de autocorrect). Confirmado + instalado
 - gstack aporta GATES y PIPELINES (flujos conectados) — no reemplaza los skills atomicos existentes (`code-review-excellence`, `verification-before-completion`, `systematic-debugging`), los conecta.
 - No es domain agent (R9) — es capa de disciplina de ingeniería transversal. ALEX invoca cuando aplica.
 
+### R10. CREATIVO/DIRECTOR — PUPPETEER + HTML/CSS, NUNCA AI IMAGEN PARA TEXTO (2026-04-29)
+**Orden directa de Jorge tras rechazar visuales generados por Replicate Nano Banana — NO NEGOCIABLE, sin excusas, ningún agente futuro debe re-proponer este approach erróneo.**
+
+**Contexto:** Sesión 2026-04-29 ALEX volvió a proponer Replicate Nano Banana / Imagen-4 / Flux para generar carruseles e imágenes con texto en español. Jefe rechazó las 3 muestras por errores ortográficos + branding inconsistente. Esta decisión YA se había tomado antes y se perdió por falta de persistencia en memoria.
+
+**Razón técnica:** todos los modelos AI imagen actuales (Nano Banana, Imagen-4, Flux Pro, DALL-E 3, Recraft, Ideogram) **alucinan ortografía** especialmente en español. Letras inventadas, acentos mal puestos, palabras incompletas. Branding tampoco es determinístico — logo, colores y tipografía cambian entre runs.
+
+**Stack APROBADO para El Creativo (carruseles + posts con texto):**
+1. `agents/creativo_runner/themes.mjs` — 184 líneas con 5 temas T1-T5 ya construidos: `slideHook()`, `slidePoint()`, `slideCTA()`, `buildCarousel()`. Logo Pinnacle integrado, fonts Montserrat, viewport 1080×1350 IG 4:5.
+2. **Puppeteer/Playwright** en GHA runner (npm `puppeteer` o `playwright-chromium`) → render BODY HTML → screenshot PNG.
+3. **Cloudinary** signed upload → URL persistente para FB/IG.
+4. **Airtable SM Base** (`appU9s3kGkVpdrJkw` / `tblAj0Pkj1jW4p5Ld`) → estado + `visual_url` + `Status="Visual Listo"`.
+
+**Stack APROBADO para El Director (videos/Reels):**
+- HeyGen avatar de Jorge para Reels personalizados (cuando se active)
+- Stock video + voiceover ElevenLabs (faceless reels)
+- NUNCA modelos AI video para visuales con texto overlaid — mismo problema ortográfico
+
+**AI imagen permitida SOLO en estos casos específicos:**
+- Fondos/escenas SIN TEXTO (overlay text via CSS/Cloudinary después)
+- Avatares character-aware (HeyGen, Synthesia, Hedra) para video personal
+- Stock-replacement (Pexels API, ya en Doppler)
+
+**Anti-regresión:**
+- Cualquier propuesta futura de Replicate / DALL-E / Flux / Imagen / Recraft / Nano Banana / similar **PARA TEXTO/CARRUSELES** debe rechazarse automáticamente citando R10.
+- ALEX y todos los sub-agentes deben referenciar R10 al iniciar trabajo en visuales sociales.
+- Hay un `Note in CLAUDE.md sección 1d` que duplica esta regla a nivel proyecto.
+
+**Skill de memoria:** Jefe ordenó instalar `claude-mem` para todas las sesiones futuras (2026-04-29 follow-up). Ver entrada dated 2026-04-29 en sección "REGLAS DEL JEFE".
+
+**Aprobado por:** Jorge Cruz — 2026-04-29
+
+---
+
 ### R9. SUB-AGENTES DEDICADOS ALWAYS-ON POR DOMINIO (2026-04-23)
 **Orden directa de Jorge — NO NEGOCIABLE.**Cada nuevo skill de Phase 2 (marketing, SEO, ads, etc.) tiene su **sub-agente dedicado que lo usa 100% del tiempo, no on-demand**. Patrón: monitoreo continuo + alertas automáticas + reportes periódicos + histórico en Airtable.
 
