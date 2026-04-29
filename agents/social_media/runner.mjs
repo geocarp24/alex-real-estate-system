@@ -13,7 +13,7 @@
  *                       schedule on FB + IG via Blotato.
  *   full_pipeline     — generate_ideas → process_visuals → process_posts
  *
- * Cron: */3 days from agents-cron.yml. Each run aims to publish 1-3 posts.
+ * Cron: every 3 days from agents-cron.yml. Each run aims to publish 1-3 posts.
  */
 import { parseArgs, loadTenant, telegramSend, genRunId, isoNow } from "../_shared/runner.mjs";
 
