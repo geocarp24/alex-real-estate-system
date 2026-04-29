@@ -116,7 +116,7 @@ export function slidePoint(themeCode, { index, total, headingEn, bodyEs, heading
       ${esc(body)}
     </p>
 
-    ${logoWatermark(theme, 56)}
+    ${logoWatermark(theme, 200)}
   `;
   return baseWrapper(theme, inner);
 }
