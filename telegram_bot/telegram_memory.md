@@ -122,3 +122,36 @@ Phase 2 SIGUE siendo no-destructiva: auto_apply es FLAG para que Fase 3 actúe, 
 **Loop completo:** Recognition → Recording → Diagnosis (LLM) → Confidence (history-based) → Decision → Action → Verification → Rollback → Outcome → feedback al confidence siguiente.
 
 ---
+
+## 2026-04-29 — FASE 4 SUPERVISOR AUTÓNOMO
+
+**Self-modification PROPOSE-ONLY.** El agente puede proponer cambios a su propio código mediante PRs draft, NUNCA mergea solo.
+
+**Disparador:** SOLO modo evolve (cada 3 días con la nueva cadencia).
+
+**Detector:**
+- Lessons con `category=unknown` y `occurrence ≥ 3` → propone añadir regex al classifier
+- Lessons con `last_outcome=no_effect` y `occurrence ≥ 5` → propone ajustar threshold
+
+**Sonnet 4.6 propone JSON:** `{file, change_type, search, replace, rationale, test_plan}` con `change_type ∈ {threshold_adjust, classifier_regex_add}`.
+
+**Validator (anti-jailbreak):**
+- File whitelist estricta: solo `pinnacle.json` (numeric only) y `supervisor.mjs` (solo dentro de classifySymptom)
+- Forbidden patterns SIEMPRE bloquean: `requires_human`, `PHASE3_WHITELIST`, `circuit_breaker`, credenciales/API keys
+- Diff cap 50 líneas
+- Test 6/6: 4 ataques bloqueados, 2 válidos pasaron
+
+**Apply + revert automático** si `node --check` o `JSON.parse` falla.
+
+**Git ops** crean branch `supervisor-autopatch-{run_id_8}`, commit, push, abren PR DRAFT con label `human-review-required`.
+
+**Hard caps:**
+- Max 3 PRs auto abiertos total → freeze
+- Max 1 propuesta por run
+- 1/3 días = ~10 propuestas/mes max
+
+**Telegram alert** con PR link cada vez que se abra uno.
+
+**Pendiente Fase 5 (NUNCA del agente, decisión humana):** auto-merge con sub-whitelist más estrecha + N éxitos consecutivos.
+
+---
