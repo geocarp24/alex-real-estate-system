@@ -29,13 +29,36 @@ $value           = $body['value']           ?? '';            // plaintext (serv
 $encrypted_value = $body['encrypted_value'] ?? '';            // OR pre-encrypted by client (no libsodium needed)
 $key_id          = $body['key_id']          ?? '';            // required if encrypted_value is given
 $repo            = $body['repo']            ?? 'alex-real-estate-system';
+$action          = $body['action']          ?? 'set';         // "set" | "get_public_key"
+
+$allowed_repos = ['alex-real-estate-system','pinnacle-agent-memory','geo-budget-pro','pinnacle-tools','geo-carpentry'];
+if (!in_array($repo, $allowed_repos)) { http_response_code(403); die(json_encode(['error' => 'Repo not authorized'])); }
+
+$ghHeaders_for_pk = [
+    "Authorization: Bearer {$token}",
+    "User-Agent: ALEX-System-Pinnacle",
+    "Accept: application/vnd.github+json",
+    "X-GitHub-Api-Version: 2022-11-28",
+];
+
+// action=get_public_key — return the repo's actions secrets public key (so client can encrypt).
+if ($action === 'get_public_key') {
+    $ch = curl_init("https://api.github.com/repos/geocarp24/{$repo}/actions/secrets/public-key");
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $ghHeaders_for_pk);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+    $r    = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    header('Content-Type: application/json');
+    http_response_code($code);
+    echo $r;
+    exit;
+}
 
 if (!$name || ($value === '' && $encrypted_value === '')) {
     http_response_code(400); die(json_encode(['error' => 'Missing name or value/encrypted_value']));
 }
-
-$allowed_repos = ['alex-real-estate-system','pinnacle-agent-memory','geo-budget-pro','pinnacle-tools','geo-carpentry'];
-if (!in_array($repo, $allowed_repos)) { http_response_code(403); die(json_encode(['error' => 'Repo not authorized'])); }
 
 if (!preg_match('/^[A-Z][A-Z0-9_]*$/', $name)) {
     http_response_code(400); die(json_encode(['error' => 'Secret name must match ^[A-Z][A-Z0-9_]*$']));
