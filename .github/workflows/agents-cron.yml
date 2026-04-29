@@ -36,6 +36,8 @@ on:
     - cron:  "30 19 */3 * *"          # espia:weekly_deep
     # Compliance
     - cron:  "0 20 */3 * *"           # auditor:weekly
+    # Social Media (full pipeline: ideas → visuals → publish to FB+IG)
+    - cron:  "30 20 */3 * *"          # social_media:full_pipeline
   workflow_dispatch:
     inputs:
       agent:
@@ -43,7 +45,7 @@ on:
         type: choice
         required: true
         default: "mercader"
-        options: [mercader, posicionador, escriba, cazador, clasificador, analista, espia, auditor, remitente]
+        options: [mercader, posicionador, escriba, cazador, clasificador, analista, espia, auditor, remitente, social_media]
       mode:
         description: "Mode (depends on agent)"
         type: string
