@@ -3,24 +3,29 @@
  * lesson_outcome.php — Record the outcome of a manually-applied fix to a Lessons_Learned row.
  *
  * Phase 3 of the auto-curative Supervisor needs attempted_fixes history to
- * compute confidence_score. Until automation accumulates outcomes on its own,
- * the Jefe (or any operator) calls this endpoint after manually verifying a
- * proposed fix worked. After 3+ resolved outcomes, the lesson's confidence
- * crosses 0.9 and Phase 3 can apply the same fix automatically next time.
+ * compute confidence_score. After 3+ resolved outcomes, the lesson's
+ * confidence crosses 0.9 and Phase 3 can apply the same fix automatically.
  *
  * POST /Tools/lesson_outcome.php
  *   Header: X-Alex-Secret: <ALEX_SECRET>
  *   Body (JSON):
  *     lesson_id        (string, required) — lesson_id from Lessons_Learned
- *     outcome          (string, required) — resolved | no_effect | worsened
- *     action_category  (string, optional) — what fix was applied (free text)
- *     notes            (string, optional) — any operator notes
+ *     outcome          (string, required) — resolved | no_effect | worsened | pending
+ *     action_category  (string, optional)
+ *     notes            (string, optional)
  */
 require_once __DIR__ . '/config.php';
+// ALEX_SECRET lives in /agents/alex_config.php, not /Tools/config.php.
+$alex_cfg = '/home/u433637438/domains/pinnaclegroupwi.com/public_html/agents/alex_config.php';
+if (file_exists($alex_cfg)) require_once $alex_cfg;
 
-if (!defined('AIRTABLE_TOKEN') || !defined('ALEX_SECRET')) {
+if (!defined('AIRTABLE_TOKEN')) {
     http_response_code(500);
-    die(json_encode(['error' => 'config: AIRTABLE_TOKEN or ALEX_SECRET missing']));
+    die(json_encode(['error' => 'config: AIRTABLE_TOKEN missing']));
+}
+if (!defined('ALEX_SECRET')) {
+    http_response_code(500);
+    die(json_encode(['error' => 'config: ALEX_SECRET missing (alex_config.php not loaded)']));
 }
 
 $request_secret = $_SERVER['HTTP_X_ALEX_SECRET'] ?? '';
@@ -52,7 +57,6 @@ if (!in_array($outcome, ['resolved', 'no_effect', 'worsened', 'pending'])) {
 $base = 'appfQbDA750Oihy9J';
 $table = 'tbloCtdxSukBI3R3j';
 
-// 1. Find the lesson by lesson_id.
 $filter = urlencode("{lesson_id}='" . str_replace("'", "''", $lesson_id) . "'");
 $url = "https://api.airtable.com/v0/{$base}/{$table}?filterByFormula={$filter}&maxRecords=1";
 $ch = curl_init($url);
@@ -81,10 +85,8 @@ $attempted[] = [
     'details' => $notes,
     'timestamp' => date('c'),
 ];
-// Cap to last 20 entries.
 if (count($attempted) > 20) $attempted = array_slice($attempted, -20);
 
-// 2. Update the lesson.
 $record_id = $rec['id'];
 $patch_url = "https://api.airtable.com/v0/{$base}/{$table}/{$record_id}";
 $patch_body = json_encode([
