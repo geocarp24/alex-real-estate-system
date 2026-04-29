@@ -100,3 +100,25 @@ Phase 2 SIGUE siendo no-destructiva: auto_apply es FLAG para que Fase 3 actúe, 
 **Pendientes:** Fase 3 (auto-fix + rollback + outcome recording), Fase 4 (self-modification propose-only), Fase 5 (auto-merge — siempre decisión humana).
 
 ---
+
+## 2026-04-29 — FASE 3 SUPERVISOR AUTÓNOMO
+
+**El loop de auto-curación cierra solo ahora.** Implementada misma sesión que Fases 1+2.
+
+**Whitelist conservadora:**
+- `api_retry` — re-probe read-only de openphone/airtable/telegram
+- `data_repair` stage_drift — contacts con Stage=New + step>0 → reset a TBC, con rollback
+
+**Verification inmediata:** snapshot before → fix → snapshot after → outcome (resolved/no_effect/worsened).
+
+**Rollback automático** si worsened y action tiene inverse.
+
+**Circuit breaker:** 3+ worsened en últimos 5 deeps → freeze global hasta reset humano.
+
+**Caps:** max 5 fixes/run. Solo deep/incident + HIGH-tier + auto_apply + whitelist + breaker closed.
+
+**Excluidos (propose-only):** cron_restart, cache_purge, config_update, code_fix.
+
+**Loop completo:** Recognition → Recording → Diagnosis (LLM) → Confidence (history-based) → Decision → Action → Verification → Rollback → Outcome → feedback al confidence siguiente.
+
+---
