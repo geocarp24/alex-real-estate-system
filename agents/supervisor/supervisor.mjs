@@ -1508,6 +1508,22 @@ async function main() {
     }
   }
 
+  // ── Phase 5: Auto-merge with sub-whitelist (off by default — opt-in) ──
+  // Only runs in evolve mode, only when PHASE5_AUTO_MERGE_ENABLED=true,
+  // only after track-record gate (3+ consecutive merged PRs without revert).
+  let phase5Result = { merged: 0, reason: "skipped" };
+  if (args.mode === "evolve" && !args.dryRun) {
+    phase5Result = await runPhase5AutoMerge(cfg, runId).catch((e) => {
+      console.error(`[supervisor] phase5 failed: ${e.message}`);
+      return { merged: 0, reason: `error: ${e.message}` };
+    });
+    if (phase5Result.merged > 0) {
+      console.error(`[supervisor] phase5: auto-merged PR #${phase5Result.pr_number}`);
+    } else {
+      console.error(`[supervisor] phase5: ${phase5Result.reason}`);
+    }
+  }
+
   const completedAt = isoNow();
   const duration = Math.round((Date.parse(completedAt) - Date.parse(startedAt)) / 1000);
 
