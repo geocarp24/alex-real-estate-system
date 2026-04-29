@@ -272,7 +272,18 @@ async function main() {
 
   const results = [];
   for (const rec of records) {
-    const out = await processOne(rec);
+    let out;
+    try {
+      out = await processOne(rec);
+    } catch (e) {
+      // Catch-all so one bad record never kills the batch.
+      out = {
+        id: rec.id,
+        titulo: rec.fields?.["Título de Idea"] || rec.id,
+        status: "exception",
+        error: String(e?.message || e).slice(0, 200),
+      };
+    }
     results.push(out);
     console.error(`[creativo] ${out.titulo}: ${out.status}${out.error ? ` (${out.error})` : ""}`);
   }
