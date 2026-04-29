@@ -1335,6 +1335,22 @@ async function main() {
     evolve = await evolveAnalysis(cfg);
   }
 
+  // ── Phase 4: Self-modification propose-only (evolve mode only) ──
+  // Detects improvement opportunities, asks Sonnet for ONE surgical patch,
+  // validates, opens DRAFT PR. Hard-capped at 3 open auto-PRs total.
+  let phase4Result = { proposed: false, reason: "not_evolve_mode" };
+  if (args.mode === "evolve") {
+    phase4Result = await runPhase4SelfModification(cfg, runId, args.dryRun).catch((e) => {
+      console.error(`[supervisor] phase4 failed: ${e.message}`);
+      return { proposed: false, reason: `error: ${e.message}` };
+    });
+    if (phase4Result.proposed) {
+      console.error(`[supervisor] phase4: opened PR #${phase4Result.pr_number} ${phase4Result.pr_url}`);
+    } else {
+      console.error(`[supervisor] phase4: ${phase4Result.reason}`);
+    }
+  }
+
   const completedAt = isoNow();
   const duration = Math.round((Date.parse(completedAt) - Date.parse(startedAt)) / 1000);
 
