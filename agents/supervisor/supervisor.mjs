@@ -1182,22 +1182,37 @@ Log freshness: fc=${infra.last_fc_hours ?? "?"}h seg=${infra.last_seg_hours ?? "
   // Phase 2 override: any HIGH or MED decision force-alerts past dedup, since
   // it represents a NEW proposed action the operator should know about. LOW
   // alone is silent (already escalated_human flag in lesson).
+  // Phase 3 override: if a fix was actually applied (or the breaker tripped),
+  // also force-alert so the operator sees the auto-action.
   const phase2HasProposal = decisions.some((d) => d.tier === "HIGH" || d.tier === "MED");
-  if (phase2HasProposal && !shouldAlert) {
+  const phase3Acted = phase3Result.executed > 0 || phase3Result.breaker?.open;
+  if ((phase2HasProposal || phase3Acted) && !shouldAlert) {
     shouldAlert = true;
-    alertReason = "phase2_proposal";
+    alertReason = phase3Acted ? "phase3_acted" : "phase2_proposal";
   }
 
   if (shouldAlert) {
     const baseMsg = formatTelegram(cfg, args, runId, infra, pipeline, score, repair, evolve);
     const decisionsBlock = formatDecisionsForTelegram(decisions);
-    await telegramSend(cfg, (baseMsg + decisionsBlock).slice(0, 3800));
+    let phase3Block = "";
+    if (phase3Result.breaker?.open) {
+      phase3Block = `\n\n⛔ *Phase 3 FROZEN*\n${phase3Result.breaker.reason}`;
+    } else if (phase3Result.executed > 0) {
+      const lines = phase3Result.attempts.slice(0, 5).map((a) =>
+        `• \`${a.action}\` → ${a.outcome}${a.rollback ? ` (rollback: ${a.rollback})` : ""}`);
+      phase3Block = `\n\n🔧 *Phase 3 auto-fix (${phase3Result.executed})*\n${lines.join("\n")}`;
+    }
+    await telegramSend(cfg, (baseMsg + decisionsBlock + phase3Block).slice(0, 3800));
   }
-  // Mark whether this run produced an alert so future dedup queries can use it.
+  // Persist phase3 outcomes summary to Ops_Health for circuit breaker history.
+  const phase3OutcomesString = phase3Result.attempts.map((a) => a.outcome).join(",");
   await airtableUpsert(cfg, TABLE_KEY, runId, {
     alerted: shouldAlert ? 1 : 0,
     alert_reason: alertReason,
-  }).catch(() => { /* alerted/alert_reason fields optional — ignore if missing */ });
+    phase3_executed: phase3Result.executed,
+    phase3_outcomes: phase3OutcomesString,
+    phase3_breaker_open: phase3Result.breaker?.open ? 1 : 0,
+  }).catch(() => { /* phase3_* and alerted fields optional — ignore if missing */ });
 
   // Auto-escalation: heartbeat detected RED → spawn incident deep-dive in background.
   // Guardrail: only from heartbeat mode (avoid recursion from an incident run itself).
