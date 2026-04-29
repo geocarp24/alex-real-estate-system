@@ -120,6 +120,7 @@
     "compliance_audits_table_id":  "tblZjJIHQm7LmudA6",
     "ops_health_table_id":         "tbltZWa4PiYPdnyKl",
     "ops_insights_table_id":       "tblPfJba7iPJBTrw6",
+    "lessons_learned_table_id":    "tbloCtdxSukBI3R3j",
     "leads_table_id":              "tblxZz2EWIglOLnEd",
     "contacts_table_id":           "tblacvw0Ss770x8l5",
     "deals_table_id":              "tbliaEKxBHKBx7ZK2",
