@@ -132,7 +132,7 @@ export function slideCTA(themeCode, { ctaEn, ctaEs } = {}) {
 
   const inner = `
     <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; gap:36px;">
-      <img src="${LOGO_URL}" alt="Pinnacle Holdings" style="width:320px; height:auto; margin-bottom:18px;" />
+      <img src="${LOGO_URL}" alt="Pinnacle Holdings" style="width:520px; height:auto; margin-bottom:24px;" />
 
       <h2 style="
         font-size:62px; font-weight:800; line-height:1.1; letter-spacing:-0.015em;
