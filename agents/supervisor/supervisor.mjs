@@ -1147,6 +1147,7 @@ async function runPipelineChecks(cfg) {
     contacts_tbc: buckets["To Be Contacted"],
     contacts_contacted: buckets.Contacted,
     contacts_seguimiento: buckets.Seguimiento,
+    contacts_seguimiento_due_today: seguimientoDueToday,
     contacts_dead: buckets.Dead,
     ghosts,
   };
