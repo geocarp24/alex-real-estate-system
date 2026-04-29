@@ -197,4 +197,26 @@ Detalle completo en `memoria_ALex.md` raíz.
 
 ---
 
+## 2026-04-29 — FASE 3 SUPERVISOR AUTÓNOMO completa
+
+Implementada misma sesión que Fases 1+2. **El loop de auto-curación ya cierra solo.**
+
+**Construido:**
+- Whitelist conservadora: `api_retry` (read-only re-probe de openphone/airtable/telegram) + `data_repair` sub-case stage_drift (con rollback).
+- Verification inmediata in-run: snapshot before → fix → snapshot after → detectOutcome (resolved/no_effect/worsened).
+- Rollback automático para fixes con inverse definido. stage_drift restaura priorState via PATCH bulk.
+- Circuit breaker: 3+ worsened en últimos 5 deeps → freeze global hasta reset humano.
+- Recording outcomes: append a `attempted_fixes` JSON (cap 20). Update `last_outcome`.
+- Caps: max 5 fixes/run. Solo deep/incident. HIGH-tier + auto_apply + whitelist + breaker closed.
+- Persistencia: `phase3_executed`, `phase3_outcomes`, `phase3_breaker_open` en Ops_Health.
+- Force-alert: si Phase 3 actuó o breaker abierto, anula dedup.
+
+**Excluidos de auto-execution (propose-only):** cron_restart, cache_purge (endpoint pendiente), config_update, code_fix, escalate.
+
+**Validación:** syntax ✓, dry-run ✓, circuit breaker live ✓, stage drift live ✓.
+
+Detalle completo en `memoria_ALex.md` raíz.
+
+---
+
 *Última actualización: 2026-04-29*
