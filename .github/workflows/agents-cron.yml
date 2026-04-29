@@ -123,6 +123,13 @@ jobs:
           npm install -g @anthropic-ai/claude-code
           claude --version
 
+      - name: Install Playwright Chromium (for Creativo HTML render)
+        if: steps.job.outputs.agent == 'creativo' || steps.job.outputs.agent == 'social_media'
+        run: |
+          cd "${{ github.workspace }}"
+          npm install playwright-chromium --no-save --silent
+          npx playwright install chromium --with-deps
+
       - name: Override claude binary path for GHA
         run: |
           node -e "
