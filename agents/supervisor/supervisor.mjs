@@ -1531,11 +1531,13 @@ Log freshness: fc=${infra.last_fc_hours ?? "?"}h seg=${infra.last_seg_hours ?? "
   // alone is silent (already escalated_human flag in lesson).
   // Phase 3 override: if a fix was actually applied (or the breaker tripped),
   // also force-alert so the operator sees the auto-action.
+  // Phase 4 override: any auto-PR opened forces an alert.
   const phase2HasProposal = decisions.some((d) => d.tier === "HIGH" || d.tier === "MED");
   const phase3Acted = phase3Result.executed > 0 || phase3Result.breaker?.open;
-  if ((phase2HasProposal || phase3Acted) && !shouldAlert) {
+  const phase4Proposed = phase4Result.proposed === true;
+  if ((phase2HasProposal || phase3Acted || phase4Proposed) && !shouldAlert) {
     shouldAlert = true;
-    alertReason = phase3Acted ? "phase3_acted" : "phase2_proposal";
+    alertReason = phase4Proposed ? "phase4_pr_opened" : phase3Acted ? "phase3_acted" : "phase2_proposal";
   }
 
   if (shouldAlert) {
@@ -1549,7 +1551,11 @@ Log freshness: fc=${infra.last_fc_hours ?? "?"}h seg=${infra.last_seg_hours ?? "
         `• \`${a.action}\` → ${a.outcome}${a.rollback ? ` (rollback: ${a.rollback})` : ""}`);
       phase3Block = `\n\n🔧 *Phase 3 auto-fix (${phase3Result.executed})*\n${lines.join("\n")}`;
     }
-    await telegramSend(cfg, (baseMsg + decisionsBlock + phase3Block).slice(0, 3800));
+    let phase4Block = "";
+    if (phase4Proposed) {
+      phase4Block = `\n\n🤖 *Phase 4 self-modification PR*\n• ${phase4Result.patch.change_type} on \`${phase4Result.patch.file}\`\n• Lesson: \`${phase4Result.lesson_id}\`\n• PR: ${phase4Result.pr_url}\n• Status: DRAFT — requires human review`;
+    }
+    await telegramSend(cfg, (baseMsg + decisionsBlock + phase3Block + phase4Block).slice(0, 3800));
   }
   // Persist phase3 outcomes summary to Ops_Health for circuit breaker history.
   const phase3OutcomesString = phase3Result.attempts.map((a) => a.outcome).join(",");
