@@ -93,18 +93,26 @@ jobs:
           echo "mode=$mode"   >> $GITHUB_OUTPUT
           echo "Selected: $agent --mode $mode"
 
-      - name: Install Doppler CLI + load secrets
+      - name: Install Doppler CLI
+        uses: dopplerhq/cli-action@v3
+
+      - name: Load secrets from Doppler into GITHUB_ENV
         env:
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
         run: |
-          if [ -n "$DOPPLER_TOKEN" ]; then
-            curl -Ls https://cli.doppler.com/install.sh | sudo sh -s -- --no-package-manager --install-path /usr/local/bin
-            echo "DOPPLER_TOKEN=$DOPPLER_TOKEN" >> $GITHUB_ENV
-            doppler secrets download --no-file --format env-no-quotes --token "$DOPPLER_TOKEN" >> $GITHUB_ENV || echo "(doppler download failed, falling back to GHA secrets)"
-            echo "Doppler secrets loaded into GITHUB_ENV"
-          else
-            echo "DOPPLER_TOKEN not set — using GHA secrets only"
+          if [ -z "$DOPPLER_TOKEN" ]; then
+            echo "::warning::DOPPLER_TOKEN not set — using GHA secrets only"
+            exit 0
           fi
+          # Download all Doppler secrets and append to GITHUB_ENV (one per line, KEY=value).
+          doppler secrets download --no-file --format env-no-quotes --token "$DOPPLER_TOKEN" \
+            | while IFS= read -r line; do
+                # Skip empty lines and DOPPLER_* meta vars.
+                [ -z "$line" ] && continue
+                case "$line" in DOPPLER_*) continue ;; esac
+                echo "$line" >> "$GITHUB_ENV"
+              done
+          echo "::notice::Doppler secrets loaded"
 
       - uses: actions/setup-node@v4
         with:
