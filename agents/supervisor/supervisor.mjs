@@ -566,17 +566,22 @@ async function main() {
   // Telegram alerting policy — dedup by NORMALIZED warning-set vs last alerted run.
   // Always alert: red health, evolve mode, auto-fixes applied.
   // For deep mode with same recurring warnings: alert at most once per 24h.
-  // Normalize: strip numbers/decimals/UUIDs so warnings like "stale 40.6h" and
-  // "stale 38.2h" dedup as the same recurring issue.
-  const normalizeWarning = (s) =>
-    String(s || "")
-      .replace(/\d+(?:\.\d+)?/g, "N")        // 40.6 → N, 12 → N
-      .replace(/[a-f0-9]{8,}/gi, "ID")        // run_ids/uuids → ID
-      .replace(/\s+/g, " ")
-      .trim();
-  const normalizeSet = (arr) => arr.map(normalizeWarning).sort().join("|");
+  // Normalization (numbers/UUIDs → N/ID) is shared with the Learning module so
+  // alert dedup and lesson keying stay in lockstep.
+  const normalizeSet = (arr) => arr.map(normalizeSymptom).sort().join("|");
   const currentWarnings = normalizeSet(score.warnings);
   const currentCriticals = normalizeSet(score.critical);
+
+  // ── Learning Phase 1: record every observation BEFORE alerting decision ──
+  // Tolerated failures: if Lessons_Learned table is unavailable, supervisor
+  // still completes its run normally.
+  let observations = [];
+  if (args.mode === "deep" || args.mode === "incident") {
+    observations = await recordAllObservations(cfg, score, runId).catch(() => []);
+    if (observations.length > 0) {
+      console.error(`[supervisor] learning: ${observations.length} observations recorded`);
+    }
+  }
   let shouldAlert = false;
   let alertReason = "";
 
