@@ -82,12 +82,12 @@ function buildSpecDeterministic(fields) {
   // Points: parse from "Mensaje Principal" or Visual_Prompt — split by "Paso N:", "•", "-", or numbered lines.
   const points = [];
   if (isCarrusel) {
-    const text = mensaje + "\n" + visualPrompt;
-    // Match "Paso N:" / "N." / "N)" / "•" / "-" patterns followed by content.
-    const re = /(?:Paso\s+\d+|^\d+[.\)]|^[•\-—]\s)\s*[:\-]?\s*(.+?)(?=\n(?:Paso\s+\d+|\d+[.\)]|[•\-—]\s)|\n\n|$)/gms;
+    const text = (mensaje + "\n" + visualPrompt).trim();
+    // Match "Paso N:" / "N." / "N)" / "•" / "-" / emoji-numbered (1️⃣) wherever they appear.
+    const re = /(?:Paso\s+(\d+)|(\d+)[.\)]|[•\-—]|[0-9]⃣)\s*[:\-—]?\s+([^\n]{8,300}?)(?=\s+(?:Paso\s+\d+|\d+[.\)]|[•\-—]|[0-9]⃣)|\n\n|\n[A-ZÁÉÍÓÚÑ]|$)/gs;
     let m;
     while ((m = re.exec(text)) !== null && points.length < 4) {
-      const raw = m[1].trim().replace(/\s+/g, " ");
+      const raw = m[3].trim().replace(/\s+/g, " ");
       if (raw.length < 8) continue;
       // Split into headingEs (first segment up to ':' or '.') and bodyEs (rest).
       const colonIdx = raw.indexOf(":");
@@ -102,7 +102,7 @@ function buildSpecDeterministic(fields) {
           bodyEs = raw.slice(dotIdx + 1).trim().slice(0, 200);
         } else {
           headingEs = raw.slice(0, 60);
-          bodyEs = raw.slice(60, 240);
+          bodyEs = raw.slice(60, 240) || raw;
         }
       }
       points.push({ headingEs, bodyEs });
