@@ -798,7 +798,7 @@ ${classifierSnippet}
 
 Propose ONE surgical patch. JSON only.`;
 
-  const { text, error } = await callAnthropicAPI(systemPrompt, userPrompt, "claude-sonnet-4-5-20250929", 1200);
+  const { text, error } = await callAnthropicAPI(systemPrompt, userPrompt, "claude-sonnet-4-5", 1200);
   if (error) return { error };
   const patch = parseFirstJSON(text);
   if (!patch) return { error: "could not parse JSON", raw: text.slice(0, 300) };
