@@ -2698,8 +2698,11 @@ Todo lo que se construya para Pinnacle debe diseñarse desde el día 1 como **pr
 
 **Cambios:**
 - `agents-cron.yml`: 16 schedules R9 → todos `* * */3 * *`. Espaciados cada 30min entre 12:00-20:00 UTC (07:00-15:00 CT verano) para evitar colisiones GHA.
-- `supervisor-cron.yml`: heartbeat + deep + evolve → todos cada 3 días (21:00, 21:30, 22:00 UTC).
-- **Implicación crítica:** Supervisor watchdog ya NO es real-time. Si algo falla, hasta 3 días de ceguera. Jorge consciente, aprobado.
+- `supervisor-cron.yml`:
+  - **heartbeat** → cada 6 horas (`0 */6 * * *`, 4 runs/día) — watchdog liviano se mantiene activo.
+  - **deep** → cada 3 días (`30 21 */3 * *`) — auto-repair + Learning + Diagnosis Fase 2.
+  - **evolve** → cada 3 días (`0 22 */3 * *`).
+- **Implicación:** detección de fallos críticos en 6h max (no real-time, pero no ciego 3 días). Auto-repair + diagnosis cada 3 días. Jorge consciente, aprobado.
 - Hostinger crons (fer_first_contact, fer_seguimiento, fer_stale_cron, fer_morning_brief) **NO se tocaron desde aquí** — están en hPanel manual y son operacionales del pipeline real (Jorge los ajusta si quiere).
 
 **Volumen post-cambio:**
