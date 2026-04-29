@@ -80,16 +80,24 @@ export async function renderHtmlToPng(bodyHtml, opts = {}) {
   const waitFonts = opts.waitForFonts !== false;
 
   const browser = await getBrowser();
+  const logoUri = await getLogoDataUri();
+  const inlinedBody = inlineLogo(bodyHtml, logoUri);
   const context = await browser.newContext({
     viewport: { width, height },
     deviceScaleFactor: 1,
   });
   const page = await context.newPage();
   try {
-    await page.setContent(wrapSlideHtml(bodyHtml), { waitUntil: "networkidle", timeout: 20000 });
+    await page.setContent(wrapSlideHtml(inlinedBody), { waitUntil: "load", timeout: 20000 });
     if (waitFonts) {
-      // Wait for Google Fonts to load to avoid FOUT in screenshots.
-      await page.evaluate(() => document.fonts.ready);
+      // Wait for Google Fonts AND inline logo to be decoded.
+      await page.evaluate(async () => {
+        await document.fonts.ready;
+        const imgs = Array.from(document.querySelectorAll("img"));
+        await Promise.all(imgs.map((img) => img.complete ? Promise.resolve() : new Promise((res) => {
+          img.onload = res; img.onerror = res;
+        })));
+      });
     }
     const buffer = await page.screenshot({
       type: "png",
