@@ -219,4 +219,27 @@ Detalle completo en `memoria_ALex.md` raíz.
 
 ---
 
+## 2026-04-29 — FASE 4 SUPERVISOR AUTÓNOMO completa
+
+**Self-modification PROPOSE-ONLY** — el agente puede proponer mejoras a su propio código vía PRs draft, NUNCA mergea.
+
+**Construido:**
+- `detectImprovementOpportunities()` — class A: unknown ≥3 occurrences. Class B: no_effect ≥5 occurrences.
+- `proposeSelfPatch()` — Sonnet 4.6 propone JSON `{file, change_type, search, replace, rationale, test_plan}`.
+- `validatePatch()` — file whitelist + change_type whitelist + forbidden patterns regex + diff size cap.
+- `applyPatchAndValidate()` — auto-revert si syntax falla (`node --check` + `JSON.parse`).
+- `gitCommitAndPushBranch()` + `createDraftPR()` via GitHub REST API.
+- Hard caps: max 3 open auto-PRs total → freeze. Max 1/run. Max 50 diff lines. Solo evolve mode.
+- Telegram alert con PR link.
+
+**Defensa anti-jailbreak:** validator bloquea ataques al `requires_human`, credenciales, workflows, files fuera de whitelist, non-numeric edits a JSON. Test 6/6 correcto.
+
+**Excluidos NO NEGOCIABLES:** workflows, secrets, otros agentes, guardrails (PHASE3_*, PHASE4_*, circuit breaker).
+
+**Pendiente Fase 5:** auto-merge — decisión humana, NUNCA del agente.
+
+Detalle completo en `memoria_ALex.md` raíz.
+
+---
+
 *Última actualización: 2026-04-29*
