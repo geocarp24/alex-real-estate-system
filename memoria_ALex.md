@@ -2557,3 +2557,62 @@ Todo lo que se construya para Pinnacle debe diseñarse desde el día 1 como **pr
 **Verificación pendiente Jorge:** próximo deep-run del supervisor (~1h después del push) debe alertar UNA vez, luego silencio 23h.
 
 ---
+
+### 2026-04-28 — FASE 1 SUPERVISOR AUTÓNOMO: Learning + Recognition (aprobado por Jorge)
+
+**Visión aprobada:** convertir El Supervisor en agente auto-curativo, auto-mejorable y autosuficiente. Roadmap por fases (1=memoria de lecciones · 2=confidence scoring + LLM diagnosis · 3=auto-fix expandido + rollback · 4=self-modification propose-only · 5=auto-merge con whitelist). Empezando por Fase 1 que es 100% no-destructiva (solo añade memoria, no toca infraestructura).
+
+**Implementado en esta sesión (Fase 1 completa):**
+
+1. **Tabla `Lessons_Learned` en Airtable** (id `tbloCtdxSukBI3R3j`, base appfQbDA750Oihy9J).
+   Campos: lesson_id, tenant_id, symptom_normalized, symptom_raw, category {infra/pipeline/code/data/unknown}, severity {critical/warning/info}, first_seen_at, last_seen_at, occurrence_count, root_cause, attempted_fixes, last_outcome {resolved/no_effect/worsened/pending}, confidence_score (0-1), recommended_action, requires_human, last_run_id, notes.
+
+2. **Módulo Learning en `agents/supervisor/supervisor.mjs`:**
+   - `normalizeSymptom(s)` — exportable global, reemplaza el normalizer inline anterior. Quita `\d+(?:\.\d+)?` → `N` y `[a-f0-9]{8,}` → `ID`. Compartido con dedup de alertas.
+   - `classifySymptom(raw)` — Recognition expandido. Regex por categoría:
+     * **infra**: APIs, endpoints, crons, services (telegram, airtable, openphone, quo, anthropic, claude, firecrawl, hostinger, dns, smtp), HTTP codes, "X API no responde", "API down/offline/unreachable/timeout/invalid".
+     * **pipeline**: contact, seguimiento, fer_first, tbc, ghost/fantasma, seg_sms, stage, lead, deal.
+     * **code**: error, exception, failed, throw, stack trace, undefined, null pointer, syntax.
+     * **data**: stale, missing, desync, mismatch, orphan, empty, no record, "sin X desde".
+     * **unknown**: fallback (debe ser raro tras refinamiento).
+   - `loadLessons(cfg, normalized)` — fetch lecciones por symptom_normalized exacto.
+   - `recordLessonObservation(cfg, raw, severity, runId)` — upsert: si existe, increment occurrence_count + refresh last_seen_at + symptom_raw sample. Si no, create con occurrence_count=1 y last_outcome="pending".
+   - `recordAllObservations(cfg, score, runId)` — paraleliza para todos los warnings + criticals del run actual. Tolerante a fallos individuales.
+
+3. **Integración al main loop:**
+   - Solo modos `deep` e `incident` registran observaciones (heartbeat es fast-path, evolve es analítico). Esto evita spam de la tabla.
+   - Las observaciones se registran ANTES de la decisión de alerta — la tabla siempre tiene la verdad aunque Telegram esté silenciado por dedup.
+   - Failure-tolerant: si Lessons_Learned no existe o Airtable falla, el supervisor completa su run normal.
+
+4. **Config:** `agents/tenants/pinnacle.json` ahora tiene `lessons_learned_table_id: "tbloCtdxSukBI3R3j"`.
+
+5. **Validación end-to-end realizada:**
+   - Syntax check: ✓
+   - Dry-run deep: ✓ (detectó 2 críticos + 1 warning como esperado)
+   - Live test del Learning module contra Airtable: ✓ — primera observación CREATE, segunda con número diferente INCREMENT (count 1→2), tercera (síntoma distinto) CREATE.
+   - Classifier: 7/8 samples bien clasificados — único "unknown" residual es el fallback default.
+
+**Lo que el sistema ya puede hacer hoy (post-Fase-1):**
+- Recordar cada warning/critical visto, con frecuencia y categoría.
+- Detectar lecciones recurrentes (occurrence_count creciente = problema crónico no resuelto).
+- Próxima fase puede consultar `loadLessons()` antes de actuar para ver si ya intentamos un fix antes y cómo le fue.
+
+**Pendiente Fase 2 (próxima sesión, requiere aprobación de Jefe):**
+- LLM diagnosis: Sonnet 4.6 lee Lessons + signals → propone root_cause + recommended_action por lesson.
+- Confidence scoring: basado en historia de outcomes previos (si fix X resolvió este síntoma 3 veces seguidas → confidence 0.9 para volver a aplicarlo).
+- Auto-fix decision: HIGH (>0.9) auto-apply | MED apply+alert | LOW propose-only.
+
+**Pendiente Fase 3 (después de Fase 2):**
+- Auto-fix expandido más allá de ghost-detection: restart cron stuck, purge cache stale, reset API connections, retry failed sends.
+- Verification post-fix: re-run health check 5min después; si health degrada → rollback automático.
+- Outcome recording: actualizar `last_outcome` y `attempted_fixes` después de verificación.
+
+**Guardrails operativos NO NEGOCIABLES (recordatorio):**
+- Whitelist de acciones: solo operativas, NUNCA credenciales/finanzas/comunicaciones-a-clientes/deletes.
+- Circuit breaker: 3 fixes consecutivos que empeoran salud → STOP + escalar.
+- Max actions per run, audit trail completo (Airtable + git).
+- Self-modification = propose-only. Auto-merge nunca habilitado por el agente solo — decisión humana.
+
+**Skills invocados esta sesión:** systematic-debugging, simplify, agent-designer (visión), brainstorming (arquitectura).
+
+---
