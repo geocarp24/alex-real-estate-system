@@ -1,49 +1,41 @@
 name: R9 Agents — Scheduled runs
 
-# Cadence reference (UTC unless noted):
-#   Mercader        — Mon 15:00  deep_audit       (weekly deep marketing)
-#   Mercader        — */3 days 14:00  quick_health
-#   Posicionador    — Mon 16:00  seo_deep         (weekly deep SEO + maps)
-#   Posicionador    — */3 days 14:30  seo_health
-#   Escriba         — Mon 17:00  content_plan_week
-#   Cazador         — Mon 18:00  ads_deep
-#   Cazador         — */3 days 15:00  ads_health
-#   Clasificador    — every 2h  score_batch
-#   Clasificador    — daily 02:00 (= 20:00 CT prev day) rescore_hot
-#   Analista        — Mon 12:00  weekly
-#   Espia           — daily 14:00  daily
-#   Espia           — Sun 15:00  weekly_deep
-#   Auditor         — Fri 15:00  weekly
+# All R9 agents run every 3 days (low contact volume — 2026-04-29 Jorge directive).
+# Each cron is offset 30 min from neighbors to avoid GHA queue collision.
+# Reference window (UTC, summer CDT = UTC-5):
+#   12:00-13:30 UTC (07:00-08:30 CT) — classifier + analista
+#   14:00-15:30 UTC (09:00-10:30 CT) — health audits
+#   16:00-18:30 UTC (11:00-13:30 CT) — deep audits + escriba + remitente
+#   19:00-20:00 UTC (14:00-15:00 CT) — espia + auditor
 #
-# Each cron line maps to exactly one agent+mode via the `determine_job` step.
+# Each cron line maps to exactly one agent+mode via the determine_job step.
 
 on:
   schedule:
-    # Clasificador every 2h (even hours)
-    - cron:  "0 */2 * * *"            # clasificador:score_batch
-    - cron:  "0 2 * * *"              # clasificador:rescore_hot
-    # Analista weekly
-    - cron:  "0 12 * * 1"             # analista:weekly
-    # Mercader
-    - cron:  "0 15 * * 1"             # mercader:deep_audit
+    # Classifier
+    - cron:  "0 12 */3 * *"           # clasificador:score_batch
+    - cron:  "30 12 */3 * *"          # clasificador:rescore_hot
+    # Analista
+    - cron:  "0 13 */3 * *"           # analista:weekly
+    # Health audits
     - cron:  "0 14 */3 * *"           # mercader:quick_health
-    # Posicionador
-    - cron:  "0 16 * * 1"             # posicionador:seo_deep
     - cron:  "30 14 */3 * *"          # posicionador:seo_health
-    # Escriba
-    - cron:  "0 17 * * 1"             # escriba:content_plan_week
-    # Cazador
-    - cron:  "0 18 * * 1"             # cazador:ads_deep
     - cron:  "0 15 */3 * *"           # cazador:ads_health
-    # Espia
-    - cron:  "0 14 * * *"             # espia:daily
-    - cron:  "0 15 * * 0"             # espia:weekly_deep
-    # Auditor
-    - cron:  "0 15 * * 5"             # auditor:weekly
-    # Remitente (email)
-    - cron:  "30 14 * * *"            # remitente:process_welcome (daily 9:30 AM CT summer)
-    - cron:  "0 15 * * *"             # remitente:process_drip (daily 10 AM CT summer)
-    - cron:  "0 11 * * 1"             # remitente:weekly_report (Mon 6 AM CT summer)
+    # Deep audits
+    - cron:  "30 15 */3 * *"          # mercader:deep_audit
+    - cron:  "0 16 */3 * *"           # posicionador:seo_deep
+    - cron:  "30 16 */3 * *"          # cazador:ads_deep
+    # Content
+    - cron:  "0 17 */3 * *"           # escriba:content_plan_week
+    # Email engine
+    - cron:  "30 17 */3 * *"          # remitente:process_welcome
+    - cron:  "0 18 */3 * *"           # remitente:process_drip
+    - cron:  "30 18 */3 * *"          # remitente:weekly_report
+    # Intelligence
+    - cron:  "0 19 */3 * *"           # espia:daily
+    - cron:  "30 19 */3 * *"          # espia:weekly_deep
+    # Compliance
+    - cron:  "0 20 */3 * *"           # auditor:weekly
   workflow_dispatch:
     inputs:
       agent:
@@ -73,22 +65,22 @@ jobs:
         id: job
         run: |
           case "${{ github.event.schedule }}" in
-            "0 */2 * * *")       agent=clasificador; mode=score_batch ;;
-            "0 2 * * *")         agent=clasificador; mode=rescore_hot ;;
-            "0 12 * * 1")        agent=analista;     mode=weekly ;;
-            "0 15 * * 1")        agent=mercader;     mode=deep_audit ;;
+            "0 12 */3 * *")      agent=clasificador; mode=score_batch ;;
+            "30 12 */3 * *")     agent=clasificador; mode=rescore_hot ;;
+            "0 13 */3 * *")      agent=analista;     mode=weekly ;;
             "0 14 */3 * *")      agent=mercader;     mode=quick_health ;;
-            "0 16 * * 1")        agent=posicionador; mode=seo_deep ;;
             "30 14 */3 * *")     agent=posicionador; mode=seo_health ;;
-            "0 17 * * 1")        agent=escriba;      mode=content_plan_week ;;
-            "0 18 * * 1")        agent=cazador;      mode=ads_deep ;;
             "0 15 */3 * *")      agent=cazador;      mode=ads_health ;;
-            "0 14 * * *")        agent=espia;        mode=daily ;;
-            "0 15 * * 0")        agent=espia;        mode=weekly_deep ;;
-            "0 15 * * 5")        agent=auditor;      mode=weekly ;;
-            "30 14 * * *")       agent=remitente;    mode=process_welcome ;;
-            "0 15 * * *")        agent=remitente;    mode=process_drip ;;
-            "0 11 * * 1")        agent=remitente;    mode=weekly_report ;;
+            "30 15 */3 * *")     agent=mercader;     mode=deep_audit ;;
+            "0 16 */3 * *")      agent=posicionador; mode=seo_deep ;;
+            "30 16 */3 * *")     agent=cazador;      mode=ads_deep ;;
+            "0 17 */3 * *")      agent=escriba;      mode=content_plan_week ;;
+            "30 17 */3 * *")     agent=remitente;    mode=process_welcome ;;
+            "0 18 */3 * *")      agent=remitente;    mode=process_drip ;;
+            "30 18 */3 * *")     agent=remitente;    mode=weekly_report ;;
+            "0 19 */3 * *")      agent=espia;        mode=daily ;;
+            "30 19 */3 * *")     agent=espia;        mode=weekly_deep ;;
+            "0 20 */3 * *")      agent=auditor;      mode=weekly ;;
             *)                   agent="${{ inputs.agent || 'mercader' }}"; mode="${{ inputs.mode || 'quick_health' }}" ;;
           esac
           echo "agent=$agent" >> $GITHUB_OUTPUT
