@@ -69,7 +69,8 @@ function classifySymptom(raw) {
 async function loadLessons(cfg, normalized) {
   if (!cfg.airtable?.[LESSONS_KEY]) return [];
   try {
-    const filter = encodeURIComponent(`{symptom_normalized}='${normalized.replace(/'/g, "\\'")}'`);
+    // Airtable formula escape: single quote inside quoted string = doubled '' (not backslash).
+    const filter = encodeURIComponent(`{symptom_normalized}='${normalized.replace(/'/g, "''")}'`);
     const r = await airtableFetch(cfg, LESSONS_KEY, `filterByFormula=${filter}&maxRecords=1`);
     return r.records || [];
   } catch {
