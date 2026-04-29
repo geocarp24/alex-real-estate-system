@@ -2691,3 +2691,22 @@ Todo lo que se construya para Pinnacle debe diseñarse desde el día 1 como **pr
 **Skills invocados Fase 2:** agent-designer, error-handling-patterns (graceful fallback), prompt-engineering-patterns (system prompt + JSON schema enforcement), simplify (surgical edits).
 
 ---
+
+### 2026-04-29 — TODOS los runs GHA bajados a cada 3 días (orden directa Jorge)
+
+**Razón:** flujo bajo de contactos hoy. Jorge optimiza créditos.
+
+**Cambios:**
+- `agents-cron.yml`: 16 schedules R9 → todos `* * */3 * *`. Espaciados cada 30min entre 12:00-20:00 UTC (07:00-15:00 CT verano) para evitar colisiones GHA.
+- `supervisor-cron.yml`: heartbeat + deep + evolve → todos cada 3 días (21:00, 21:30, 22:00 UTC).
+- **Implicación crítica:** Supervisor watchdog ya NO es real-time. Si algo falla, hasta 3 días de ceguera. Jorge consciente, aprobado.
+- Hostinger crons (fer_first_contact, fer_seguimiento, fer_stale_cron, fer_morning_brief) **NO se tocaron desde aquí** — están en hPanel manual y son operacionales del pipeline real (Jorge los ajusta si quiere).
+
+**Volumen post-cambio:**
+- Antes: ~138 runs/día (~970/sem)
+- Ahora: ~0 GHA/día baseline + 16 R9 runs cada 3 días + 3 supervisor cada 3 días = ~19 runs cada 3 días = ~6/día.
+- Reducción ~95%.
+
+**Lección:** SaaS cadence debe ser tenant-configurable (R8). Hardcodearlo en yml es deuda. Próxima iteración: leer schedules desde `pinnacle.json` y generar el cron yml por tenant.
+
+---
