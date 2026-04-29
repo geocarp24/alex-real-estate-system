@@ -4,6 +4,30 @@
  */
 import { chromium } from "playwright-chromium";
 
+const LOGO_URL_REMOTE = "https://pinnaclegroupwi.com/wp-content/uploads/2026/03/logo-pinnacle.png";
+let _logoDataUri = null;
+
+// Pre-fetch logo once, convert to base64 data URI so HTML render doesn't depend
+// on external network during page.setContent (avoids invisible logo).
+async function getLogoDataUri() {
+  if (_logoDataUri) return _logoDataUri;
+  try {
+    const r = await fetch(LOGO_URL_REMOTE);
+    if (!r.ok) throw new Error(`logo fetch HTTP ${r.status}`);
+    const buf = Buffer.from(await r.arrayBuffer());
+    _logoDataUri = `data:image/png;base64,${buf.toString("base64")}`;
+    return _logoDataUri;
+  } catch (e) {
+    console.error(`[render] logo prefetch failed: ${e.message} — falling back to remote URL`);
+    return LOGO_URL_REMOTE;
+  }
+}
+
+// Replace any remote logo URL in HTML with the embedded data URI.
+function inlineLogo(bodyHtml, logoUri) {
+  return bodyHtml.replaceAll(LOGO_URL_REMOTE, logoUri);
+}
+
 // Wrap BODY HTML with full <html><head> including Montserrat fonts and reset.
 export function wrapSlideHtml(bodyHtml) {
   return `<!DOCTYPE html>
