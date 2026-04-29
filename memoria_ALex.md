@@ -2713,3 +2713,97 @@ Todo lo que se construya para Pinnacle debe diseñarse desde el día 1 como **pr
 **Lección:** SaaS cadence debe ser tenant-configurable (R8). Hardcodearlo en yml es deuda. Próxima iteración: leer schedules desde `pinnacle.json` y generar el cron yml por tenant.
 
 ---
+
+### 2026-04-29 — FASE 3 SUPERVISOR AUTÓNOMO: Auto-fix + Verification + Rollback + Circuit Breaker
+
+**Aprobado por Jorge — implementado misma sesión que Fases 1+2.**
+
+**1. Whitelist conservadora de acciones automáticas:**
+- `api_retry` — re-probe del endpoint que falló (read-only, sin side-effects). Mapeo automático: openphone/airtable/telegram según el symptom.
+- `data_repair` — sub-case `stage_drift`: contacts con `Stage='New'` pero `First Contact Step>0` (atascados) → reset a `'To Be Contacted'`. Guarda priorState para rollback.
+- **Excluidos (propose-only, no auto):** cron_restart, cache_purge (404 — endpoint pendiente), config_update, code_fix, escalate.
+- `requires_human=true` = veto absoluto, jamás se ejecuta automáticamente.
+
+**2. Verification inmediata in-run:**
+- Snapshot de `score` antes del fix (warnings + critical).
+- Aplica el fix.
+- Re-corre `runInfrastructureChecks` + `runPipelineChecks` + `scoreHealth` post-fix.
+- `detectOutcome(beforeScore, afterScore, lessonNormalized)`:
+  - Si symptom estaba en before pero NO en after → `resolved`.
+  - Si symptom persiste → `no_effect`.
+  - Si aparecen criticals NUEVOS no presentes antes → `worsened` (trigger rollback).
+
+**3. Rollback automático:**
+- Solo para acciones con inverse definido. `data_repair_stage_drift` guarda `priorState` (Stage anterior por record) y `rollbackStageDrift()` los restaura via PATCH bulk a Airtable.
+- `api_retry` no necesita rollback (read-only).
+- Si rollback no es posible y outcome=worsened → registra en lesson + alert humano.
+
+**4. Circuit Breaker:**
+- `checkCircuitBreaker(cfg)` fetcha últimos 5 deeps de Ops_Health, cuenta `phase3_outcomes` que contengan "worsened".
+- Si **>= 3 deeps con worsened en últimos 5** → estado OPEN (freeze global). Phase 3 no ejecuta nada en este run, registra razón.
+- Reset: humano ajusta tenant config o espera hasta que historial limpio.
+- Hard floor: si la query del breaker falla → asume OPEN (fail-safe pesimista).
+
+**5. Recording outcomes:**
+- `recordFixAttempt(cfg, lessonRecord, attemptData)`:
+  - Append `{run_id, action_category, action, executed, outcome, details, rollback, timestamp}` al array `attempted_fixes` de la lesson.
+  - Cap a últimas 20 entries (bounded growth).
+  - Update `last_outcome` field.
+- Estos outcomes son los que la Fase 2 lee para calcular confidence — **el loop de aprendizaje se cierra aquí**: fix se aplica → outcome registrado → próximo deep, confidence sube/baja según resultado real.
+
+**6. Caps operativos:**
+- `PHASE3_MAX_FIXES_PER_RUN = 5` — nunca más de 5 acciones por run (limita blast radius).
+- Solo se ejecutan candidatos HIGH-tier (`confidence >= 0.9`) con `auto_apply=true` y action_category en whitelist.
+- Modos: solo `deep` e `incident`. Nunca heartbeat (fast-path) ni evolve (analítico).
+
+**7. Persistencia para auditoría:**
+- Cada run de Phase 3 escribe a Ops_Health: `phase3_executed` (count), `phase3_outcomes` (CSV), `phase3_breaker_open` (0/1).
+- Telegram alert con bloque dedicado:
+  - `🔧 *Phase 3 auto-fix (N)*` + lista de actions/outcomes.
+  - `⛔ *Phase 3 FROZEN*` si breaker abierto.
+
+**8. Validación:**
+- Syntax check: ✓
+- Dry-run deep: ✓ (Phase 3 gated correctamente — no ejecuta en dry-run).
+- Circuit breaker test contra Ops_Health real: ✓ — 0/5 recent deeps con worsened → CLOSED.
+- Stage drift detection contra Airtable real: ✓ — 0 contacts atascados actualmente.
+- LLM diagnosis pendiente validar en GHA con `ANTHROPIC_API_KEY`. Graceful fallback si falla.
+
+**El loop completo de auto-curación ya cierra:**
+```
+1. Recognition → classify(symptom) → infra/pipeline/code/data
+2. Recording → Lessons_Learned (occurrence_count, history)
+3. Diagnosis → Sonnet 4.6 propone root_cause + recommended_action + safety
+4. Confidence → score determinístico desde history of outcomes
+5. Decision → HIGH/MED/LOW
+6. Action (Phase 3) → ejecuta whitelist si HIGH+auto_apply+breaker closed
+7. Verification → re-check inmediato + outcome detection
+8. Rollback → si worsened y reversible
+9. Recording outcome → cierra el loop, alimenta confidence next time
+```
+
+**Lo que el Supervisor YA hace solo:**
+- Detecta symptoms recurrentes
+- Diagnostica con LLM
+- Propone action + safety notes
+- Calcula su propia confianza basado en historia
+- **EJECUTA fixes whitelisted con confidence alta**
+- **VERIFICA que el fix funcionó**
+- **HACE ROLLBACK si empeoró**
+- Aprende del resultado para próxima vez
+- Se congela solo si serie de errores
+
+**Pendiente Fase 4 (next session, requiere aprobación):**
+- Self-modification propose-only — el agente puede abrir PRs draft con cambios al código del Supervisor (nunca mergea solo).
+- Expandir whitelist con cache_purge cuando endpoint exista en Hostinger.
+- Añadir más sub-cases de data_repair (orphan ghost records, duplicate phone numbers).
+- Cron restart vía endpoint Hostinger (pendiente: crear `/Tools/cron_trigger.php` con auth).
+
+**Pendiente Fase 5 (requiere mucha confianza acumulada):**
+- Auto-merge de PRs propose con whitelist de cambios safe — decisión del humano siempre.
+
+**Skills invocados:** agent-designer, error-handling-patterns, systematic-debugging, simplify, code-review-excellence (revisé surgical edits antes de aplicar).
+
+**Aprobado por:** Jorge Cruz — 2026-04-29
+
+---
