@@ -1,25 +1,26 @@
 #!/usr/bin/env node
 /**
- * El Creativo R9 — generates Instagram visuals via Replicate Nano Banana.
+ * El Creativo R9 — generates Pinnacle visuals via HTML/CSS render (NO AI imagen).
  *
- * Pipeline:
- *   1. Read Airtable SM ideas where visual_url is empty and Visual_Prompt is set.
- *   2. For each idea, call Replicate google/nano-banana with branded prompt.
- *   3. Upload Replicate output to Cloudinary (persistent CDN).
- *   4. Update Airtable: visual_url + Status="Visual Listo".
- *   5. Telegram summary.
+ * Stack (per CLAUDE.md regla 1d + memoria_ALex.md regla R10):
+ *   1. Sonnet 4.6 maps Visual_Prompt + Caption EN/ES → carousel spec object.
+ *   2. themes.mjs builds BODY HTML (5 themes T1-T5, hook + N points + CTA).
+ *   3. render.mjs renders HTML → PNG via Playwright headless Chromium.
+ *   4. Cloudinary signed upload → persistent CDN URL.
+ *   5. Airtable SM Base updated: visual_url, Status="Visual Listo".
  *
- * Modes:
- *   batch       — process up to N pending ideas (default cron mode)
- *   one         — process a single idea by --record-id
- *   dry-run     — show what would be processed without calling APIs
+ * Output rules:
+ *   - For Carrusel format: render N slides (hook + 3-4 points + CTA), upload all,
+ *     join URLs with "|" in visual_url; first URL is the cover.
+ *   - For Post format: render single hook slide, upload, set visual_url.
  *
- * Required secrets (from Doppler or GHA):
- *   REPLICATE_API_TOKEN, AIRTABLE_SM_TOKEN, AIRTABLE_SM_BASE_ID, AIRTABLE_SM_TABLE_ID,
- *   CLOUDINARY_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET,
- *   ANTHROPIC_API_KEY (for prompt enrichment, optional)
+ * Why HTML/CSS instead of AI imagen models: AI hallucinates Spanish text and
+ * branding. Puppeteer/Playwright renders text perfectly. Decided 2026-04-29
+ * after Replicate Nano Banana attempt failed Jorge's review.
  */
 import { parseArgs, loadTenant, telegramSend, genRunId, isoNow } from "../_shared/runner.mjs";
+import { THEMES, VALID_THEME_CODES, slideHook, slidePoint, slideCTA, buildCarousel } from "../creativo_runner/themes.mjs";
+import { renderHtmlToPng, closeBrowser } from "./render.mjs";
 import crypto from "node:crypto";
 
 const VALID_MODES = ["batch", "one"];
@@ -28,38 +29,22 @@ const SM_BASE  = process.env.AIRTABLE_SM_BASE_ID  || "appU9s3kGkVpdrJkw";
 const SM_TABLE = process.env.AIRTABLE_SM_TABLE_ID || "tblAj0Pkj1jW4p5Ld";
 const SM_TOKEN = process.env.AIRTABLE_SM_TOKEN    || "";
 
-const REPLICATE_TOKEN = process.env.REPLICATE_API_TOKEN || "";
-const REPLICATE_MODEL = "google/nano-banana";
-
 const CLD_NAME   = process.env.CLOUDINARY_NAME       || "";
 const CLD_KEY    = process.env.CLOUDINARY_API_KEY    || "";
 const CLD_SECRET = process.env.CLOUDINARY_API_SECRET || "";
 
-const LOGO_URL = "https://pinnaclegroupwi.com/wp-content/uploads/2026/03/logo-pinnacle.png";
-const BRAND_PHONE   = "(920) 777-9886";
-const BRAND_WEBSITE = "pinnaclegroupwi.com";
+const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || "";
+const SONNET_MODEL  = "claude-sonnet-4-6";
 
-const BATCH_MAX_PER_RUN = 3;          // up to 3 visuals per run (cost cap)
-const REPLICATE_TIMEOUT_SEC = 120;    // safety timeout
+const BATCH_MAX_PER_RUN = 3;
 
-const THEMES = {
-  T1: { name: "Dark Premium", bg: "#0D3B2E", text: "#FFFFFF", accent: "#C9A84C" },
-  T2: { name: "White Clean",  bg: "#FFFFFF", text: "#0D3B2E", accent: "#C9A84C" },
-  T3: { name: "Gold & Black", bg: "#1A1A1A", text: "#FFFFFF", accent: "#C9A84C" },
-  T4: { name: "Soft Cream",   bg: "#F5F0E8", text: "#0D3B2E", accent: "#C9A84C" },
-  T5: { name: "Vibrant Blue", bg: "#1B2A8C", text: "#FFFFFF", accent: "#FF2D78" },
-};
-
-// ──────────────────────────────────────────────────────────────
-// Airtable SM helpers
-// ──────────────────────────────────────────────────────────────
+// ─── Airtable SM helpers (separate base from CRM) ───
 async function smFetch(params = "") {
   const r = await fetch(`https://api.airtable.com/v0/${SM_BASE}/${SM_TABLE}?${params}`, {
     headers: { Authorization: `Bearer ${SM_TOKEN}` },
   });
   return r.json();
 }
-
 async function smUpdate(recordId, fields) {
   const r = await fetch(`https://api.airtable.com/v0/${SM_BASE}/${SM_TABLE}/${recordId}`, {
     method: "PATCH",
@@ -68,7 +53,6 @@ async function smUpdate(recordId, fields) {
   });
   return r.json();
 }
-
 async function smGet(recordId) {
   const r = await fetch(`https://api.airtable.com/v0/${SM_BASE}/${SM_TABLE}/${recordId}`, {
     headers: { Authorization: `Bearer ${SM_TOKEN}` },
@@ -76,155 +60,190 @@ async function smGet(recordId) {
   return r.json();
 }
 
-// ──────────────────────────────────────────────────────────────
-// Theme detection from Visual_Prompt
-// ──────────────────────────────────────────────────────────────
-function detectTheme(visualPrompt) {
-  const m = String(visualPrompt || "").match(/T([1-5])\b/i);
-  const code = m ? `T${m[1]}` : "T1";
-  return { code, ...THEMES[code] };
-}
+// ─── Anthropic — map Airtable fields to carousel spec JSON ───
+async function buildSpecWithSonnet(fields) {
+  const visualPrompt = fields.Visual_Prompt || "";
+  const titulo = fields["Título de Idea"] || "";
+  const hook = fields.Hook || "";
+  const captionEs = fields["🇲🇽 Caption ES"] || "";
+  const captionEn = fields["🇺🇸 Caption EN"] || "";
+  const cta = fields.CTA || "";
+  const formato = fields.Formato || "Post";
 
-// ──────────────────────────────────────────────────────────────
-// Build Replicate prompt enriched with brand
-// ──────────────────────────────────────────────────────────────
-function buildBrandedPrompt({ titulo, hook, captionEn, visualPrompt, theme, formato }) {
+  const themeMatch = String(visualPrompt).match(/T([1-5])\b/i);
+  const detectedTheme = themeMatch ? `T${themeMatch[1]}` : "T1";
+
   const isCarrusel = String(formato).toLowerCase() === "carrusel";
-  const aspect = "Square 1:1 social-media-post format. 1080x1080 pixels. Mobile-first, Instagram + Facebook optimized.";
-  const brand = `Pinnacle Holdings Group LLC — real estate cash home buyer in Wisconsin. Logo: small clean watermark bottom-right reading "PINNACLE HOLDINGS GROUP". Phone "${BRAND_PHONE}" subtle bottom. Brand colors: background ${theme.bg}, text ${theme.text}, accent gold ${theme.accent}.`;
-  const style = `Professional, clean, modern, high-contrast typography. Real estate context. Bilingual EN/ES if specified in source prompt. NO photorealistic faces unless requested. NO blurry text. Bold readable headlines.`;
-  const headline = hook ? `Primary headline (large, centered, bold, ${theme.text}): "${hook.slice(0, 100)}".` : "";
-  const subline = captionEn ? `Subtle support text below: "${captionEn.slice(0, 80)}".` : "";
 
-  return [
-    `${aspect}`,
-    `${brand}`,
-    `${style}`,
-    `${headline}`,
-    `${subline}`,
-    isCarrusel ? `Single carousel cover slide — high-impact hook visual.` : `Standalone post visual.`,
-    `Original creative spec from Social Media Agent:`,
-    `${visualPrompt}`.slice(0, 600),
-    `End with subtle gold ${theme.accent} divider line and centered Pinnacle logo placeholder area.`,
-  ].filter(Boolean).join("\n\n");
+  const systemPrompt = `You build social-media slide specs for Pinnacle Holdings (real estate cash buyer in Wisconsin). Output ONLY a JSON object — no prose, no markdown fences.
+
+Schema:
+{
+  "theme": "T1"|"T2"|"T3"|"T4"|"T5",
+  "hook": { "hookEn": "string short bold headline (max 8 words)", "hookEs": "Spanish version (max 8 words)", "badge": "optional 1-2 word chip" },
+  "points": [{ "headingEn": "section title", "headingEs": "Spanish title", "bodyEs": "1-2 sentences Spanish body" }],
+  "cta": { "ctaEn": "We Buy Houses — Cash. Fast. Fair.", "ctaEs": "Compramos Casas — Efectivo. Rápido. Justo." }
 }
 
-// ──────────────────────────────────────────────────────────────
-// Replicate — generate via google/nano-banana
-// ──────────────────────────────────────────────────────────────
-async function replicateGenerate(prompt) {
-  const url = `https://api.replicate.com/v1/models/${REPLICATE_MODEL}/predictions`;
-  const r = await fetch(url, {
+Rules:
+- Bilingual (EN headlines + ES body), text MUST be ortographically perfect Spanish (acentos, ñ).
+- Carrusel format → 3 to 4 points (slides 2-5). Post format → 0 points (just hook + CTA).
+- Use the theme already specified in source (T1 default Dark Premium, T2 White Clean, T3 Gold/Black, T4 Cream, T5 Vibrant Blue).
+- Keep headings under 8 words. Body sentences under 18 words.`;
+
+  const userPrompt = `Build the spec for this Pinnacle Holdings idea:
+
+Title (ES): ${titulo}
+Hook source: ${hook}
+Caption ES: ${captionEs.slice(0, 400)}
+Caption EN: ${captionEn.slice(0, 400)}
+CTA: ${cta}
+Format: ${formato}
+Detected theme code: ${detectedTheme}
+
+Original Visual_Prompt from Social Media Agent:
+${visualPrompt.slice(0, 800)}
+
+Format: ${isCarrusel ? "CARRUSEL — 3-4 points" : "POST — 0 points (hook + CTA only)"}
+
+Return JSON only.`;
+
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${REPLICATE_TOKEN}`,
       "Content-Type": "application/json",
-      "Prefer": "wait=60", // Replicate will block up to 60s waiting for completion
+      "x-api-key": ANTHROPIC_KEY,
+      "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      input: { prompt, aspect_ratio: "1:1", output_format: "png" },
+      model: SONNET_MODEL, max_tokens: 1500,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userPrompt }],
     }),
   });
   if (!r.ok) {
-    const errText = await r.text();
-    return { error: `replicate HTTP ${r.status}: ${errText.slice(0, 200)}`, output: null };
+    const t = await r.text();
+    throw new Error(`Anthropic HTTP ${r.status}: ${t.slice(0, 200)}`);
   }
   const j = await r.json();
-  if (j.error) return { error: j.error, output: null, id: j.id };
-  if (j.status === "succeeded" && j.output) return { output: j.output, id: j.id };
-  // If still running, poll until timeout.
-  const start = Date.now();
-  let pollId = j.id;
-  while ((Date.now() - start) / 1000 < REPLICATE_TIMEOUT_SEC) {
-    await new Promise((res) => setTimeout(res, 5000));
-    const pr = await fetch(`https://api.replicate.com/v1/predictions/${pollId}`, {
-      headers: { Authorization: `Bearer ${REPLICATE_TOKEN}` },
-    });
-    const pj = await pr.json();
-    if (pj.status === "succeeded" && pj.output) return { output: pj.output, id: pollId };
-    if (pj.status === "failed" || pj.status === "canceled") return { error: pj.error || pj.status, output: null, id: pollId };
+  const text = j.content?.[0]?.text || "";
+  // Parse first JSON object.
+  const cleaned = text.replace(/```(?:json)?\s*/g, "").replace(/```/g, "").trim();
+  const start = cleaned.indexOf("{");
+  if (start === -1) throw new Error(`Sonnet did not return JSON: ${text.slice(0, 100)}`);
+  let depth = 0;
+  for (let i = start; i < cleaned.length; i++) {
+    if (cleaned[i] === "{") depth++;
+    else if (cleaned[i] === "}") {
+      depth--;
+      if (depth === 0) {
+        const obj = JSON.parse(cleaned.slice(start, i + 1));
+        // Sanity: ensure theme is valid.
+        if (!VALID_THEME_CODES.includes(obj.theme)) obj.theme = detectedTheme;
+        if (!Array.isArray(obj.points)) obj.points = [];
+        return obj;
+      }
+    }
   }
-  return { error: "replicate timeout", output: null, id: pollId };
+  throw new Error("Sonnet output: unbalanced JSON");
 }
 
-// ──────────────────────────────────────────────────────────────
-// Cloudinary — upload via signed URL
-// ──────────────────────────────────────────────────────────────
-async function cloudinaryUpload(imageUrl, publicIdHint = "") {
+// ─── Cloudinary signed upload (file = Buffer base64-prefixed data URI) ───
+async function cloudinaryUploadBuffer(buffer, publicIdHint = "") {
   const timestamp = Math.floor(Date.now() / 1000);
   const folder = "pinnacle/social";
-  // Sign params alphabetically: folder + timestamp.
   const stringToSign = `folder=${folder}&timestamp=${timestamp}`;
   const signature = crypto.createHash("sha1").update(stringToSign + CLD_SECRET).digest("hex");
 
+  const dataUri = `data:image/png;base64,${buffer.toString("base64")}`;
   const form = new FormData();
-  form.append("file", imageUrl);
+  form.append("file", dataUri);
   form.append("api_key", CLD_KEY);
   form.append("timestamp", String(timestamp));
   form.append("folder", folder);
   form.append("signature", signature);
 
   const r = await fetch(`https://api.cloudinary.com/v1_1/${CLD_NAME}/image/upload`, {
-    method: "POST",
-    body: form,
+    method: "POST", body: form,
   });
   const j = await r.json();
-  if (j.error) return { error: j.error.message, secure_url: null };
-  return { secure_url: j.secure_url, public_id: j.public_id, width: j.width, height: j.height };
+  if (j.error) throw new Error(`Cloudinary: ${j.error.message}`);
+  return j.secure_url;
 }
 
-// ──────────────────────────────────────────────────────────────
-// Process one idea
-// ──────────────────────────────────────────────────────────────
+// ─── Process one idea ───
 async function processOne(record) {
   const f = record.fields || {};
   const titulo = f["Título de Idea"] || record.id;
-  const visualPrompt = f.Visual_Prompt || "";
-  const hook = f.Hook || "";
-  const captionEn = f["🇺🇸 Caption EN"] || "";
   const formato = f.Formato || "Post";
+  const isCarrusel = String(formato).toLowerCase() === "carrusel";
 
-  if (!visualPrompt) {
+  if (!f.Visual_Prompt) {
     return { id: record.id, titulo, status: "skip", reason: "no Visual_Prompt" };
   }
 
-  const theme = detectTheme(visualPrompt);
-  const prompt = buildBrandedPrompt({ titulo, hook, captionEn, visualPrompt, theme, formato });
-
-  const gen = await replicateGenerate(prompt);
-  if (gen.error || !gen.output) {
-    return { id: record.id, titulo, status: "replicate_failed", error: String(gen.error).slice(0, 150) };
+  // 1. Sonnet builds spec.
+  let spec;
+  try {
+    spec = await buildSpecWithSonnet(f);
+  } catch (e) {
+    return { id: record.id, titulo, status: "spec_failed", error: String(e.message).slice(0, 150) };
   }
 
-  // gen.output may be a string or array of strings.
-  const replicateUrl = Array.isArray(gen.output) ? gen.output[0] : gen.output;
-
-  const cld = await cloudinaryUpload(replicateUrl);
-  if (cld.error || !cld.secure_url) {
-    // Fallback: store the Replicate URL directly (it's signed, lasts ~1h).
-    await smUpdate(record.id, {
-      visual_url: replicateUrl,
-      Status: "Visual Listo",
-      "Blotato_Visual_ID": `replicate:${gen.id}`,
-    }).catch(() => null);
-    return { id: record.id, titulo, status: "cloudinary_failed_fallback", url: replicateUrl, error: cld.error };
+  // 2. themes.mjs builds BODY HTML for each slide.
+  let slidesHtml;
+  try {
+    if (isCarrusel) {
+      slidesHtml = buildCarousel(spec); // hook + N points + CTA
+    } else {
+      slidesHtml = [
+        slideHook(spec.theme, spec.hook || {}),
+        slideCTA(spec.theme, spec.cta || {}),
+      ];
+    }
+  } catch (e) {
+    return { id: record.id, titulo, status: "build_failed", error: String(e.message).slice(0, 150) };
   }
 
+  // 3. Render each slide → PNG Buffer.
+  const buffers = [];
+  for (const html of slidesHtml) {
+    try {
+      buffers.push(await renderHtmlToPng(html, { width: 1080, height: 1350 }));
+    } catch (e) {
+      return { id: record.id, titulo, status: "render_failed", error: String(e.message).slice(0, 150) };
+    }
+  }
+
+  // 4. Upload each PNG → Cloudinary.
+  const urls = [];
+  for (const buf of buffers) {
+    try {
+      urls.push(await cloudinaryUploadBuffer(buf));
+    } catch (e) {
+      return { id: record.id, titulo, status: "upload_failed", error: String(e.message).slice(0, 150) };
+    }
+  }
+
+  // 5. Update Airtable: cover URL + all URLs joined.
+  const coverUrl = urls[0];
+  const allUrls  = urls.join("|");
   await smUpdate(record.id, {
-    visual_url: cld.secure_url,
+    visual_url: coverUrl,
+    Blotato_Visual_ID: `puppeteer:${urls.length}_slides|${allUrls.slice(0, 800)}`,
     Status: "Visual Listo",
-    "Blotato_Visual_ID": `replicate:${gen.id}|cld:${cld.public_id}`,
   });
 
   return {
     id: record.id, titulo, status: "done",
-    theme: theme.code, replicate_id: gen.id, cloudinary_url: cld.secure_url,
+    theme: spec.theme,
+    slides: urls.length,
+    cover: coverUrl,
+    all: urls,
   };
 }
 
-// ──────────────────────────────────────────────────────────────
-// Main
-// ──────────────────────────────────────────────────────────────
+// ─── Main ───
 async function main() {
   const args = parseArgs(process.argv, VALID_MODES, { recordId: "" });
   const cfg = await loadTenant(args.tenant);
@@ -233,14 +252,10 @@ async function main() {
 
   console.error(`[creativo] tenant=${cfg.tenant_id} mode=${args.mode} run_id=${runId} dry_run=${args.dryRun}`);
 
-  // Sanity checks.
   for (const [k, v] of Object.entries({
-    REPLICATE_API_TOKEN: REPLICATE_TOKEN,
-    AIRTABLE_SM_TOKEN: SM_TOKEN,
+    AIRTABLE_SM_TOKEN: SM_TOKEN, ANTHROPIC_API_KEY: ANTHROPIC_KEY,
     CLOUDINARY_NAME: CLD_NAME, CLOUDINARY_API_KEY: CLD_KEY, CLOUDINARY_API_SECRET: CLD_SECRET,
-  })) {
-    if (!v) { console.error(`[creativo] missing env: ${k}`); }
-  }
+  })) if (!v) console.error(`[creativo] missing env: ${k}`);
 
   let records = [];
   if (args.mode === "one") {
@@ -264,8 +279,7 @@ async function main() {
   if (args.dryRun) {
     console.log(`=== DRY RUN [creativo] ${records.length} ideas ===`);
     for (const r of records) {
-      const f = r.fields || {};
-      console.log(`  ${r.id} | ${f["Título de Idea"]} | tema=${detectTheme(f.Visual_Prompt).code}`);
+      console.log(`  ${r.id} | ${r.fields?.["Título de Idea"]}`);
     }
     return;
   }
@@ -273,34 +287,27 @@ async function main() {
   const results = [];
   for (const rec of records) {
     let out;
-    try {
-      out = await processOne(rec);
-    } catch (e) {
-      // Catch-all so one bad record never kills the batch.
-      out = {
-        id: rec.id,
-        titulo: rec.fields?.["Título de Idea"] || rec.id,
-        status: "exception",
-        error: String(e?.message || e).slice(0, 200),
-      };
+    try { out = await processOne(rec); }
+    catch (e) {
+      out = { id: rec.id, titulo: rec.fields?.["Título de Idea"] || rec.id, status: "exception", error: String(e?.message || e).slice(0, 200) };
     }
     results.push(out);
-    console.error(`[creativo] ${out.titulo}: ${out.status}${out.error ? ` (${out.error})` : ""}`);
+    console.error(`[creativo] ${out.titulo}: ${out.status}${out.error ? ` (${out.error})` : ""}${out.cover ? ` → ${out.cover}` : ""}`);
   }
+  await closeBrowser();
 
   const completedAt = isoNow();
   const duration = Math.round((Date.parse(completedAt) - Date.parse(startedAt)) / 1000);
   const done = results.filter((r) => r.status === "done").length;
-  const fallback = results.filter((r) => r.status === "cloudinary_failed_fallback").length;
-  const failed = results.filter((r) => /failed/.test(r.status) && r.status !== "cloudinary_failed_fallback").length;
+  const failed = results.filter((r) => /failed|exception/.test(r.status)).length;
 
   const lines = [
     `🎨 *El Creativo* — ${cfg.tenant_name}`,
-    `${duration}s · ${done} done${fallback ? ` · ${fallback} fallback` : ""}${failed ? ` · ${failed} failed` : ""}`,
+    `${duration}s · ${done} done${failed ? ` · ${failed} failed` : ""}`,
   ];
   for (const r of results.slice(0, 5)) {
-    const icon = r.status === "done" ? "✅" : r.status === "skip" ? "⏭" : "❌";
-    lines.push(`${icon} ${r.titulo.slice(0, 50)}${r.cloudinary_url ? `\n   ${r.cloudinary_url}` : ""}`);
+    const icon = r.status === "done" ? "✅" : "❌";
+    lines.push(`${icon} ${(r.titulo || "").slice(0, 50)}${r.cover ? `\n   ${r.cover}` : r.error ? `\n   ${r.error}` : ""}`);
   }
   await telegramSend(cfg, lines.join("\n").slice(0, 3800));
 
