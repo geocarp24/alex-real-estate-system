@@ -80,6 +80,7 @@ if ($encrypted_value === '') {
 
 // At this point we have encrypted_value + key_id (either client-provided or just encrypted server-side).
 if (!$key_id) { http_response_code(400); die(json_encode(['error' => 'key_id required when sending encrypted_value'])); }
+$payload = json_encode(['encrypted_value' => $encrypted_value, 'key_id' => $key_id]);
 $ch = curl_init("https://api.github.com/repos/geocarp24/{$repo}/actions/secrets/{$name}");
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
