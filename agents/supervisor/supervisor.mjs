@@ -55,9 +55,13 @@ function normalizeSymptom(s) {
 // Recognition: classify each symptom into infra | pipeline | code | data.
 function classifySymptom(raw) {
   const s = String(raw || "").toLowerCase();
-  if (/cron_|_api_ok|webhook_|endpoint|http \d{3}|telegram_bot_ok|airtable_api/.test(s)) return "infra";
-  if (/contact|seguimiento|fer_first|tbc|ghost|fantasma|seg_sms|stage|pipeline/.test(s)) return "pipeline";
+  // Infra: APIs, endpoints, crons, network, third-party services.
+  if (/cron_|_api_ok|webhook_|endpoint|http \d{3}|telegram|airtable|openphone|quo|anthropic|claude|firecrawl|hostinger|dns|smtp|api .* (no |not )?respond|api .* (down|offline|unreachable|timeout|invalid)/.test(s)) return "infra";
+  // Pipeline: business workflow state — contacts, stages, follow-ups.
+  if (/contact|seguimiento|fer_first|tbc|ghost|fantasma|seg_sms|stage|pipeline|lead|deal/.test(s)) return "pipeline";
+  // Code: runtime errors, exceptions, syntax issues.
   if (/error|exception|failed|throw|stack trace|undefined|null pointer|syntax/.test(s)) return "code";
+  // Data: freshness, missing rows, drift.
   if (/stale|missing|desync|mismatch|orphan|empty|no record|sin .* desde/.test(s)) return "data";
   return "unknown";
 }
