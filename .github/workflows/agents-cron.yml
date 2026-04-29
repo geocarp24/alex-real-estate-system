@@ -86,11 +86,25 @@ jobs:
             "30 19 */3 * *")     agent=espia;        mode=weekly_deep ;;
             "0 20 */3 * *")      agent=auditor;      mode=weekly ;;
             "30 20 */3 * *")     agent=social_media; mode=full_pipeline ;;
+            "0 21 */3 * *")      agent=creativo;     mode=batch ;;
             *)                   agent="${{ inputs.agent || 'mercader' }}"; mode="${{ inputs.mode || 'quick_health' }}" ;;
           esac
           echo "agent=$agent" >> $GITHUB_OUTPUT
           echo "mode=$mode"   >> $GITHUB_OUTPUT
           echo "Selected: $agent --mode $mode"
+
+      - name: Install Doppler CLI + load secrets
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+        run: |
+          if [ -n "$DOPPLER_TOKEN" ]; then
+            curl -Ls https://cli.doppler.com/install.sh | sudo sh -s -- --no-package-manager --install-path /usr/local/bin
+            echo "DOPPLER_TOKEN=$DOPPLER_TOKEN" >> $GITHUB_ENV
+            doppler secrets download --no-file --format env-no-quotes --token "$DOPPLER_TOKEN" >> $GITHUB_ENV || echo "(doppler download failed, falling back to GHA secrets)"
+            echo "Doppler secrets loaded into GITHUB_ENV"
+          else
+            echo "DOPPLER_TOKEN not set — using GHA secrets only"
+          fi
 
       - uses: actions/setup-node@v4
         with:
