@@ -53,6 +53,11 @@ on:
         type: string
         required: true
         default: "quick_health"
+      record_id:
+        description: "(creativo mode=one) Airtable record_id to (re)generate"
+        type: string
+        required: false
+        default: ""
 
 concurrency:
   group: agents-${{ github.event.schedule || 'manual' }}
