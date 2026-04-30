@@ -164,10 +164,15 @@ jobs:
           ESPIA_TRIGGER:            "gha"
           AUDITOR_TRIGGER:          "gha"
           REMITENTE_TRIGGER:        "gha"
+        env:
+          RECORD_ID: ${{ inputs.record_id }}
         run: |
+          EXTRA=""
+          if [ -n "$RECORD_ID" ]; then EXTRA="--record-id $RECORD_ID"; fi
           node agents/${{ steps.job.outputs.agent }}/${{ steps.job.outputs.agent }}.mjs \
             --tenant pinnacle \
-            --mode ${{ steps.job.outputs.mode }}
+            --mode ${{ steps.job.outputs.mode }} \
+            $EXTRA
 
       - name: Upload run artifacts (if any)
         if: always()
