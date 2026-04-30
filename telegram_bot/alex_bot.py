@@ -475,22 +475,28 @@ TOOLS = [
             "Dispara El Creativo vía GitHub Actions (workflow_dispatch sobre agents-cron.yml). "
             "Pipeline real: themes.mjs (5 temas T1-T5) + Playwright Chromium → PNG 1080×1350 → "
             "Cloudinary upload → Airtable PATCH visual_url. NO usa Blotato/Nano Banana (regla R10 — "
-            "AI imagen aluciona texto en español). Cada run procesa hasta 3 ideas pendientes "
-            "(Status=Nueva/Aprobada/En Produccion, visual_url vacío, Visual_Prompt no vacío, NO Reel/Video) "
-            "y tarda ~3-5 min. El runner remoto lee Airtable directamente — el bot solo dispara. "
-            "Úsalo cuando el Jefe pida 'generar visuales', 'corre el creativo', 'procesa el backlog', "
-            "o cuando un post necesite imagen como parte del pipeline de Social Media."
+            "AI imagen aluciona texto en español). El runner remoto lee Airtable directamente — el bot solo dispara.\n"
+            "\n"
+            "DOS MODOS según el parámetro record_id:\n"
+            "  • Sin record_id → mode=batch: procesa hasta 3 ideas pendientes "
+            "(Status=Nueva/Aprobada/En Produccion, visual_url vacío, Visual_Prompt no vacío, NO Reel/Video). "
+            "Úsalo para 'generar visuales', 'corre el creativo', 'procesa el backlog'.\n"
+            "  • Con record_id → mode=one (regenerate): regenera el visual de ESE registro específico, "
+            "incluso si ya tenía visual_url (lo sobreescribe). "
+            "Úsalo cuando el Jefe pida 'regenera el visual de recXXX', 'rehazlo', 'cambia el visual de la idea X', "
+            "o cuando rechace un visual y haya que producir uno nuevo. Extrae el record_id del mensaje del Jefe "
+            "(empieza con 'rec', 17 caracteres alfanuméricos)."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
                 "task": {
                     "type": "string",
-                    "description": "Descripción de la tarea: 'generar visuals pendientes', o especificar record_id concreto"
+                    "description": "Descripción de la tarea (e.g. 'generar visuals pendientes' o 'regenerar visual de recXXX')"
                 },
                 "record_id": {
                     "type": "string",
-                    "description": "ID específico de Airtable a procesar (opcional — si vacío, procesa todos los pendientes)"
+                    "description": "Airtable record_id específico (formato 'recXXXXXXXXXXXXXXX'). Si presente, dispara mode=one (regenera ese registro). Si vacío, dispara mode=batch (procesa pendientes en cola)."
                 }
             },
             "required": ["task"]
