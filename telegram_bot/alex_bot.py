@@ -472,11 +472,14 @@ TOOLS = [
     {
         "name": "invoke_creativo",
         "description": (
-            "Invoca a El Creativo para generar visuals de posts y carruseles con Blotato. "
-            "Lee registros de Airtable Social Media con Visual_Prompt listo (Status=Nueva/Aprobada, visual_url vacío, NO Reel/Video), "
-            "construye los slidePrompts para el AI Slide Generator, genera el visual con Blotato, espera a que complete, "
-            "y guarda la URL del visual en Airtable. "
-            "Úsalo cuando el Jefe pida generar visuales de posts o carruseles, o como parte del pipeline de Social Media."
+            "Dispara El Creativo vía GitHub Actions (workflow_dispatch sobre agents-cron.yml). "
+            "Pipeline real: themes.mjs (5 temas T1-T5) + Playwright Chromium → PNG 1080×1350 → "
+            "Cloudinary upload → Airtable PATCH visual_url. NO usa Blotato/Nano Banana (regla R10 — "
+            "AI imagen aluciona texto en español). Cada run procesa hasta 3 ideas pendientes "
+            "(Status=Nueva/Aprobada/En Produccion, visual_url vacío, Visual_Prompt no vacío, NO Reel/Video) "
+            "y tarda ~3-5 min. El runner remoto lee Airtable directamente — el bot solo dispara. "
+            "Úsalo cuando el Jefe pida 'generar visuales', 'corre el creativo', 'procesa el backlog', "
+            "o cuando un post necesite imagen como parte del pipeline de Social Media."
         ),
         "input_schema": {
             "type": "object",
