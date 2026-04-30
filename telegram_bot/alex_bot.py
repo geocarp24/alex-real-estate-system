@@ -556,7 +556,7 @@ PROGRESS_MESSAGES = {
     "invoke_tracy":        "👤 *Tracy* buscando al propietario en Tracerfy...",
     "invoke_social_media": "📱 *Social Media Agent* generando contenido...",
     "invoke_claude_code":  "💻 *Claude Code* procesando tarea técnica...",
-    "invoke_creativo":     "🎨 *El Creativo* generando visual con Blotato...",
+    "invoke_creativo":     "🎨 *El Creativo* disparado vía GHA (Puppeteer + themes.mjs)...",
     "invoke_director":     "🎬 *El Director* generando video/Reel con Blotato...",
     "invoke_programador":  "📅 *El Programador* publicando en FB+IG...",
     "airtable_list":       "📋 Consultando Airtable CRM...",
