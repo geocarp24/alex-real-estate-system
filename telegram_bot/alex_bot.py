@@ -1185,17 +1185,27 @@ def _tool_invoke_creativo(task: str, record_id: str = None) -> str:
       GHA agents-cron.yml → creativo.mjs → Airtable read → themes.mjs +
       Playwright render → Cloudinary upload → Airtable visual_url update.
 
-    Cada run procesa hasta 3 ideas pendientes (Status=Nueva/Aprobada/En Produccion,
-    visual_url vacío, Visual_Prompt no vacío, NO Reel/Video). Tarda ~3-5 min.
+    Modos:
+      - Sin record_id  → mode=batch  (procesa hasta 3 ideas pendientes, ~3-5 min)
+      - Con record_id  → mode=one    (regenera ese visual específico, ~1-2 min).
+                         Si la idea ya tiene visual_url, lo sobreescribe (regenerate).
     """
     if not http_requests:
         return "Error: librería 'requests' no instalada."
+
+    record_id = (record_id or "").strip()
+    is_regenerate = bool(record_id)
+    mode = "one" if is_regenerate else "batch"
+
+    dispatch_inputs = {"agent": "creativo", "mode": mode}
+    if is_regenerate:
+        dispatch_inputs["record_id"] = record_id
 
     dispatch_url = f"{BRIDGE_URL.rstrip('/')}/github_dispatch.php"
     payload = {
         "workflow": "agents-cron.yml",
         "ref": "master",
-        "inputs": {"agent": "creativo", "mode": "batch"},
+        "inputs": dispatch_inputs,
     }
 
     try:
@@ -1211,20 +1221,19 @@ def _tool_invoke_creativo(task: str, record_id: str = None) -> str:
     if resp.status_code not in (200, 204):
         return f"❌ El Creativo: GHA dispatch rechazado (HTTP {resp.status_code}) — {resp.text[:300]}"
 
-    note = ""
-    if record_id:
-        note = (
-            f"\n\nℹ️ Nota: GHA procesa los pendientes en cola FIFO; el record_id `{record_id}` "
-            f"sólo entra en este run si está dentro de los 3 más antiguos. Para forzar uno específico, "
-            f"pídeme correrlo localmente."
-        )
-
     runs_url = "https://github.com/geocarp24/alex-real-estate-system/actions/workflows/agents-cron.yml"
+    if is_regenerate:
+        return (
+            f"🔄 El Creativo (regenerate) disparado vía GHA.\n"
+            f"Target: `{record_id}` — sobreescribe visual_url existente.\n"
+            f"Pipeline: Puppeteer + themes.mjs → Cloudinary → Airtable (~1-2 min).\n"
+            f"Run en vivo: {runs_url}"
+        )
     return (
-        f"🚀 El Creativo disparado vía GHA (workflow_dispatch).\n"
+        f"🚀 El Creativo (batch) disparado vía GHA.\n"
         f"Pipeline: Puppeteer + themes.mjs → Cloudinary → Airtable.\n"
         f"Procesa hasta 3 ideas pendientes en este run (~3-5 min).\n"
-        f"Run en vivo: {runs_url}{note}"
+        f"Run en vivo: {runs_url}"
     )
 
 
