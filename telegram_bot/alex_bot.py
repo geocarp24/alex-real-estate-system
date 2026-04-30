@@ -472,11 +472,14 @@ TOOLS = [
     {
         "name": "invoke_creativo",
         "description": (
-            "Invoca a El Creativo para generar visuals de posts y carruseles con Blotato. "
-            "Lee registros de Airtable Social Media con Visual_Prompt listo (Status=Nueva/Aprobada, visual_url vacío, NO Reel/Video), "
-            "construye los slidePrompts para el AI Slide Generator, genera el visual con Blotato, espera a que complete, "
-            "y guarda la URL del visual en Airtable. "
-            "Úsalo cuando el Jefe pida generar visuales de posts o carruseles, o como parte del pipeline de Social Media."
+            "Dispara El Creativo vía GitHub Actions (workflow_dispatch sobre agents-cron.yml). "
+            "Pipeline real: themes.mjs (5 temas T1-T5) + Playwright Chromium → PNG 1080×1350 → "
+            "Cloudinary upload → Airtable PATCH visual_url. NO usa Blotato/Nano Banana (regla R10 — "
+            "AI imagen aluciona texto en español). Cada run procesa hasta 3 ideas pendientes "
+            "(Status=Nueva/Aprobada/En Produccion, visual_url vacío, Visual_Prompt no vacío, NO Reel/Video) "
+            "y tarda ~3-5 min. El runner remoto lee Airtable directamente — el bot solo dispara. "
+            "Úsalo cuando el Jefe pida 'generar visuales', 'corre el creativo', 'procesa el backlog', "
+            "o cuando un post necesite imagen como parte del pipeline de Social Media."
         ),
         "input_schema": {
             "type": "object",
@@ -553,7 +556,7 @@ PROGRESS_MESSAGES = {
     "invoke_tracy":        "👤 *Tracy* buscando al propietario en Tracerfy...",
     "invoke_social_media": "📱 *Social Media Agent* generando contenido...",
     "invoke_claude_code":  "💻 *Claude Code* procesando tarea técnica...",
-    "invoke_creativo":     "🎨 *El Creativo* generando visual con Blotato...",
+    "invoke_creativo":     "🎨 *El Creativo* disparado vía GHA (Puppeteer + themes.mjs)...",
     "invoke_director":     "🎬 *El Director* generando video/Reel con Blotato...",
     "invoke_programador":  "📅 *El Programador* publicando en FB+IG...",
     "airtable_list":       "📋 Consultando Airtable CRM...",
@@ -1176,121 +1179,53 @@ def _next_available_slot(existing_schedules: list) -> str:
 
 def _tool_invoke_creativo(task: str, record_id: str = None) -> str:
     """
-    Orquesta a El Creativo:
-    1. Lee registros pendientes de Airtable SM (posts/carruseles sin visual)
-    2. Usa Claude para construir los slidePrompts desde el Visual_Prompt
-    3. Llama a Blotato REST API para generar el visual
-    4. Espera a que complete y guarda las URLs en Airtable
+    Dispara El Creativo vía GitHub Actions workflow_dispatch.
+
+    Pipeline real (NO Blotato — regla R10 / CLAUDE.md §1d):
+      GHA agents-cron.yml → creativo.mjs → Airtable read → themes.mjs +
+      Playwright render → Cloudinary upload → Airtable visual_url update.
+
+    Cada run procesa hasta 3 ideas pendientes (Status=Nueva/Aprobada/En Produccion,
+    visual_url vacío, Visual_Prompt no vacío, NO Reel/Video). Tarda ~3-5 min.
     """
     if not http_requests:
         return "Error: librería 'requests' no instalada."
 
-    sm_headers = {"Authorization": f"Bearer {SM_AIRTABLE_TOKEN}", "Content-Type": "application/json"}
-    table_id = SM_TABLE_IDS["Ideas de Contenido"]
+    dispatch_url = f"{BRIDGE_URL.rstrip('/')}/github_dispatch.php"
+    payload = {
+        "workflow": "agents-cron.yml",
+        "ref": "master",
+        "inputs": {"agent": "creativo", "mode": "batch"},
+    }
 
-    # Leer registros pendientes
+    try:
+        resp = http_requests.post(
+            dispatch_url,
+            headers={"X-Alex-Secret": ALEX_SECRET, "Content-Type": "application/json"},
+            json=payload,
+            timeout=20,
+        )
+    except Exception as e:
+        return f"❌ El Creativo: error de red contactando GHA dispatch — {e}"
+
+    if resp.status_code not in (200, 204):
+        return f"❌ El Creativo: GHA dispatch rechazado (HTTP {resp.status_code}) — {resp.text[:300]}"
+
+    note = ""
     if record_id:
-        url = f"{SM_AIRTABLE_BASE_URL}/{table_id}/{record_id}"
-        resp = http_requests.get(url, headers=sm_headers, timeout=30).json()
-        records = [resp] if "id" in resp else []
-    else:
-        formula = "AND(OR({Status}='Nueva',{Status}='Aprobada',{Status}='En Produccion'),{visual_url}='',{Visual_Prompt}!='',NOT(OR({Formato}='Reel',{Formato}='Video')))"
-        url = f"{SM_AIRTABLE_BASE_URL}/{table_id}?filterByFormula={http_requests.utils.quote(formula)}&maxRecords=3"
-        resp = http_requests.get(url, headers=sm_headers, timeout=30).json()
-        records = resp.get("records", [])
-
-    if not records:
-        return "✅ El Creativo: No hay registros pendientes de visual."
-
-    results = []
-    for record in records:
-        rec_id = record.get("id", "")
-        fields = record.get("fields", {})
-        titulo = fields.get("Título de Idea", rec_id)
-        visual_prompt = fields.get("Visual_Prompt", "")
-        hook = fields.get("Hook", "")
-
-        if not visual_prompt:
-            results.append(f"⚠️ {titulo}: Sin Visual_Prompt, saltando.")
-            continue
-
-        logger.info(f"[Creativo] Procesando: {titulo}")
-
-        # Usar Claude para construir slidePrompts
-        creativo_system = load_agent_prompt("creativo")
-        build_msg = (
-            f"Construye los slidePrompts para este registro de Airtable.\n\n"
-            f"Título: {titulo}\nHook: {hook}\n\nVisual_Prompt:\n{visual_prompt}\n\n"
-            "Responde ÚNICAMENTE con un JSON válido así:\n"
-            '{"slidePrompts": ["descripción slide 1...", "descripción slide 2...", ...]}\n'
-            "Máximo 6 slidePrompts. Sin texto adicional, solo el JSON."
-        )
-        # SMART ESCALATION: El Creativo starts with Sonnet, escalates to Opus if complex
-        if MODEL_CONFIG_LOADED:
-            model = get_model_with_escalation_logging(
-                agent_name="creativo",
-                prompt=build_msg,
-                task_id=f"creative_{rec_id}_{datetime.now().timestamp()}",
-                log_to_airtable=True
-            )
-        else:
-            model = CLAUDE_MODEL
-        raw = _run_subagent_sync(creativo_system, build_msg, model=model)
-
-        try:
-            # Extraer JSON de la respuesta
-            import re
-            json_match = re.search(r'\{.*\}', raw, re.DOTALL)
-            slide_data = json.loads(json_match.group()) if json_match else {}
-            slide_prompts = slide_data.get("slidePrompts", [])
-        except Exception:
-            slide_prompts = []
-
-        if not slide_prompts:
-            results.append(f"⚠️ {titulo}: Claude no generó slidePrompts válidos.")
-            continue
-
-        # Llamar a Blotato
-        overall_prompt = f"TITLE: {titulo}. Pinnacle Holdings Group LLC real estate carousel. {len(slide_prompts)} slides. Hook: '{hook}'. Professional bilingual EN/ES."
-        create_result = _blotato_create_visual(
-            template_id=BLOTATO_SLIDE_TPL,
-            prompt=overall_prompt,
-            inputs={"model": "nano-banana-pro", "aspectRatio": "4:5", "slidePrompts": slide_prompts},
-            render=True
+        note = (
+            f"\n\nℹ️ Nota: GHA procesa los pendientes en cola FIFO; el record_id `{record_id}` "
+            f"sólo entra en este run si está dentro de los 3 más antiguos. Para forzar uno específico, "
+            f"pídeme correrlo localmente."
         )
 
-        visual_id = create_result.get("id")
-        if not visual_id:
-            results.append(f"❌ {titulo}: Blotato no retornó ID — {create_result}")
-            continue
-
-        logger.info(f"[Creativo] Visual creado: {visual_id}, esperando...")
-
-        # Polling
-        final = _blotato_poll_visual(visual_id, max_wait=600, interval=30)
-        if final.get("status") != "done":
-            results.append(f"⏳ {titulo}: Visual en proceso ({final.get('status')}) — ID: {visual_id}")
-            continue
-
-        image_urls = final.get("imageUrls", [])
-        visual_url = image_urls[0] if image_urls else final.get("mediaUrl", "")
-        all_urls = "|".join(image_urls) if len(image_urls) > 1 else visual_url
-        blotato_visual_id_field = f"{visual_id}|||{all_urls}"
-
-        # Guardar en Airtable
-        patch_resp = http_requests.patch(
-            f"{SM_AIRTABLE_BASE_URL}/{table_id}/{rec_id}",
-            headers=sm_headers,
-            json={"fields": {"visual_url": visual_url, "Blotato_Visual_ID": blotato_visual_id_field}},
-            timeout=30
-        ).json()
-
-        if "id" in patch_resp:
-            results.append(f"✅ {titulo}\n   Slides: {len(image_urls)} | visual_url guardada ✅\n   Blotato ID: {visual_id}")
-        else:
-            results.append(f"⚠️ {titulo}: Visual listo pero error en Airtable — {patch_resp}")
-
-    return "\n\n".join(results) if results else "El Creativo: Sin resultados."
+    runs_url = "https://github.com/geocarp24/alex-real-estate-system/actions/workflows/agents-cron.yml"
+    return (
+        f"🚀 El Creativo disparado vía GHA (workflow_dispatch).\n"
+        f"Pipeline: Puppeteer + themes.mjs → Cloudinary → Airtable.\n"
+        f"Procesa hasta 3 ideas pendientes en este run (~3-5 min).\n"
+        f"Run en vivo: {runs_url}{note}"
+    )
 
 
 # ─────────────────────────────────────────────

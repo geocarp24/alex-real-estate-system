@@ -1,4 +1,5 @@
 <?php
+// Deploy attempt 2: 2026-04-29T04:31Z
 /**
  * github_dispatch.php — Trigger GitHub Actions workflow_dispatch from Hostinger.
  *

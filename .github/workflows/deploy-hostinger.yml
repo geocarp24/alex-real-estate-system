@@ -25,44 +25,33 @@ jobs:
           echo "=== hostinger/mu-plugins ==="
           ls -la hostinger/mu-plugins/ || echo "(empty)"
 
-      - name: Deploy Tools PHP files via SCP
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: ${{ secrets.SSH_PORT }}
-          source: "hostinger/tools/*"
-          target: /home/u433637438/domains/pinnaclegroupwi.com/public_html/Tools/
-          strip_components: 2
-          overwrite: true
-          rm: false
+      - name: Install sshpass
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq sshpass rsync
 
-      - name: Deploy Agents PHP files via SCP
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: ${{ secrets.SSH_PORT }}
-          source: "hostinger/agents/*"
-          target: /home/u433637438/domains/pinnaclegroupwi.com/public_html/agents/
-          strip_components: 2
-          overwrite: true
-          rm: false
+      - name: Deploy via rsync (Tools + Agents + MU-plugins)
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USERNAME }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          set -e
+          REMOTE_ROOT=/home/u433637438/domains/pinnaclegroupwi.com/public_html
+          SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $SSH_PORT"
+          RSYNC_OPTS="-avz --no-perms --no-owner --no-group --omit-dir-times"
 
-      - name: Deploy WP MU-plugins via SCP
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: ${{ secrets.SSH_PORT }}
-          source: "hostinger/mu-plugins/*"
-          target: /home/u433637438/domains/pinnaclegroupwi.com/public_html/wp-content/mu-plugins/
-          strip_components: 2
-          overwrite: true
-          rm: false
+          echo "=== Deploying hostinger/tools/ → /Tools/ ==="
+          sshpass -e rsync $RSYNC_OPTS -e "ssh $SSH_OPTS" \
+            hostinger/tools/ "$SSH_USER@$SSH_HOST:$REMOTE_ROOT/Tools/"
+
+          echo "=== Deploying hostinger/agents/ → /agents/ ==="
+          sshpass -e rsync $RSYNC_OPTS -e "ssh $SSH_OPTS" \
+            hostinger/agents/ "$SSH_USER@$SSH_HOST:$REMOTE_ROOT/agents/"
+
+          echo "=== Deploying hostinger/mu-plugins/ → /wp-content/mu-plugins/ ==="
+          sshpass -e rsync $RSYNC_OPTS -e "ssh $SSH_OPTS" \
+            hostinger/mu-plugins/ "$SSH_USER@$SSH_HOST:$REMOTE_ROOT/wp-content/mu-plugins/" || \
+            echo "(mu-plugins skip)"
 
       - name: Verify remote files via SSH (post-deploy diag)
         uses: appleboy/ssh-action@v1.0.3
@@ -79,11 +68,14 @@ jobs:
             echo "=== /agents listing ==="
             ls -la $ROOT/agents/ | head -50
             echo ""
-            echo "=== Looking for github_dispatch.php ==="
-            ls -la $ROOT/agents/github_dispatch.php 2>&1 || echo "MISSING in /agents/"
-            echo ""
-            echo "=== Looking for dispatch_workflow.php ==="
-            ls -la $ROOT/Tools/dispatch_workflow.php 2>&1 || echo "MISSING in /Tools/"
+            echo "=== Verify new files exist ==="
+            for f in Tools/dispatch_workflow.php Tools/lesson_outcome.php agents/github_dispatch.php; do
+              if [ -f "$ROOT/$f" ]; then
+                echo "OK $f ($(wc -c < $ROOT/$f) bytes)"
+              else
+                echo "MISSING $f"
+              fi
+            done
 
       - name: Write config files via SSH
         uses: appleboy/ssh-action@v1.0.3

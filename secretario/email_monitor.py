@@ -39,8 +39,9 @@ import requests
 # ─────────────────────────────────────────────
 # CONFIGURACIÓN
 # ─────────────────────────────────────────────
-EMAIL_ADDRESS  = os.getenv("SECRETARIO_EMAIL",    "deals@pinnaclegroupwi.com")
-EMAIL_PASSWORD = os.getenv("SECRETARIO_PASSWORD", "4523Jics!$")
+EMAIL_ADDRESS  = os.getenv("SECRETARIO_EMAIL")  or "deals@pinnaclegroupwi.com"
+# Use 'or' instead of getenv default so empty string from .env also falls back.
+EMAIL_PASSWORD = os.getenv("SECRETARIO_PASSWORD") or "4523Jics!$"
 IMAP_HOST      = os.getenv("IMAP_HOST",           "imap.hostinger.com")
 IMAP_PORT      = int(os.getenv("IMAP_PORT",       "993"))
 SMTP_HOST      = os.getenv("SMTP_HOST",           "smtp.hostinger.com")

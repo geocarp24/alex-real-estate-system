@@ -32,11 +32,12 @@ function baseWrapper(theme, inner, opts = {}) {
   </div>`;
 }
 
-function logoWatermark(theme, size = 64) {
+function logoWatermark(theme, size = 220) {
+  // Logo Pinnacle es 677×369 (rectangular). Tamaño visible: 220px width = ~120px height.
   return `<img src="${LOGO_URL}" alt="Pinnacle Holdings" style="
-    position:absolute; bottom:48px; right:48px; width:${size}px; height:auto;
-    opacity:${theme.name === "White Clean" || theme.name === "Soft Cream" ? ".85" : ".9"};
-    filter:${theme.name === "White Clean" || theme.name === "Soft Cream" ? "none" : "brightness(1.05)"};" />`;
+    position:absolute; bottom:56px; right:56px; width:${size}px; height:auto;
+    opacity:${theme.name === "White Clean" || theme.name === "Soft Cream" ? "1" : "1"};
+    filter:${theme.name === "White Clean" || theme.name === "Soft Cream" ? "none" : "drop-shadow(0 2px 6px rgba(0,0,0,.25))"};" />`;
 }
 
 // ---------------------------------------------------------------------------
@@ -70,7 +71,7 @@ export function slideHook(themeCode, { hookEn, hookEs, badge } = {}) {
       </p>` : ""}
       <div style="margin-top:48px; width:96px; height:4px; background:${theme.accent}; border-radius:4px;"></div>
     </div>
-    ${logoWatermark(theme, 72)}
+    ${logoWatermark(theme, 240)}
   `;
   return baseWrapper(theme, inner);
 }
@@ -115,7 +116,7 @@ export function slidePoint(themeCode, { index, total, headingEn, bodyEs, heading
       ${esc(body)}
     </p>
 
-    ${logoWatermark(theme, 56)}
+    ${logoWatermark(theme, 200)}
   `;
   return baseWrapper(theme, inner);
 }
@@ -131,7 +132,7 @@ export function slideCTA(themeCode, { ctaEn, ctaEs } = {}) {
 
   const inner = `
     <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; gap:36px;">
-      <img src="${LOGO_URL}" alt="Pinnacle Holdings" style="width:320px; height:auto; margin-bottom:18px;" />
+      <img src="${LOGO_URL}" alt="Pinnacle Holdings" style="width:520px; height:auto; margin-bottom:24px;" />
 
       <h2 style="
         font-size:62px; font-weight:800; line-height:1.1; letter-spacing:-0.015em;

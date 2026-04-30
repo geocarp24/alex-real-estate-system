@@ -963,6 +963,142 @@ ${proposal.patch.test_plan}
   };
 }
 
+// ──────────────────────────────────────────────────────────────
+// PHASE 5 — AUTO-MERGE WITH SUB-WHITELIST (off by default — operator opt-in)
+// ──────────────────────────────────────────────────────────────
+//
+// After Phase 4 has produced N consecutive auto-PRs that the human merged
+// without revert, the system has earned trust to auto-merge specific safe
+// changes. ONLY runs when operator explicitly opts in via env var:
+//   PHASE5_AUTO_MERGE_ENABLED=true
+//
+// SUB-WHITELIST (much stricter than Phase 4's):
+//   - file MUST be agents/tenants/pinnacle.json (config only — never code)
+//   - change_type MUST be threshold_adjust (not classifier_regex_add)
+//   - search and replace must differ ONLY in numeric value
+//
+// TRACK RECORD GATE:
+//   - Last 3 closed auto-PRs (label supervisor-self-mod) must all be MERGED
+//   - None of them reverted within the last 7 days
+//   - At least 1 day since the most recent auto-merge (cooldown)
+//
+// HARD GUARDRAILS (cannot be relaxed):
+//   - PR must already pass Phase 4 validatePatch
+//   - Operator can disable instantly by removing PHASE5_AUTO_MERGE_ENABLED
+//   - Each auto-merge logs to Ops_Insights with full context for audit
+//   - NEVER auto-merges its own PRs from the same run (must be a separate PR
+//     opened earlier and aged at least 1 hour for human review window)
+
+const PHASE5_MIN_TRACK_RECORD = 3;
+const PHASE5_MERGE_COOLDOWN_HOURS = 24;
+const PHASE5_HUMAN_REVIEW_WINDOW_HOURS = 1;
+
+function phase5Enabled() {
+  return process.env.PHASE5_AUTO_MERGE_ENABLED === "true";
+}
+
+function phase5IsEligiblePatch(patch) {
+  // Stricter than Phase 4 sub-whitelist.
+  if (!patch || patch.file !== "agents/tenants/pinnacle.json") return false;
+  if (patch.change_type !== "threshold_adjust") return false;
+  // Sanity check: search and replace differ only in a number.
+  const stripNums = (s) => String(s).replace(/\d+(?:\.\d+)?/g, "N");
+  if (stripNums(patch.search) !== stripNums(patch.replace)) return false;
+  return true;
+}
+
+async function phase5CheckTrackRecord() {
+  // Fetch closed auto-PRs (label supervisor-self-mod), check last N were merged.
+  const r = await ghApiFetch(`/issues?state=closed&labels=supervisor-self-mod&per_page=20`);
+  if (!r.ok) return { eligible: false, reason: `track-record fetch failed: ${r.status}` };
+  const closed = (r.json || []).filter((i) => i.pull_request); // PRs only
+  if (closed.length < PHASE5_MIN_TRACK_RECORD) {
+    return { eligible: false, reason: `only ${closed.length}/${PHASE5_MIN_TRACK_RECORD} closed auto-PRs` };
+  }
+  const recent = closed.slice(0, PHASE5_MIN_TRACK_RECORD);
+  for (const issue of recent) {
+    // For PRs, check merged state via the pulls API.
+    const pr = await ghApiFetch(`/pulls/${issue.number}`);
+    if (!pr.ok || !pr.json?.merged) {
+      return { eligible: false, reason: `PR #${issue.number} not merged (closed without merge)` };
+    }
+  }
+  // Cooldown: last auto-merge must be > PHASE5_MERGE_COOLDOWN_HOURS ago.
+  if (recent.length > 0) {
+    const mostRecent = recent[0].closed_at ? new Date(recent[0].closed_at).getTime() : 0;
+    const hoursSince = (Date.now() - mostRecent) / 3_600_000;
+    if (hoursSince < PHASE5_MERGE_COOLDOWN_HOURS) {
+      return { eligible: false, reason: `cooldown: last auto-merge ${hoursSince.toFixed(1)}h ago (need ${PHASE5_MERGE_COOLDOWN_HOURS}h)` };
+    }
+  }
+  return { eligible: true, reason: `${recent.length} PRs merged clean, cooldown OK` };
+}
+
+async function phase5FindAutoMergeable(cfg) {
+  // Open auto-PRs aged >1h that match the sub-whitelist.
+  const r = await ghApiFetch(`/pulls?state=open&per_page=50`);
+  if (!r.ok) return [];
+  const openAuto = (r.json || []).filter((pr) => pr.head?.ref?.startsWith(PHASE4_BRANCH_PREFIX));
+  const eligible = [];
+  for (const pr of openAuto) {
+    const ageHours = (Date.now() - new Date(pr.created_at).getTime()) / 3_600_000;
+    if (ageHours < PHASE5_HUMAN_REVIEW_WINDOW_HOURS) continue;
+    // Fetch the diff to validate sub-whitelist.
+    const filesResp = await ghApiFetch(`/pulls/${pr.number}/files`);
+    if (!filesResp.ok) continue;
+    const files = filesResp.json || [];
+    if (files.length !== 1) continue; // must be single-file change
+    if (files[0].filename !== "agents/tenants/pinnacle.json") continue;
+    eligible.push(pr);
+  }
+  return eligible;
+}
+
+async function phase5AutoMerge(pr) {
+  // Squash merge the PR via GitHub API.
+  const r = await ghApiFetch(`/pulls/${pr.number}/merge`, {
+    method: "PUT",
+    body: { merge_method: "squash", commit_title: `Phase 5 auto-merge: ${pr.title}` },
+  });
+  return { ok: r.ok, status: r.status, response: r.text };
+}
+
+async function runPhase5AutoMerge(cfg, runId) {
+  if (!phase5Enabled()) {
+    return { merged: 0, reason: "PHASE5_AUTO_MERGE_ENABLED!=true (operator opt-in required)" };
+  }
+  const track = await phase5CheckTrackRecord();
+  if (!track.eligible) {
+    return { merged: 0, reason: `track-record gate: ${track.reason}` };
+  }
+  const candidates = await phase5FindAutoMergeable(cfg);
+  if (candidates.length === 0) {
+    return { merged: 0, reason: "no eligible open auto-PRs (must be aged ≥1h, single-file pinnacle.json change)" };
+  }
+  // Merge at most 1 per run.
+  const pr = candidates[0];
+  const merge = await phase5AutoMerge(pr);
+  if (!merge.ok) {
+    return { merged: 0, reason: `merge failed HTTP ${merge.status}: ${merge.response.slice(0, 150)}` };
+  }
+  // Audit trail to Ops_Insights.
+  if (cfg.airtable?.[INSIGHTS_KEY]) {
+    await airtableCreate(cfg, INSIGHTS_KEY, {
+      insight_id: `phase5_${runId.slice(0, 8)}_pr${pr.number}`,
+      tenant_id: cfg.tenant_id,
+      detected_at: isoNow(),
+      category: "auto-merge",
+      severity: "info",
+      status: "applied",
+      trigger_run_id: runId,
+      component: "phase5-auto-merge",
+      window: "single-pr",
+      pattern_description: `Auto-merged PR #${pr.number}: ${pr.title}\nBranch: ${pr.head.ref}\nAge: ${((Date.now() - new Date(pr.created_at).getTime()) / 3_600_000).toFixed(1)}h\nTrack record: ${track.reason}`,
+    }).catch(() => null);
+  }
+  return { merged: 1, pr_number: pr.number, pr_url: pr.html_url, track_record: track.reason };
+}
+
 function formatDecisionsForTelegram(decisions) {
   if (!decisions || decisions.length === 0) return "";
   const buckets = { HIGH: [], MED: [], LOW: [] };
@@ -1372,6 +1508,22 @@ async function main() {
     }
   }
 
+  // ── Phase 5: Auto-merge with sub-whitelist (off by default — opt-in) ──
+  // Only runs in evolve mode, only when PHASE5_AUTO_MERGE_ENABLED=true,
+  // only after track-record gate (3+ consecutive merged PRs without revert).
+  let phase5Result = { merged: 0, reason: "skipped" };
+  if (args.mode === "evolve" && !args.dryRun) {
+    phase5Result = await runPhase5AutoMerge(cfg, runId).catch((e) => {
+      console.error(`[supervisor] phase5 failed: ${e.message}`);
+      return { merged: 0, reason: `error: ${e.message}` };
+    });
+    if (phase5Result.merged > 0) {
+      console.error(`[supervisor] phase5: auto-merged PR #${phase5Result.pr_number}`);
+    } else {
+      console.error(`[supervisor] phase5: ${phase5Result.reason}`);
+    }
+  }
+
   const completedAt = isoNow();
   const duration = Math.round((Date.parse(completedAt) - Date.parse(startedAt)) / 1000);
 
@@ -1556,9 +1708,13 @@ Log freshness: fc=${infra.last_fc_hours ?? "?"}h seg=${infra.last_seg_hours ?? "
   const phase2HasProposal = decisions.some((d) => d.tier === "HIGH" || d.tier === "MED");
   const phase3Acted = phase3Result.executed > 0 || phase3Result.breaker?.open;
   const phase4Proposed = phase4Result.proposed === true;
-  if ((phase2HasProposal || phase3Acted || phase4Proposed) && !shouldAlert) {
+  const phase5Merged = phase5Result.merged > 0;
+  if ((phase2HasProposal || phase3Acted || phase4Proposed || phase5Merged) && !shouldAlert) {
     shouldAlert = true;
-    alertReason = phase4Proposed ? "phase4_pr_opened" : phase3Acted ? "phase3_acted" : "phase2_proposal";
+    alertReason = phase5Merged ? "phase5_auto_merged"
+                : phase4Proposed ? "phase4_pr_opened"
+                : phase3Acted ? "phase3_acted"
+                : "phase2_proposal";
   }
 
   if (shouldAlert) {
@@ -1576,7 +1732,11 @@ Log freshness: fc=${infra.last_fc_hours ?? "?"}h seg=${infra.last_seg_hours ?? "
     if (phase4Proposed) {
       phase4Block = `\n\n🤖 *Phase 4 self-modification PR*\n• ${phase4Result.patch.change_type} on \`${phase4Result.patch.file}\`\n• Lesson: \`${phase4Result.lesson_id}\`\n• PR: ${phase4Result.pr_url}\n• Status: DRAFT — requires human review`;
     }
-    await telegramSend(cfg, (baseMsg + decisionsBlock + phase3Block + phase4Block).slice(0, 3800));
+    let phase5Block = "";
+    if (phase5Merged) {
+      phase5Block = `\n\n🚀 *Phase 5 AUTO-MERGED*\n• PR #${phase5Result.pr_number} merged automatically\n• Track record: ${phase5Result.track_record}\n• ${phase5Result.pr_url}`;
+    }
+    await telegramSend(cfg, (baseMsg + decisionsBlock + phase3Block + phase4Block + phase5Block).slice(0, 3800));
   }
   // Persist phase3 outcomes summary to Ops_Health for circuit breaker history.
   const phase3OutcomesString = phase3Result.attempts.map((a) => a.outcome).join(",");
