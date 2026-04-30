@@ -1191,7 +1191,7 @@ def _tool_invoke_creativo(task: str, record_id: str = None) -> str:
     if not http_requests:
         return "Error: librería 'requests' no instalada."
 
-    dispatch_url = f"{BRIDGE_URL.rstrip('/')}/agents/github_dispatch.php"
+    dispatch_url = f"{BRIDGE_URL.rstrip('/')}/github_dispatch.php"
     payload = {
         "workflow": "agents-cron.yml",
         "ref": "master",
