@@ -505,22 +505,35 @@ TOOLS = [
     {
         "name": "invoke_director",
         "description": (
-            "Invoca a El Director para generar Reels y videos con Blotato. "
-            "Lee registros de Airtable Social Media con Formato=Reel/Video y Video_Script_EN listo, "
-            "construye los inputs del template de video (AI Story Video o AI Selfie Video según el tipo), "
-            "genera el video con Blotato, espera a que complete, y guarda la URL en Airtable. "
-            "Úsalo cuando el Jefe pida generar Reels, videos de historia narrada, o videos de Jorge hablando."
+            "Dispara El Director v2 vía GitHub Actions (workflow_dispatch sobre agents-cron.yml). "
+            "Pipeline real: faceless Reels — Airtable read (Formato=Reel) → narrative_B expand → "
+            "Pexels stock + Nano Banana/Flux Schnell para hero → Puppeteer scene render + ffmpeg "
+            "composite (zoompan + crossfade + música) → Cloudinary upload → Airtable PATCH visual_url. "
+            "NO usa Blotato (regla R10 — AI imagen aluciona texto en español). "
+            "El runner remoto lee Airtable directamente — el bot solo dispara.\n"
+            "\n"
+            "DOS MODOS según el parámetro record_id:\n"
+            "  • Sin record_id → mode=batch: procesa hasta 10 Reels pendientes "
+            "(Formato=Reel, Status=Nueva, Visual_Prompt set, visual_url empty, Error_Reason empty). "
+            "Úsalo para 'genera los reels', 'corre el director', 'procesa reels pendientes'.\n"
+            "  • Con record_id → mode=one: regenera el Reel de ESE registro específico. "
+            "Úsalo cuando el Jefe pida 'regenera el reel de recXXX', 'rehaz ese video', "
+            "o cuando rechace un video y haya que producir uno nuevo. Extrae el record_id del mensaje "
+            "(empieza con 'rec', 17 caracteres alfanuméricos).\n"
+            "\n"
+            "PENDIENTE: branch HeyGen para 'Jorge habla' (avatar) — esperando API key del Jefe. "
+            "Mientras tanto el Director v2 hace solo faceless con texto + música."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
                 "task": {
                     "type": "string",
-                    "description": "Descripción de la tarea: 'generar reels pendientes', o especificar record_id concreto"
+                    "description": "Descripción de la tarea (e.g. 'generar reels pendientes' o 'regenerar reel de recXXX')"
                 },
                 "record_id": {
                     "type": "string",
-                    "description": "ID específico de Airtable a procesar (opcional)"
+                    "description": "Airtable record_id específico (formato 'recXXXXXXXXXXXXXXX'). Si presente, regenera ese registro. Si vacío, batch (procesa pendientes en cola)."
                 }
             },
             "required": ["task"]
