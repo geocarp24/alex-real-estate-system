@@ -66,3 +66,21 @@ Default Pinnacle aesthetic (homeowner-facing, NOT tech audience): editorial + wa
 Backend-only agents (Mercader, Posicionador, Cazador, Clasificador, Analista, Espia, Auditor, Remitente, Supervisor, Creativo runner, Director runner) do NOT need these skills unless they output human-readable formatted reports (then invoke `impeccable` + `full-output-enforcement`).
 
 Anti-regression: any UI proposal that does NOT cite at least one Design Taste Suite skill is rejected. See root `CLAUDE.md` rule 1e.
+
+## Codebase Intelligence — graphify (Jorge 2026-05-02 — non-negotiable)
+Before any cross-file audit, refactor, debugging, or onboarding task, sub-agents MUST invoke `graphify` to build or query the knowledge graph.
+
+Trigger: `/graphify` (or CLI `graphify`).
+
+Activation:
+- Cross-file refactor (3+ files): `/graphify .` then `graphify path "A" "B"`.
+- Field/feature audit ("is X still used?"): `/graphify .` instead of manual grep.
+- Onboarding: `/graphify .` produces GRAPH_REPORT.md.
+- Cross-file debugging: `graphify explain "<node>"`.
+- Dependency questions: `graphify query "<question>"`.
+
+Skip when work is confined to 1-2 files. Output goes to `graphify-out/` (gitignored — regenerate on demand).
+
+Stack with `claude-mem:pathfinder` for deeper feature-grouped analysis.
+
+See root `CLAUDE.md` rule 1f.
