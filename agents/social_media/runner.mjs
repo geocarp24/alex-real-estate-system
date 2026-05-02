@@ -239,7 +239,6 @@ Return JSON only.`;
         "Formato": idea.formato || "Post",
         "Plataforma": "AMBAS",
         "Visual_Prompt": idea.visual_prompt || "",
-        "Blotato_Template_ID": TEMPLATE_CARRUSEL,
         "Status": "Nueva",
       };
       const result = await smCreate(fields);
