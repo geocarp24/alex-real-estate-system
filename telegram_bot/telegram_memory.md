@@ -155,3 +155,23 @@ Phase 2 SIGUE siendo no-destructiva: auto_apply es FLAG para que Fase 3 actúe, 
 **Pendiente Fase 5 (NUNCA del agente, decisión humana):** auto-merge con sub-whitelist más estrecha + N éxitos consecutivos.
 
 ---
+
+## 2026-05-02 — Director v2, Skills Suite, Bot↔GHA bridges
+
+**Bot Telegram (Creativo + Director):** los `_tool_invoke_creativo` y `_tool_invoke_director` ahora SOLO disparan GHA workflow_dispatch. Soportan dos modos: sin record_id → batch (procesa pendientes); con record_id → regenera ese específico. Endpoint: `https://pinnaclegroupwi.com/agents/github_dispatch.php` con `X-Alex-Secret`.
+
+**Director v2 cableado:**
+- Cherry-picked de branch huérfana `claude/greeting-setup-yOfqf` (50+ archivos, 14 task commits)
+- Faceless reels: Pexels stock + Nano Banana / Flux Schnell + Puppeteer + ffmpeg + música
+- Cron `30 21 */3 * *` (cada 3 días)
+- 5 tracks de música reales subidos por Jorge (chill, cinematic, tension, upbeat 1+2)
+- Hybrid stack (Opción 4): faceless por defecto + HeyGen avatar Jorge cuando llegue API key
+- ElevenLabs descartado (silent kinetic basta para faceless)
+
+**Airtable schema:** borrados Branding_Spec + Blotato_Template_ID. Re-creados video_duration + video_cost_cents + Error_Reason (multilineText). Filter director_v2 excluye `Error_Reason!=''` para no reintentar errores.
+
+**15 skills nuevas:** Design Taste Suite (14 — pbakaus/leonxlnx/emilkowalski) + graphify (safishamsi). Reglas obligatorias en `CLAUDE.md` §1e + §1f. Default Pinnacle aesthetic: editorial limpio + warmth para homeowners.
+
+**Pendiente:** Doppler creds verify (test corriendo), Programador (Meta tokens), HeyGen creds.
+
+---
