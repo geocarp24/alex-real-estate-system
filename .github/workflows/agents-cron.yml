@@ -168,6 +168,10 @@ jobs:
           TELEGRAM_CHAT_ID:         ${{ secrets.TELEGRAM_CHAT_ID }}
           ANTHROPIC_API_KEY:        ${{ secrets.ANTHROPIC_API_KEY }}
           BLOTATO_API_KEY:          ${{ secrets.BLOTATO_API_KEY }}
+          # Director v2 expects AIRTABLE_SM_* prefix (alias of existing SM_AIRTABLE_TOKEN).
+          AIRTABLE_SM_TOKEN:        ${{ secrets.SM_AIRTABLE_TOKEN }}
+          AIRTABLE_SM_BASE_ID:      "appU9s3kGkVpdrJkw"
+          AIRTABLE_SM_TABLE_ID:     "tblAj0Pkj1jW4p5Ld"
           MERCADER_TRIGGER:         "gha"
           POSICIONADOR_TRIGGER:     "gha"
           ESCRIBA_TRIGGER:          "gha"
