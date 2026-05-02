@@ -242,4 +242,19 @@ Detalle completo en `memoria_ALex.md` raíz.
 
 ---
 
-*Última actualización: 2026-04-29*
+## 2026-05-02 — Director v2 + Skills Suite + Bot↔GHA bridges
+
+- **Bot Telegram**: `_tool_invoke_creativo` y `_tool_invoke_director` reescritos. YA NO ejecutan el pipeline en el bot. Disparan GHA workflow_dispatch vía `https://pinnaclegroupwi.com/agents/github_dispatch.php` con `X-Alex-Secret`. Soportan `mode=batch` (default) y `mode=one` con `record_id` para regenerate.
+- **Director v2** cherry-picked de `claude/greeting-setup-yOfqf` (branch huérfana, 50+ archivos, 14 task commits). Renombrado `main.mjs` → `director_v2.mjs`. Wired en `agents-cron.yml` cron `30 21 */3 * *`. Filter Airtable: `Formato=Reel,Status=Nueva,Visual_Prompt set,visual_url empty,Error_Reason empty`. Status writes='Visual Listo' (existente, no 'Lista'). Errores → solo `Error_Reason`, no Status change.
+- **Hybrid Director (Opción 4 elegida por Jorge)**: `Tipo=Personal/Jorge habla` → HeyGen (pendiente API key). `Tipo=Educativo/Promocional` → director_v2 actual (silent kinetic, NO voiceover, NO ElevenLabs).
+- **Audio**: 5 tracks reales subidos por Jorge (no eran stubs como decía LICENSES.md desactualizado). Fix de `.mp3.mp3` → `.mp3` vía `git mv`.
+- **Airtable schema**: borrados Branding_Spec + Blotato_Template_ID. Re-creados video_duration + video_cost_cents + nuevo Error_Reason.
+- **Skills (15 nuevas globales)**: Design Taste Suite (14 — leonxlnx + pbakaus + emilkowalski) + graphify (safishamsi). Reglas en CLAUDE.md §1e + §1f. Default Pinnacle aesthetic: editorial limpio + warmth.
+- **HeyGen para producción**: REST API directo, NO MCP/Skills (esos son para Claude Desktop interactivo). Creds necesarias: HEYGEN_API_KEY, HEYGEN_AVATAR_ID_JORGE, HEYGEN_VOICE_ID_JORGE_EN/ES.
+- **Pendiente al cierre**: D6 verify Doppler creds (test corriendo), Programador (Meta tokens), HeyGen creds.
+
+Detalle completo en `memoria_ALex.md` raíz sección "2026-05-02".
+
+---
+
+*Última actualización: 2026-05-02*
