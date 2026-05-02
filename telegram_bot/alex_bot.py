@@ -1249,133 +1249,63 @@ def _tool_invoke_creativo(task: str, record_id: str = None) -> str:
 
 def _tool_invoke_director(task: str, record_id: str = None) -> str:
     """
-    Orquesta a El Director:
-    1. Lee registros Reel/Video pendientes de Airtable SM
-    2. Usa Claude para construir los inputs de video (scenes array)
-    3. Llama a Blotato con AI Story Video o AI Selfie Video
-    4. Espera y guarda la URL del video en Airtable
+    Dispara El Director v2 vía GitHub Actions workflow_dispatch.
+
+    Pipeline real (faceless reels — NO Blotato):
+      GHA agents-cron.yml → director_v2.mjs → Airtable read (Formato=Reel) →
+      narrative_B expand → Pexels stock + Nano Banana / Flux Schnell → ffmpeg
+      composite (zoompan + crossfade + música) → Cloudinary upload →
+      Airtable visual_url update.
+
+    Filtro Airtable: Formato=Reel, Status=Nueva, Visual_Prompt set, visual_url empty,
+    Error_Reason empty. Procesa hasta 10 reels por run, ~3-8 min cada uno.
+    HeyGen avatar branch (Jorge habla) — pendiente que Jefe consiga API key.
     """
     if not http_requests:
         return "Error: librería 'requests' no instalada."
 
-    sm_headers = {"Authorization": f"Bearer {SM_AIRTABLE_TOKEN}", "Content-Type": "application/json"}
-    table_id = SM_TABLE_IDS["Ideas de Contenido"]
+    record_id = (record_id or "").strip()
+    is_one = bool(record_id)
 
-    if record_id:
-        url = f"{SM_AIRTABLE_BASE_URL}/{table_id}/{record_id}"
-        resp = http_requests.get(url, headers=sm_headers, timeout=30).json()
-        records = [resp] if "id" in resp else []
-    else:
-        formula = "AND(OR({Formato}='Reel',{Formato}='Video'),OR({Status}='Nueva',{Status}='Aprobada',{Status}='En Produccion'),{visual_url}='',{Video_Script_EN}!='')"
-        url = f"{SM_AIRTABLE_BASE_URL}/{table_id}?filterByFormula={http_requests.utils.quote(formula)}&maxRecords=2"
-        resp = http_requests.get(url, headers=sm_headers, timeout=30).json()
-        records = resp.get("records", [])
+    dispatch_inputs = {"agent": "director_v2", "mode": "batch"}
+    if is_one:
+        dispatch_inputs["record_id"] = record_id
 
-    if not records:
-        return "✅ El Director: No hay Reels/Videos pendientes."
+    dispatch_url = f"{BRIDGE_URL.rstrip('/')}/github_dispatch.php"
+    payload = {
+        "workflow": "agents-cron.yml",
+        "ref": "master",
+        "inputs": dispatch_inputs,
+    }
 
-    results = []
-    for record in records:
-        rec_id = record.get("id", "")
-        fields = record.get("fields", {})
-        titulo = fields.get("Título de Idea", rec_id)
-        script_en = fields.get("Video_Script_EN", "")
-        script_es = fields.get("Video_Script_ES", "")
-        visual_prompt = fields.get("Visual_Prompt", "")
-
-        logger.info(f"[Director] Procesando: {titulo}")
-
-        # Determinar template (basado en título — Jorge habla → selfie)
-        if "jorge habla" in titulo.lower() or "jorge" in titulo.lower():
-            template_id = BLOTATO_SELFIE_TPL
-            video_type = "selfie"
-        else:
-            template_id = BLOTATO_STORY_TPL
-            video_type = "story"
-
-        # Usar Claude para construir inputs del video
-        director_system = load_agent_prompt("director")
-        if video_type == "story":
-            build_msg = (
-                f"Construye los inputs para AI Story Video.\n\n"
-                f"Título: {titulo}\nScript EN: {script_en}\nScript ES: {script_es}\n"
-                f"Visual_Prompt: {visual_prompt}\n\n"
-                "Responde ÚNICAMENTE con JSON válido:\n"
-                '{"inputs": {"scenes": [{"mediaSource": "descripción visual", "script": "voiceover text"}, ...], '
-                '"voiceName": "Bill (American, trustworthy)", "aiImageModel": "fal-ai/nano-banana-pro", '
-                '"aspectRatio": "9:16", "captionPosition": "bottom", "highlightColor": "#C9A84C", "transition": "fade"}}\n'
-                "CRÍTICO: mediaSource debe ser string directo NO VACÍO, nunca objeto aiPrompt. Máximo 3 escenas."
-            )
-        else:
-            build_msg = (
-                f"Construye los inputs para AI Selfie Video.\n\n"
-                f"Título: {titulo}\nScript EN: {script_en}\nScript ES: {script_es}\n\n"
-                "Responde ÚNICAMENTE con JSON válido:\n"
-                '{"inputs": {"scenes": [{"description": "descripción visual escena", "narration": "lo que dice"}, ...], '
-                '"characterDescription": "Hispanic male in his 30s-40s, professional business casual attire, '
-                'confident and trustworthy expression, warm smile, dark hair. Real estate investor founder.", '
-                '"style": "realistic", "aspectRatio": "9:16"}}\n'
-                "CRÍTICO: characterDescription debe ser texto descriptivo, NUNCA una URL."
-            )
-
-        # SMART ESCALATION: El Director starts with Sonnet, escalates to Opus if complex
-        if MODEL_CONFIG_LOADED:
-            model = get_model_with_escalation_logging(
-                agent_name="director",
-                prompt=build_msg,
-                task_id=f"director_{rec_id}_{datetime.now().timestamp()}",
-                log_to_airtable=True
-            )
-        else:
-            model = CLAUDE_MODEL
-        raw = _run_subagent_sync(director_system, build_msg, model=model)
-
-        try:
-            import re
-            json_match = re.search(r'\{.*\}', raw, re.DOTALL)
-            video_data = json.loads(json_match.group()) if json_match else {}
-            inputs = video_data.get("inputs", {})
-        except Exception:
-            inputs = {}
-
-        if not inputs:
-            results.append(f"⚠️ {titulo}: Claude no generó inputs de video válidos.")
-            continue
-
-        overall_prompt = f"TITLE: {titulo}. 15-second {'selfie' if video_type == 'selfie' else 'story'} video for Pinnacle Holdings Group LLC. Script: {script_en[:200]}"
-        create_result = _blotato_create_visual(
-            template_id=template_id,
-            prompt=overall_prompt,
-            inputs=inputs,
-            render=True
+    try:
+        resp = http_requests.post(
+            dispatch_url,
+            headers={"X-Alex-Secret": ALEX_SECRET, "Content-Type": "application/json"},
+            json=payload,
+            timeout=20,
         )
+    except Exception as e:
+        return f"❌ El Director: error de red contactando GHA dispatch — {e}"
 
-        visual_id = create_result.get("id")
-        if not visual_id:
-            results.append(f"❌ {titulo}: Blotato no retornó ID — {create_result}")
-            continue
+    if resp.status_code not in (200, 204):
+        return f"❌ El Director: GHA dispatch rechazado (HTTP {resp.status_code}) — {resp.text[:300]}"
 
-        logger.info(f"[Director] Video creado: {visual_id}, esperando...")
-        final = _blotato_poll_visual(visual_id, max_wait=900, interval=30)
-
-        if final.get("status") != "done":
-            results.append(f"⏳ {titulo}: Video en proceso ({final.get('status')}) — ID: {visual_id}")
-            continue
-
-        media_url = final.get("mediaUrl", "") or (final.get("imageUrls") or [""])[0]
-        patch_resp = http_requests.patch(
-            f"{SM_AIRTABLE_BASE_URL}/{table_id}/{rec_id}",
-            headers=sm_headers,
-            json={"fields": {"visual_url": media_url, "Blotato_Visual_ID": visual_id, "Status": "Visual Listo"}},
-            timeout=30
-        ).json()
-
-        if "id" in patch_resp:
-            results.append(f"✅ {titulo}\n   Template: {'AI Selfie Video' if video_type == 'selfie' else 'AI Story Video'}\n   mediaUrl: {media_url}\n   Blotato ID: {visual_id}")
-        else:
-            results.append(f"⚠️ {titulo}: Video listo pero error en Airtable — {patch_resp}")
-
-    return "\n\n".join(results) if results else "El Director: Sin resultados."
+    runs_url = "https://github.com/geocarp24/alex-real-estate-system/actions/workflows/agents-cron.yml"
+    if is_one:
+        return (
+            f"🎬 El Director (regenerate Reel) disparado vía GHA.\n"
+            f"Target: `{record_id}` — sobreescribe video existente.\n"
+            f"Pipeline: Pexels/Nano-Banana → ffmpeg → Cloudinary → Airtable (~3-5 min).\n"
+            f"Run en vivo: {runs_url}"
+        )
+    return (
+        f"🎬 El Director v2 (batch) disparado vía GHA.\n"
+        f"Pipeline: faceless reels (Pexels + Nano Banana + ffmpeg + música).\n"
+        f"Filtro: Formato=Reel, Status=Nueva, Visual_Prompt set, visual_url empty.\n"
+        f"Procesa hasta 10 reels en este run (~3-8 min c/u).\n"
+        f"Run en vivo: {runs_url}"
+    )
 
 
 # ─────────────────────────────────────────────
