@@ -62,6 +62,29 @@ Todo lo que construyamos es producto SaaS vendible. Pinnacle es el tenant cero, 
 
 **Skill de memoria activado:** cada vez que un agente futuro se desvíe a "AI imagen para carruseles con texto", ALEX debe rechazar y citar esta regla 1d. Decisión histórica documentada en sesión 2026-04-29 cuando Jefe rechazó visuales generados por Replicate Nano Banana por errores ortográficos.
 
+### 1e. UI/FRONTEND CRAFT — `impeccable` + `emil-design-eng` OBLIGATORIOS (orden directa Jorge 2026-05-02)
+**REGLA NO NEGOCIABLE — TODOS los agentes (ALEX + sub-agentes) deben invocar estos skills SIN EXCUSAS cada vez que se diseñe, edite, audite, critique, animate o pula cualquier interfaz visual de Pinnacle**: popups, formularios, landing pages, chatbot UI, emails HTML, dashboards, MU-plugins WordPress, componentes web, onboarding, empty states, error states, transiciones, micro-interacciones, tipografía, color, layout, accesibilidad, motion.
+
+**Skills instaladas globalmente** (`~/.agents/skills/`, symlink Claude Code):
+- **`impeccable`** (`pbakaus/impeccable`) — Production-grade frontend craft. Cubre UX review, visual hierarchy, IA, cognitive load, a11y, performance, responsive, theming, anti-patterns, motion, micro-interactions, UX copy, error states, edge cases, i18n, design tokens.
+- **`emil-design-eng`** (`emilkowalski/skill`) — Filosofía Emil Kowalski: taste como diferenciador, detalles invisibles que compounden, beauty as leverage, animation decisions.
+
+**Reglas de activación automática (sin pedir permiso, sin pensarlo):**
+| Tarea | Skill obligatoria |
+|---|---|
+| Mockup, wireframe o diseño nuevo de UI | `impeccable` (primero) + `emil-design-eng` (validación de taste) |
+| Audit/review/critique de interfaz existente | `impeccable` (review format con tabla Before/After) |
+| Animaciones, transiciones, micro-interactions | `emil-design-eng` |
+| Polish, "make it feel right", refinement | `emil-design-eng` |
+| Componentes nuevos en MU-plugins, popups, formularios | `impeccable` + `emil-design-eng` |
+| Cualquier cosa visible al usuario final | Ambos |
+
+**Composición con reglas existentes**: `impeccable`/`emil-design-eng` se invocan **JUNTO CON** `responsive-design`, `mobile-ios-design` (regla 1.b mobile-first) y `accessibility-compliance`/`a11y-audit`. NO los reemplazan — son aditivos, no sustitutivos.
+
+**Excepción única**: backend puro sin UI (agents de cron, runners de Node, scripts de DB, fetchs API) — no aplica. Pero si hay output visible (logs formateados para humano, reportes Telegram con markdown, tablas de output), `impeccable` se activa para review de format/legibility.
+
+**Anti-regresión**: si un agente futuro propone una UI sin invocar estos skills, ALEX debe rechazar y citar esta regla 1e. Cualquier edición de archivos `.html`, `.css`, `.tsx`, `.jsx`, `.vue`, `.svelte`, popups en `.php`, o WordPress templates dispara la activación.
+
 ### 1b. MOBILE-FIRST — PRIORIDAD #1 PERMANENTE (orden directa de Jorge 2026-04-23)
 Todo el trabajo de Pinnacle (popups, formularios, páginas, chatbot, emails, creatives, CTAs, imágenes, cualquier componente) debe diseñarse y probarse **mobile-first**. El mobile es mayoría del tráfico en real estate — homeowners buscan "sell my house fast" desde el celular.
 - NUNCA excluir mobile por viewport sin consultar al Jefe
