@@ -173,10 +173,8 @@ Guarda en `tblAj0Pkj1jW4p5Ld` con estos campos exactos:
   "Semana":            1,
   "Status":            "Nueva",
   "Visual_Prompt":     "[Prompt completo para El Creativo — ver estructura arriba]",
-  "Blotato_Template_ID": "53cfec04-2500-41cf-8cc1-ba670d2c341a",  ← para TODOS los carruseles y posts de imagen
   "Video_Script_EN":   "[Script EN 15s — solo si Reel/Video]",
-  "Video_Script_ES":   "[Script ES 15s — solo si Reel/Video]",
-  "Branding_Spec":     "Logo: https://pinnaclegroupwi.com/wp-content/uploads/2026/03/logo-pinnacle.png | Colors: #0D3B2E bg / #FFFFFF text / #C9A84C accent | Position: bottom-right watermark"
+  "Video_Script_ES":   "[Script ES 15s — solo si Reel/Video]"
 }
 ```
 
