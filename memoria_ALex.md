@@ -2928,3 +2928,120 @@ Todo lo que se construya para Pinnacle debe diseñarse desde el día 1 como **pr
 **Aprobado por:** Jorge Cruz — 2026-04-29
 
 ---
+
+## 2026-05-02 — SESIÓN: Telegram→GHA bridges, Skills Suite, Director v2 cherry-pick, Airtable cleanup
+
+### 1. Telegram bot ↔ GHA bridges (Creativo + Director)
+
+**Patrón nuevo:** los `_tool_invoke_*` del bot ya NO ejecutan pipelines en el bot. Disparan `agents-cron.yml` vía `https://pinnaclegroupwi.com/agents/github_dispatch.php` con `X-Alex-Secret` header. El cron remoto hace el trabajo pesado.
+
+**Creativo** (`telegram_bot/alex_bot.py:1180`):
+- Sin record_id → `mode=batch` (3 ideas pendientes/run, ~3-5 min)
+- Con record_id → `mode=one` (regenera ese visual específico, sobreescribe `visual_url`)
+- Tool description actualizada para que el LLM extraiga record_id de mensajes tipo "regenera el visual de recXXX"
+- Validado end-to-end: `rec1j0KYhvNGmKTlO` regenerado, `visual_url` cambió de `cixnxrmhcv1m` → `ktoy3fwoi2mx` (nuevo Cloudinary upload).
+
+**Director v2** (`telegram_bot/alex_bot.py:1250`):
+- Mismo patrón. `mode=batch` procesa hasta 10 Reels pendientes.
+- Filtro Airtable: `Formato=Reel,Status=Nueva,Visual_Prompt set,visual_url empty,Error_Reason empty`.
+- HeyGen branch (Jorge habla) pendiente de API key.
+
+**Workflow update** (`.github/workflows/agents-cron.yml`):
+- Nuevo input `record_id` (opcional) en `workflow_dispatch`
+- Step `run` añade `--record-id $RECORD_ID` si está presente
+- Bug fix: tenía `env:` block duplicado al inicio que rompía YAML — ahora consolidado
+
+### 2. Airtable Schema cleanup + recreate
+
+**Tabla `Ideas de Contenido` (`appU9s3kGkVpdrJkw / tblAj0Pkj1jW4p5Ld`):**
+
+Borrado vía UI (API no soporta DELETE de field, solo CREATE/UPDATE):
+- `Branding_Spec` (12% pop, orphan en código)
+- `Blotato_Template_ID` (46% pop, no usado por nuevo Creativo Puppeteer)
+
+Re-creado vía Meta API después (director_v2 los necesita):
+- `video_duration` (number precision 1) — `fldgWpORIRHdXMMW4`
+- `video_cost_cents` (number precision 0) — `fld63klplj0o6O85q`
+- `Error_Reason` (multilineText) — `fldiyHueGHFfmeb1h`
+
+**Estado final**: 22 → 18 → 21 fields (neto: -1).
+
+**Limpieza de código** (refs a campos borrados): `agents/social_media/runner.mjs`, `agents/social_media.md`, `agents/creativo.md`, `agents/director.md`, `telegram_bot/alex_bot.py:1285`. Verificado con grep — 0 refs restantes.
+
+### 3. Skills Suite — 15 skills nuevas instaladas globalmente
+
+Todas en `~/.agents/skills/` (symlink Claude Code), instaladas vía `npx skills add ... --yes --global`:
+
+**Diseño/UI (14 skills — leonxlnx + pbakaus + emilkowalski):**
+`impeccable`, `emil-design-eng`, `design-taste-frontend`, `gpt-taste`, `high-end-visual-design`, `minimalist-ui`, `industrial-brutalist-ui`, `redesign-existing-projects`, `stitch-design-taste`, `image-to-code`, `imagegen-frontend-web`, `imagegen-frontend-mobile`, `brandkit`, `full-output-enforcement`.
+
+Default Pinnacle aesthetic (homeowners en distress, NO tech): editorial limpio + warmth — primarias `minimalist-ui` + `high-end-visual-design` + `impeccable`.
+
+**Codebase intelligence (1 skill — safishamsi):**
+`graphify` (`~/.claude/skills/graphify/SKILL.md`, CLI `graphify` desde PyPI `graphifyy` v0.6.2 + 25 tree-sitter parsers). Trigger `/graphify`. Output `graphify-out/` (gitignored).
+
+**Reglas registradas en `CLAUDE.md`:**
+- §1e — Design Taste Suite obligatoria para cualquier UI/HTML/CSS/JSX/popup PHP/email HTML
+- §1f — graphify obligatorio para refactor/audit cross-file (3+ archivos)
+- También en `agents/CLAUDE.md` para sub-agentes
+
+### 4. Director v2 — Cherry-pick de `claude/greeting-setup-yOfqf`
+
+**Origen**: branch nunca mergeada a master (detectada vía `git for-each-ref --contains`). 50+ archivos, 14 task commits con tests (42+ test cases).
+
+**Extracción surgical** (NO merge total, solo subtree): `git checkout origin/claude/greeting-setup-yOfqf -- agents/director_v2/`.
+
+**Cambios aplicados**:
+- Renombrado `main.mjs` → `director_v2.mjs` (matches cron pattern `agents/${agent}/${agent}.mjs`)
+- `package.json` scripts actualizados: `node main.mjs` → `node director_v2.mjs`
+- `main.mjs:155` Status='Lista' → Status='Visual Listo' (reusa opción existente, evitando PATCH a singleSelect que API rechaza)
+- `safePatchError` ya no escribe Status='Error' (singleSelect no lo tiene), solo `Error_Reason`
+- `airtable.mjs:7` filter actualizado: añadido `{Error_Reason}=''` para evitar reintentar errores
+- Wired en `agents-cron.yml`: nuevo cron `30 21 */3 * *`, install ffmpeg + npm ci en director_v2/, env aliases `AIRTABLE_SM_TOKEN/BASE_ID/TABLE_ID`
+
+**Decisión arquitectónica — Director Hybrid (Opción 4):**
+- `Tipo=Personal / "Jorge habla"` → HeyGen avatar (PENDIENTE: API key, avatar_id, voice_id_en/es)
+- `Tipo=Educativo/Promocional` → director_v2 actual = silent kinetic (Pexels stock + texto + música, NO voiceover)
+- ElevenLabs descartado — silent kinetic basta para faceless
+
+**Música**: 5 tracks reales subidos por Jorge a GitHub el 2026-05-02 (chill/cinematic/tension/upbeat 1+2). 94-130s, 255kbps, max_volume 0.0 dB (verificado con ffprobe). El `LICENSES.md` original mentía sobre "stubs silenciosos" — corregido. Files con extensión doble `.mp3.mp3` por GitHub UI quirk — corregido vía `git mv`.
+
+### 5. HeyGen integration research (Jorge confirmó querer Hybrid Opción 4)
+
+**HeyGen tiene 2 productos para Claude (oficiales):**
+1. **MCP Server** (`heygen-com/heygen-mcp`, hosted en `https://mcp.heygen.com/mcp/v1/`) — para Claude Desktop interactivo. Tools: `generate_avatar_video`, `get_avatar_video_status`, `get_avatars`, `get_voices`, `get_remaining_credits`.
+2. **Skills** (`heygen-com/skills`) — para Claude Code SDK / Cursor / etc.
+
+**Verdict para Pinnacle**: para producción (GHA cron) usamos **REST API directo**, NO el MCP/Skills (que son para uso interactivo). Solo necesitamos:
+- `HEYGEN_API_KEY` (en Doppler cuando Jorge la consiga)
+- `HEYGEN_AVATAR_ID_JORGE`
+- `HEYGEN_VOICE_ID_JORGE_EN` + `HEYGEN_VOICE_ID_JORGE_ES`
+
+**Plan HeyGen necesario**: Creator $29/mes (incluye Photo Avatar custom + 200 créditos = ~10 min premium o 30 min estándar). Cost API ~$1/min estándar, ~$3/min Avatar IV. Volumen Pinnacle (4-8 reels/mes) ≈ $31-33/mes total.
+
+### 6. Otros cambios cableados
+
+- `.gitignore`: añadido `graphify-out/` y `.graphify/`
+- Workflow YAML duplicate `env:` bug fix (`agents-cron.yml`)
+- B (merge work branch → master): pushed `b874b2b → 3ab209f → d38d906 → c46f6fc`
+
+### 7. Estado al cierre de sesión
+
+| Componente | Status |
+|---|---|
+| Creativo | Producción (GHA cron 3d + bot dispatch + regenerate) |
+| Director v2 (faceless) | Wired completo, esperando confirmación de Doppler creds (PEXELS, GEMINI, REPLICATE, CLOUDINARY) — primer test corriendo |
+| Director HeyGen (avatar Jorge) | Esperando que Jorge consiga API key + avatar entrenado |
+| Programador (FB+IG publish) | Esperando Meta Page Token + IG Business ID en Doppler |
+| Backlog Creativo | 7 ideas pendientes (cron las clear cada 3 días, batch manual disponible) |
+
+### 8. Lecciones aprendidas (anti-regresión)
+
+- **Airtable Meta API NO soporta DELETE de field** — solo UI. Para CREATE de fields y opciones de singleSelect, lo PATCH de opciones también puede fallar (422) en algunos casos — pivot a usar opciones existentes en lugar de añadir nuevas.
+- **Branch huérfana con código clave**: `git for-each-ref --contains <commit>` localiza ramas que tienen un commit aunque no estén mergeadas a master. Usar para detectar trabajo perdido.
+- **Cherry-pick subtree > merge total** cuando una branch tiene 100+ commits divergentes pero solo necesitamos 1 directorio.
+- **Audio file naming via GitHub UI**: si subes `chill_1.mp3` desde el sistema operativo donde Windows oculta extensiones, el upload puede quedar como `chill_1.mp3.mp3`. Verificar con `ls` post-upload o usar `git mv` para corregir.
+- **Auto-save hooks** del repo committea + pushea cada ~30s. Funciona, pero stop-hook puede dispararse entre commits — no es bug, es ventana transitoria.
+- **`/graphify` es overkill para 1-2 archivos** — usar grep/Read directo. graphify se justifica para 3+ archivos o dependencias no obvias.
+
+---
