@@ -1282,12 +1282,11 @@ def _tool_invoke_director(task: str, record_id: str = None) -> str:
         script_en = fields.get("Video_Script_EN", "")
         script_es = fields.get("Video_Script_ES", "")
         visual_prompt = fields.get("Visual_Prompt", "")
-        template_id_field = fields.get("Blotato_Template_ID", "")
 
         logger.info(f"[Director] Procesando: {titulo}")
 
-        # Determinar template
-        if "selfie" in template_id_field.lower() or "jorge habla" in titulo.lower() or "jorge" in titulo.lower():
+        # Determinar template (basado en título — Jorge habla → selfie)
+        if "jorge habla" in titulo.lower() or "jorge" in titulo.lower():
             template_id = BLOTATO_SELFIE_TPL
             video_type = "selfie"
         else:
