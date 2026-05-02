@@ -159,7 +159,7 @@ async function processRecord(record, { env, dryRun, stats }) {
 
 async function safePatchError(recordId, reason, env) {
   try {
-    await updateRecord(sanitizeRecordId(recordId), { Status: 'Error', Error_Reason: reason }, env);
+    await updateRecord(sanitizeRecordId(recordId), { Error_Reason: reason }, env);
   } catch (e) {
     console.error(`[patch_failed] ${recordId}: ${shortMessage(e)}`);
   }
