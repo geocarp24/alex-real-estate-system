@@ -40,6 +40,8 @@ on:
     - cron:  "30 20 */3 * *"          # social_media:full_pipeline
     # El Creativo — generates visuals via Replicate Nano Banana + Cloudinary
     - cron:  "0 21 */3 * *"           # creativo:batch
+    # El Director v2 — faceless reels (text + Pexels stock + ffmpeg + music) for Reel Formato
+    - cron:  "30 21 */3 * *"          # director_v2:batch
   workflow_dispatch:
     inputs:
       agent:
@@ -47,7 +49,7 @@ on:
         type: choice
         required: true
         default: "mercader"
-        options: [mercader, posicionador, escriba, cazador, clasificador, analista, espia, auditor, remitente, social_media, creativo]
+        options: [mercader, posicionador, escriba, cazador, clasificador, analista, espia, auditor, remitente, social_media, creativo, director_v2]
       mode:
         description: "Mode (depends on agent)"
         type: string
