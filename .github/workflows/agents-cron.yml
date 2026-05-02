@@ -138,6 +138,16 @@ jobs:
           npm install playwright-chromium --no-save --silent
           npx playwright install chromium --with-deps
 
+      - name: Install ffmpeg + Director v2 deps (Puppeteer + Pexels + Cloudinary)
+        if: steps.job.outputs.agent == 'director_v2'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          ffmpeg -version | head -1
+          cd "${{ github.workspace }}/agents/director_v2"
+          npm ci --silent
+          npx puppeteer browsers install chrome 2>&1 | tail -3
+
       - name: Override claude binary path for GHA
         run: |
           node -e "
