@@ -77,7 +77,6 @@ curl -s -X POST "https://api.airtable.com/v0/appU9s3kGkVpdrJkw/tbli9BsyIwrhwa3aS
       "Script EN": "[Video_Script_EN]",
       "Script ES": "[Video_Script_ES]",
       "Duración_seg": 15,
-      "Template_ID": "[Blotato_Template_ID]",
       "Status": "Aprobado"
     }
   }'
