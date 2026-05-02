@@ -30,3 +30,18 @@
 - Pipeline calls compound. Every token saved per call multiplies across runs.
 - No explanatory text in agent output unless a human will read it.
 - Return the minimum viable output that satisfies the task spec.
+
+## UI/Frontend Craft (Jorge 2026-05-02 — non-negotiable, all sub-agents)
+Every sub-agent that touches UI (HTML/CSS/JSX/TSX/Vue/Svelte/popups in PHP/WordPress templates/email HTML/Telegram markdown reports for humans) MUST invoke these skills:
+- **impeccable** (`pbakaus/impeccable`) — production-grade frontend craft, UX review, visual hierarchy, a11y, motion, micro-interactions, design tokens.
+- **emil-design-eng** (`emilkowalski/skill`) — taste, polish, animation decisions, invisible details.
+
+Activation rules:
+- New UI mockup/component: invoke `impeccable` first, then `emil-design-eng` for taste validation.
+- UI audit/review: invoke `impeccable` (use Before/After table format).
+- Animations/transitions/polish: invoke `emil-design-eng`.
+- Stack with existing rules: composes with `responsive-design`, `mobile-ios-design`, `accessibility-compliance` — additive, not replacement.
+
+Backend-only agents (Mercader, Posicionador, Cazador, Clasificador, Analista, Espia, Auditor, Remitente, Supervisor, Creativo runner, Director runner) do NOT need these skills unless they output human-readable formatted reports (then invoke `impeccable` for legibility review).
+
+Anti-regression: any UI proposal that does NOT cite `impeccable` or `emil-design-eng` is rejected. See root `CLAUDE.md` rule 1e.
