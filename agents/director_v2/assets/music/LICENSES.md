@@ -1,28 +1,21 @@
 # Director v2 — Music Track Licenses
 
-## ⚠️ STUBS — REPLACE BEFORE PRODUCTION POC
+The 5 `.mp3` files in this directory are real royalty-free instrumental tracks
+sourced and uploaded by Jorge (Pinnacle owner) on 2026-05-02.
 
-The 5 `.mp3` files in this directory are **silent placeholder stubs** generated with ffmpeg `anullsrc`. They are 30 seconds of digital silence at 128kbps stereo, used so the pipeline tests + ffmpeg audio mix work end-to-end.
+| Filename         | Mood       | Duration | Bitrate  | Source           |
+|------------------|------------|----------|----------|------------------|
+| chill_1.mp3      | chill      | 94.0s    | 255kbps  | Jorge personal   |
+| cinematic_1.mp3  | cinematic  | 130.4s   | 256kbps  | Jorge personal   |
+| tension_1.mp3    | tension    | 127.3s   | 255kbps  | Jorge personal   |
+| upbeat_1.mp3     | upbeat     | 122.0s   | 255kbps  | Jorge personal   |
+| upbeat_2.mp3     | upbeat     | 69.3s    | 255kbps  | Jorge personal   |
 
-**Before generating the Task 14 POC video for Jorge's review, these stubs MUST be replaced with real royalty-free instrumental tracks** matching the moods. Procedure:
+The Director v2 pipeline (`src/audio.mjs`) selects by mood prefix and concatenates
+with the rendered scenes via ffmpeg's `amix` filter, looping/trimming as needed
+to match the video duration.
 
-1. Visit https://pixabay.com/music/ and search each phrase below
-2. Pick the top result that matches the mood and is 15-60 seconds
-3. Verify the page shows "Pixabay Content License" or "CC0" — both are royalty-free for commercial use, no attribution required
-4. Download and save to this directory with the exact filename listed below
-
-| Filename | Search phrase | Mood | Status |
-|---|---|---|---|
-| upbeat_1.mp3   | "upbeat corporate" | upbeat | ⚠️ STUB (silent) |
-| upbeat_2.mp3   | "upbeat energy" | upbeat | ⚠️ STUB (silent) |
-| chill_1.mp3    | "chill lofi real estate" | chill | ⚠️ STUB (silent) |
-| cinematic_1.mp3| "cinematic inspirational" | cinematic | ⚠️ STUB (silent) |
-| tension_1.mp3  | "dramatic build up" | tension | ⚠️ STUB (silent) |
-
-After replacing each, update the row to:
-
-| Filename | Source URL | License | Mood |
-|---|---|---|---|
-| upbeat_1.mp3 | https://pixabay.com/music/<actual-slug>/ | Pixabay Content License | upbeat |
-
-The Director v2 pipeline does not care whether the file is silent or contains music — it just looks up by mood prefix and concatenates with the rendered scenes via ffmpeg's `amix` filter. Real tracks improve perceived quality but do not change the test results.
+If you replace any track:
+1. Keep the exact filename (the audio selector matches by basename).
+2. Confirm royalty-free / CC0 / Pixabay-content-license / personal-licensed for commercial use.
+3. Re-export at 128-256kbps stereo MP3 for consistency.
