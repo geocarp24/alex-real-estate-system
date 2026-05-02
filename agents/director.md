@@ -61,7 +61,6 @@ Del registro de Airtable extrae:
 - `Video_Script_EN` → script en inglés (15-30s)
 - `Video_Script_ES` → script en español
 - `Visual_Prompt` → instrucciones visuales completas con branding
-- `Blotato_Template_ID` → template a usar
 - `Título de Idea` → para identificar el video
 
 ### Paso 3 — Guardar script en Scripts de Video
