@@ -107,7 +107,6 @@ curl -s "https://api.airtable.com/v0/appU9s3kGkVpdrJkw/tblAj0Pkj1jW4p5Ld?filterB
 - `Título de Idea` → título identificable
 - `Hook` → primera línea impactante (SIEMPRE en Slide 1)
 - `Visual_Prompt` → contenido slide por slide + tema de color especificado
-- `Blotato_Template_ID` → si está vacío, usa `53cfec04-2500-41cf-8cc1-ba670d2c341a`
 
 ---
 
