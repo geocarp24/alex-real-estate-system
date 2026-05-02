@@ -112,6 +112,35 @@ Todo lo que construyamos es producto SaaS vendible. Pinnacle es el tenant cero, 
 
 **Anti-regresión**: si un agente futuro propone una UI sin invocar las skills correspondientes del suite, ALEX debe rechazar y citar esta regla 1e. Cualquier edición de archivos `.html`, `.css`, `.tsx`, `.jsx`, `.vue`, `.svelte`, popups en `.php`, WordPress templates, emails HTML/MJML, o mockups dispara la activación.
 
+### 1f. CODEBASE INTELLIGENCE — `graphify` OBLIGATORIO (orden directa Jorge 2026-05-02)
+**REGLA NO NEGOCIABLE — Antes de tareas de auditoría, refactor, debugging cross-file, onboarding o detección de código muerto, TODOS los agentes deben invocar `graphify` para construir/consultar el knowledge graph del codebase.**
+
+**Skill**: `graphify` (`safishamsi/graphify`) — instalada en `~/.claude/skills/graphify/SKILL.md`. Trigger: `/graphify`. CLI: `graphify` (PyPI `graphifyy`).
+
+**Qué hace**: convierte cualquier carpeta (código + SQL schemas + docs + papers + imágenes + videos) en un knowledge graph navegable con community detection, audit trail y 3 outputs: HTML interactivo, JSON GraphRAG-ready, GRAPH_REPORT.md plain-language. Usa Tree-sitter (static) + LLM (semantic) — entiende QUÉ hace el código y POR QUÉ se diseñó así.
+
+**Reglas de activación automática (sin pedir permiso, sin pensarlo):**
+| Tarea | Acción graphify |
+|---|---|
+| Auditoría de campos Airtable / fields que ya no se usan | `/graphify .` para detectar referencias muertas en todo el codebase de un solo paso (en vez de grep manual archivo por archivo) |
+| Refactor cross-file (renombrar función/variable usada en N archivos) | `/graphify` + `graphify path "FunctionA" "FunctionB"` |
+| Onboarding de nuevo sub-agente / nuevo desarrollador | `/graphify .` → genera GRAPH_REPORT.md como tour del sistema |
+| Debugging de un bug que toca múltiples archivos | `/graphify` + `graphify explain "<nodo afectado>"` |
+| "¿Qué archivos dependen de X?" / "¿Qué llama a Y?" | `graphify query "<pregunta>"` (BFS sobre el grafo) |
+| Detectar código duplicado o concerns repetidos | `/graphify` con `pathfinder` (skill complementaria de claude-mem) |
+| Antes de proponer cambios estructurales (mover archivos, dividir módulos) | `/graphify .` para mapear el blast radius |
+| Dudas sobre por qué existe un archivo / un agent / un endpoint | `graphify explain "archivo.mjs"` o `graphify explain "function_name"` |
+
+**Output ubicación por defecto**: `graphify-out/` (gitignore por defecto — NO commitear el grafo a master, regenerar bajo demanda).
+
+**Composición con otras skills**:
+- `graphify` PRIMERO para mapear → luego invocar la skill específica (`systematic-debugging`, `simplify`, `code-review-excellence`, etc.) con contexto enriquecido.
+- Para preguntas rápidas (1-2 archivos), grep/Read sigue siendo más eficiente. graphify se justifica cuando la consulta involucra **3+ archivos** o **dependencias no obvias**.
+
+**Skill complementaria ya instalada**: `claude-mem:pathfinder` (mapping feature-agrupado, detecta duplicación) — invocar JUNTO con graphify para análisis profundo de codebase.
+
+**Anti-regresión**: si un agente futuro hace refactor/audit cross-file sin invocar graphify, ALEX debe pausar y citar esta regla 1f. La excepción es trabajo confinado a 1-2 archivos.
+
 ### 1b. MOBILE-FIRST — PRIORIDAD #1 PERMANENTE (orden directa de Jorge 2026-04-23)
 Todo el trabajo de Pinnacle (popups, formularios, páginas, chatbot, emails, creatives, CTAs, imágenes, cualquier componente) debe diseñarse y probarse **mobile-first**. El mobile es mayoría del tráfico en real estate — homeowners buscan "sell my house fast" desde el celular.
 - NUNCA excluir mobile por viewport sin consultar al Jefe
