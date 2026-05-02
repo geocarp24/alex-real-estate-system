@@ -62,28 +62,55 @@ Todo lo que construyamos es producto SaaS vendible. Pinnacle es el tenant cero, 
 
 **Skill de memoria activado:** cada vez que un agente futuro se desvíe a "AI imagen para carruseles con texto", ALEX debe rechazar y citar esta regla 1d. Decisión histórica documentada en sesión 2026-04-29 cuando Jefe rechazó visuales generados por Replicate Nano Banana por errores ortográficos.
 
-### 1e. UI/FRONTEND CRAFT — `impeccable` + `emil-design-eng` OBLIGATORIOS (orden directa Jorge 2026-05-02)
-**REGLA NO NEGOCIABLE — TODOS los agentes (ALEX + sub-agentes) deben invocar estos skills SIN EXCUSAS cada vez que se diseñe, edite, audite, critique, animate o pula cualquier interfaz visual de Pinnacle**: popups, formularios, landing pages, chatbot UI, emails HTML, dashboards, MU-plugins WordPress, componentes web, onboarding, empty states, error states, transiciones, micro-interacciones, tipografía, color, layout, accesibilidad, motion.
+### 1e. UI/FRONTEND CRAFT — DESIGN TASTE SUITE OBLIGATORIA (orden directa Jorge 2026-05-02)
+**REGLA NO NEGOCIABLE — TODOS los agentes (ALEX + sub-agentes) deben invocar las skills correspondientes del Design Taste Suite SIN EXCUSAS cada vez que se diseñe, edite, audite, critique, animate, redibuje o pula cualquier interfaz visual de Pinnacle**: popups, formularios, landing pages, chatbot UI, emails HTML, dashboards, MU-plugins WordPress, componentes web, onboarding, empty states, error states, transiciones, micro-interacciones, tipografía, color, layout, accesibilidad, motion, branding, mockups.
 
-**Skills instaladas globalmente** (`~/.agents/skills/`, symlink Claude Code):
-- **`impeccable`** (`pbakaus/impeccable`) — Production-grade frontend craft. Cubre UX review, visual hierarchy, IA, cognitive load, a11y, performance, responsive, theming, anti-patterns, motion, micro-interactions, UX copy, error states, edge cases, i18n, design tokens.
-- **`emil-design-eng`** (`emilkowalski/skill`) — Filosofía Emil Kowalski: taste como diferenciador, detalles invisibles que compounden, beauty as leverage, animation decisions.
+**Suite instalada globalmente** (`~/.agents/skills/`, symlink Claude Code) — 14 skills curadas:
+
+| Skill | Source | Foco |
+|---|---|---|
+| `impeccable` | pbakaus | Production-grade frontend craft, UX review, visual hierarchy, a11y, performance |
+| `emil-design-eng` | emilkowalski | Filosofía Emil Kowalski — taste como diferenciador, animation decisions |
+| `design-taste-frontend` | leonxlnx | Senior UI/UX engineer — métrica strict, CSS hardware acceleration, design engineering |
+| `gpt-taste` | leonxlnx | Elite UX/UI + GSAP motion, AIDA, editorial typography, bento grids, ScrollTrigger |
+| `high-end-visual-design` | leonxlnx | Look agencia premium — fonts, spacing, shadows, cards, animations que evitan "AI generic" |
+| `minimalist-ui` | leonxlnx | Editorial limpio — monochrome warm, typographic contrast, flat bento, NO gradients |
+| `industrial-brutalist-ui` | leonxlnx | Swiss + military terminal — rigid grids, type scale extremo, para data-heavy / portfolios |
+| `redesign-existing-projects` | leonxlnx | Upgrade webs existentes a premium sin romper funcionalidad |
+| `stitch-design-taste` | leonxlnx | Genera DESIGN.md semánticos para Google Stitch — typo strict, color calibrado, asymmetric |
+| `image-to-code` | leonxlnx | Image → code para tareas visuales importantes (genera diseño, analiza, implementa) |
+| `imagegen-frontend-web` | leonxlnx | Mockups web premium — hero minimalism, hierarchy, anti-slop |
+| `imagegen-frontend-mobile` | leonxlnx | Mockups mobile en frame iPhone — clean hierarchy, multi-screen consistency |
+| `brandkit` | leonxlnx | Brand-guidelines boards — minimalist/cinematic/editorial/luxury/dark-tech/dev-tool |
+| `full-output-enforcement` | leonxlnx | Anti-truncation — fuerza output completo, prohíbe placeholders |
 
 **Reglas de activación automática (sin pedir permiso, sin pensarlo):**
 | Tarea | Skill obligatoria |
 |---|---|
-| Mockup, wireframe o diseño nuevo de UI | `impeccable` (primero) + `emil-design-eng` (validación de taste) |
-| Audit/review/critique de interfaz existente | `impeccable` (review format con tabla Before/After) |
-| Animaciones, transiciones, micro-interactions | `emil-design-eng` |
-| Polish, "make it feel right", refinement | `emil-design-eng` |
-| Componentes nuevos en MU-plugins, popups, formularios | `impeccable` + `emil-design-eng` |
-| Cualquier cosa visible al usuario final | Ambos |
+| Mockup nuevo / componente UI | `impeccable` + `design-taste-frontend` + `emil-design-eng` (taste check) |
+| Landing page de Pinnacle (sell-my-house) | `high-end-visual-design` + `imagegen-frontend-web` + `impeccable` |
+| Popup, formulario, lead capture | `impeccable` + `minimalist-ui` (editorial limpio para HOMEOWNERS) |
+| Audit/review/critique de UI existente | `impeccable` (Before/After table) + `redesign-existing-projects` |
+| Upgrade/redesign de página existente | `redesign-existing-projects` + `high-end-visual-design` |
+| Animaciones / motion / micro-interactions / scroll | `emil-design-eng` + `gpt-taste` (GSAP) |
+| Mockups / image-to-code / wireframes visuales | `image-to-code` + `imagegen-frontend-web` (web) o `imagegen-frontend-mobile` (mobile) |
+| Brand kit, logo system, identity deck | `brandkit` |
+| Dashboards data-heavy / portfolio editorial | `industrial-brutalist-ui` |
+| Diseño con DESIGN.md output | `stitch-design-taste` |
+| Cualquier código UI con riesgo de truncation | `full-output-enforcement` |
+| Polish / "make it feel right" / refinement | `emil-design-eng` + `impeccable` |
+| Cualquier UI visible al usuario final | Mínimo: `impeccable` + `emil-design-eng` |
 
-**Composición con reglas existentes**: `impeccable`/`emil-design-eng` se invocan **JUNTO CON** `responsive-design`, `mobile-ios-design` (regla 1.b mobile-first) y `accessibility-compliance`/`a11y-audit`. NO los reemplazan — son aditivos, no sustitutivos.
+**Default Pinnacle aesthetic** (para sell-my-house homeowners, NO dev/tech audience):
+- Tono: editorial limpio + warmth (NO brutalist, NO tech-cyberpunk)
+- Skills primarias: `minimalist-ui` + `high-end-visual-design` + `impeccable`
+- Skills secundarias para variantes: `redesign-existing-projects` para fixes, `emil-design-eng` para polish
 
-**Excepción única**: backend puro sin UI (agents de cron, runners de Node, scripts de DB, fetchs API) — no aplica. Pero si hay output visible (logs formateados para humano, reportes Telegram con markdown, tablas de output), `impeccable` se activa para review de format/legibility.
+**Composición con reglas existentes**: este suite se invoca **JUNTO CON** `responsive-design`, `mobile-ios-design` (regla 1.b mobile-first), `accessibility-compliance`/`a11y-audit`, y `senior-frontend`/`senior-fullstack` cuando aplique. **Aditivo, no sustitutivo.**
 
-**Anti-regresión**: si un agente futuro propone una UI sin invocar estos skills, ALEX debe rechazar y citar esta regla 1e. Cualquier edición de archivos `.html`, `.css`, `.tsx`, `.jsx`, `.vue`, `.svelte`, popups en `.php`, o WordPress templates dispara la activación.
+**Excepción única**: backend puro sin UI (agents de cron, runners de Node, scripts de DB, fetchs API) — no aplica. Pero si hay output visible (logs formateados para humano, reportes Telegram con markdown, tablas de output, emails generados), `impeccable` + `full-output-enforcement` se activan para review de legibility y completitud.
+
+**Anti-regresión**: si un agente futuro propone una UI sin invocar las skills correspondientes del suite, ALEX debe rechazar y citar esta regla 1e. Cualquier edición de archivos `.html`, `.css`, `.tsx`, `.jsx`, `.vue`, `.svelte`, popups en `.php`, WordPress templates, emails HTML/MJML, o mockups dispara la activación.
 
 ### 1b. MOBILE-FIRST — PRIORIDAD #1 PERMANENTE (orden directa de Jorge 2026-04-23)
 Todo el trabajo de Pinnacle (popups, formularios, páginas, chatbot, emails, creatives, CTAs, imágenes, cualquier componente) debe diseñarse y probarse **mobile-first**. El mobile es mayoría del tráfico en real estate — homeowners buscan "sell my house fast" desde el celular.
