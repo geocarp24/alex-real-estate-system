@@ -275,7 +275,7 @@ async function processVisuals(cfg, runId) {
   for (const idea of ideas) {
     const f = idea.fields || {};
     const prompt = f.Visual_Prompt || "";
-    const templateId = f.Blotato_Template_ID || TEMPLATE_CARRUSEL;
+    const templateId = TEMPLATE_CARRUSEL;
     if (!prompt || !BLOTATO_KEY) {
       results.push({ id: idea.id, status: "skip", reason: "no prompt or no key" });
       continue;
