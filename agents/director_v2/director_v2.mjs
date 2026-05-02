@@ -178,9 +178,15 @@ async function main() {
     CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
     CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
   };
-  for (const [k, v] of Object.entries(env)) {
-    if (!v) { console.error(`ERROR: env ${k} missing (Doppler)`); process.exit(1); }
+  // Hard-required: Airtable + Pexels + Cloudinary (no fallback).
+  // Soft-optional: Gemini (Nano Banana premium AI) + Replicate (Flux Schnell standard AI).
+  // If soft are missing, runner falls back to Pexels-only stock for hero scenes.
+  const HARD_REQUIRED = ['token', 'baseId', 'tableId', 'PEXELS_API_KEY', 'CLOUDINARY_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'];
+  for (const k of HARD_REQUIRED) {
+    if (!env[k]) { console.error(`ERROR: env ${k} missing (Doppler) — HARD REQUIRED`); process.exit(1); }
   }
+  if (!env.GEMINI_API_KEY)      console.error('WARN: GEMINI_API_KEY missing — Nano Banana premium tier disabled, will use Replicate or Pexels fallback');
+  if (!env.REPLICATE_API_TOKEN) console.error('WARN: REPLICATE_API_TOKEN missing — Flux Schnell standard tier disabled, will use Pexels fallback');
 
   await rm(TMP, { recursive: true, force: true });
   await mkdir(TMP, { recursive: true });
