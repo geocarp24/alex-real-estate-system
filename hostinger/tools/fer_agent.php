@@ -155,6 +155,37 @@ if ($contactId === null) {
     $contactName = 'there';
 }
 
+// ── 5b. TCPA opt-out fast path ───────────────────────────────────
+// Hard-coded keyword scan BEFORE Claude is invoked. If the lead signals stop in
+// any form, we mark them DNC + Dead immediately, log it, and exit without sending
+// a reply. TCPA requires honoring opt-out without a clarifying question.
+$bodyLc   = strtolower($body);
+$optOutRx = '/\b(stop|stopall|unsubscribe|cancel|quit|end|opt[- ]?out|remove me|do ?not (text|call|contact|message)|don\'?t (text|call|contact|message) me|fuck off|leave me alone|wrong number|not interested|wtf)\b/i';
+$isHardNo = preg_match($optOutRx, $body) === 1;
+// Also treat a bare "no" / "nope" / "no thanks" reply (≤15 chars) as opt-out when prior outreach was an outbound prompt.
+$isBareNo = preg_match('/^\s*(no|nope|no thanks|no thank you|nah|na)\s*[.!]?\s*$/i', $body) === 1;
+if ($isHardNo || $isBareNo) {
+    fer_log_warn('opt_out_detected', [
+        'phone'     => $fromPhone,
+        'contactId' => $contactId,
+        'pattern'   => $isHardNo ? 'hard_no' : 'bare_no',
+        'body'      => mb_substr($body, 0, 120),
+    ]);
+    if ($contactId) {
+        fer_at_update_contact($contactId, [
+            'Stage'             => 'Dead',
+            'Do not contact'    => true,
+            'Last contact date' => date('Y-m-d'),
+            'Negotiation notes' => fer_at_append_notes(
+                $negotiationNotes,
+                '[' . date('Y-m-d H:i') . '] Auto-DNC: lead replied "' . mb_substr($body, 0, 80) . '" — TCPA opt-out, no further contact.'
+            ),
+        ]);
+    }
+    echo json_encode(['ok' => true, 'opt_out' => true, 'phone' => $fromPhone]);
+    exit;
+}
+
 // ── 5. Conversation history fetch (local files) ─────────────────
 $convRecord = fer_conv_get($fromPhone);
 $history    = $convRecord['history']      ?? '';
