@@ -14,12 +14,24 @@ export function buildVideoCommand({ scenes, musicPath, outputPath, width = 1080,
   const args = ['-y'];
 
   for (const s of scenes) {
-    args.push('-loop', '1', '-framerate', String(FPS), '-i', s.imagePaths[0]);
+    if (s.videoPath) {
+      // HeyGen-style video clip: native input, no -loop.
+      args.push('-i', s.videoPath);
+    } else {
+      args.push('-loop', '1', '-framerate', String(FPS), '-i', s.imagePaths[0]);
+    }
   }
   args.push('-i', musicPath);
 
   const filterParts = [];
   scenes.forEach((s, i) => {
+    if (s.videoPath) {
+      // Video clip: scale/crop to canvas, trim to duration. No zoompan (avatar is the focal element).
+      filterParts.push(
+        `[${i}:v]scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},setsar=1,fps=${FPS},trim=duration=${s.duration}[v${i}]`
+      );
+      return;
+    }
     const z0 = s.zoompan?.from ?? 1.0;
     const z1 = s.zoompan?.to   ?? 1.0;
     const frames = Math.max(1, Math.round(FPS * s.duration));

@@ -19,6 +19,19 @@ export async function listPending({ token, baseId, tableId, baseDelayMs = 1000 }
   return data.records || [];
 }
 
+export async function fetchOne(recordId, { token, baseId, tableId, baseDelayMs = 1000 }) {
+  const url = `${BASE}/${baseId}/${tableId}/${recordId}`;
+  const record = await withRetry(
+    async () => {
+      const res = await _fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error(`Airtable HTTP ${res.status} fetching ${recordId}`);
+      return res.json();
+    },
+    { attempts: 3, baseDelayMs }
+  );
+  return record;
+}
+
 export function parseVisualPrompt(raw) {
   if (!raw) throw new Error('parseVisualPrompt: empty input');
   let text = String(raw).trim();

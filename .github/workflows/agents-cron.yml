@@ -148,6 +148,16 @@ jobs:
           npm ci --silent
           npx puppeteer browsers install chrome 2>&1 | tail -3
 
+      - name: Clone video_toolkit + Python deps (Modal cloud GPU branch)
+        if: steps.job.outputs.agent == 'director_v2'
+        run: |
+          mkdir -p "$HOME/.openclaw/workspace"
+          if [ ! -d "$HOME/.openclaw/workspace/claude-code-video-toolkit" ]; then
+            git clone --depth 1 https://github.com/digitalsamba/claude-code-video-toolkit.git \
+              "$HOME/.openclaw/workspace/claude-code-video-toolkit"
+          fi
+          pip3 install --break-system-packages -q -r "$HOME/.openclaw/workspace/claude-code-video-toolkit/tools/requirements.txt"
+
       - name: Override claude binary path for GHA
         run: |
           node -e "
@@ -172,6 +182,24 @@ jobs:
           AIRTABLE_SM_TOKEN:        ${{ secrets.SM_AIRTABLE_TOKEN }}
           AIRTABLE_SM_BASE_ID:      "appU9s3kGkVpdrJkw"
           AIRTABLE_SM_TABLE_ID:     "tblAj0Pkj1jW4p5Ld"
+          # video_toolkit — Modal cloud GPU endpoints (Plan A: faceless premium Reels).
+          # Soft-optional: when missing, video_toolkit branch falls back to Director v2 default.
+          MODAL_QWEN3_TTS_ENDPOINT_URL:    ${{ secrets.MODAL_QWEN3_TTS_ENDPOINT_URL }}
+          MODAL_FLUX2_ENDPOINT_URL:        ${{ secrets.MODAL_FLUX2_ENDPOINT_URL }}
+          MODAL_MUSIC_GEN_ENDPOINT_URL:    ${{ secrets.MODAL_MUSIC_GEN_ENDPOINT_URL }}
+          MODAL_SADTALKER_ENDPOINT_URL:    ${{ secrets.MODAL_SADTALKER_ENDPOINT_URL }}
+          MODAL_LTX2_ENDPOINT_URL:         ${{ secrets.MODAL_LTX2_ENDPOINT_URL }}
+          MODAL_IMAGE_EDIT_ENDPOINT_URL:   ${{ secrets.MODAL_IMAGE_EDIT_ENDPOINT_URL }}
+          MODAL_UPSCALE_ENDPOINT_URL:      ${{ secrets.MODAL_UPSCALE_ENDPOINT_URL }}
+          MODAL_DEWATERMARK_ENDPOINT_URL:  ${{ secrets.MODAL_DEWATERMARK_ENDPOINT_URL }}
+          MODAL_TOKEN_ID:                  ${{ secrets.MODAL_TOKEN_ID }}
+          MODAL_TOKEN_SECRET:              ${{ secrets.MODAL_TOKEN_SECRET }}
+          # HeyGen — Director v2 hybrid (Personal posts with Jorge avatar).
+          # Soft-optional: when missing, scenes with heroSource=heygen_avatar fall back to faceless pipeline.
+          HEYGEN_API_KEY:           ${{ secrets.HEYGEN_API_KEY }}
+          HEYGEN_AVATAR_ID_JORGE:   ${{ secrets.HEYGEN_AVATAR_ID_JORGE }}
+          HEYGEN_VOICE_ID_JORGE_EN: ${{ secrets.HEYGEN_VOICE_ID_JORGE_EN }}
+          HEYGEN_VOICE_ID_JORGE_ES: ${{ secrets.HEYGEN_VOICE_ID_JORGE_ES }}
           MERCADER_TRIGGER:         "gha"
           POSICIONADOR_TRIGGER:     "gha"
           ESCRIBA_TRIGGER:          "gha"

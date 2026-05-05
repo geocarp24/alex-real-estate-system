@@ -1,18 +1,20 @@
 #!/usr/bin/env node
 // Director v2 — production orchestrator
-// Usage:   doppler run -- node main.mjs [--dry-run]
+// Usage:   doppler run -- node director_v2.mjs [--dry-run] [--record-id rec...]
 
 import { mkdir, rm, readFile, stat, writeFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { listPending, parseVisualPrompt, updateRecord } from './src/airtable.mjs';
+import { listPending, fetchOne, parseVisualPrompt, updateRecord } from './src/airtable.mjs';
 import { expandNarrative, validateSpec } from './src/narratives/index.mjs';
 import { buildSceneHtml } from './src/scene_layout.mjs';
 import { wrapSlideHtml } from './src/wrapper.mjs';
 import { renderScene, closeBrowser } from './src/render.mjs';
 import { searchPortrait, downloadToFile, PexelsNoResultsError } from './src/pexels.mjs';
 import { generateImage, NanoBananaFailedError } from './src/nano_banana.mjs';
+import { generateAvatarVideo, downloadVideo, pickVoiceId, HeyGenFailedError } from './src/heygen.mjs';
+import { generateImage as toolkitGenerateImage, isAvailable as toolkitAvailable, VideoToolkitError } from './src/video_toolkit.mjs';
 import { pickMusic } from './src/audio.mjs';
 import { buildVideoCommand, runFfmpeg } from './src/ffmpeg.mjs';
 import { uploadVideo } from './src/cloudinary.mjs';
@@ -49,11 +51,62 @@ Duración total:     ${mins}m ${secs}s
 ════════════════════════════════════════`.trim();
 }
 
-async function resolveHero(scene, { pexelsKey, geminiKey, replicateKey, tmpDir, stats, forcePexels }) {
+async function resolveHero(scene, { pexelsKey, geminiKey, replicateKey, heygenEnv, tmpDir, stats, forcePexels }) {
   const heroPath = join(tmpDir, `hero_${scene.index}.bin`);
   let effectiveSource = scene.heroSource;
-  if (forcePexels && (effectiveSource === 'nano_banana' || effectiveSource === 'flux_schnell')) {
+  if (forcePexels && (effectiveSource === 'nano_banana' || effectiveSource === 'flux_schnell' || effectiveSource === 'heygen_avatar')) {
     effectiveSource = 'pexels';
+  }
+
+  if (effectiveSource === 'heygen_avatar') {
+    if (!heygenEnv?.HEYGEN_API_KEY || !heygenEnv?.HEYGEN_AVATAR_ID_JORGE) {
+      console.error(`[scene ${scene.index}] heygen_avatar requested but HEYGEN_API_KEY/AVATAR_ID missing — falling back to pexels`);
+      stats.fallback++;
+      effectiveSource = 'pexels';
+    } else {
+      try {
+        const voiceId = pickVoiceId(scene.locale || 'en', heygenEnv);
+        if (!voiceId) throw new HeyGenFailedError(`HEYGEN_VOICE_ID_JORGE_${(scene.locale || 'en').toUpperCase()} missing`);
+        const videoPath = join(tmpDir, `hero_${scene.index}.mp4`);
+        const { videoUrl, durationSec } = await generateAvatarVideo({
+          script:    scene.heyScript || scene.text || scene.heroPrompt,
+          avatarId:  heygenEnv.HEYGEN_AVATAR_ID_JORGE,
+          voiceId,
+          apiKey:    heygenEnv.HEYGEN_API_KEY,
+          dimension: { width: 1080, height: 1920 },
+          background: scene.heyBackground || { type: 'color', value: '#000000' },
+        });
+        await downloadVideo(videoUrl, videoPath);
+        stats.heygenCalls = (stats.heygenCalls || 0) + 1;
+        stats.heygenSeconds = (stats.heygenSeconds || 0) + (durationSec || 0);
+        return { path: videoPath, sourceActual: 'heygen_avatar', isVideo: true, durationSec };
+      } catch (err) {
+        if (!(err instanceof HeyGenFailedError)) throw err;
+        console.error(`[scene ${scene.index}] HeyGen failed: ${err.message} — falling back to pexels`);
+        stats.fallback++;
+        effectiveSource = 'pexels';
+      }
+    }
+  }
+
+  if (effectiveSource === 'flux2') {
+    if (!toolkitAvailable('image')) {
+      console.error(`[scene ${scene.index}] flux2 requested but MODAL_FLUX2_ENDPOINT_URL missing — falling back to nano_banana`);
+      stats.fallback++;
+      effectiveSource = 'nano_banana';
+    } else {
+      try {
+        const heroPng = join(tmpDir, `hero_${scene.index}.png`);
+        await toolkitGenerateImage({ prompt: scene.heroPrompt, outputPath: heroPng, width: 1080, height: 1920 });
+        stats.flux2Calls = (stats.flux2Calls || 0) + 1;
+        return { path: heroPng, sourceActual: 'flux2' };
+      } catch (err) {
+        if (!(err instanceof VideoToolkitError)) throw err;
+        console.error(`[scene ${scene.index}] flux2 failed: ${err.message} — falling back to nano_banana`);
+        stats.fallback++;
+        effectiveSource = 'nano_banana';
+      }
+    }
   }
 
   if (effectiveSource === 'flux_schnell') {
@@ -104,6 +157,19 @@ async function resolveHero(scene, { pexelsKey, geminiKey, replicateKey, tmpDir, 
   return { path: null, sourceActual: 'theme_solid' };
 }
 
+// Override scene.heroSource based on Airtable Tipo_Contenido and available endpoints.
+// Plan A+B (Jorge 2026-05-04): Personal → HeyGen avatar; Educativo/Tip/Caso/Brand →
+// flux2 premium AI; default → keep spec value (Pexels/nano_banana per spec).
+function applyTipoContenidoRouting(scenes, tipo, env) {
+  const t = String(tipo || '').toLowerCase();
+  if (!t) return; // no override; keep spec
+  if (t === 'personal' && env.HEYGEN_API_KEY && env.HEYGEN_AVATAR_ID_JORGE) {
+    for (const s of scenes) if (!s.heroSource || s.heroSource === 'pexels') s.heroSource = 'heygen_avatar';
+  } else if (['educativo','tip','caso','brand'].includes(t) && env.MODAL_FLUX2_ENDPOINT_URL) {
+    for (const s of scenes) if (!s.heroSource || s.heroSource === 'pexels' || s.heroSource === 'nano_banana') s.heroSource = 'flux2';
+  }
+}
+
 async function processRecord(record, { env, dryRun, stats }) {
   const recordId = sanitizeRecordId(record.id);
   const recordTmp = join(TMP, recordId);
@@ -112,14 +178,22 @@ async function processRecord(record, { env, dryRun, stats }) {
   const spec = parseVisualPrompt(record.fields.Visual_Prompt);
   validateSpec(spec);
   const scenes = expandNarrative(spec);
+  applyTipoContenidoRouting(scenes, record.fields.Tipo_Contenido, env);
   enforcePerVideoBudget(scenes);
   const forcePexels = await shouldForcePexelsFallback(scenes);
 
   const frameOutputs = [];
   for (const scene of scenes) {
     const hero = await resolveHero(scene, {
-      pexelsKey: env.PEXELS_API_KEY, geminiKey: env.GEMINI_API_KEY, replicateKey: env.REPLICATE_API_TOKEN, tmpDir: recordTmp, stats, forcePexels,
+      pexelsKey: env.PEXELS_API_KEY, geminiKey: env.GEMINI_API_KEY, replicateKey: env.REPLICATE_API_TOKEN,
+      heygenEnv: env, tmpDir: recordTmp, stats, forcePexels,
     });
+    if (hero.isVideo) {
+      // HeyGen avatar clip: ffmpeg consumes the MP4 directly. Skip HTML overlay so the avatar's mouth and audio are not occluded.
+      const duration = hero.durationSec || scene.duration;
+      frameOutputs.push({ index: scene.index, duration, videoPath: hero.path, transitionOut: scene.transitionOut });
+      continue;
+    }
     const body = buildSceneHtml(scene, hero.path, spec.theme, spec.aspect);
     const html = wrapSlideHtml(body, spec.theme, spec.aspect);
     const files = await renderScene(html, scene, recordTmp);
@@ -165,8 +239,21 @@ async function safePatchError(recordId, reason, env) {
   }
 }
 
+function parseArgs(argv) {
+  const out = { dryRun: false, recordId: null };
+  for (let i = 2; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === '--dry-run') out.dryRun = true;
+    else if (a === '--record-id') out.recordId = argv[++i] || null;
+    else if (a.startsWith('--record-id=')) out.recordId = a.slice('--record-id='.length);
+  }
+  return out;
+}
+
 async function main() {
-  const dryRun = process.argv.includes('--dry-run');
+  const { dryRun, recordId } = parseArgs(process.argv);
+  console.log(`[director_v2] boot pid=${process.pid} node=${process.version} dryRun=${dryRun} recordId=${recordId || 'none'}`);
+
   const env = {
     token: process.env.AIRTABLE_SM_TOKEN,
     baseId: process.env.AIRTABLE_SM_BASE_ID,
@@ -177,16 +264,32 @@ async function main() {
     CLOUDINARY_NAME: process.env.CLOUDINARY_NAME,
     CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
     CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
+    HEYGEN_API_KEY: process.env.HEYGEN_API_KEY,
+    HEYGEN_AVATAR_ID_JORGE: process.env.HEYGEN_AVATAR_ID_JORGE,
+    HEYGEN_VOICE_ID_JORGE_EN: process.env.HEYGEN_VOICE_ID_JORGE_EN,
+    HEYGEN_VOICE_ID_JORGE_ES: process.env.HEYGEN_VOICE_ID_JORGE_ES,
+    MODAL_QWEN3_TTS_ENDPOINT_URL: process.env.MODAL_QWEN3_TTS_ENDPOINT_URL,
+    MODAL_FLUX2_ENDPOINT_URL:     process.env.MODAL_FLUX2_ENDPOINT_URL,
+    MODAL_LTX2_ENDPOINT_URL:      process.env.MODAL_LTX2_ENDPOINT_URL,
+    MODAL_IMAGE_EDIT_ENDPOINT_URL: process.env.MODAL_IMAGE_EDIT_ENDPOINT_URL,
   };
+
+  // Diagnostic: print env presence (not values) so silent failures show which secret is missing.
+  const presence = Object.fromEntries(Object.entries(env).map(([k, v]) => [k, v ? 'set' : 'MISSING']));
+  console.log(`[director_v2] env presence: ${JSON.stringify(presence)}`);
+
   // Hard-required: Airtable + Pexels + Cloudinary (no fallback).
   // Soft-optional: Gemini (Nano Banana premium AI) + Replicate (Flux Schnell standard AI).
   // If soft are missing, runner falls back to Pexels-only stock for hero scenes.
   const HARD_REQUIRED = ['token', 'baseId', 'tableId', 'PEXELS_API_KEY', 'CLOUDINARY_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'];
-  for (const k of HARD_REQUIRED) {
-    if (!env[k]) { console.error(`ERROR: env ${k} missing (Doppler) — HARD REQUIRED`); process.exit(1); }
+  const missing = HARD_REQUIRED.filter(k => !env[k]);
+  if (missing.length) {
+    console.error(`ERROR: HARD_REQUIRED env missing: ${missing.join(', ')} — check Doppler/GHA secrets`);
+    process.exit(1);
   }
   if (!env.GEMINI_API_KEY)      console.error('WARN: GEMINI_API_KEY missing — Nano Banana premium tier disabled, will use Replicate or Pexels fallback');
   if (!env.REPLICATE_API_TOKEN) console.error('WARN: REPLICATE_API_TOKEN missing — Flux Schnell standard tier disabled, will use Pexels fallback');
+  if (!env.HEYGEN_API_KEY)      console.error('WARN: HEYGEN_API_KEY missing — heygen_avatar scenes will fall back to faceless pipeline');
 
   await rm(TMP, { recursive: true, force: true });
   await mkdir(TMP, { recursive: true });
@@ -195,17 +298,33 @@ async function main() {
   const start = Date.now();
   const stats = { ok: 0, error: 0, fallback: 0, nanoBananaCalls: 0, nanoBananaCents: 0, pexelsCalls: 0, uploadMb: 0, durationMs: 0 };
 
-  const pending = await listPending(env);
-  console.log(`Director v2 — ${pending.length} pending reel record(s)${dryRun ? ' (dry-run)' : ''}`);
+  let queue;
+  if (recordId) {
+    console.log(`[director_v2] single-record mode: fetching ${recordId}`);
+    try {
+      const record = await fetchOne(recordId, env);
+      queue = [record];
+    } catch (err) {
+      console.error(`[director_v2] fetchOne failed: ${shortMessage(err)}`);
+      if (!dryRun) await safePatchError(recordId, shortMessage(err), env);
+      process.exit(1);
+    }
+  } else {
+    queue = await listPending(env);
+  }
+  console.log(`[director_v2] ${queue.length} record(s) to process${dryRun ? ' (dry-run)' : ''}`);
 
-  for (const record of pending) {
+  for (const record of queue) {
+    console.log(`[director_v2] → ${record.id}`);
     try {
       await processRecord(record, { env, dryRun, stats });
       stats.ok++;
+      console.log(`[director_v2] ✓ ${record.id}`);
     } catch (err) {
       stats.error++;
       const msg = shortMessage(err);
-      console.error(`[error] ${record.id}: ${msg}`);
+      console.error(`[director_v2] ✗ ${record.id}: ${msg}`);
+      if (err?.stack) console.error(err.stack);
       if (!dryRun) await safePatchError(record.id, msg, env);
     }
   }
@@ -216,5 +335,13 @@ async function main() {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  main().catch(err => { console.error('FAIL:', err); process.exit(1); });
+  process.on('uncaughtException', (err) => {
+    console.error(`[director_v2] uncaughtException: ${err?.stack || err}`);
+    process.exit(1);
+  });
+  process.on('unhandledRejection', (reason) => {
+    console.error(`[director_v2] unhandledRejection: ${reason?.stack || reason}`);
+    process.exit(1);
+  });
+  main().catch(err => { console.error('FAIL:', err?.stack || err); process.exit(1); });
 }
