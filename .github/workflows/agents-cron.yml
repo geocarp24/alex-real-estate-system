@@ -178,8 +178,7 @@ jobs:
           TELEGRAM_CHAT_ID:         ${{ secrets.TELEGRAM_CHAT_ID }}
           ANTHROPIC_API_KEY:        ${{ secrets.ANTHROPIC_API_KEY }}
           BLOTATO_API_KEY:          ${{ secrets.BLOTATO_API_KEY }}
-          # Director v2 expects AIRTABLE_SM_* prefix (alias of existing SM_AIRTABLE_TOKEN).
-          AIRTABLE_SM_TOKEN:        ${{ secrets.SM_AIRTABLE_TOKEN }}
+          # Director v2 expects AIRTABLE_SM_* prefix. AIRTABLE_SM_TOKEN comes from Doppler ($GITHUB_ENV).
           AIRTABLE_SM_BASE_ID:      "appU9s3kGkVpdrJkw"
           AIRTABLE_SM_TABLE_ID:     "tblAj0Pkj1jW4p5Ld"
           # video_toolkit — Modal cloud GPU endpoints (Plan A: faceless premium Reels).
