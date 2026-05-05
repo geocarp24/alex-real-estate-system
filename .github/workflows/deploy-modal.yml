@@ -53,8 +53,6 @@ jobs:
           - sadtalker
           - dewatermark
           - ltx2
-    # Skip matrix legs that don't match the dispatched input (unless 'all').
-    if: ${{ inputs.app == 'all' || inputs.app == matrix.app }}
     steps:
       - name: Checkout video toolkit repo
         run: |
