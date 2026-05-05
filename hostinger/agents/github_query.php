@@ -59,13 +59,15 @@ $url = "https://api.github.com{$path}";
 $ch = curl_init($url);
 curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_FOLLOWLOCATION => true,  // GitHub redirects /logs and /zip to signed URLs
+    CURLOPT_MAXREDIRS      => 3,
     CURLOPT_HTTPHEADER => [
         "Authorization: Bearer {$token}",
         "User-Agent: ALEX-System-Pinnacle",
         "Accept: application/vnd.github+json",
         "X-GitHub-Api-Version: 2022-11-28",
     ],
-    CURLOPT_TIMEOUT => 20,
+    CURLOPT_TIMEOUT => 30,
 ]);
 $response = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
