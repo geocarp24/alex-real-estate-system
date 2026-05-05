@@ -1,0 +1,126 @@
+name: Deploy Modal video-toolkit endpoints
+
+# One-time / on-demand deploy of the 8 Modal endpoints used by the Director v2
+# video_toolkit branch (Plan A — faceless premium Reels via cloud GPU).
+#
+# After a successful run, copy each printed URL into GHA secrets:
+#   MODAL_QWEN3_TTS_ENDPOINT_URL
+#   MODAL_FLUX2_ENDPOINT_URL
+#   MODAL_IMAGE_EDIT_ENDPOINT_URL
+#   MODAL_UPSCALE_ENDPOINT_URL
+#   MODAL_MUSIC_GEN_ENDPOINT_URL
+#   MODAL_SADTALKER_ENDPOINT_URL
+#   MODAL_DEWATERMARK_ENDPOINT_URL
+#   MODAL_LTX2_ENDPOINT_URL
+#
+# Then the Director v2 wrapper can call them from any cron run.
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: "Which Modal app to deploy (use 'all' for full deploy)"
+        type: choice
+        required: true
+        default: "all"
+        options:
+          - all
+          - qwen3-tts
+          - flux2
+          - image-edit
+          - upscale
+          - music-gen
+          - sadtalker
+          - dewatermark
+          - ltx2
+
+concurrency:
+  group: modal-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout video toolkit repo
+        run: |
+          git clone --depth 1 https://github.com/digitalsamba/claude-code-video-toolkit.git toolkit
+          cd toolkit && ls docker/ | head
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Modal CLI
+        run: pip install -q modal
+
+      - name: Authenticate Modal
+        env:
+          MODAL_TOKEN_ID:     ${{ secrets.MODAL_TOKEN_ID }}
+          MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
+        run: |
+          if [ -z "$MODAL_TOKEN_ID" ] || [ -z "$MODAL_TOKEN_SECRET" ]; then
+            echo "::error::MODAL_TOKEN_ID or MODAL_TOKEN_SECRET secret missing — set in repo Settings → Secrets → Actions"
+            exit 1
+          fi
+          modal token set --token-id "$MODAL_TOKEN_ID" --token-secret "$MODAL_TOKEN_SECRET"
+          echo "::notice::Modal authenticated"
+
+      - name: Create HuggingFace secret (only if HF_TOKEN provided, required for LTX-2)
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          if [ -n "$HF_TOKEN" ]; then
+            modal secret create huggingface-token HF_TOKEN="$HF_TOKEN" 2>&1 | tail -2 || echo "::warning::secret may already exist (ok)"
+          else
+            echo "::warning::HF_TOKEN not set — LTX-2 deploy will fail. Set HF_TOKEN secret if you want LTX-2."
+          fi
+
+      - name: Deploy selected app(s)
+        env:
+          APP: ${{ inputs.app }}
+        run: |
+          cd toolkit
+          deploy_one() {
+            local name=$1
+            echo "=========================================="
+            echo "Deploying modal-$name"
+            echo "=========================================="
+            if [ -d "docker/modal-$name" ]; then
+              modal deploy "docker/modal-$name/app.py" 2>&1 | tee /tmp/deploy-$name.log
+              echo
+              echo "--- URLs detected for $name ---"
+              grep -Eo 'https://[a-z0-9-]+--[a-z0-9-]+(-[a-z0-9-]+)*\.modal\.run' /tmp/deploy-$name.log | sort -u || echo "(no URL detected — check logs)"
+              echo
+            else
+              echo "::error::docker/modal-$name not found"
+              return 1
+            fi
+          }
+          if [ "$APP" = "all" ]; then
+            for name in qwen3-tts flux2 image-edit upscale music-gen sadtalker dewatermark ltx2; do
+              deploy_one "$name" || echo "::warning::$name failed (continuing)"
+            done
+          else
+            deploy_one "$APP"
+          fi
+
+      - name: Print summary of all endpoint URLs
+        if: always()
+        run: |
+          echo "=========================================="
+          echo "ALL ENDPOINT URLs DEPLOYED THIS RUN"
+          echo "Copy these into GHA secrets manually:"
+          echo "=========================================="
+          for f in /tmp/deploy-*.log; do
+            [ -f "$f" ] || continue
+            name=$(basename "$f" .log | sed 's/^deploy-//')
+            url=$(grep -Eo 'https://[a-z0-9-]+--[a-z0-9-]+(-[a-z0-9-]+)*\.modal\.run' "$f" | head -1)
+            if [ -n "$url" ]; then
+              # map to env var name expected by toolkit/Director v2
+              env_name="MODAL_$(echo "$name" | tr '[:lower:]-' '[:upper:]_')_ENDPOINT_URL"
+              echo "$env_name=$url"
+            fi
+          done
+          echo "=========================================="
