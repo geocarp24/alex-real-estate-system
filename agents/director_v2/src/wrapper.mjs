@@ -1,1 +1,1 @@
-export * from '../../creativo_v2/src/wrapper.mjs';
+export { wrapSlideHtml } from '../../creativo/render.mjs';
