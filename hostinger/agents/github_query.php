@@ -43,8 +43,9 @@ $allowed = false;
 foreach ($allowed_repos as $repo) {
     $patterns = [
         "#^/repos/geocarp24/{$repo}/actions/runs(\?|$)#",
-        "#^/repos/geocarp24/{$repo}/actions/runs/[0-9]+(/jobs)?(\?|$)#",
+        "#^/repos/geocarp24/{$repo}/actions/runs/[0-9]+(/jobs|/artifacts|/logs)?(\?|$)#",
         "#^/repos/geocarp24/{$repo}/actions/jobs/[0-9]+/logs(\?|$)#",
+        "#^/repos/geocarp24/{$repo}/actions/artifacts/[0-9]+(/zip)?(\?|$)#",
         "#^/repos/geocarp24/{$repo}/actions/workflows(/[A-Za-z0-9._-]+(/runs)?)?(\?|$)#",
         "#^/repos/geocarp24/{$repo}/commits(/[A-Za-z0-9]+)?(\?|$)#",
     ];
