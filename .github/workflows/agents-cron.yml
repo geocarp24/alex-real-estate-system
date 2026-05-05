@@ -171,8 +171,8 @@ jobs:
 
       - name: Run ${{ steps.job.outputs.agent }} --mode ${{ steps.job.outputs.mode }}
         env:
-          AIRTABLE_TOKEN:           ${{ secrets.AIRTABLE_TOKEN || env.AIRTABLE_TOKEN }}
-          SM_AIRTABLE_TOKEN:        ${{ secrets.SM_AIRTABLE_TOKEN || env.SM_AIRTABLE_TOKEN }}
+          # Note: AIRTABLE_TOKEN, SM_AIRTABLE_TOKEN, AIRTABLE_SM_TOKEN are loaded via Doppler step
+          # into $GITHUB_ENV — do NOT re-declare here or empty GHA secrets will overshadow Doppler.
           QUO_API_KEY:              ${{ secrets.QUO_API_KEY }}
           TELEGRAM_BOT_TOKEN:       ${{ secrets.FER_TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:         ${{ secrets.TELEGRAM_CHAT_ID }}
