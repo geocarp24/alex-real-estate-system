@@ -161,13 +161,14 @@ jobs:
 
       - name: Clone video_toolkit + Python deps (Modal cloud GPU branch)
         if: steps.job.outputs.agent == 'director_v2'
+        timeout-minutes: 5
         run: |
           mkdir -p "$HOME/.openclaw/workspace"
           if [ ! -d "$HOME/.openclaw/workspace/claude-code-video-toolkit" ]; then
             git clone --depth 1 https://github.com/digitalsamba/claude-code-video-toolkit.git \
               "$HOME/.openclaw/workspace/claude-code-video-toolkit"
           fi
-          pip3 install --break-system-packages -q -r "$HOME/.openclaw/workspace/claude-code-video-toolkit/tools/requirements.txt"
+          pip3 install --break-system-packages -r "$HOME/.openclaw/workspace/claude-code-video-toolkit/tools/requirements.txt"
 
       - name: Override claude binary path for GHA
         run: |
