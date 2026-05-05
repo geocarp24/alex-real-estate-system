@@ -138,15 +138,26 @@ jobs:
           npm install playwright-chromium --no-save --silent
           npx playwright install chromium --with-deps
 
-      - name: Install ffmpeg + Director v2 deps (Puppeteer + Pexels + Cloudinary)
+      - name: Install ffmpeg
         if: steps.job.outputs.agent == 'director_v2'
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
           ffmpeg -version | head -1
+
+      - name: Director v2 npm deps
+        if: steps.job.outputs.agent == 'director_v2'
+        timeout-minutes: 8
+        run: |
           cd "${{ github.workspace }}/agents/director_v2"
-          npm ci --silent
-          npx puppeteer browsers install chrome 2>&1 | tail -3
+          npm ci
+
+      - name: Puppeteer Chrome
+        if: steps.job.outputs.agent == 'director_v2'
+        timeout-minutes: 5
+        run: |
+          cd "${{ github.workspace }}/agents/director_v2"
+          npx puppeteer browsers install chrome | tail -3
 
       - name: Clone video_toolkit + Python deps (Modal cloud GPU branch)
         if: steps.job.outputs.agent == 'director_v2'
