@@ -97,7 +97,11 @@ async function resolveHero(scene, { pexelsKey, geminiKey, replicateKey, heygenEn
     } else {
       try {
         const heroPng = join(tmpDir, `hero_${scene.index}.png`);
-        await toolkitGenerateImage({ prompt: scene.heroPrompt, outputPath: heroPng, width: 1080, height: 1920 });
+        // Narrative B point scenes have heroPrompt=null and use heroQuery for Pexels.
+        // When the Tipo routing forces flux2 we synthesize a prompt from the caption + query.
+        const promptFromHeading = scene.heroPrompt
+          || `Pinnacle Holdings real estate scene matching "${scene.captionEn || scene.heroQuery || 'wisconsin home'}", cinematic, golden hour, warm light, 9:16 vertical, no text in image`;
+        await toolkitGenerateImage({ prompt: promptFromHeading, outputPath: heroPng, width: 1080, height: 1920 });
         stats.flux2Calls = (stats.flux2Calls || 0) + 1;
         return { path: heroPng, sourceActual: 'flux2' };
       } catch (err) {
