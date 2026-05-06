@@ -1,12 +1,15 @@
-// HeyGen Avatar Video API v3 client (validated 2026-05-06).
-// Docs: https://developers.heygen.com (POST /v3/videos)
+// HeyGen Avatar Video API client — supports both V1 (Avatar III, ~$1/min)
+// and V3 (Avatar IV/V, ~$4/min, premium quality with motion_prompt + expressiveness).
+// Validated end-to-end on 2026-05-06 with Jorge's digital_twin avatar.
 //
-// Returns a path to a downloaded MP4 ready for ffmpeg compose.
+// Engine selection:
+//   - V3 (default) — best for Personal Reels where Jorge appears talking
+//   - V1 (legacy)  — 4x cheaper, good for high-volume content where quality is secondary
 //
 // Required env (passed via env arg, set by GHA secrets):
 //   HEYGEN_API_KEY
 //   HEYGEN_AVATAR_ID_JORGE
-//   HEYGEN_VOICE_ID_JORGE_EN | HEYGEN_VOICE_ID_JORGE_ES (auto-selected by scene.locale)
+//   HEYGEN_VOICE_ID_JORGE_EN | HEYGEN_VOICE_ID_JORGE_ES
 
 import { writeFile } from 'node:fs/promises';
 import { withRetry } from './util/retry.mjs';
@@ -36,25 +39,9 @@ async function getJson(path, apiKey) {
   return res.json();
 }
 
-export async function generateAvatarVideo({
-  script,
-  avatarId,
-  voiceId,
-  apiKey,
-  aspectRatio  = '9:16',
-  resolution   = '1080p',
-  expressiveness = 'high',  // photo_avatar only — ignored on digital_twin
-  motionPrompt = 'professional confident speaker, natural subtle hand gestures, warm engaging facial expression',
-  background   = { type: 'color', value: '#0d1117' },  // can also be { type: 'image', url: '...' }
-  pollIntervalMs = 5000,
-  pollTimeoutMs  = 600000,
-}) {
-  if (!script)   throw new HeyGenFailedError('script required');
-  if (!avatarId) throw new HeyGenFailedError('avatarId required');
-  if (!voiceId)  throw new HeyGenFailedError('voiceId required');
-  if (!apiKey)   throw new HeyGenFailedError('apiKey required');
-
-  const payload = {
+// V3 payload (Avatar IV/V engine — premium)
+function buildV3Payload({ avatarId, script, voiceId, aspectRatio, resolution, expressiveness, motionPrompt, background }) {
+  const p = {
     type: 'avatar',
     avatar_id: avatarId,
     script,
@@ -63,18 +50,64 @@ export async function generateAvatarVideo({
     resolution,
     background,
   };
-  // expressiveness + motion_prompt only apply to photo_avatars; HeyGen ignores them on digital_twin.
-  if (expressiveness) payload.expressiveness = expressiveness;
-  if (motionPrompt)   payload.motion_prompt  = motionPrompt;
+  if (expressiveness) p.expressiveness = expressiveness;
+  if (motionPrompt)   p.motion_prompt  = motionPrompt;
+  return p;
+}
 
-  const create = await withRetry(
-    () => postJson('/v3/videos', payload, apiKey),
-    { attempts: 3, baseDelayMs: 2000 }
-  );
+// V1 payload (Avatar III engine — legacy / cheaper)
+// Aspect ratio in V1 is { dimension: { width, height } } and avatar lives inside clips[].
+function buildV1Payload({ avatarId, script, voiceId, aspectRatio, background }) {
+  const dim = aspectRatio === '9:16'
+    ? { width: 720,  height: 1280 }
+    : aspectRatio === '1:1'
+      ? { width: 720, height: 720 }
+      : { width: 1280, height: 720 };
+  return {
+    background: background?.type === 'image'
+      ? { type: 'image', url: background.url }
+      : { type: 'color', value: background?.value || '#0d1117' },
+    dimension: dim,
+    test: false,
+    clips: [{
+      avatar_id: avatarId,
+      avatar_style: 'normal',
+      input_text: script,
+      voice_id: voiceId,
+    }],
+  };
+}
+
+export async function generateAvatarVideo({
+  script,
+  avatarId,
+  voiceId,
+  apiKey,
+  engine        = 'v3',                       // 'v3' (premium ~$4/min) or 'v1' (legacy ~$1/min)
+  aspectRatio   = '9:16',
+  resolution    = '1080p',                    // V3 only
+  expressiveness = 'high',                    // V3 photo_avatar only
+  motionPrompt  = 'professional confident speaker, natural subtle hand gestures, warm engaging facial expression',
+  background    = { type: 'color', value: '#0d1117' },
+  pollIntervalMs = 5000,
+  pollTimeoutMs  = 600000,
+}) {
+  if (!script)   throw new HeyGenFailedError('script required');
+  if (!avatarId) throw new HeyGenFailedError('avatarId required');
+  if (!voiceId)  throw new HeyGenFailedError('voiceId required');
+  if (!apiKey)   throw new HeyGenFailedError('apiKey required');
+  if (!['v1', 'v3'].includes(engine)) throw new HeyGenFailedError(`engine must be v1|v3, got: ${engine}`);
+
+  const path    = engine === 'v3' ? '/v3/videos' : '/v1/video.generate';
+  const payload = engine === 'v3'
+    ? buildV3Payload({ avatarId, script, voiceId, aspectRatio, resolution, expressiveness, motionPrompt, background })
+    : buildV1Payload({ avatarId, script, voiceId, aspectRatio, background });
+
+  const create  = await withRetry(() => postJson(path, payload, apiKey), { attempts: 3, baseDelayMs: 2000 });
+  // V3 returns { data: { video_id } }, V1 returns { data: { video_id } } too — shape converged.
   const videoId = create?.data?.video_id;
   if (!videoId) throw new HeyGenFailedError(`no video_id in response: ${JSON.stringify(create)}`);
 
-  // Poll until complete
   const deadline = Date.now() + pollTimeoutMs;
   while (Date.now() < deadline) {
     await new Promise(r => setTimeout(r, pollIntervalMs));
@@ -82,10 +115,11 @@ export async function generateAvatarVideo({
     const s = status?.data?.status;
     if (s === 'completed') {
       return {
-        videoUrl:    status.data.video_url,
+        videoUrl:     status.data.video_url,
         thumbnailUrl: status.data.thumbnail_url,
         durationSec:  status.data.duration,
         videoId,
+        engine,
       };
     }
     if (s === 'failed') throw new HeyGenFailedError(`HeyGen rendering failed: ${JSON.stringify(status.data.error || {})}`);
