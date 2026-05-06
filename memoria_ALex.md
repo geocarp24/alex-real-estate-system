@@ -52,6 +52,14 @@
 - Grabar nuevo training video con green screen / pared blanca para tener digital_twin con matting → desbloquea backgrounds custom Pinnacle en Reels Personales
 - Avatar matting upgrade explicado en heygen-avatar/SKILL.md Phase 5
 
+**VALIDACIÓN END-TO-END (Run #151, GHA id 25466704475):**
+- Status: `completed/success` en 5m 9s
+- Record `reciQVAvTbcBg72wm` → `Status=Visual Listo`, duration=12.88s, cost=0¢, error=empty
+- MP4 generado: `https://res.cloudinary.com/dzzlhhk0m/video/upload/v1778110168/pinnacle-social-media/videos/directorv2/reciqvavtbcbg72wm.mp4`
+- HeyGen V3 hook+CTA + FLUX2 puntos compuestos sin error de `motion_prompt` ni crash de fallback
+- 1 record procesado, 0 errores, 1 Cloudinary upload (2.7 MB)
+- **PIPELINE 100% PRODUCTION READY ✅**
+
 ---
 
 ## 2026-05-06 — Plan A + Plan B VALIDADOS END-TO-END (HeyGen funcionando)
