@@ -22,40 +22,50 @@ export function deriveHeroQuery(heading) {
 export function expand(spec) {
   const mood = spec.mood || 'upbeat';
   const tier = spec.image_quality === 'premium' ? 'nano_banana' : 'flux_schnell';
-  const hookPrompt = `Modern real estate scene matching: "${spec.hook.en}", Pinnacle Holdings brand, cinematic, golden hour, 9:16 vertical`;
-  const ctaPrompt  = 'Pinnacle Holdings Group branded CTA scene, modern craftsman home exterior at twilight, cinematic, 9:16 vertical';
+  // Allow per-record prompt overrides via spec.prompts.{hook,cta} (premium custom prompts).
+  const hookPrompt = spec.prompts?.hook
+    || `Modern real estate scene matching: "${spec.hook.en}", Pinnacle Holdings brand, cinematic, golden hour, 9:16 vertical`;
+  const ctaPrompt  = spec.prompts?.cta
+    || 'Pinnacle Holdings Group branded CTA scene, modern craftsman home exterior at twilight, cinematic, 9:16 vertical';
+
+  // Scale scene durations proportionally so total matches spec.duration (default 11).
+  // Base ratios kept (hook/cta longer than points). xfade overlap is handled in ffmpeg.
+  const BASE = [2.5, 2.0, 2.0, 2.0, 2.5];
+  const target = Number(spec.duration) || 11;
+  const factor = target / BASE.reduce((a, b) => a + b, 0);
+  const D = BASE.map(d => +(d * factor).toFixed(2));
 
   return [
     {
-      index: 1, duration: 2.5, layoutType: 'hook',
+      index: 1, duration: D[0], layoutType: 'hook',
       captionEn: spec.hook.en, captionEs: spec.hook.es,
       heroSource: tier, heroPrompt: hookPrompt, heroQuery: null,
       kinetic: true, zoompan: { from: 1.0, to: 1.05 },
       transitionOut: 'crossfade', mood,
     },
     {
-      index: 2, duration: 2.0, layoutType: 'point',
+      index: 2, duration: D[1], layoutType: 'point',
       captionEn: spec.points[0].headingEn, captionEs: spec.points[0].headingEs,
-      heroSource: 'pexels', heroPrompt: null, heroQuery: deriveHeroQuery(spec.points[0].headingEn),
+      heroSource: 'pexels', heroPrompt: spec.points[0].heroPrompt || null, heroQuery: deriveHeroQuery(spec.points[0].headingEn),
       kinetic: false, zoompan: { from: 1.0, to: 1.03 },
       transitionOut: 'wipeleft', mood,
     },
     {
-      index: 3, duration: 2.0, layoutType: 'point',
+      index: 3, duration: D[2], layoutType: 'point',
       captionEn: spec.points[1].headingEn, captionEs: spec.points[1].headingEs,
-      heroSource: 'pexels', heroPrompt: null, heroQuery: deriveHeroQuery(spec.points[1].headingEn),
+      heroSource: 'pexels', heroPrompt: spec.points[1].heroPrompt || null, heroQuery: deriveHeroQuery(spec.points[1].headingEn),
       kinetic: false, zoompan: { from: 1.0, to: 1.03 },
       transitionOut: 'crossfade', mood,
     },
     {
-      index: 4, duration: 2.0, layoutType: 'point',
+      index: 4, duration: D[3], layoutType: 'point',
       captionEn: spec.points[2].headingEn, captionEs: spec.points[2].headingEs,
-      heroSource: 'pexels', heroPrompt: null, heroQuery: deriveHeroQuery(spec.points[2].headingEn),
+      heroSource: 'pexels', heroPrompt: spec.points[2].heroPrompt || null, heroQuery: deriveHeroQuery(spec.points[2].headingEn),
       kinetic: false, zoompan: { from: 1.0, to: 1.03 },
       transitionOut: 'slideup', mood,
     },
     {
-      index: 5, duration: 2.5, layoutType: 'cta',
+      index: 5, duration: D[4], layoutType: 'cta',
       captionEn: spec.cta.en, captionEs: spec.cta.es,
       heroSource: tier, heroPrompt: ctaPrompt, heroQuery: null,
       kinetic: true, zoompan: { from: 1.0, to: 1.05 },
