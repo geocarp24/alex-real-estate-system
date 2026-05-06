@@ -89,9 +89,11 @@ async function resolveHero(scene, { pexelsKey, geminiKey, replicateKey, heygenEn
         return { path: videoPath, sourceActual: 'heygen_avatar', isVideo: true, durationSec };
       } catch (err) {
         if (!(err instanceof HeyGenFailedError)) throw err;
-        console.error(`[scene ${scene.index}] HeyGen failed: ${err.message} — falling back to pexels`);
+        // HeyGen failures: fall back to flux2 (uses heroPrompt) before pexels (which needs heroQuery,
+        // not set on hook/cta scenes). flux2 → nano_banana → pexels chain handles all spec shapes.
+        console.error(`[scene ${scene.index}] HeyGen failed: ${err.message} — falling back to flux2`);
         stats.fallback++;
-        effectiveSource = 'pexels';
+        effectiveSource = 'flux2';
       }
     }
   }
