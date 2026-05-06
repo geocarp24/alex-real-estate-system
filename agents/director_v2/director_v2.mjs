@@ -167,13 +167,24 @@ async function resolveHero(scene, { pexelsKey, geminiKey, replicateKey, heygenEn
 }
 
 // Override scene.heroSource based on Airtable Tipo field and available endpoints.
-// Plan A+B (Jorge 2026-05-04): Personal → HeyGen avatar; Educativo/Tip/Caso/Brand →
-// flux2 premium AI; default → keep spec value (Pexels/nano_banana per spec).
+// Plan A+B (Jorge 2026-05-04, refined 2026-05-06):
+//   Personal → hybrid: hook+CTA = HeyGen Jorge talking; points = flux2 cinematic (variety + cost).
+//   Educativo/Tip/Caso/Brand → all flux2 premium AI.
+//   default → keep spec value (Pexels/nano_banana per spec).
 function applyTipoContenidoRouting(scenes, tipo, env) {
   const t = String(tipo || '').toLowerCase();
-  if (!t) return; // no override; keep spec
+  if (!t) return;
   if (t === 'personal' && env.HEYGEN_API_KEY && env.HEYGEN_AVATAR_ID_JORGE) {
-    for (const s of scenes) if (!s.heroSource || s.heroSource === 'pexels') s.heroSource = 'heygen_avatar';
+    for (const s of scenes) {
+      // Hook + CTA scenes get Jorge talking via HeyGen; point scenes stay on flux2 cinematic.
+      if (s.layoutType === 'hook' || s.layoutType === 'cta') {
+        s.heroSource = 'heygen_avatar';
+        // Use the bilingual caption as the spoken script if not pre-set.
+        s.heyScript = s.heyScript || s.captionEs || s.captionEn;
+      } else if (s.layoutType === 'point' && env.MODAL_FLUX2_ENDPOINT_URL) {
+        s.heroSource = 'flux2';
+      }
+    }
   } else if (['educativo','tip','caso','brand'].includes(t) && env.MODAL_FLUX2_ENDPOINT_URL) {
     for (const s of scenes) if (!s.heroSource || s.heroSource === 'pexels' || s.heroSource === 'nano_banana') s.heroSource = 'flux2';
   }
