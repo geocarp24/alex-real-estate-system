@@ -69,12 +69,17 @@ async function resolveHero(scene, { pexelsKey, geminiKey, replicateKey, heygenEn
         if (!voiceId) throw new HeyGenFailedError(`HEYGEN_VOICE_ID_JORGE_${(scene.locale || 'en').toUpperCase()} missing`);
         const videoPath = join(tmpDir, `hero_${scene.index}.mp4`);
         const { videoUrl, durationSec } = await generateAvatarVideo({
-          script:    scene.heyScript || scene.text || scene.heroPrompt,
-          avatarId:  heygenEnv.HEYGEN_AVATAR_ID_JORGE,
+          script:        scene.heyScript || scene.text || scene.heroPrompt,
+          avatarId:      heygenEnv.HEYGEN_AVATAR_ID_JORGE,
           voiceId,
-          apiKey:    heygenEnv.HEYGEN_API_KEY,
-          dimension: { width: 1080, height: 1920 },
-          background: scene.heyBackground || { type: 'color', value: '#000000' },
+          apiKey:        heygenEnv.HEYGEN_API_KEY,
+          engine:        scene.heyEngine || 'v3',                                   // 'v3' premium / 'v1' legacy 4x cheaper
+          aspectRatio:   '9:16',
+          resolution:    scene.heyResolution || '1080p',
+          expressiveness: scene.heyExpressiveness || 'high',
+          motionPrompt:   scene.heyMotionPrompt
+            || 'professional confident speaker, natural subtle hand gestures, warm engaging facial expression',
+          background:     scene.heyBackground || { type: 'color', value: '#0d1117' },
         });
         await downloadVideo(videoUrl, videoPath);
         stats.heygenCalls = (stats.heygenCalls || 0) + 1;
