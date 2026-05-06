@@ -56,7 +56,36 @@ export function buildVideoCommand({ scenes, musicPath, outputPath, width = 1080,
   }
   if (scenes.length === 1) lastLabel = 'v0';
 
-  filterParts.push(`[${scenes.length}:a]volume=0.35,aloop=loop=-1:size=2e+09[aout]`);
+  // Voice tracks from HeyGen scenes — each delayed to its timeline start so Jorge speaks at the right time.
+  const sceneStarts = [];
+  let acc = 0;
+  scenes.forEach((s, i) => {
+    sceneStarts.push(acc);
+    acc += s.duration - (i < scenes.length - 1 ? XFADE_OVERLAP : 0);
+  });
+
+  const voiceLabels = [];
+  scenes.forEach((s, i) => {
+    if (!s.videoPath) return;
+    const delayMs = Math.max(0, Math.round(sceneStarts[i] * 1000));
+    const fadeOut = Math.min(XFADE_OVERLAP, s.duration / 4);
+    const fadeOutStart = Math.max(0, s.duration - fadeOut).toFixed(2);
+    filterParts.push(
+      `[${i}:a]atrim=duration=${s.duration},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.05,afade=t=out:st=${fadeOutStart}:d=${fadeOut.toFixed(2)},adelay=${delayMs}|${delayMs},volume=1.6[va${i}]`
+    );
+    voiceLabels.push(`[va${i}]`);
+  });
+
+  // Music: ducked when voice present (so Jorge is intelligible), normal otherwise.
+  const musicVol = voiceLabels.length > 0 ? 0.18 : 0.35;
+  filterParts.push(`[${scenes.length}:a]volume=${musicVol},aloop=loop=-1:size=2e+09[amusic]`);
+
+  if (voiceLabels.length === 0) {
+    filterParts.push(`[amusic]anull[aout]`);
+  } else {
+    const inputs = [...voiceLabels, '[amusic]'].join('');
+    filterParts.push(`${inputs}amix=inputs=${voiceLabels.length + 1}:duration=longest:dropout_transition=0:normalize=0[aout]`);
+  }
 
   const filterComplex = filterParts.join(';');
   const totalDuration = scenes.reduce((t, s) => t + s.duration, 0) - XFADE_OVERLAP * (scenes.length - 1);
