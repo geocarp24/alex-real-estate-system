@@ -86,8 +86,8 @@ export async function generateAvatarVideo({
   engine        = 'v3',                       // 'v3' (premium ~$4/min) or 'v1' (legacy ~$1/min)
   aspectRatio   = '9:16',
   resolution    = '1080p',                    // V3 only
-  expressiveness = 'high',                    // V3 photo_avatar only
-  motionPrompt  = 'professional confident speaker, natural subtle hand gestures, warm engaging facial expression',
+  expressiveness,                             // V3 photo_avatar ONLY — leave undefined for digital_twin (HeyGen rejects)
+  motionPrompt,                               // V3 photo_avatar ONLY — leave undefined for digital_twin (HeyGen rejects)
   background    = { type: 'color', value: '#0d1117' },
   pollIntervalMs = 5000,
   pollTimeoutMs  = 600000,
