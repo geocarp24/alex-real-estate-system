@@ -157,7 +157,7 @@ async function resolveHero(scene, { pexelsKey, geminiKey, replicateKey, heygenEn
   return { path: null, sourceActual: 'theme_solid' };
 }
 
-// Override scene.heroSource based on Airtable Tipo_Contenido and available endpoints.
+// Override scene.heroSource based on Airtable Tipo field and available endpoints.
 // Plan A+B (Jorge 2026-05-04): Personal → HeyGen avatar; Educativo/Tip/Caso/Brand →
 // flux2 premium AI; default → keep spec value (Pexels/nano_banana per spec).
 function applyTipoContenidoRouting(scenes, tipo, env) {
@@ -178,7 +178,7 @@ async function processRecord(record, { env, dryRun, stats }) {
   const spec = parseVisualPrompt(record.fields.Visual_Prompt);
   validateSpec(spec);
   const scenes = expandNarrative(spec);
-  applyTipoContenidoRouting(scenes, record.fields.Tipo_Contenido, env);
+  applyTipoContenidoRouting(scenes, record.fields.Tipo, env);
   enforcePerVideoBudget(scenes);
   const forcePexels = await shouldForcePexelsFallback(scenes);
 
