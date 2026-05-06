@@ -5,6 +5,62 @@
 
 ---
 
+## 2026-05-06 — Plan A + Plan B VALIDADOS END-TO-END (HeyGen funcionando)
+
+**Hitos del día:**
+
+1. **Plan A faceless premium production-ready** — 3 Reels generados y aprobados por Jorge:
+   - Reel #1: T1 Dark + upbeat, 9.8s ($0.08)
+   - Reel #2: T3 Gold + cinematic, 9.8s ($0.00 — flux2 bug fix funcionó)
+   - Reel #3: T3 Gold + cinematic 15s con FLUX2 cinematográfico premium en las 5 escenas, custom prompts por escena, $0.00
+
+2. **Bug fixes Director v2:**
+   - Field name: `Tipo_Contenido` → `Tipo` (real Airtable schema)
+   - flux2 wrapper: deriva prompt cuando `heroPrompt:null` para narrative B point scenes
+   - narrative_B.mjs: escala duraciones según `spec.duration` (proporcional)
+   - narrative_B.mjs: acepta `spec.prompts.{hook,cta}` overrides custom
+
+3. **Bridges Hostinger nuevos:**
+   - `airtable_proxy.php` — proxy autenticado GET/POST/PATCH a Airtable con allowlist por base
+   - `github_query.php` — proxy autenticado de lectura GitHub API (runs/jobs/logs/artifacts)
+   - Allowlist `deploy-modal.yml` agregada a `github_dispatch.php`
+
+4. **Modal endpoints production:**
+   - 7/8 endpoints deployed exitosos: qwen3-tts, flux2, image-edit, ltx2, sadtalker, music-gen, upscale
+   - 8 GHA secrets cableados via `github_secret.php` bridge (libsodium-wrappers PyNaCl en sandbox)
+   - workflow `deploy-modal.yml` rewritten a matrix strategy (8 jobs paralelos × 60min budget)
+
+5. **Plan B HeyGen completo:**
+   - Skills oficiales clonadas en `~/.claude/skills/heygen-skills`
+   - HeyGen CLI v0.0.7 instalado en `~/.local/bin/heygen` (patched installer para sandbox SSL)
+   - 4 GHA secrets: `HEYGEN_API_KEY`, `HEYGEN_AVATAR_ID_JORGE` (digital_twin look `0a681eef...`), `HEYGEN_VOICE_ID_JORGE_EN/ES` (`ec1256cf...` voice clone real)
+   - Wallet API cargado $10
+   - **Smoke test pass**: 2s avatar, $0.13
+   - **Primer Reel Personal Pinnacle**: 13s, English, dark Pinnacle bg, $0.87 — Jorge aprobó "Se ve muy bien"
+
+6. **Workflow agents-cron.yml fixes:**
+   - Removidos 3 env override que sobreescribían valores de Doppler con secrets vacíos
+   - Steps install separados (ffmpeg / npm-ci / puppeteer / video_toolkit) con timeouts individuales
+   - timeout-minutes 30→60
+
+**Métricas reales validadas:**
+- Reel Faceless premium (Plan A): $0-3 por video, 2 min wall time
+- Reel Personal HeyGen (Plan B): $0.87 por 13s, ~5s generación HeyGen
+- Director v2 batch wall time: ~10 min (install + run)
+
+**Estado producción:**
+- ✅ Cron `30 21 */3 * *` activo — Director v2 batch cada 3 días
+- ✅ Records viejos `recLgqG8...` y `recpevy...` archivados con Error_Reason (excluidos del batch filter)
+- ✅ 3 records test exitosos en Airtable Social Media base
+- ✅ Master branch contiene todo el stack — `dce655d` feat(director_v2) + posteriores
+
+**Pendientes:**
+- Integrar Director v2 + HeyGen via Tipo=Personal routing en records reales (código wired, falta record con script + dispatch)
+- Recargar wallet HeyGen cuando se agote (~$9 actual = ~10 Reels Personales más)
+- Limpiar tokens expuestos en chat (rotación HeyGen API key + Modal tokens cuando convenga)
+
+---
+
 ## REGLAS DEL JEFE (aplican a TODOS los agentes, siempre)
 
 ### 2026-04-22 — PROTOCOLO DE EJECUCIÓN (NO NEGOCIABLE — APROBADO POR JORGE)
