@@ -5,6 +5,55 @@
 
 ---
 
+## 2026-05-06 (PM) — Plan B HeyGen Hybrid integrado a Director v2 cron (PRODUCTION READY)
+
+**Tras la sesión de generar Reels Personales standalone, integré Plan B al pipeline automatizado del Director v2:**
+
+1. **`heygen.mjs` v2 (V1 + V3 dual engine support)**:
+   - `engine: 'v3'` (Avatar IV/V, ~$4/min, premium quality validado por Jorge "se ve muy bien")
+   - `engine: 'v1'` (Avatar III legacy, ~$1/min, 4x cheaper para volumen alto)
+   - Endpoint V3: `POST /v3/videos` con `type=avatar, avatar_id, script, voice_id, aspect_ratio, resolution`
+   - Endpoint V1: `POST /v1/video.generate` con `clips=[...]`, `dimension={width,height}`
+   - Polling shared: `GET /v1/video_status.get?video_id=...`
+   - **Defaults importantes**: `expressiveness` y `motion_prompt` SIN default (only-if-set) — HeyGen rechaza estos params en `digital_twin` avatars; solo válidos en `photo_avatar`. Pasar `undefined` los excluye del payload.
+
+2. **`director_v2.mjs` `applyTipoContenidoRouting` mejorada — Hybrid Personal**:
+   - Antes: `Tipo=Personal` → todas las scenes vía heygen_avatar (caro y redundante)
+   - Ahora: `Tipo=Personal` HYBRID:
+     - scenes `layoutType: 'hook'` + `'cta'` → heygen_avatar (Jorge habla)
+     - scenes `layoutType: 'point'` → flux2 (cinematic Pinnacle imagery)
+     - Costo total ~$2 por Reel Personal de 13s (vs $5+ all-HeyGen)
+   - Auto-asigna `scene.heyScript = scene.captionEs || scene.captionEn` para scenes hook/cta
+   - HeyGen failure fallback: ahora cae a `flux2` (que usa heroPrompt) en vez de `pexels` (que necesita heroQuery, no seteado en hook/cta scenes)
+
+3. **Avatar Pinnacle de Jorge configurado** (sin matting por ahora — pendiente re-train con green screen):
+   - `HEYGEN_AVATAR_ID_JORGE = 0a681eef6a5a4e7680fec9d45b770fc1` (digital_twin "Jorge", look natural)
+   - Otros looks disponibles: `08e7281db244473382cab2275ee77b80` (photo_avatar "The Real Estate Professional", lip-sync inferior)
+   - `HEYGEN_VOICE_ID_JORGE_EN/ES = ec1256cf8c204211b337137d27577f70` (voice clone real validado)
+
+4. **Reels generados y APROBADOS por Jorge:**
+   - Reel A (digital_twin natural, fondo dark, 13s): $0.87 — "Se ve muy bien"
+   - Reel D (digital_twin + Pinnacle FLUX2 office bg, 15.3s): $1.00 — fondo no se aplicó (avatar sin matting)
+   - Detectada limitación: digital_twins sin matting NO permiten background swap. Solución pendiente = re-grabar training video con green screen.
+
+5. **Bridges Hostinger nuevos esta sesión:**
+   - `airtable_proxy.php` ya existía, validado funcional para PATCH/POST/GET en Social Media base
+   - `github_query.php` ya existía con allowlist /artifacts + /logs + follow_redirects
+
+6. **PRODUCTION READY ✅ — sistema autónomo activo:**
+   - Cron `30 21 */3 * *` activo (cada 3 días dispara Director v2 batch)
+   - Records con `Tipo=Personal` → hybrid HeyGen + FLUX2 automático
+   - Records con `Tipo=Educativo|Tip|Caso|Brand` → all FLUX2 cinematic
+   - Records sin Tipo → default Director v2 (Pexels + nano_banana fallback)
+
+**HeyGen wallet status:** $6.60 remaining = ~6-8 Reels Personales más antes de recargar.
+
+**Pendiente Jorge (no bloqueante):**
+- Grabar nuevo training video con green screen / pared blanca para tener digital_twin con matting → desbloquea backgrounds custom Pinnacle en Reels Personales
+- Avatar matting upgrade explicado en heygen-avatar/SKILL.md Phase 5
+
+---
+
 ## 2026-05-06 — Plan A + Plan B VALIDADOS END-TO-END (HeyGen funcionando)
 
 **Hitos del día:**
