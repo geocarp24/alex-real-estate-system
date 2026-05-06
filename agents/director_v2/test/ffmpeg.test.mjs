@@ -58,3 +58,32 @@ test('buildVideoCommand duration roughly matches sum of scenes minus xfade overl
   // sum(2.5+2.0+2.0+2.0+2.5)=11, minus 4×0.3 overlap = 9.8. Allow ±0.5
   assert.ok(durArg > 9.0 && durArg < 10.5, `expected ~9.8, got ${durArg}`);
 });
+
+test('buildVideoCommand mixes HeyGen voice audio with music — Jorge must be heard (regression: 2026-05-06)', () => {
+  // Hybrid Personal Reel: scene 1 hook (HeyGen), scenes 2-4 points (FLUX2 images), scene 5 cta (HeyGen).
+  const hybridScenes = [
+    { index: 1, duration: 2.5, videoPath: '/tmp/heygen_hook.mp4', transitionOut: 'crossfade' },
+    { index: 2, duration: 2.0, imagePaths: ['/tmp/s2.jpg'], zoompan: { from: 1.0, to: 1.03 }, transitionOut: 'wipeleft',  kinetic: false },
+    { index: 3, duration: 2.0, imagePaths: ['/tmp/s3.jpg'], zoompan: { from: 1.0, to: 1.03 }, transitionOut: 'crossfade', kinetic: false },
+    { index: 4, duration: 2.0, imagePaths: ['/tmp/s4.jpg'], zoompan: { from: 1.0, to: 1.03 }, transitionOut: 'slideup',   kinetic: false },
+    { index: 5, duration: 2.5, videoPath: '/tmp/heygen_cta.mp4', transitionOut: 'none' },
+  ];
+  const cmd = buildVideoCommand({ scenes: hybridScenes, musicPath: '/tmp/m.mp3', outputPath: '/tmp/out.mp4' });
+  const filter = cmd.args[cmd.args.indexOf('-filter_complex') + 1];
+  // Voice tracks must be extracted from each HeyGen scene's audio stream.
+  assert.ok(filter.includes('[0:a]'), 'must consume audio of scene 0 (HeyGen hook)');
+  assert.ok(filter.includes('[4:a]'), 'must consume audio of scene 4 (HeyGen cta)');
+  assert.ok(filter.includes('[va0]') && filter.includes('[va4]'), 'must label per-scene voice tracks');
+  // Voice tracks must be delayed to their timeline positions (scene 4 lands well after t=0).
+  assert.ok(/adelay=\d+\|\d+/.test(filter), 'must delay voice tracks via adelay');
+  // Music must be ducked (lower volume) when voice present, and mixed with voice via amix.
+  assert.ok(filter.includes('amix=inputs=3'), 'must amix two voices + music = 3 inputs');
+  assert.ok(filter.includes('volume=0.18'), 'music must be ducked to 0.18 when voice present');
+});
+
+test('buildVideoCommand keeps music-only path when no HeyGen scenes present', () => {
+  const cmd = buildVideoCommand({ scenes: sampleScenes(), musicPath: '/tmp/m.mp3', outputPath: '/tmp/out.mp4' });
+  const filter = cmd.args[cmd.args.indexOf('-filter_complex') + 1];
+  assert.ok(filter.includes('volume=0.35'), 'music keeps full volume when no voice');
+  assert.ok(!filter.includes('amix='), 'no amix needed when only music');
+});
