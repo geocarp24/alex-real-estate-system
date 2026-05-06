@@ -68,6 +68,9 @@ async function resolveHero(scene, { pexelsKey, geminiKey, replicateKey, heygenEn
         const voiceId = pickVoiceId(scene.locale || 'en', heygenEnv);
         if (!voiceId) throw new HeyGenFailedError(`HEYGEN_VOICE_ID_JORGE_${(scene.locale || 'en').toUpperCase()} missing`);
         const videoPath = join(tmpDir, `hero_${scene.index}.mp4`);
+        // motion_prompt + expressiveness are photo_avatar-only — only forward them when
+        // the spec explicitly opts in (scene.heyMotionPrompt / scene.heyExpressiveness).
+        // For digital_twin avatars (default) HeyGen rejects these fields.
         const { videoUrl, durationSec } = await generateAvatarVideo({
           script:        scene.heyScript || scene.text || scene.heroPrompt,
           avatarId:      heygenEnv.HEYGEN_AVATAR_ID_JORGE,
@@ -76,9 +79,8 @@ async function resolveHero(scene, { pexelsKey, geminiKey, replicateKey, heygenEn
           engine:        scene.heyEngine || 'v3',                                   // 'v3' premium / 'v1' legacy 4x cheaper
           aspectRatio:   '9:16',
           resolution:    scene.heyResolution || '1080p',
-          expressiveness: scene.heyExpressiveness || 'high',
-          motionPrompt:   scene.heyMotionPrompt
-            || 'professional confident speaker, natural subtle hand gestures, warm engaging facial expression',
+          expressiveness: scene.heyExpressiveness,                                  // photo_avatar only; undefined skips
+          motionPrompt:   scene.heyMotionPrompt,                                    // photo_avatar only; undefined skips
           background:     scene.heyBackground || { type: 'color', value: '#0d1117' },
         });
         await downloadVideo(videoUrl, videoPath);
