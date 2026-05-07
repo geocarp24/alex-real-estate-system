@@ -394,7 +394,7 @@ async function processRecord(record, { env, dryRun, stats }) {
   // PiP overlays as circle. Voiceover uses audio only — no visual avatar — so the FLUX2 b-roll carries the visual story.
   // Cache by inputs hash → same record + same script + same engine HITS regardless of which template variant rendered first.
   let globalAvatar = null;
-  if ((template === 'pip' || template === 'voiceover') && env.HEYGEN_API_KEY && env.HEYGEN_AVATAR_ID_JORGE && String(record.fields.Tipo || '').toLowerCase() === 'personal') {
+  if ((template === 'pip' || template === 'voiceover' || template === 'talkinghead') && env.HEYGEN_API_KEY && env.HEYGEN_AVATAR_ID_JORGE && String(record.fields.Tipo || '').toLowerCase() === 'personal') {
     const lang = captionLocale;
     const continuousScript = [
       lang === 'en' ? spec.hook?.en : spec.hook?.es,
