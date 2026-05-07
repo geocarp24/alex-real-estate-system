@@ -40,10 +40,14 @@ on:
     - cron:  "30 20 */3 * *"          # social_media:full_pipeline
     # El Oráculo — quality gate between SM Manager and Creativo (review + approve/reject)
     - cron:  "45 20 */3 * *"          # oraculo:batch (runs 15min after social_media)
+    # El Reescritor — rewrites Oráculo-rejected ideas + appends lessons to sm_lessons.md
+    - cron:  "0 21 */3 * *"           # reescritor:batch (runs 15min after Oráculo)
+    # El Oráculo round 2 — re-reviews rewritten ideas (closes the learning loop)
+    - cron:  "15 21 */3 * *"          # oraculo:batch (round 2)
     # El Creativo — generates visuals via Puppeteer + Pexels + FLUX (only Oraculo-approved)
-    - cron:  "0 21 */3 * *"           # creativo:batch
+    - cron:  "30 21 */3 * *"          # creativo:batch
     # El Director v2 — faceless reels (text + Pexels stock + ffmpeg + music) for Reel Formato
-    - cron:  "30 21 */3 * *"          # director_v2:batch
+    - cron:  "0 22 */3 * *"           # director_v2:batch
   workflow_dispatch:
     inputs:
       agent:
