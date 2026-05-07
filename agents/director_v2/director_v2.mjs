@@ -421,7 +421,7 @@ async function processRecord(record, { env, dryRun, stats }) {
       const cached = await tryDownloadCachedVideo(cacheUrl, avatarPath);
       if (cached.hit) {
         console.log(`[${template}] global avatar cache HIT (${(cached.sizeBytes/1024).toFixed(0)}KB) — skipping HeyGen`);
-        globalAvatar = { videoPath: avatarPath, audioOnly: template === 'voiceover' };
+        globalAvatar = { videoPath: avatarPath, audioOnly: template === 'voiceover', shape: template === 'editorial' ? 'split' : 'circle' };
         stats.heygenCacheHits = (stats.heygenCacheHits || 0) + 1;
       }
     }
