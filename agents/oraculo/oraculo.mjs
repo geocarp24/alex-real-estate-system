@@ -139,16 +139,15 @@ function extractReviewText(record, format) {
 // Used when Anthropic API is unavailable (e.g. credit balance too low).
 // Rule-based scoring against the same 6 criteria. Lower confidence than
 // Sonnet but lets the pipeline keep moving without blocking on billing.
-function reviewIdeaDeterministic(record) {
-  const f = record.fields || {};
-  const titulo     = (f["Título de Idea"] || "").toLowerCase();
-  const hook       = (f.Hook || "").toLowerCase();
-  const captionEs  = (f["🇲🇽 Caption ES"] || "").toLowerCase();
-  const captionEn  = (f["🇺🇸 Caption EN"] || "").toLowerCase();
-  const cta        = (f.CTA || "").toLowerCase();
-  const tipo       = (f.Tipo || "").toLowerCase();
-  const visualPrompt = (f.Visual_Prompt || "");
-  const allText    = `${titulo} ${hook} ${captionEs} ${captionEn} ${cta} ${tipo}`;
+function reviewIdeaDeterministic(record, format = "Post") {
+  const r = extractReviewText(record, format);
+  const titulo  = r.titulo.toLowerCase();
+  const hook    = r.hook.toLowerCase();
+  const caption = r.caption.toLowerCase();
+  const cta     = r.cta.toLowerCase();
+  const tipo    = r.tipo.toLowerCase();
+  const visualPrompt = r.visual;
+  const allText = `${titulo} ${hook} ${caption} ${cta} ${tipo}`;
 
   let score = 0;
   const notes = [];
