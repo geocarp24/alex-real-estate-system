@@ -38,8 +38,9 @@ const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || "";
 const SONNET_MODEL  = "claude-sonnet-4-6";
 
 // Override via CREATIVO_BATCH_MAX env (used for one-shot migrations).
-// Default 3 keeps normal scheduled runs lightweight.
-const BATCH_MAX_PER_RUN = Number(process.env.CREATIVO_BATCH_MAX || 3);
+// Bumped to 10 temporarily for 2026-05-07 brand migration (17 records pending).
+// REVERT to 3 after migration completes — see memoria_ALex.md 2026-05-07.
+const BATCH_MAX_PER_RUN = Number(process.env.CREATIVO_BATCH_MAX || 10);
 
 // ─── Airtable SM helpers (separate base from CRM) ───
 async function smFetch(params = "") {
