@@ -19,16 +19,13 @@
  * after Replicate Nano Banana attempt failed Jorge's review.
  */
 import { parseArgs, loadTenant, telegramSend, genRunId, isoNow } from "../_shared/runner.mjs";
+import { SM_BASE_ID as SM_BASE, SM_POSTS_TABLE_ID as SM_TABLE, SM_TOKEN, STATUS, smUrl } from "../_shared/sm_tables.mjs";
 import { THEMES, VALID_THEME_CODES, slideHook, slidePoint, slideCTA, slidePostEditorial, buildCarousel } from "../creativo_runner/themes.mjs";
 import { renderHtmlToPng, closeBrowser } from "./render.mjs";
 import { fetchPostBackground, deriveBgQuery } from "./backgrounds.mjs";
 import crypto from "node:crypto";
 
 const VALID_MODES = ["batch", "one"];
-
-const SM_BASE  = process.env.AIRTABLE_SM_BASE_ID  || "appU9s3kGkVpdrJkw";
-const SM_TABLE = process.env.AIRTABLE_SM_TABLE_ID || "tblAj0Pkj1jW4p5Ld";
-const SM_TOKEN = process.env.AIRTABLE_SM_TOKEN    || "";
 
 const CLD_NAME   = process.env.CLOUDINARY_NAME       || "";
 const CLD_KEY    = process.env.CLOUDINARY_API_KEY    || "";
