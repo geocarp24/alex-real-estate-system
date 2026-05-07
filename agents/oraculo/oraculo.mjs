@@ -294,22 +294,19 @@ ${ctx.copy ? `\n[BRAND VOICE / COPY GUIDELINES]\n${ctx.copy}\n` : ""}`;
   const userPrompt = `Review this idea:
 
 Título: ${titulo}
-Tipo: ${tipo} | Formato: ${formato}
+Tipo: ${tipo} | Formato: ${formato} | Language: ${lang}
 
 Hook:
 ${hook}
 
-Caption ES:
-${captionEs.slice(0, 600)}
+Caption (${lang}):
+${(caption || "").slice(0, 800)}
 
-Caption EN:
-${captionEn.slice(0, 600)}
+Hashtags: ${(hashtags || "").slice(0, 200)}
+CTA: ${(cta || "").slice(0, 200)}
 
-Hashtags: ${hashtags.slice(0, 200)}
-CTA: ${cta.slice(0, 200)}
-
-Visual_Prompt:
-${visualPrompt.slice(0, 600)}
+Visual Concept / Slides:
+${(visualPrompt || "").slice(0, 600)}
 
 Return JSON only.`;
 
