@@ -79,6 +79,30 @@ async function smCreate(fields) {
   return r.json();
 }
 
+// New 3-table aware create + fetch helpers.
+async function smCreateIn(tableId, fields) {
+  const r = await fetch(`https://api.airtable.com/v0/${SM_BASE}/${tableId}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${SM_TOKEN}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ fields, typecast: true }),
+  });
+  return r.json();
+}
+async function smFetchIn(tableId, params = "") {
+  const r = await fetch(`https://api.airtable.com/v0/${SM_BASE}/${tableId}?${params}`, {
+    headers: { Authorization: `Bearer ${SM_TOKEN}` },
+  });
+  return r.json();
+}
+async function smUpdateIn(tableId, recordId, fields) {
+  const r = await fetch(`https://api.airtable.com/v0/${SM_BASE}/${tableId}/${recordId}`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${SM_TOKEN}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ fields, typecast: true }),
+  });
+  return r.json();
+}
+
 async function smUpdate(recordId, fields) {
   const r = await fetch(`https://api.airtable.com/v0/${SM_BASE}/${SM_TABLE}/${recordId}`, {
     method: "PATCH",
