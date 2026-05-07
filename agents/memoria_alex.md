@@ -257,4 +257,18 @@ Detalle completo en `memoria_ALex.md` raíz sección "2026-05-02".
 
 ---
 
-*Última actualización: 2026-05-02*
+## 2026-05-07 — Director v2: Template #2 PiP aprobado (ES + EN)
+
+Trigger: spec field `template: "pip"` con `Tipo=Personal`. Detalles completos en `memoria_ALex.md` raíz.
+
+Resumen para sub-agentes:
+- **El Creativo**: cuando un Reel pide `template:"pip"`, Director v2 genera 5 backgrounds FLUX2 (hook + 3 puntos + cta). HeroPrompts deben ser cinemáticos sin texto.
+- **El Programador**: PiP videos publican igual que Template #1 (Blotato FB+IG, slots Mar/Jue/Sáb 10am-12pm CST).
+- **El Director**: cuando el spec lleva `template:"pip"`, NO uses Blotato video — Director v2 hace el compose entero.
+- **Costo**: ~$2.50 inicial, re-runs con cache HIT ~$0.05.
+- **Sync voz↔slides**: ffprobe mide duración avatar y redistribuye cortes por char-count. Cambiar el script invalida cache.
+- **Layout**: avatar circular 360px top-left (60,140), captions karaoke abajo, FLUX2 backgrounds full-screen.
+
+---
+
+*Última actualización: 2026-05-07*
