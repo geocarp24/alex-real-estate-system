@@ -6,7 +6,7 @@ import { mkdir, rm, readFile, stat, writeFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { listPending, fetchOne, parseVisualPrompt, updateRecord } from './src/airtable.mjs';
+import { listPending, fetchOne, parseVisualPrompt, buildSpecFromReelRecord, updateRecord } from './src/airtable.mjs';
 import { expandNarrative, validateSpec } from './src/narratives/index.mjs';
 import { buildSceneHtml } from './src/scene_layout.mjs';
 import { wrapSlideHtml } from './src/wrapper.mjs';
