@@ -5,6 +5,50 @@
 
 ---
 
+## 2026-05-07 (PM-2) — El Oráculo wired como gate SM→Creativo (Jorge directiva)
+
+**Jorge 2026-05-07 06:47 UTC**: "el Oráculo debe ir de la mano con el Social Media Manager primero, y después que el Oráculo avala que el Social Media hizo un buen trabajo a través del research especializado, entonces se proceden a realizar los creativos. Esto se transforma en $0 desperdicios, y el Director entra directamente a poner en schedule las publicaciones con sus respectivos visuales."
+
+### Pipeline corregido (NUEVO):
+```
+SM Manager → record (Status=Nueva, Visual_Prompt set)
+    ↓
+El Oráculo (gate de calidad) → review persona+brand+compliance
+    ↓ APPROVE: prepend "[ORACULO_OK score=N]" a Visual_Prompt
+    ↓ REJECT: write Error_Reason, leave Visual_Prompt unchanged
+El Creativo → filter requires [ORACULO_OK] prefix
+    ↓
+El Director / Programador → schedule + publish via Meta Graph API + safety.mjs
+```
+
+### Files
+- `agents/oraculo/oraculo.mjs` — sub-agente runner, mode=batch|one
+- `agents/oraculo_inputs/wi_homeowner_persona.md` — 6 distressed homeowner segments
+- `agents/oraculo_inputs/popup_copy.md` — brand voice + colors + tone
+- `agents/creativo/creativo.mjs` filter actualizado: `FIND('[ORACULO_OK', {Visual_Prompt})>0`
+- `.github/workflows/agents-cron.yml` — nuevo cron `45 20 */3 * *` oraculo:batch (15min después de social_media:full_pipeline)
+
+### Decisión arquitectónica: prefix vs new field
+Airtable Meta API no soporta agregar opciones singleSelect via API. Para evitar dependencia manual de Jorge en UI, El Oráculo usa **prefix en Visual_Prompt** (`[ORACULO_OK score=8]\n...`). Idempotente, hot-revertible, no requiere schema changes.
+
+### Sonnet review criteria (1-10 score, threshold = 7)
+1. Persona fit — habla a uno de los 6 distressed segments (foreclosure/inherited/divorce/back taxes/tired landlord/relocation)
+2. Brand voice — warm, no presión, NO investor jargon
+3. Compliance — NO FTC red flags, NO HUD Fair Housing violations, NO promoción homosexualidad (Jorge 2026-05-07)
+4. Hook quality — abre curiosidad <12 palabras
+5. CTA presence — phone (920) 777-9886 + pinnaclegroupwi.com mandatory
+6. Visual_Prompt clarity — TEMA T1-T5 + actionable
+
+### Configuración env (consume desde Doppler en GHA)
+- `ANTHROPIC_API_KEY` (Sonnet 4.6)
+- `AIRTABLE_SM_TOKEN/BASE_ID/TABLE_ID`
+- `ORACULO_BATCH_MAX` (default 10) — cuántos records review por run
+
+### Costo estimado
+~$0.005/record (Sonnet input ~3k + output ~500). 30 records ≈ $0.15. ROI: cada idea rejected ahorra Pexels+Cloudinary+render que cuesta ~$0.02 + tiempo Jorge.
+
+---
+
 ## 2026-05-07 (PM) — Arsenal completo: 11 templates production-ready
 
 **Jorge confirmación 06:37 UTC**: 5 Reel + 5 Carrusel + 1 Post = 11 templates.
