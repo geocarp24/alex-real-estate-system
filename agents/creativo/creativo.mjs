@@ -272,10 +272,34 @@ async function processOne(record) {
   }
 
   // 2. themes.mjs builds BODY HTML for each slide.
+  // Post/Story → single editorial frame with Pexels photo background (NEW 2026-05-07).
+  // Carrusel → hook + N points + CTA stack (existing flow).
+  // Anything else → legacy 2-slide hook+CTA fallback.
   let slidesHtml;
+  let bgInfo = null;
   try {
     if (isCarrusel) {
       slidesHtml = buildCarousel(spec); // hook + N points + CTA
+    } else if (isPostOrStory) {
+      // Resolve a portrait background from Pexels (with deterministic seed for
+      // idempotency — same record always picks same photo across reruns).
+      const bgQuery = deriveBgQuery({
+        visualPrompt: f.Visual_Prompt,
+        tipo: f.Tipo,
+        titulo,
+        captionEn: f["🇺🇸 Caption EN"],
+      });
+      bgInfo = await fetchPostBackground(bgQuery, { seed: record.id });
+      slidesHtml = [
+        slidePostEditorial(spec.theme, {
+          hookEn:       spec.hook?.hookEn,
+          hookEs:       spec.hook?.hookEs,
+          ctaEs:        spec.cta?.ctaEs,
+          bgUrl:        bgInfo.bgUrl,
+          photographer: bgInfo.photographer,
+          badge:        spec.hook?.badge || "WI Cash Buyer",
+        }),
+      ];
     } else {
       slidesHtml = [
         slideHook(spec.theme, spec.hook || {}),
