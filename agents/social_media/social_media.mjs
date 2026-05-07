@@ -378,18 +378,31 @@ async function getRecentTitles() {
 // ──────────────────────────────────────────────────────────────
 // Mode 2 — Process posts (Meta Graph API publish to FB + IG)
 // ──────────────────────────────────────────────────────────────
-function nextSlotISO(offsetHours = 0) {
-  // Next Tue/Thu/Sat 10am-12pm CST (= 15-17 UTC summer / 16-18 winter).
-  // Simple: schedule at 16:00 UTC + offset on a future Tue/Thu/Sat.
-  const now = new Date();
-  const target = new Date(now.getTime() + (offsetHours + 24) * 3_600_000);
-  // Move forward to next Tue (2), Thu (4) or Sat (6).
-  const allowedDays = [2, 4, 6];
-  while (!allowedDays.includes(target.getUTCDay())) {
-    target.setUTCDate(target.getUTCDate() + 1);
+// Pick the Nth distinct future Tue/Thu/Sat 16:00 UTC slot.
+// slotIndex 0 = next allowed slot strictly in the future; 1 = the one after; etc.
+// Each call MUST return a different (later) slot to spread posts across days
+// per cadence policy, and to avoid Meta API errors on past timestamps.
+// Bug fix 2026-05-07: previous version could return slots in the past.
+function nextSlotISO(slotIndex = 0) {
+  const now = Date.now();
+  const allowedDays = [2, 4, 6];   // Tue, Thu, Sat (UTC)
+  let cursor = new Date(now + 60 * 60 * 1000);   // start search 1h from now
+  let found = -1;
+  for (let i = 0; i < 30; i++) {
+    if (allowedDays.includes(cursor.getUTCDay())) {
+      const candidate = new Date(cursor);
+      candidate.setUTCHours(16, 0, 0, 0);
+      if (candidate.getTime() > now + 30 * 60 * 1000) {
+        found++;
+        if (found === slotIndex) return candidate.toISOString();
+      }
+    }
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
-  target.setUTCHours(16, 0, 0, 0);
-  return target.toISOString();
+  // Fallback: 7 days from now at 16:00 UTC
+  const fallback = new Date(now + 7 * 24 * 3_600_000);
+  fallback.setUTCHours(16, 0, 0, 0);
+  return fallback.toISOString();
 }
 
 // Parse `Blotato_Visual_ID` legacy field for carousel slide URLs.
