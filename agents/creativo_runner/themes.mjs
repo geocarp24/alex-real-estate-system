@@ -161,6 +161,143 @@ export function slideCTA(themeCode, { ctaEn, ctaEs } = {}) {
 }
 
 // ---------------------------------------------------------------------------
+// POST EDITORIAL SLIDE — single-frame editorial post with photo background.
+// Designed for "asombroso" Pinnacle posts (Jorge 2026-05-07): Pexels/stock
+// photo background + Pinnacle dark-green dim layer + bold hook + CTA + brand.
+//
+// Aesthetic alignment (CLAUDE.md regla 1e — homeowner editorial, NOT tech):
+//   - impeccable: production-grade typography, hierarchy, mobile-first 1080×1350
+//   - minimalist-ui: editorial monochrome warmth, NO gradients on text
+//   - high-end-visual-design: heavy shadows, golden accent, premium feel
+//   - emil-design-eng: taste — generous spacing, deliberate imperfection
+//
+// Layout (top → bottom):
+//   • Logo top-left (140px wide, drop-shadow)
+//   • Optional badge top-right (pill chip)
+//   • Hero hookEn — large 92pt bold white, max 4 lines, vertical-center weighted
+//   • Gold accent bar (96×4) + hookEs in accent color, smaller (40pt)
+//   • Bottom block: phone (52pt bold) + website (28pt) on dim band
+//   • Photographer credit micro-footer (12pt rgba .35)
+// ---------------------------------------------------------------------------
+export function slidePostEditorial(themeCode, { hookEn, hookEs, ctaEs, bgUrl, photographer, badge } = {}) {
+  const theme = THEMES[themeCode] || THEMES.T1;
+
+  // Theme-specific dim layer — keeps brand consistency across photo styles.
+  // Bottom 70% is a strong gradient toward theme.bg for text legibility.
+  // Light themes (T2, T4) flip to white bottom for editorial cream feel.
+  const isLightTheme = themeCode === "T2" || themeCode === "T4";
+  const dimBg     = isLightTheme ? "rgba(255,255,255,0.92)" : `${theme.bg}EC`;  // EC = ~92% alpha
+  const dimMidBg  = isLightTheme ? "rgba(255,255,255,0.35)" : `${theme.bg}66`;  // 66 = ~40% alpha
+  const heroColor = isLightTheme ? theme.text : "#FFFFFF";
+  const muteColor = isLightTheme ? theme.muted : "rgba(255,255,255,0.85)";
+  const phoneBgFade = isLightTheme ? "rgba(255,255,255,0.95)" : `${theme.bg}F2`;
+
+  const hookEnText = (hookEn || "").trim() || "Cash for Your House.";
+  const hookEsText = (hookEs || "").trim();
+  const ctaText    = (ctaEs || "Compramos Casas — Efectivo. Rápido. Justo.").trim();
+  const safeBgUrl  = bgUrl || "https://images.pexels.com/photos/277667/pexels-photo-277667.jpeg?auto=compress&w=1080&h=1350&fit=crop";
+
+  const badgeChip = badge ? `
+    <div style="
+      position:absolute; top:64px; right:64px;
+      background:${theme.accent}; color:${theme.bg};
+      font-size:18px; font-weight:800; letter-spacing:.14em; text-transform:uppercase;
+      padding:10px 20px; border-radius:999px;
+      box-shadow:0 4px 18px rgba(0,0,0,.25);">
+      ${esc(badge)}
+    </div>` : "";
+
+  const photographerCredit = photographer ? `
+    <div style="
+      position:absolute; bottom:18px; left:24px;
+      font-size:13px; color:rgba(255,255,255,0.42);
+      font-weight:500; letter-spacing:.04em;">
+      Photo · ${esc(photographer)}
+    </div>` : "";
+
+  // The wrapper here is custom (not baseWrapper) because the bg image needs
+  // to be the absolute first layer with no padding clipping it.
+  return `<div style="
+    width:1080px; height:1350px; position:relative; overflow:hidden;
+    background:${theme.bg}; font-family:'${FONT_HEADING}', system-ui, sans-serif;">
+
+    <!-- Layer 1: photo background (full bleed, cover-fit) -->
+    <img src="${safeBgUrl}" alt="" style="
+      position:absolute; top:0; left:0; width:100%; height:100%;
+      object-fit:cover; z-index:1;" />
+
+    <!-- Layer 2: top fade (hook legibility) -->
+    <div style="
+      position:absolute; top:0; left:0; width:100%; height:50%;
+      background:linear-gradient(to bottom, ${dimBg} 0%, ${dimMidBg} 60%, transparent 100%);
+      z-index:2;"></div>
+
+    <!-- Layer 3: bottom dim block (CTA legibility) -->
+    <div style="
+      position:absolute; bottom:0; left:0; width:100%; height:46%;
+      background:linear-gradient(to top, ${dimBg} 35%, ${dimMidBg} 75%, transparent 100%);
+      z-index:2;"></div>
+
+    <!-- Layer 4: corner vignette for premium feel -->
+    <div style="
+      position:absolute; top:0; left:0; width:100%; height:100%;
+      background:radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.22) 100%);
+      z-index:3; pointer-events:none;"></div>
+
+    <!-- Layer 5: brand frame (logo + badge) -->
+    <img src="${LOGO_URL}" alt="Pinnacle Holdings" style="
+      position:absolute; top:64px; left:64px; width:180px; height:auto;
+      filter:drop-shadow(0 4px 14px rgba(0,0,0,.45));
+      z-index:5;" />
+    ${badgeChip}
+
+    <!-- Layer 6: hero hook (vertically centered, slight weight to upper third) -->
+    <div style="
+      position:absolute; top:340px; left:72px; right:72px;
+      z-index:6; display:flex; flex-direction:column; gap:28px;">
+      <h1 style="
+        margin:0; font-size:92px; font-weight:900; line-height:1.02;
+        letter-spacing:-0.025em; color:${heroColor};
+        text-shadow:0 4px 28px rgba(0,0,0,0.55);">
+        ${esc(hookEnText)}
+      </h1>
+      <div style="width:104px; height:5px; background:${theme.accent}; border-radius:4px;"></div>
+      ${hookEsText ? `<p style="
+        margin:0; font-size:38px; font-weight:600; line-height:1.22;
+        color:${theme.accent}; letter-spacing:-0.005em;
+        text-shadow:0 2px 16px rgba(0,0,0,0.45); max-width:920px;">
+        ${esc(hookEsText)}
+      </p>` : ""}
+    </div>
+
+    <!-- Layer 7: bottom CTA block (phone + website) -->
+    <div style="
+      position:absolute; bottom:64px; left:72px; right:72px;
+      z-index:7; display:flex; flex-direction:column; gap:14px;">
+      <p style="
+        margin:0; font-size:30px; font-weight:600; line-height:1.3;
+        color:${muteColor}; letter-spacing:-0.005em;">
+        ${esc(ctaText)}
+      </p>
+      <div style="display:flex; align-items:baseline; gap:32px; margin-top:12px; flex-wrap:wrap;">
+        <span style="
+          font-size:54px; font-weight:900; color:${heroColor};
+          letter-spacing:-0.015em; line-height:1;">
+          ${PHONE}
+        </span>
+        <span style="
+          font-size:26px; font-weight:500; color:${muteColor};
+          letter-spacing:.02em; line-height:1;">
+          ${WEBSITE}
+        </span>
+      </div>
+    </div>
+
+    ${photographerCredit}
+  </div>`;
+}
+
+// ---------------------------------------------------------------------------
 // buildCarousel — convenience: takes a spec object and returns [html, html, ...]
 //   spec = {
 //     theme: "T1",                              // required
