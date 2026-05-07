@@ -222,48 +222,140 @@ Each idea schema:
 
 Themes: T1 Dark Premium (default educational), T2 White Clean (data/FAQ), T3 Gold Black (urgency/foreclosure), T4 Soft Cream (testimonios/herencia), T5 Vibrant Blue (high engagement young).`;
 
-  const userPrompt = `Generate ${IDEAS_PER_RUN} fresh post ideas for this week. Mix formats. Cover topics like:
+  // Updated system prompt for 3-table schema with bilingual split.
+  // Each idea generates 2 records: 1 ES + 1 EN linked by Source_Idea_ID.
+  const newSystemPrompt = `You are the Social Media Agent for Pinnacle Holdings Group LLC, a real estate cash home buyer in Wisconsin. Owner: Jorge Cruz. Phone: (920) 777-9886. Web: pinnaclegroupwi.com.
+
+You generate post ideas optimized for Instagram + Facebook. Audience: distressed homeowners (foreclosure, inherited property, divorce, back taxes, relocation). 70% educational, 20% promotional, 10% personal.
+
+VIDEO LENGTH RULE (Jorge 2026-05-07 — non-negotiable): Reels MUST be 8-10 seconds = exactly 5 slides × 2s. NEVER more. If a concept needs more time, split into series "Topic — Parte 1", "Topic — Parte 2", etc. Each part = 1 separate idea.${lessonsBlock}
+
+Output ONLY a JSON object: { "ideas": [...] }. No prose outside JSON.
+
+Each idea schema (BILINGUAL — generate BOTH es and en for every field):
+{
+  "format": "Post" | "Reel" | "Video",
+  "tipo": "Educativo" | "Promocional" | "Testimonio" | "Mito" | "Pregunta" | "Personal",
+  "segment_anchor": "Pre-Foreclosure" | "Inherited" | "Divorce" | "Back-Taxes" | "Tired-Landlord" | "Relocation",
+  "title_es": "string", "title_en": "string",
+  "hook_es": "string", "hook_en": "string",
+  "caption_es": "200-400 chars ES, perfect ortografía", "caption_en": "200-400 chars EN",
+  "cta_es": "single line", "cta_en": "single line",
+  "hashtags_es": "5 hashtags", "hashtags_en": "5 hashtags",
+  "theme_code": "T1"|"T2"|"T3"|"T4"|"T5",
+  "visual_concept": "Pexels query OR FLUX prompt — for Posts only",
+  "reel": { "slides": [
+    {"hook": "5-7 words"},  // slide 1
+    {"text": "8-14 words", "visual": "pexels query | flux: prompt"},  // slide 2
+    {"text": "8-14 words", "visual": "..."},  // slide 3
+    {"text": "8-14 words", "visual": "..."},  // slide 4
+    {"cta": "5-7 words including phone"}  // slide 5
+  ], "template": "hybrid|pip|voiceover|editorial", "music": "chill|cinematic|tension|upbeat-1" }
+}
+
+For Posts: include caption + hook + cta + visual_concept. Skip "reel" key.
+For Reels: include reel.slides + reel.template + caption (full IG description, separate from in-video text).
+For Videos: include hook + caption + main_message + script_outline + cta.`;
+
+  const userPrompt = `Generate ${IDEAS_PER_RUN} fresh ideas for this week. Mix formats (1 Post, 1 Reel, 1 either). Cover topics like:
 - Foreclosure help Wisconsin
 - Inherited property / probate
 - Cash vs realtor comparison
-- Selling rental property
-- Quick relocation sale
-- Common myths
+- Tired landlord exit
+- Relocation quick sale
+- Behind on taxes
 
 Avoid duplicating these recent titles (last 14 days):
 ${(await getRecentTitles()).join(" / ") || "(none)"}
 
-Return JSON only.`;
+Return JSON only — both ES and EN versions in EVERY idea.`;
 
-  const { text, error } = await callAnthropic(systemPrompt, userPrompt, 3000);
+  const { text, error } = await callAnthropic(newSystemPrompt, userPrompt, 4000);
   if (error) return { created: 0, error };
   const ideas = parseAllJSON(text);
   if (ideas.length === 0) return { created: 0, error: "no ideas parsed", raw: text.slice(0, 200) };
 
   const created = [];
   for (const idea of ideas.slice(0, IDEAS_PER_RUN)) {
-    try {
-      const fields = {
-        "Título de Idea": idea.title_es || idea.title_en || "Untitled",
-        "Mensaje Principal": idea.caption_es || "",
-        "🇺🇸 Caption EN": idea.caption_en || "",
-        "🇲🇽 Caption ES": idea.caption_es || "",
-        "Hook": idea.hook_es || "",
-        "CTA": idea.cta || "",
-        "Hashtags": idea.hashtags || "",
-        "Tipo": idea.tipo || "Educativo",
-        "Formato": idea.formato || "Post",
-        "Plataforma": "AMBAS",
-        "Visual_Prompt": idea.visual_prompt || "",
-        "Status": "Nueva",
+    const format = String(idea.format || "Post");
+    const sourceId = String(Date.now()) + Math.floor(Math.random()*1000).toString().padStart(3,"0");
+    const tableId  = format === "Reel"  ? SM_REELS_TABLE_ID
+                   : format === "Video" ? SM_VIDEOS_TABLE_ID
+                   : SM_POSTS_TABLE_ID;
+
+    // Build base fields shared by ES + EN records.
+    const baseFields = (lang) => ({
+      Title: lang === "ES" ? (idea.title_es || idea.title_en) : (idea.title_en || idea.title_es),
+      Language: lang,
+      Source_Idea_ID: sourceId,
+      Tipo: idea.tipo || "Educativo",
+      Segment_Anchor: idea.segment_anchor || "General",
+      Plataforma: "AMBAS",
+      Theme_Code: idea.theme_code || "T1",
+      Status: STATUS.IDEA,
+      Hashtags: lang === "ES" ? (idea.hashtags_es || idea.hashtags_en || "") : (idea.hashtags_en || idea.hashtags_es || ""),
+    });
+
+    let esFields, enFields;
+    if (format === "Reel") {
+      const slides = (idea.reel && Array.isArray(idea.reel.slides)) ? idea.reel.slides : [];
+      const slide = (i, key) => (slides[i] && slides[i][key]) || "";
+      const reelExtra = (lang) => {
+        const cap = lang === "ES" ? idea.caption_es : idea.caption_en;
+        return {
+          Slide_1_Hook:  slide(0, "hook"),
+          Slide_2_Text:  slide(1, "text"),
+          Slide_2_Visual: slide(1, "visual"),
+          Slide_3_Text:  slide(2, "text"),
+          Slide_3_Visual: slide(2, "visual"),
+          Slide_4_Text:  slide(3, "text"),
+          Slide_4_Visual: slide(3, "visual"),
+          Slide_5_CTA:   slide(4, "cta"),
+          Caption:       cap || "",
+          Template:      (idea.reel && idea.reel.template) || "voiceover",
+          Music_Track:   (idea.reel && idea.reel.music) || "cinematic",
+          Avatar_Mode:   String(idea.tipo || "").toLowerCase() === "personal" ? "Jorge_hook+CTA" : "NO_avatar",
+        };
       };
-      const result = await smCreate(fields);
-      if (result.id) created.push(result.id);
-    } catch (e) {
-      console.error(`[social_media] create failed: ${e.message}`);
+      esFields = { ...baseFields("ES"), ...reelExtra("ES") };
+      enFields = { ...baseFields("EN"), ...reelExtra("EN") };
+    } else if (format === "Video") {
+      const videoExtra = (lang) => ({
+        Hook:           lang === "ES" ? (idea.hook_es || "") : (idea.hook_en || ""),
+        Main_Message:   lang === "ES" ? (idea.caption_es || "") : (idea.caption_en || ""),
+        Script_Outline: lang === "ES" ? (idea.script_outline_es || "") : (idea.script_outline_en || ""),
+        CTA:            lang === "ES" ? (idea.cta_es || "") : (idea.cta_en || ""),
+        Caption:        lang === "ES" ? (idea.caption_es || "") : (idea.caption_en || ""),
+        Template:       "voiceover",
+        Music_Track:    "cinematic",
+        Avatar_Mode:    "NO_avatar",
+        Duration_Sec:   30,
+      });
+      esFields = { ...baseFields("ES"), ...videoExtra("ES") };
+      enFields = { ...baseFields("EN"), ...videoExtra("EN") };
+    } else {
+      const postExtra = (lang) => ({
+        Hook:           lang === "ES" ? (idea.hook_es || "") : (idea.hook_en || ""),
+        Caption:        lang === "ES" ? (idea.caption_es || "") : (idea.caption_en || ""),
+        CTA:            lang === "ES" ? (idea.cta_es || "") : (idea.cta_en || ""),
+        Visual_Concept: idea.visual_concept || "",
+        Background_Source: "Pexels",
+      });
+      esFields = { ...baseFields("ES"), ...postExtra("ES") };
+      enFields = { ...baseFields("EN"), ...postExtra("EN") };
     }
+
+    try {
+      const esRes = await smCreateIn(tableId, esFields);
+      if (esRes.id) created.push({ id: esRes.id, lang: "ES", format });
+    } catch (e) { console.error(`[sm] ES create failed: ${e.message}`); }
+
+    try {
+      const enRes = await smCreateIn(tableId, enFields);
+      if (enRes.id) created.push({ id: enRes.id, lang: "EN", format });
+    } catch (e) { console.error(`[sm] EN create failed: ${e.message}`); }
   }
-  return { created: created.length, ids: created };
+  return { created: created.length, records: created };
 }
 
 async function getRecentTitles() {
