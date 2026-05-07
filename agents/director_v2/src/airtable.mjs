@@ -38,6 +38,8 @@ export async function fetchOne(recordId, { token, baseId, tableId, baseDelayMs =
 export function parseVisualPrompt(raw) {
   if (!raw) throw new Error('parseVisualPrompt: empty input');
   let text = String(raw).trim();
+  // Strip [ORACULO_OK score=N src=...] prefix line if present (Jorge 2026-05-07 gate).
+  text = text.replace(/^\[ORACULO_OK[^\]]*\]\s*\n?/, '').trim();
   const fence = text.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
   if (fence) text = fence[1].trim();
   try { return JSON.parse(text); }
