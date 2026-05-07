@@ -91,7 +91,7 @@ export function buildSpecFromReelRecord(record) {
     theme:     f.Theme_Code || 'T1',
     template:  f.Template   || 'voiceover',
     aspect:    '9:16',
-    duration:  12,                        // gives ~10s output after 4 xfade × 0.6s overlap
+    duration:  17,                        // 5 slides × 3s budget = 17s, output ~15s after xfade (Jorge 2026-05-07)
     locale:    localeKey,
     hook: {
       [localeKey]: hookText,
