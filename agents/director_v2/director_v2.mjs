@@ -337,10 +337,11 @@ async function processRecord(record, { env, dryRun, stats }) {
   const captionLocale = spec.locale === 'en' ? 'en' : 'es';
   const captionField  = captionLocale === 'en' ? 'captionEn' : 'captionEs';
 
-  // Template #2 PiP: build ONE continuous HeyGen avatar from the joined script (hook + points + cta).
-  // The avatar gets overlaid as a circle on every scene at compose time. Cached by combined-script hash.
+  // Template #2 PiP / Template #3 Voiceover: ONE continuous HeyGen avatar from joined script (hook + points + cta).
+  // PiP overlays as circle. Voiceover uses audio only — no visual avatar — so the FLUX2 b-roll carries the visual story.
+  // Cache by inputs hash → same record + same script + same engine HITS regardless of which template variant rendered first.
   let globalAvatar = null;
-  if (template === 'pip' && env.HEYGEN_API_KEY && env.HEYGEN_AVATAR_ID_JORGE && String(record.fields.Tipo || '').toLowerCase() === 'personal') {
+  if ((template === 'pip' || template === 'voiceover') && env.HEYGEN_API_KEY && env.HEYGEN_AVATAR_ID_JORGE && String(record.fields.Tipo || '').toLowerCase() === 'personal') {
     const lang = captionLocale;
     const continuousScript = [
       lang === 'en' ? spec.hook?.en : spec.hook?.es,
