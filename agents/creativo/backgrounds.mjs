@@ -107,10 +107,15 @@ export function deriveBgQuery({ visualPrompt = "", tipo = "", titulo = "", capti
   const text = `${visualPrompt} ${tipo} ${titulo} ${captionEn}`.toLowerCase();
 
   // Topic detection — order matters (most specific first).
+  // TESTIMONIO comes FIRST so testimonio about divorce/foreclosure routes to
+  // the resolution-themed visual (Pinnacle helped them) instead of the
+  // distress-themed visual.
+  if (/testimon|testimonial|caso de éxito|success story/.test(text))
+    return "for sale sold sign yard home";
   if (/foreclosure|embarg|deuda|debt|behind on|atrasado/.test(text))
     return "stressed homeowner kitchen window light";
   if (/divorce|divorc|separation|separac/.test(text))
-    return "empty house living room natural light";
+    return "house keys handover hand close";
   if (/inherited|hered|estate|funeral/.test(text))
     return "old wooden house exterior warm";
   if (/repair|reparac|fixer|fixer-upper|damaged|repairs/.test(text))
