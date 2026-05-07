@@ -4,6 +4,34 @@
 
 ---
 
+## 2026-05-07 (PM-5) — Mono-language render fix (slidePostEditorial refactor)
+
+**Jorge feedback PM-5**: "los visuales muestran ES + EN mezclados en mismo PNG — separar idiomas".
+
+### Root cause
+Después del restructure 3-tablas (PM-4), los `visual_url` migrados apuntaban a renders **pre-restructure** (template viejo `slidePostEditorial` que recibía `hookEn` + `hookEs` y renderizaba ambos en el mismo PNG: h1 = EN, p = ES en fucsia). El restructure cambió la data layer pero NO invalidó los URLs de Cloudinary.
+
+### Fix aplicado (PM-5)
+1. **`slidePostEditorial` refactorizada** a mono-language:
+   - Antes: `{ hookEn, hookEs, ctaEs }` → render h1+p bilingüe
+   - Después: `{ hook, subtitle, cta, lang }` → render mono-idioma único
+   - Backward-compat preservado: si callers pasan `hookEn/hookEs`, se selecciona uno según `lang`
+2. **`creativo.mjs` actualizado** para pasar:
+   - `hook`: `f.Hook` (idioma del record)
+   - `subtitle`: primera oración del Caption como supporting line editorial (mismo idioma, evita duplicar el hook)
+   - `cta`: `f.CTA`
+   - `lang`: `f.Language`
+   - Badge por segment + idioma (mapeado a 6 segments × 2 langs)
+3. **Reset 36 Posts + 16 Reels** Visual Listo → Status='Oraculo OK' + visual_url='' para forzar re-render
+4. **Dispatch creativo + director_v2** con nuevo template
+
+### Lección anti-regresión
+- **Cambios de data layer (schema/tablas) NO invalidan automáticamente assets cacheados (Cloudinary URLs)**
+- Cualquier refactor de schema bilingüe → mono-language requiere RESET explícito de visual_url + re-render
+- Templates de render deben ser mono-language desde el día 1 — no aceptar pares ES/EN en mismo template
+
+---
+
 ## 2026-05-07 (PM-4) — Restructure SM completa: 3 tablas + bilingüe separado (Jorge directo)
 
 **Jorge directo 2026-05-07 PM**: rearchitect SM Manager — 3 tablas separadas (Posts/Reels/Videos), cada record en UN solo idioma (no más bilingüe en el mismo record), Reels = 5 slides × 2s = 10s con campos `Slide_N_Text` explícitos por slide.
