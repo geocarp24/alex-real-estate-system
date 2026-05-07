@@ -316,11 +316,23 @@ async function processOne(record, ctx) {
     return { id: record.id, titulo, status: "skip_no_visual_prompt" };
   }
 
+  // Try Sonnet first (best quality). If it fails (no credits, network, etc),
+  // fall back to deterministic rule-based scoring so the pipeline keeps moving.
   let review;
-  try {
-    review = await reviewIdea(record, ctx);
-  } catch (e) {
-    return { id: record.id, titulo, status: "review_failed", error: String(e.message).slice(0, 150) };
+  let reviewSource = "sonnet";
+  if (ANTHROPIC_KEY) {
+    try {
+      review = await reviewIdea(record, ctx);
+    } catch (e) {
+      const msg = String(e.message).slice(0, 150);
+      console.error(`[oraculo] Sonnet failed for ${record.id} (${msg}) — falling back to deterministic`);
+      review = reviewIdeaDeterministic(record);
+      reviewSource = "deterministic";
+    }
+  } else {
+    console.error(`[oraculo] no ANTHROPIC_API_KEY — using deterministic review`);
+    review = reviewIdeaDeterministic(record);
+    reviewSource = "deterministic";
   }
 
   const score = Number(review.score) || 0;
