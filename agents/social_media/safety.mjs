@@ -23,16 +23,22 @@
 
 // ── Cadence policy ────────────────────────────────────────────────────────────
 // Pinnacle account profile: 14 FB fans, IG just connected, app in dev mode.
-// Baseline = "young / unwarmed" → very conservative caps that ramp up over weeks.
+// Ramp-up cadence — bans triggered by sudden volume spikes. Ramp gradually
+// over 4 weeks before hitting Jorge's GROWTH target (2026-05-07: 3 Posts +
+// 1-2 Reels + Video every 2 days = 5-6/day). Per-format caps prevent any
+// single format from exceeding its share even if total daily allowance left.
 export const CADENCE = {
-  WARMUP_WEEK_1:  { postsPerDayPerPlatform: 1, minHoursBetween: 24 },   // weeks 1: 1/day
-  WARMUP_WEEK_2:  { postsPerDayPerPlatform: 1, minHoursBetween: 12 },   // weeks 2: still 1/day
-  WARMUP_WEEK_3:  { postsPerDayPerPlatform: 2, minHoursBetween: 6 },    // ramp 2/day
-  STEADY_STATE:   { postsPerDayPerPlatform: 3, minHoursBetween: 4 },    // mature: 3/day max
+  WARMUP_WEEK_1:  { postsPerDayPerPlatform: 1,  minHoursBetween: 24, perFormat: { Post: 1, Reel: 0, Video: 0 } },
+  WARMUP_WEEK_2:  { postsPerDayPerPlatform: 2,  minHoursBetween: 8,  perFormat: { Post: 1, Reel: 1, Video: 0 } },
+  RAMP_WEEK_3:    { postsPerDayPerPlatform: 4,  minHoursBetween: 4,  perFormat: { Post: 2, Reel: 1, Video: 1 } },
+  RAMP_WEEK_4:    { postsPerDayPerPlatform: 5,  minHoursBetween: 3,  perFormat: { Post: 3, Reel: 1, Video: 1 } },
+  GROWTH:         { postsPerDayPerPlatform: 6,  minHoursBetween: 3,  perFormat: { Post: 3, Reel: 2, Video: 1 } },
+  STEADY_STATE:   { postsPerDayPerPlatform: 6,  minHoursBetween: 3,  perFormat: { Post: 3, Reel: 2, Video: 1 } },
 };
 
 // Approx account age per Meta — Pinnacle posted before via Blotato but app/system-user are fresh.
-// Conservative: treat as week-2 right now until we see clean activity for 14 days.
+// HOY (2026-05-07): treat as WARMUP_WEEK_2. Advance to RAMP_WEEK_3 in ~7 days
+// after seeing zero ban signals (no demotions, no integrity warnings, no rate errors).
 export const CURRENT_PHASE = 'WARMUP_WEEK_2';
 
 // Hard never-cross caps (Meta's published BUC limits, per Page/IG-user/24h).
