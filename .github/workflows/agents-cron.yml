@@ -95,6 +95,7 @@ jobs:
             "30 19 */3 * *")     agent=espia;        mode=weekly_deep ;;
             "0 20 */3 * *")      agent=auditor;      mode=weekly ;;
             "30 20 */3 * *")     agent=social_media; mode=full_pipeline ;;
+            "45 20 */3 * *")     agent=oraculo;      mode=batch ;;
             "0 21 */3 * *")      agent=creativo;     mode=batch ;;
             "30 21 */3 * *")     agent=director_v2;  mode=batch ;;
             *)                   agent="${{ inputs.agent || 'mercader' }}"; mode="${{ inputs.mode || 'quick_health' }}" ;;
