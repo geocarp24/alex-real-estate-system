@@ -5,6 +5,43 @@
 
 ---
 
+## 2026-05-07 — ARSENAL DE TEMPLATES VIDEO (Director v2)
+
+**Template #1 — HYBRID CINEMATIC + KARAOKE** ✅ APROBADO POR JORGE (ES + EN)
+
+| Aspecto | Detalle |
+|---|---|
+| **Estructura** | 5 escenas: hook (HeyGen) → 3 puntos (FLUX2 cinemático) → cta (HeyGen) |
+| **Avatar** | digital_twin Jorge `0a681eef…`, voz clone `ec1256cf…`, V3 engine |
+| **Voz** | `speed: 1.1`, sin expressiveness/motion_prompt (digital_twin no acepta) |
+| **Música** | Background con sidechain compression — duck dinámico bajo voz |
+| **Captions** | ASS karaoke `\kf` word-by-word, primary `&H003BEBFF` (yellow), secondary `&H00FFFFFF` (white), DejaVu Sans 68pt bold |
+| **Transiciones** | Todo `crossfade`, `XFADE_OVERLAP=0.6s` |
+| **Output** | 1080×1920 H.264 CRF 20 / preset medium / AAC 192k @ 48kHz |
+| **Cache** | HeyGen MP4 cacheado en Cloudinary `directorv2/cache/{recordId}_scene_{i}_heygen_{hash}` — re-renders sin costo HeyGen |
+| **Costo/Reel** | ~$2 (HeyGen $1 hook+cta + FLUX2 ~$0.10 puntos + compose) |
+| **Locale** | `spec.locale='es'` o `'en'` → escoge captionEs/En + voiceId apropiado |
+| **Validados** | ES: `v1778114954/…reciqvavtbcbg72wm.mp4` / EN: `v1778115721/…reciqvavtbcbg72wm.mp4` |
+| **Trigger** | Airtable `Tipo=Personal` |
+
+**Pipeline mejoras integradas en master tonight (commits c3db1a7 → 13a5e7b):**
+1. `XFADE_OVERLAP 0.3 → 0.6` smoother transitions
+2. `sidechaincompress` audio ducking (broadcast-grade)
+3. `-crf 20 -preset medium` visual quality bump
+4. `-b:a 192k -ar 48000` IG Reels audio standard
+5. ASS karaoke captions (replaced drawtext)
+6. HeyGen MP4 cache via Cloudinary (cost killer)
+7. Locale-aware routing (`spec.locale` honors EN/ES per record)
+8. `narrative_B` all-crossfade (sin wipeleft/slideup mecánicos)
+
+**Próximas variantes pendientes de aprobar:**
+- Template #2 — Circle Avatar PiP (TikTok style)
+- Template #3 — B-Roll Voiceover Only (no avatar visible)
+- Template #4 — Talking Head Solo (Jorge full-screen)
+- Template #5 — Magazine Editorial (split-screen)
+
+---
+
 ## 2026-05-06 (PM) — Plan B HeyGen Hybrid integrado a Director v2 cron (PRODUCTION READY)
 
 **Tras la sesión de generar Reels Personales standalone, integré Plan B al pipeline automatizado del Director v2:**
