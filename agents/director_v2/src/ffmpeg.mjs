@@ -93,14 +93,15 @@ export function buildVideoCommand({ scenes, musicPath, outputPath, width = 1080,
   let videoOutLabel = scenes.length === 1 ? 'v0' : 'vout';
   if (globalAvatar && !globalAvatar.audioOnly) {
     if (globalAvatar.shape === 'split') {
-      // Template #5 Magazine Editorial: avatar fills the BOTTOM HALF (1080x960) — FLUX2 imagery occupies top half.
-      // Captions live in the existing bottom band (~y=1660), painted over Jorge's chest area — editorial pull-quote style.
-      const halfH = Math.floor(height / 2);
+      // Template #5 Magazine Editorial: 70/30 split — FLUX2 imagery dominates top 70%, avatar in bottom 30% (head+shoulders strip).
+      // Captions live in the existing bottom band (~y=1660), painted over the avatar strip — editorial pull-quote style.
+      const splitRatio = globalAvatar.splitRatio || 0.30;       // bottom 30% → avatar
+      const avatarH    = Math.floor(height * splitRatio);
       filterParts.push(
-        `[${avatarInputIdx}:v]scale=${width}:${halfH}:force_original_aspect_ratio=increase,crop=${width}:${halfH}[avatar_split]`
+        `[${avatarInputIdx}:v]scale=${width}:${avatarH}:force_original_aspect_ratio=increase,crop=${width}:${avatarH}[avatar_split]`
       );
       filterParts.push(
-        `[${videoOutLabel}][avatar_split]overlay=x=0:y=${halfH}:format=auto:eof_action=pass[vfinal]`
+        `[${videoOutLabel}][avatar_split]overlay=x=0:y=${height - avatarH}:format=auto:eof_action=pass[vfinal]`
       );
       videoOutLabel = 'vfinal';
     } else {
