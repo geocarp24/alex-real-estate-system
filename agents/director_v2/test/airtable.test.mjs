@@ -10,7 +10,9 @@ const PENDING = JSON.parse(readFileSync(join(HERE, 'fixtures/airtable_records_pe
 
 const ENV = { token: 'tok', baseId: 'appU9s3kGkVpdrJkw', tableId: 'tblAj0Pkj1jW4p5Ld' };
 
-test('listPending filters by Formato=Reel AND Status=Nueva AND visual_url empty', async () => {
+test('listPending filters by Status=Oraculo OK and visual_url empty', async () => {
+  // New schema 2026-05-07: Reels live in their own table (no Formato filter
+  // needed) and gate is Status='Oraculo OK' (not '[ORACULO_OK]' prefix hack).
   let calledUrl;
   __setFetch(async (url) => {
     calledUrl = url;
@@ -19,8 +21,7 @@ test('listPending filters by Formato=Reel AND Status=Nueva AND visual_url empty'
   const records = await listPending(ENV);
   assert.equal(records.length, 1);
   const decoded = decodeURIComponent(calledUrl);
-  assert.ok(decoded.includes("{Formato}='Reel'"), `expected Formato='Reel' in ${decoded}`);
-  assert.ok(decoded.includes("{Status}='Nueva'"));
+  assert.ok(decoded.includes("{Status}='Oraculo OK'"), `expected Status='Oraculo OK' in ${decoded}`);
   assert.ok(decoded.includes('visual_url'));
 });
 
