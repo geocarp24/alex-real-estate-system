@@ -258,6 +258,11 @@ async function processPosts(cfg, runId) {
     return { posted: 0, reason: "META_USER_TOKEN / META_PAGE_ACCESS_TOKEN not configured — set in Doppler/secrets" };
   }
 
+  // Safety layer (Jorge 2026-05-07 "si nos banean estamos acabados").
+  // Lazy import to avoid breaking generate_ideas mode if safety.mjs is missing.
+  const { safetyCheckBeforePublish, classifyError, alertTelegram, CURRENT_PHASE } = await import("./safety.mjs");
+  console.error(`[social_media] safety phase=${CURRENT_PHASE}`);
+
   // Resolve Page Access Token (cached for the run).
   let pageToken = META_PAGE_TOKEN;
   if (!pageToken) {
