@@ -505,13 +505,10 @@ async function processPosts(cfg, runId) {
 
     if (igUserId && !halted) {
       try {
-        if (formato === "Reel" || isVideo(visualUrl)) {
+        if (format === "Reel" || isVideo(visualUrl)) {
           igResult = await publishInstagramReel({ igUserId, pageAccessToken: pageToken, videoUrl: visualUrl, caption });
-        } else if (formato === "Carrusel") {
-          const slides = parseCarouselSlides(f[FIELD_CAROUSEL_URLS]);
-          if (slides.length >= 2) igResult = await publishInstagramCarousel({ igUserId, pageAccessToken: pageToken, imageUrls: slides, caption });
-          else                    igResult = await publishInstagramImage({ igUserId, pageAccessToken: pageToken, imageUrl: visualUrl, caption });
         } else {
+          // Post / Video → single image (carrusel multi-slide deferred for now).
           igResult = await publishInstagramImage({ igUserId, pageAccessToken: pageToken, imageUrl: visualUrl, caption });
         }
       } catch (e) {
@@ -524,15 +521,16 @@ async function processPosts(cfg, runId) {
 
     const fbId = fbResult?.id || fbResult?.video_id || null;
     const igId = igResult?.media_id || igResult?.id || null;
-    const ids = [fbId && `fb:${fbId}`, igId && `ig:${igId}`].filter(Boolean).join(",");
 
-    await smUpdate(idea.id, {
-      [FIELD_PUBLISHED_POST_IDS]: ids,
-      "Status": ids ? "Programado" : "Error",
-      ...(fbErr || igErr ? { "Error_Reason": [fbErr && `FB: ${fbErr}`, igErr && `IG: ${igErr}`].filter(Boolean).join(" | ").slice(0, 500) } : {}),
+    await smUpdateIn(tableId, idea.id, {
+      Published_FB_ID: fbId || "",
+      Published_IG_ID: igId || "",
+      Status:          (fbId || igId) ? STATUS.PROGRAMADO : STATUS.ERROR,
+      Scheduled_Time:  new Date(scheduledTime * 1000).toISOString(),
+      ...(fbErr || igErr ? { Error_Reason: [fbErr && `FB: ${fbErr}`, igErr && `IG: ${igErr}`].filter(Boolean).join(" | ").slice(0, 500) } : {}),
     }).catch(() => null);
 
-    results.push({ id: idea.id, formato, status: ids ? "scheduled" : "failed", fb: fbId, ig: igId, fbErr, igErr, when: scheduledTime });
+    results.push({ id: idea.id, format, lang, status: (fbId || igId) ? "scheduled" : "failed", fb: fbId, ig: igId, fbErr, igErr, when: scheduledTime });
   }
   return { posted: results.filter((r) => r.status === "scheduled").length, total: results.length, results };
 }
