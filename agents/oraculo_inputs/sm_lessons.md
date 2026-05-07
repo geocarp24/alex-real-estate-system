@@ -168,3 +168,39 @@
 - **Oráculo critique**: Content failed to address Segment 6 relocation triggers (job transfer, tight timeline, state-to-state move). Tone was salesy. 'Guaranteed' is an FTC red flag. No homeowner POV or empathy present.
 - **Rewrite pattern**: Anchor every slide to the S6 relocation pain arc: the urgency of a job transfer → the need for a fast, private sale → closing on the homeowner's timeline. Warm, educational tone replaces hype. 'Guaranteed' removed entirely.
 - **Segment anchor**: Relocation
+
+### 2026-05-07 — Is Your Green Bay Home Worth More Than You Owe?
+- **Rejected pattern**: —
+- **Oráculo critique**: —
+- **Rewrite pattern**: —
+- **Segment anchor**: —
+
+### 2026-05-07 — Facing Foreclosure in Wisconsin? Know Your Options
+- **Rejected pattern**: Slide copy ended with 'no realtor fees' — framing the offer transactionally from Pinnacle's POV, which tips into pitch-mode and away from homeowner-centered empathy. The hook was emotionally flat ('feeling stuck' is too vague to open sharp curiosity).
+- **Oráculo critique**: Score 6 — concept and segment anchor were solid (Pre-Foreclosure, Segment 1), tone was mostly warm, but 'no realtor fees' leaned transactional and the hook lacked specificity. Oráculo flagged it as slightly seller-pitch rather than homeowner-first.
+- **Rewrite pattern**: Replaced transactional slide 3 ('no repairs, no showings, no realtor fees') with an empathy-first outcome ('a simple, honest conversation shows you the path'). Sharpened hook to a contrast structure — acknowledging the pain point while immediately signaling hope. Caption reframes around homeowner agency ('you still have choices') instead of Pinnacle's offer terms.
+- **Segment anchor**: Pre-Foreclosure
+
+### 2026-05-07 — What Really Happens When We Walk Through Your Home
+- **Rejected pattern**: Slides used generic cash-buyer selling points ('repairs don't need to happen', 'clear number same day') that apply to all six segments, erasing the landlord-specific pain and making the content feel like a mass-market pitch rather than a targeted message.
+- **Oráculo critique**: Hook correctly targeted Tired Landlord (Segment 5) but the body slides abandoned segment specificity — no mention of problem tenants, cash-flow drain, or landlord exhaustion. Generic body copy diluted the precision of the hook and lowered relevance score.
+- **Rewrite pattern**: Maintained the Tired Landlord anchor throughout all three body slides — slide 2 addresses the hassle of the process (no crews, no judgment), slide 3 directly names the damage and headaches unique to rental properties, slide 4 delivers the relief beat (you know where you stand). Segment pain is present in every slide, not just the hook.
+- **Segment anchor**: Tired-Landlord
+
+### 2026-05-07 — Cómo evaluamos tu casa heredada (sin juicios, sin presión)
+- **Rejected pattern**: El slide inicial ('Visitamos la propiedad y vemos su valor real') sonaba procedimental y centrado en Pinnacle, no en el dolor emocional del heredero.
+- **Oráculo critique**: El concepto era sólido para Segment 2, pero el tono se volvía transaccional en el primer punto, perdiendo la empatía necesaria para un heredero emocionalmente sobrecargado.
+- **Rewrite pattern**: Reencuadrar cada slide desde la perspectiva emocional del heredero: primero valida el peso emocional de la propiedad, luego elimina el esfuerzo logístico, y cierra con la promesa de rapidez y simplicidad.
+- **Segment anchor**: Inherited
+
+### 2026-05-07 — Heredé una casa en Wisconsin y no sabía qué hacer
+- **Rejected pattern**: CTA genérico sin ancla de tiempo específica; frase 'sin sorpresas de último momento' implica garantía absoluta (riesgo FTC); cierre expresado en semanas sin precisión suficiente para generar confianza.
+- **Oráculo critique**: El Oráculo señaló falta de especificidad en el ancla de confianza ('Cerramos en semanas' vs. '24 horas para tu oferta'), riesgo de garantía implícita en 'sin sorpresas de último momento', y necesidad de suavizar lenguaje de compromiso absoluto.
+- **Rewrite pattern**: Se reemplazó el ancla vaga por '24 horas' como promesa de oferta (no de cierre garantizado). Se eliminó 'sin sorpresas de último momento' y se sustituyó por 'elige la fecha de cierre que más te convenga', que empodera al propietario sin prometer resultados absolutos. Hook reformulado como pregunta directa al segmento.
+- **Segment anchor**: Inherited
+
+### 2026-05-07 — Cierre del Mes — Reflexión de Jorge
+- **Rejected pattern**: Generic personal-branding 'monthly reflection' with no segment anchor, no homeowner pain point, and a hollow caption that simply repeated the hook before pivoting abruptly to a sales CTA.
+- **Oráculo critique**: Score=2. Zero connection to any distressed segment. Hook 'End of another month' speaks to no one in crisis. Caption barely exists and the CTA felt jarring with no empathy bridge.
+- **Rewrite pattern**: Reframe the 'end of month' moment as the emotional trigger pre-foreclosure homeowners feel — bill anxiety, mounting arrears. Each slide now addresses a specific fear or relief point for that segment. CTA is warm and educational ('know your options') rather than transactional.
+- **Segment anchor**: Pre-Foreclosure
