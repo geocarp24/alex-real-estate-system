@@ -383,7 +383,7 @@ async function processRecord(record, { env, dryRun, stats }) {
       await downloadVideo(videoUrl, avatarPath);
       stats.heygenCalls = (stats.heygenCalls || 0) + 1;
       stats.heygenSeconds = (stats.heygenSeconds || 0) + (durationSec || 0);
-      globalAvatar = { videoPath: avatarPath, durationSec };
+      globalAvatar = { videoPath: avatarPath, durationSec, audioOnly: template === 'voiceover' };
       if (env.CLOUDINARY_NAME && env.CLOUDINARY_API_KEY && env.CLOUDINARY_API_SECRET) {
         try {
           await uploadVideo(avatarPath, {
