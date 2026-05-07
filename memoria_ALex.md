@@ -27,8 +27,26 @@ Karaoke globalmente fucsia `&H009314FF` (#FF1493).
 
 Builders: `slideHook` + `slidePoint` + `slideCTA` + `buildCarousel`. Logo Pinnacle 540px en hook/CTA.
 
-### Posts — 1 template editorial, 2 modos bg (NUEVO 2026-05-07)
-**Función**: `slidePostEditorial(theme, { hookEn, hookEs, ctaEs, bgUrl, photographer, badge })` en `themes.mjs`.
+### Posts ESTÁTICOS — 11 templates totales (Jorge confirmó 2026-05-07)
+
+**Bloque A — 5 Solid Pinnacle** (slideHook + slideCTA path, fondo color theme):
+1. T1 Solid Dark Premium #0D3B2E (default)
+2. T2 Solid White Clean #FFFFFF
+3. T3 Solid Gold & Black #1A1A1A
+4. T4 Solid Soft Cream #F5F0E8
+5. T5 Solid Vibrant Blue #1B2A8C
+
+**Bloque B — 5 Photo Editorial Pexels** (slidePostEditorial + theme dim layer):
+6. T1 Photo Editorial — Pexels portrait + dark green gradient dim
+7. T2 Photo Editorial — Pexels + white dim (light editorial)
+8. T3 Photo Editorial — Pexels + black/gold dim
+9. T4 Photo Editorial — Pexels + cream dim (warm)
+10. T5 Photo Editorial — Pexels + blue dim
+
+**Bloque C — 1 Conceptual AI** (slidePostEditorial + FLUX-schnell bg):
+11. FLUX Conceptual — Replicate AI-gen bg para escenas simbólicas Pexels no captura
+
+**Función central**: `slidePostEditorial(theme, { hookEn, hookEs, ctaEs, bgUrl, photographer, badge })` en `themes.mjs`.
 
 Arquitectura:
 - Logo Pinnacle 540px (3x) top-left con drop-shadow
