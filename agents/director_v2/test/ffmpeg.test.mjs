@@ -115,6 +115,25 @@ test('buildVideoCommand omits subtitles filter when captionFile is null', () => 
   assert.ok(!filter.includes('subtitles='), 'no subtitles filter when scenes lack captionFile');
 });
 
+test('buildVideoCommand Template #3 Voiceover (audioOnly): no circle overlay, avatar audio still used', () => {
+  const cmd = buildVideoCommand({
+    scenes: sampleScenes(),
+    musicPath: '/tmp/m.mp3',
+    outputPath: '/tmp/out.mp4',
+    globalAvatar: { videoPath: '/tmp/global_avatar.mp4', durationSec: 10, audioOnly: true },
+  });
+  const filter = cmd.args[cmd.args.indexOf('-filter_complex') + 1];
+  // Avatar input still added (audio needed) but no circular overlay applied.
+  assert.ok(cmd.args.includes('/tmp/global_avatar.mp4'), 'avatar path still added as input');
+  assert.ok(!filter.includes('[avatar_circ]'), 'audioOnly must NOT add circular overlay filter');
+  assert.ok(!filter.includes('[vfinal]'), 'audioOnly must NOT redirect video to [vfinal]');
+  assert.ok(filter.includes('[vavatar]'), 'audioOnly still uses avatar audio for voice');
+  assert.ok(filter.includes('sidechaincompress'), 'voiceover music ducked under voice');
+  // Output map should be [vout] (xfade chain end), not [vfinal].
+  const mapIdx = cmd.args.findIndex((a, i) => a === '-map' && cmd.args[i+1] === '[vout]');
+  assert.ok(mapIdx > -1, 'voiceover output map = [vout]');
+});
+
 test('buildVideoCommand Template #2 PiP: circular avatar overlay + global avatar audio', () => {
   const cmd = buildVideoCommand({
     scenes: sampleScenes(),
