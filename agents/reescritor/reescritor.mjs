@@ -119,7 +119,7 @@ async function rewriteRecord(record, persona, format) {
   "slide_5_cta": "${langLabel} closing CTA 5-7 words including phone (920) 777-9886",
   "caption": "Full IG/FB caption 200-400 chars in ${langLabel}, ends with phone + pinnaclegroupwi.com",
   "theme_code": "T1|T2|T3|T4|T5",
-  "template": "hybrid|pip|voiceover|editorial (use hybrid when Tipo=Personal — never talkinghead)",
+  "template": "hybrid|pip|voiceover|talkinghead|editorial — pick the template that best matches the record's Tipo. talkinghead = full-screen Jorge speaking (script-driven, no slides). hybrid = Jorge in hook+CTA + slides for points. voiceover = no avatar, slides + voice over. editorial = 70/30 split. pip = Jorge in corner.",
   "lesson": { "rejected_pattern":"...", "oraculo_critique_summary":"...", "rewrite_pattern":"...", "segment_anchor":"Pre-Foreclosure|Inherited|Divorce|Back-Taxes|Tired-Landlord|Relocation" }
 }`;
   } else if (format === "Video") {
