@@ -636,23 +636,61 @@ async function main() {
   const start = Date.now();
   const stats = { ok: 0, error: 0, fallback: 0, nanoBananaCalls: 0, nanoBananaCents: 0, pexelsCalls: 0, uploadMb: 0, durationMs: 0 };
 
-  let queue;
+  // Multi-table loop (Jorge 2026-05-07): Director v2 now processes both Reels
+  // (5-slide structure) and Videos (long-form 30-50s narrative). Format detection
+  // is by record shape inside processRecord — no separate code path needed.
+  const REELS_TABLE_ID  = process.env.AIRTABLE_SM_REELS_TABLE_ID  || env.tableId;
+  const VIDEOS_TABLE_ID = process.env.AIRTABLE_SM_VIDEOS_TABLE_ID || null;
+  const TABLES_TO_LOOP = [
+    { id: REELS_TABLE_ID, format: 'Reel' },
+    ...(VIDEOS_TABLE_ID && VIDEOS_TABLE_ID !== REELS_TABLE_ID
+        ? [{ id: VIDEOS_TABLE_ID, format: 'Video' }]
+        : []),
+  ];
+
+  let queue = [];
   if (recordId) {
     console.log(`[director_v2] single-record mode: fetching ${recordId}`);
-    try {
-      const record = await fetchOne(recordId, env);
-      queue = [record];
-    } catch (err) {
-      console.error(`[director_v2] fetchOne failed: ${shortMessage(err)}`);
-      if (!dryRun) await safePatchError(recordId, shortMessage(err), env);
+    let found = false;
+    for (const t of TABLES_TO_LOOP) {
+      try {
+        const tEnv = { ...env, tableId: t.id };
+        const record = await fetchOne(recordId, tEnv);
+        if (record?.id) {
+          record._tableId = t.id;
+          record._format  = t.format;
+          queue = [record];
+          found = true;
+          break;
+        }
+      } catch {}
+    }
+    if (!found) {
+      console.error(`[director_v2] fetchOne failed: record ${recordId} not in Reels or Videos tables`);
       process.exit(1);
     }
   } else {
-    queue = await listPending(env);
+    for (const t of TABLES_TO_LOOP) {
+      const tEnv = { ...env, tableId: t.id };
+      try {
+        const recs = await listPending(tEnv);
+        for (const r of recs) {
+          r._tableId = t.id;
+          r._format  = t.format;
+        }
+        console.log(`[director_v2] ${t.format} table (${t.id}): ${recs.length} pending`);
+        queue.push(...recs);
+      } catch (e) {
+        console.error(`[director_v2] listPending ${t.format} failed: ${shortMessage(e)}`);
+      }
+    }
   }
-  console.log(`[director_v2] ${queue.length} record(s) to process${dryRun ? ' (dry-run)' : ''}`);
+  console.log(`[director_v2] ${queue.length} record(s) total to process${dryRun ? ' (dry-run)' : ''}`);
 
   for (const record of queue) {
+    // Override env.tableId per-record so updateRecord PATCHes the right table.
+    const recEnv = { ...env, tableId: record._tableId || env.tableId };
+    Object.assign(env, recEnv);  // ensures processRecord uses the right table
     console.log(`[director_v2] → ${record.id}`);
     try {
       await processRecord(record, { env, dryRun, stats });
