@@ -351,6 +351,12 @@ function applyTipoContenidoRouting(scenes, tipo, env, locale = 'es', template = 
       }
       return;
     }
+    if (template === 'talkinghead') {
+      // Template #4 Talking Head Solo: NO FLUX2 backgrounds — Jorge's HeyGen avatar fills the whole frame.
+      // Skip per-scene hero generation entirely; processRecord branches into a single-input fullscreen pipeline.
+      for (const s of scenes) s.heroSource = 'globalAvatar';
+      return;
+    }
     // Template #1 — Hybrid: hook+CTA = HeyGen full-screen, points = FLUX2 cutaways.
     for (const s of scenes) {
       if (s.layoutType === 'hook' || s.layoutType === 'cta') {
