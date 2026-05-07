@@ -342,7 +342,7 @@ async function processOne(record, ctx) {
   if (approved) {
     // Prepend [ORACULO_OK score=N] marker to Visual_Prompt — this is what
     // Creativo's filter checks for.
-    const stamp = `[ORACULO_OK score=${score}]`;
+    const stamp = `[ORACULO_OK score=${score} src=${reviewSource}]`;
     const newVp = `${stamp}\n${visualPrompt}`;
     await smUpdate(record.id, {
       Visual_Prompt: newVp,
