@@ -102,7 +102,7 @@ export async function generateAvatarVideo({
 
   const path    = engine === 'v3' ? '/v3/videos' : '/v1/video.generate';
   const payload = engine === 'v3'
-    ? buildV3Payload({ avatarId, script, voiceId, aspectRatio, resolution, expressiveness, motionPrompt, background })
+    ? buildV3Payload({ avatarId, script, voiceId, aspectRatio, resolution, expressiveness, motionPrompt, background, speed })
     : buildV1Payload({ avatarId, script, voiceId, aspectRatio, background });
 
   const create  = await withRetry(() => postJson(path, payload, apiKey), { attempts: 3, baseDelayMs: 2000 });
