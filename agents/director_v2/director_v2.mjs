@@ -81,6 +81,7 @@ async function resolveHero(scene, { pexelsKey, geminiKey, replicateKey, heygenEn
           resolution:    scene.heyResolution || '1080p',
           expressiveness: scene.heyExpressiveness,                                  // photo_avatar only; undefined skips
           motionPrompt:   scene.heyMotionPrompt,                                    // photo_avatar only; undefined skips
+          speed:          typeof scene.heySpeed === 'number' ? scene.heySpeed : 1.1, // slightly faster than default for natural cadence (Jorge feedback 2026-05-07)
           background:     scene.heyBackground || { type: 'color', value: '#0d1117' },
         });
         await downloadVideo(videoUrl, videoPath);
