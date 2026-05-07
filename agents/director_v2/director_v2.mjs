@@ -379,11 +379,20 @@ async function processRecord(record, { env, dryRun, stats }) {
   const recordTmp = join(TMP, recordId);
   await mkdir(recordTmp, { recursive: true });
 
-  // New schema (2026-05-07): build spec from explicit Slide_N fields.
-  // Backward-compat: if record has legacy Visual_Prompt JSON, parse that.
-  const spec = record.fields.Slide_1_Hook
-    ? buildSpecFromReelRecord(record)
-    : parseVisualPrompt(record.fields.Visual_Prompt);
+  // Detect format by record shape (no need for separate table id):
+  // - Reel:  has Slide_1_Hook + Slide_2_Text (5-slide structure)
+  // - Video: has Hook + Main_Message (long-form, 5-7 segments)
+  // - Legacy: parseVisualPrompt JSON spec.
+  let spec;
+  if (record.fields.Slide_1_Hook && record.fields.Slide_2_Text) {
+    spec = buildSpecFromReelRecord(record);
+  } else if (record.fields.Main_Message) {
+    spec = buildSpecFromVideoRecord(record);
+  } else if (record.fields.Visual_Prompt) {
+    spec = parseVisualPrompt(record.fields.Visual_Prompt);
+  } else {
+    throw new Error(`record ${record.id} has neither Slide_1_Hook nor Main_Message nor Visual_Prompt`);
+  }
   validateSpec(spec);
   const scenes = expandNarrative(spec);
   const template = (spec.template || 'hybrid').toLowerCase();
