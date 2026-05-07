@@ -28,10 +28,12 @@ export function expand(spec) {
   const ctaPrompt  = spec.prompts?.cta
     || 'Pinnacle Holdings Group branded CTA scene, modern craftsman home exterior at twilight, cinematic, 9:16 vertical';
 
-  // Scale scene durations proportionally so total matches spec.duration (default 11).
-  // Base ratios kept (hook/cta longer than points). xfade overlap is handled in ffmpeg.
-  const BASE = [2.5, 2.0, 2.0, 2.0, 2.5];
-  const target = Number(spec.duration) || 11;
+  // Scale scene durations proportionally so total matches spec.duration.
+  // BASE = [3,3,3,3,3] → equal per-slide budget for "3s per slide" rule
+  // (Jorge 2026-05-07: 5 slides x 3s = 15s output with xfade overlap accounted).
+  // Default duration 17 gives 14.6s output after 4 xfade x 0.6s overlap.
+  const BASE = [3.0, 3.0, 3.0, 3.0, 3.0];
+  const target = Number(spec.duration) || 17;
   const factor = target / BASE.reduce((a, b) => a + b, 0);
   const D = BASE.map(d => +(d * factor).toFixed(2));
 
