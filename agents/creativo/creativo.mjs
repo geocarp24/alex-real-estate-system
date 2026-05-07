@@ -373,8 +373,13 @@ async function main() {
     const rec = await smGet(args.recordId);
     if (rec.id) records = [rec];
   } else {
+    // ORACULO GATE (Jorge 2026-05-07): Creativo only processes records that
+    // El Oráculo approved. Approved records have Visual_Prompt prefixed with
+    // "[ORACULO_OK score=N]". Rejected records have Error_Reason set and are
+    // skipped. This eliminates wasted Pexels/FLUX/Cloudinary calls on ideas
+    // that don't fit the persona or brand voice.
     const filter = encodeURIComponent(
-      `AND({Visual_Prompt}!='', OR({visual_url}='', NOT({visual_url})), NOT(OR({Formato}='Reel', {Formato}='Video')))`
+      `AND(FIND('[ORACULO_OK', {Visual_Prompt})>0, OR({visual_url}='', NOT({visual_url})), NOT(OR({Formato}='Reel', {Formato}='Video')))`
     );
     const r = await smFetch(`filterByFormula=${filter}&maxRecords=${BATCH_MAX_PER_RUN}`);
     records = r.records || [];
