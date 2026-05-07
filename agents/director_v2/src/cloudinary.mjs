@@ -1,9 +1,32 @@
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { sanitizePublicId } from './util/sanitize.mjs';
 
 let _fetch = globalThis.fetch;
 export function __setFetch(fn) { _fetch = fn; }
+
+// Predictable URL for a Cloudinary-hosted video asset (no signing needed for delivery).
+export function buildVideoUrl({ cloudName, folder, publicId, ext = 'mp4' }) {
+  const safe = sanitizePublicId(publicId);
+  const path = folder ? `${folder}/${safe}` : safe;
+  return `https://res.cloudinary.com/${cloudName}/video/upload/${path}.${ext}`;
+}
+
+// Try to fetch a previously-uploaded video from Cloudinary. Returns { hit: true, sizeBytes } if 200, { hit: false } otherwise.
+// Used as a HeyGen-bypass cache so we don't re-spend $ on identical avatar regenerations.
+export async function tryDownloadCachedVideo(url, destPath) {
+  let res;
+  try {
+    res = await _fetch(url, { method: 'GET' });
+  } catch {
+    return { hit: false };
+  }
+  if (!res.ok) return { hit: false };
+  const buf = Buffer.from(await res.arrayBuffer());
+  if (buf.length < 1000) return { hit: false };       // sanity: real MP4s are >>1KB
+  await writeFile(destPath, buf);
+  return { hit: true, sizeBytes: buf.length };
+}
 
 export function buildSignature(params, apiSecret) {
   const keys = Object.keys(params).sort();
