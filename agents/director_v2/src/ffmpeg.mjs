@@ -69,7 +69,24 @@ export function buildVideoCommand({ scenes, musicPath, outputPath, width = 1080,
   }
   if (scenes.length === 1) lastLabel = 'v0';
 
-  // Voice tracks from HeyGen scenes — each delayed to its timeline start so Jorge speaks at the right time.
+  // Template #2 PiP: circular alpha-masked avatar overlaid on the xfade chain at fixed position (bottom-center).
+  // geq filter computes alpha=255 inside the inscribed circle, 0 outside — clean circle without external mask asset.
+  // Soft 4px edge feather smooths the circle boundary against the background imagery.
+  let videoOutLabel = scenes.length === 1 ? 'v0' : 'vout';
+  if (globalAvatar) {
+    const size   = globalAvatar.size   || 360;
+    const margin = globalAvatar.marginBottom || 280;       // clear of caption band (260px) + IG UI safe zone
+    const r      = size / 2;
+    filterParts.push(
+      `[${avatarInputIdx}:v]scale=${size}:${size}:force_original_aspect_ratio=increase,crop=${size}:${size},format=rgba,geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':a='if(lt(hypot(X-${r},Y-${r}),${r-2}),255,if(lt(hypot(X-${r},Y-${r}),${r}),255*(${r}-hypot(X-${r},Y-${r}))/2,0))'[avatar_circ]`
+    );
+    filterParts.push(
+      `[${videoOutLabel}][avatar_circ]overlay=x=(W-w)/2:y=H-h-${margin}:format=auto:eof_action=pass[vfinal]`
+    );
+    videoOutLabel = 'vfinal';
+  }
+
+  // Voice path: PiP uses the global avatar audio as the single voice. Hybrid uses per-scene HeyGen audio with delays.
   const sceneStarts = [];
   let acc = 0;
   scenes.forEach((s, i) => {
@@ -77,33 +94,35 @@ export function buildVideoCommand({ scenes, musicPath, outputPath, width = 1080,
     acc += s.duration - (i < scenes.length - 1 ? XFADE_OVERLAP : 0);
   });
 
-  const voiceLabels = [];
-  scenes.forEach((s, i) => {
-    if (!s.videoPath) return;
-    const delayMs = Math.max(0, Math.round(sceneStarts[i] * 1000));
-    const fadeOut = Math.min(XFADE_OVERLAP, s.duration / 4);
-    const fadeOutStart = Math.max(0, s.duration - fadeOut).toFixed(2);
-    filterParts.push(
-      `[${i}:a]atrim=duration=${s.duration},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.05,afade=t=out:st=${fadeOutStart}:d=${fadeOut.toFixed(2)},adelay=${delayMs}|${delayMs},volume=1.6[va${i}]`
-    );
-    voiceLabels.push(`[va${i}]`);
-  });
+  let voiceLabel = null;
+  if (globalAvatar) {
+    filterParts.push(`[${avatarInputIdx}:a]volume=1.5,asetpts=PTS-STARTPTS[vavatar]`);
+    voiceLabel = '[vavatar]';
+  } else {
+    const voiceLabels = [];
+    scenes.forEach((s, i) => {
+      if (!s.videoPath) return;
+      const delayMs = Math.max(0, Math.round(sceneStarts[i] * 1000));
+      const fadeOut = Math.min(XFADE_OVERLAP, s.duration / 4);
+      const fadeOutStart = Math.max(0, s.duration - fadeOut).toFixed(2);
+      filterParts.push(
+        `[${i}:a]atrim=duration=${s.duration},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.05,afade=t=out:st=${fadeOutStart}:d=${fadeOut.toFixed(2)},adelay=${delayMs}|${delayMs},volume=1.6[va${i}]`
+      );
+      voiceLabels.push(`[va${i}]`);
+    });
+    if (voiceLabels.length === 1) voiceLabel = voiceLabels[0];
+    else if (voiceLabels.length > 1) {
+      filterParts.push(`${voiceLabels.join('')}amix=inputs=${voiceLabels.length}:duration=longest:dropout_transition=0:normalize=0[vall]`);
+      voiceLabel = '[vall]';
+    }
+  }
 
   // Music: looped, full volume (sidechain compressor handles dynamic ducking when voice present).
   filterParts.push(`[${scenes.length}:a]volume=0.35,aloop=loop=-1:size=2e+09[amusic]`);
 
-  if (voiceLabels.length === 0) {
+  if (!voiceLabel) {
     filterParts.push(`[amusic]anull[aout]`);
   } else {
-    // Combine all voice tracks into one signal.
-    let voiceLabel;
-    if (voiceLabels.length === 1) {
-      voiceLabel = voiceLabels[0];
-    } else {
-      filterParts.push(`${voiceLabels.join('')}amix=inputs=${voiceLabels.length}:duration=longest:dropout_transition=0:normalize=0[vall]`);
-      voiceLabel = '[vall]';
-    }
-    // Split voice for sidechain trigger (broadcast-grade auto-ducking — music drops under speech, restores in pauses).
     filterParts.push(`${voiceLabel}asplit=2[vsig][vtrigger]`);
     filterParts.push(`[amusic][vtrigger]sidechaincompress=threshold=0.04:ratio=8:attack=10:release=300:makeup=1[mducked]`);
     filterParts.push(`[vsig][mducked]amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[aout]`);
@@ -113,7 +132,7 @@ export function buildVideoCommand({ scenes, musicPath, outputPath, width = 1080,
   const totalDuration = scenes.reduce((t, s) => t + s.duration, 0) - XFADE_OVERLAP * (scenes.length - 1);
 
   args.push('-filter_complex', filterComplex);
-  args.push('-map', scenes.length === 1 ? '[v0]' : '[vout]');
+  args.push('-map', `[${videoOutLabel}]`);
   args.push('-map', '[aout]');
   args.push('-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-r', String(FPS), '-preset', 'medium', '-crf', '20', '-profile:v', 'high', '-level', '4.0', '-movflags', '+faststart');
   args.push('-c:a', 'aac', '-b:a', '192k', '-ar', '48000');
