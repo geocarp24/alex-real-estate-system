@@ -102,8 +102,8 @@ export function buildVideoCommand({ scenes, musicPath, outputPath, width = 1080,
   args.push('-filter_complex', filterComplex);
   args.push('-map', scenes.length === 1 ? '[v0]' : '[vout]');
   args.push('-map', '[aout]');
-  args.push('-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-r', String(FPS), '-movflags', '+faststart');
-  args.push('-c:a', 'aac', '-b:a', '128k');
+  args.push('-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-r', String(FPS), '-preset', 'medium', '-crf', '20', '-profile:v', 'high', '-level', '4.0', '-movflags', '+faststart');
+  args.push('-c:a', 'aac', '-b:a', '192k', '-ar', '48000');
   args.push('-t', totalDuration.toFixed(2));
   args.push(outputPath);
 
