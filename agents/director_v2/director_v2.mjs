@@ -393,6 +393,32 @@ async function processRecord(record, { env, dryRun, stats }) {
         } catch (e) { console.error(`[pip] avatar cache upload failed: ${e.message}`); }
       }
     }
+
+    // Sync scene cuts to avatar speech rate: probe avatar duration, then redistribute scene durations proportional to character count of each segment.
+    // Without this, fixed scene durations drift out of sync with whatever pace HeyGen actually rendered.
+    try {
+      const probedSec = await probeMediaDuration(globalAvatar.videoPath);
+      const lang = captionLocale;
+      const segmentTexts = [
+        lang === 'en' ? spec.hook?.en : spec.hook?.es,
+        ...scenes.filter(s => s.layoutType === 'point').map(s => lang === 'en' ? s.captionEn : s.captionEs),
+        lang === 'en' ? spec.cta?.en : spec.cta?.es,
+      ].map(s => String(s || '').trim());
+      const charCounts = segmentTexts.map(s => Math.max(1, s.length));
+      const totalChars = charCounts.reduce((a, b) => a + b, 0);
+      const xfadeBudget = XFADE_OVERLAP * Math.max(0, scenes.length - 1);
+      const totalSceneBudget = probedSec + xfadeBudget;
+      const minScene = 1.5;
+      const newDurations = charCounts.map(c => Math.max(minScene, totalSceneBudget * (c / totalChars)));
+      // Renormalize so sum exactly equals totalSceneBudget (after applying min floor).
+      const sumRaw = newDurations.reduce((a, b) => a + b, 0);
+      const scale  = totalSceneBudget / sumRaw;
+      scenes.forEach((s, i) => { s.duration = +(newDurations[i] * scale).toFixed(3); });
+      globalAvatar.durationSec = probedSec;
+      console.log(`[pip] avatar=${probedSec.toFixed(2)}s → scene durations (chars-weighted): [${scenes.map(s => s.duration.toFixed(2)).join(', ')}]`);
+    } catch (e) {
+      console.error(`[pip] duration sync failed (${e.message}) — keeping default scene durations`);
+    }
   }
   const frameOutputs = [];
   for (const scene of scenes) {
