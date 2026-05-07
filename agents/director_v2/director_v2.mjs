@@ -367,8 +367,8 @@ async function processRecord(record, { env, dryRun, stats }) {
       const cacheUrl = buildVideoUrl({ cloudName: env.CLOUDINARY_NAME, folder: cacheFolder, publicId: cachePublicId });
       const cached = await tryDownloadCachedVideo(cacheUrl, avatarPath);
       if (cached.hit) {
-        console.log(`[pip] global avatar cache HIT (${(cached.sizeBytes/1024).toFixed(0)}KB) — skipping HeyGen`);
-        globalAvatar = { videoPath: avatarPath };
+        console.log(`[${template}] global avatar cache HIT (${(cached.sizeBytes/1024).toFixed(0)}KB) — skipping HeyGen`);
+        globalAvatar = { videoPath: avatarPath, audioOnly: template === 'voiceover' };
         stats.heygenCacheHits = (stats.heygenCacheHits || 0) + 1;
       }
     }
