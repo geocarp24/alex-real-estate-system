@@ -349,17 +349,7 @@ Return JSON only.`;
 // ─── Process one record ───
 async function processOne(record, ctx) {
   const f = record.fields || {};
-  const titulo = f["Título de Idea"] || record.id;
-  const visualPrompt = f.Visual_Prompt || "";
-
-  // Skip if already approved (idempotent — safe to re-run).
-  if (visualPrompt.startsWith("[ORACULO_OK")) {
-    return { id: record.id, titulo, status: "skip_already_approved" };
-  }
-  // Skip if no Visual_Prompt yet (SM Manager hasn't enriched it).
-  if (!visualPrompt) {
-    return { id: record.id, titulo, status: "skip_no_visual_prompt" };
-  }
+  const titulo = f.Title || record.id;
 
   // Try Sonnet first (best quality). If it fails (no credits, network, etc),
   // fall back to deterministic rule-based scoring so the pipeline keeps moving.
@@ -367,16 +357,16 @@ async function processOne(record, ctx) {
   let reviewSource = "sonnet";
   if (ANTHROPIC_KEY) {
     try {
-      review = await reviewIdea(record, ctx);
+      review = await reviewIdea(record, ctx, format);
     } catch (e) {
       const msg = String(e.message).slice(0, 150);
       console.error(`[oraculo] Sonnet failed for ${record.id} (${msg}) — falling back to deterministic`);
-      review = reviewIdeaDeterministic(record);
+      review = reviewIdeaDeterministic(record, format);
       reviewSource = "deterministic";
     }
   } else {
     console.error(`[oraculo] no ANTHROPIC_API_KEY — using deterministic review`);
-    review = reviewIdeaDeterministic(record);
+    review = reviewIdeaDeterministic(record, format);
     reviewSource = "deterministic";
   }
 
@@ -385,19 +375,17 @@ async function processOne(record, ctx) {
   const approved = verdict === "APPROVE" && score >= APPROVE_THRESHOLD;
 
   if (approved) {
-    // Prepend [ORACULO_OK score=N] marker to Visual_Prompt — this is what
-    // Creativo's filter checks for.
-    const stamp = `[ORACULO_OK score=${score} src=${reviewSource}]`;
-    const newVp = `${stamp}\n${visualPrompt}`;
-    await smUpdate(record.id, {
-      Visual_Prompt: newVp,
-      // Clear any previous Error_Reason if the record was previously rejected.
-      Error_Reason: "",
+    // New schema (2026-05-07): set Status='Oraculo OK' (proper enum, no prefix hack).
+    await smUpdate(tableId, record.id, {
+      Status:        STATUS.ORACULO_OK,
+      Oraculo_Score: score,
+      Oraculo_Notes: `src=${reviewSource} | ${(review.improvement_notes || "").slice(0, 400)}`,
+      Error_Reason:  "",
     });
     return { id: record.id, titulo, status: "approved", score, source: reviewSource, notes: review.improvement_notes };
   }
 
-  // Rejected: write notes to Error_Reason — SM Manager (or Jorge) reviews.
+  // Rejected: Status='Rechazada' + Error_Reason for Reescritor to pick up.
   const reason = [
     `Oraculo REJECT score=${score}`,
     review.persona_fit ? `Persona: ${review.persona_fit}` : "",
@@ -406,7 +394,12 @@ async function processOne(record, ctx) {
     review.improvement_notes ? `Fix: ${review.improvement_notes}` : "",
   ].filter(Boolean).join(" | ").slice(0, 500);
 
-  await smUpdate(record.id, { Error_Reason: reason });
+  await smUpdate(tableId, record.id, {
+    Status:        STATUS.RECHAZADA,
+    Oraculo_Score: score,
+    Oraculo_Notes: `src=${reviewSource}`,
+    Error_Reason:  reason,
+  });
   return { id: record.id, titulo, status: "rejected", score, source: reviewSource, reason };
 }
 
