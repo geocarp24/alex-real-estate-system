@@ -74,7 +74,14 @@ Duración total:     ${mins}m ${secs}s
 ════════════════════════════════════════`.trim();
 }
 
-async function resolveHero(scene, { pexelsKey, geminiKey, replicateKey, heygenEnv, tmpDir, stats, forcePexels }) {
+// Stable hash of HeyGen call inputs — drives cache invalidation.
+// If avatarId/voiceId/script/engine/resolution/background changes, hash changes → regenerate.
+function heygenCacheKey({ avatarId, voiceId, script, engine, resolution, background }) {
+  const blob = JSON.stringify({ avatarId, voiceId, script, engine, resolution, bg: background?.value || background?.url || '' });
+  return createHash('sha1').update(blob).digest('hex').slice(0, 10);
+}
+
+async function resolveHero(scene, { pexelsKey, geminiKey, replicateKey, heygenEnv, tmpDir, stats, forcePexels, recordId }) {
   const heroPath = join(tmpDir, `hero_${scene.index}.bin`);
   let effectiveSource = scene.heroSource;
   if (forcePexels && (effectiveSource === 'nano_banana' || effectiveSource === 'flux_schnell' || effectiveSource === 'heygen_avatar')) {
