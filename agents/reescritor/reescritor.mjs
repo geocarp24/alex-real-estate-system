@@ -262,49 +262,66 @@ async function appendLesson(titulo, lesson) {
 }
 
 // ─── Process one rejected record ───
-async function processOne(record, persona) {
+async function processOne(record, persona, tableId, format) {
   const f = record.fields || {};
-  const titulo = f["Título de Idea"] || record.id;
-  const errorReason = f.Error_Reason || "";
-
-  // Only process records rejected by Oráculo (not other errors).
-  if (!errorReason.includes("Oraculo REJECT")) {
-    return { id: record.id, titulo, status: "skip_not_oraculo_reject" };
-  }
+  const titulo = f.Title || record.id;
 
   let rewrite;
   try {
-    rewrite = await rewriteRecord(record, persona);
+    rewrite = await rewriteRecord(record, persona, format);
   } catch (e) {
     return { id: record.id, titulo, status: "rewrite_failed", error: String(e.message).slice(0, 150) };
   }
 
-  // Apply rewrite to record + clear Error_Reason so Oráculo will re-review.
+  // Build per-format update — only fields relevant to the format are written.
+  // Status flips back to 'Idea' so Oráculo will re-review on next run.
   const updateFields = {
-    "Título de Idea": rewrite.titulo || titulo,
-    "Hook": rewrite.hook || f.Hook,
-    "🇲🇽 Caption ES": rewrite.caption_es || f["🇲🇽 Caption ES"],
-    "🇺🇸 Caption EN": rewrite.caption_en || f["🇺🇸 Caption EN"],
-    "CTA": rewrite.cta || f.CTA,
-    "Visual_Prompt": rewrite.visual_prompt || f.Visual_Prompt,
-    "Error_Reason": "",
+    Status: STATUS.IDEA,
+    Error_Reason: "",
   };
+  if (rewrite.title) updateFields.Title = rewrite.title;
+  if (rewrite.theme_code) updateFields.Theme_Code = rewrite.theme_code;
+  if (rewrite.lesson?.segment_anchor) updateFields.Segment_Anchor = rewrite.lesson.segment_anchor;
+
+  if (format === "Reel") {
+    if (rewrite.hook)            updateFields.Slide_1_Hook  = rewrite.hook;
+    if (rewrite.slide_2_text)    updateFields.Slide_2_Text  = rewrite.slide_2_text;
+    if (rewrite.slide_2_visual)  updateFields.Slide_2_Visual = rewrite.slide_2_visual;
+    if (rewrite.slide_3_text)    updateFields.Slide_3_Text  = rewrite.slide_3_text;
+    if (rewrite.slide_3_visual)  updateFields.Slide_3_Visual = rewrite.slide_3_visual;
+    if (rewrite.slide_4_text)    updateFields.Slide_4_Text  = rewrite.slide_4_text;
+    if (rewrite.slide_4_visual)  updateFields.Slide_4_Visual = rewrite.slide_4_visual;
+    if (rewrite.slide_5_cta)     updateFields.Slide_5_CTA   = rewrite.slide_5_cta;
+    if (rewrite.caption)         updateFields.Caption       = rewrite.caption;
+    if (rewrite.template)        updateFields.Template      = rewrite.template;
+  } else if (format === "Video") {
+    if (rewrite.hook)           updateFields.Hook           = rewrite.hook;
+    if (rewrite.main_message)   updateFields.Main_Message   = rewrite.main_message;
+    if (rewrite.script_outline) updateFields.Script_Outline = rewrite.script_outline;
+    if (rewrite.cta)            updateFields.CTA            = rewrite.cta;
+    if (rewrite.caption)        updateFields.Caption        = rewrite.caption;
+    if (rewrite.template)       updateFields.Template       = rewrite.template;
+  } else { // Post
+    if (rewrite.hook)           updateFields.Hook           = rewrite.hook;
+    if (rewrite.caption)        updateFields.Caption        = rewrite.caption;
+    if (rewrite.cta)            updateFields.CTA            = rewrite.cta;
+    if (rewrite.visual_concept) updateFields.Visual_Concept = rewrite.visual_concept;
+  }
 
   try {
-    await smUpdate(record.id, updateFields);
+    await smUpdate(tableId, record.id, updateFields);
   } catch (e) {
     return { id: record.id, titulo, status: "update_failed", error: String(e.message).slice(0, 150) };
   }
 
-  // Append lesson to sm_lessons.md so SM Manager learns for future ideas.
   if (rewrite.lesson) {
     await appendLesson(titulo, rewrite.lesson);
   }
 
   return {
-    id: record.id, titulo,
-    status: "rewritten",
-    new_titulo: rewrite.titulo,
+    id: record.id, titulo, status: "rewritten",
+    format,
+    new_title: rewrite.title,
     segment_anchor: rewrite.lesson?.segment_anchor,
     rewrite_pattern: rewrite.lesson?.rewrite_pattern,
   };
