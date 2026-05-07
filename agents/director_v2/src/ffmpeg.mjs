@@ -92,17 +92,31 @@ export function buildVideoCommand({ scenes, musicPath, outputPath, width = 1080,
   // Template #3 Voiceover: globalAvatar.audioOnly=true skips the visual overlay — only the avatar audio is used as voice track.
   let videoOutLabel = scenes.length === 1 ? 'v0' : 'vout';
   if (globalAvatar && !globalAvatar.audioOnly) {
-    const size       = globalAvatar.size       || 360;
-    const marginLeft = globalAvatar.marginLeft || 60;     // breathing room from left edge
-    const marginTop  = globalAvatar.marginTop  || 140;    // clears IG status bar / TikTok top chrome (~120px safe zone)
-    const r          = size / 2;
-    filterParts.push(
-      `[${avatarInputIdx}:v]scale=${size}:${size}:force_original_aspect_ratio=increase,crop=${size}:${size},format=rgba,geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':a='if(lt(hypot(X-${r},Y-${r}),${r-2}),255,if(lt(hypot(X-${r},Y-${r}),${r}),255*(${r}-hypot(X-${r},Y-${r}))/2,0))'[avatar_circ]`
-    );
-    filterParts.push(
-      `[${videoOutLabel}][avatar_circ]overlay=x=${marginLeft}:y=${marginTop}:format=auto:eof_action=pass[vfinal]`
-    );
-    videoOutLabel = 'vfinal';
+    if (globalAvatar.shape === 'split') {
+      // Template #5 Magazine Editorial: avatar fills the BOTTOM HALF (1080x960) — FLUX2 imagery occupies top half.
+      // Captions live in the existing bottom band (~y=1660), painted over Jorge's chest area — editorial pull-quote style.
+      const halfH = Math.floor(height / 2);
+      filterParts.push(
+        `[${avatarInputIdx}:v]scale=${width}:${halfH}:force_original_aspect_ratio=increase,crop=${width}:${halfH}[avatar_split]`
+      );
+      filterParts.push(
+        `[${videoOutLabel}][avatar_split]overlay=x=0:y=${halfH}:format=auto:eof_action=pass[vfinal]`
+      );
+      videoOutLabel = 'vfinal';
+    } else {
+      // Template #2 PiP — circular avatar top-left (default shape).
+      const size       = globalAvatar.size       || 360;
+      const marginLeft = globalAvatar.marginLeft || 60;
+      const marginTop  = globalAvatar.marginTop  || 140;
+      const r          = size / 2;
+      filterParts.push(
+        `[${avatarInputIdx}:v]scale=${size}:${size}:force_original_aspect_ratio=increase,crop=${size}:${size},format=rgba,geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':a='if(lt(hypot(X-${r},Y-${r}),${r-2}),255,if(lt(hypot(X-${r},Y-${r}),${r}),255*(${r}-hypot(X-${r},Y-${r}))/2,0))'[avatar_circ]`
+      );
+      filterParts.push(
+        `[${videoOutLabel}][avatar_circ]overlay=x=${marginLeft}:y=${marginTop}:format=auto:eof_action=pass[vfinal]`
+      );
+      videoOutLabel = 'vfinal';
+    }
   }
 
   // Voice path: PiP uses the global avatar audio as the single voice. Hybrid uses per-scene HeyGen audio with delays.
