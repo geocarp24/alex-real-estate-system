@@ -204,3 +204,69 @@
 - **Oráculo critique**: Score=2. Zero connection to any distressed segment. Hook 'End of another month' speaks to no one in crisis. Caption barely exists and the CTA felt jarring with no empathy bridge.
 - **Rewrite pattern**: Reframe the 'end of month' moment as the emotional trigger pre-foreclosure homeowners feel — bill anxiety, mounting arrears. Each slide now addresses a specific fear or relief point for that segment. CTA is warm and educational ('know your options') rather than transactional.
 - **Segment anchor**: Pre-Foreclosure
+
+### 2026-05-07 — He Helps Wisconsin Families Keep Their Dignity When Selling
+- **Rejected pattern**: Generic hook ('tough home situation') with no segment anchor; Jorge backstory used as the main message without tying it to a specific homeowner pain point; investor-coded hashtag (#HouseInvestor) undermined brand voice.
+- **Oráculo critique**: Hook failed to identify any of the 6 distressed segments. Warmth was present but unfocused. Hashtag introduced investor framing explicitly banned by guidelines.
+- **Rewrite pattern**: Hook now names the Pre-Foreclosure segment explicitly ('missed mortgage payments'). Jorge backstory repositioned as empathy bridge, not the main message. All slides anchor to homeowner relief (no fees, no showings, honest options). Investor hashtag removed entirely.
+- **Segment anchor**: Pre-Foreclosure
+
+### 2026-05-07 — Un mes, familias reales: lo que aprendí ayudando en Wisconsi
+- **Rejected pattern**: Hook centrado en el narrador ('esto lo aprendí') y segmento vago ('familias en crisis') sin anclar a ninguno de los 6 segmentos específicos.
+- **Oráculo critique**: El contenido no nombraba ningún segmento distressed específico; permanecía a nivel genérico. El hook era auto-referencial en lugar de orientado al dolor del propietario.
+- **Rewrite pattern**: Hook reenfocado en el dolor directo del heredero ('Heredaste una casa y estás agobiado'). Segmento anclado explícitamente a Inherited Property. Cada slide aborda una barrera concreta del heredero: confusión de opciones, miedo a reparaciones/comisiones, y urgencia de cierre rápido.
+- **Segment anchor**: Inherited
+
+### 2026-05-07 — Inherited a House in Wisconsin? Here's What No One Tells You
+- **Rejected pattern**: Hashtags included '#RealEstateInvestor' and '#FirstDeal', which injected investor-side language and persona that directly contradicts the distressed homeowner audience and broke the homeowner-first POV frame.
+- **Oráculo critique**: Concept and tone were largely approved — Segment 2 targeting was accurate and caption warmth was on-point. Rejection was triggered solely by hashtag choices that signaled investor content to the algorithm and the viewer, undermining trust with the intended homeowner audience.
+- **Rewrite pattern**: Preserved all slide content and visual direction. Removed all investor-coded hashtags from caption. Replaced with homeowner-empathy hashtags implicitly embedded in caption prose. No jargon, no investor framing anywhere in output.
+- **Segment anchor**: Inherited
+
+### 2026-05-07 — Why a Wisconsin Family's Crisis Changed Everything for Me
+- **Rejected pattern**: Abstract origin story with no geographic specificity, no urgency trigger, and no actionable timeline — kept the audience at arm's length emotionally and practically
+- **Oráculo critique**: Foreclosure framing was on-target for Segment 1 but the story lacked a specific Wisconsin county reference, missed the 14-45 day close window urgency, and slide copy was too generic to create real emotional traction
+- **Rewrite pattern**: Anchored the story to Milwaukee (specific county), introduced a concrete timeline ('under 30 days'), kept empathy-led tone but added urgency through deadline language — 'before the deadline hits' mirrors the segment's lived panic without being pushy
+- **Segment anchor**: Pre-Foreclosure
+
+### 2026-05-07 — Job Transfer? Here's How to Sell Before You Move
+- **Rejected pattern**: Hook was generic ('Relocating fast with a house left?') and copy leaned on investor-facing phrases like 'real cash offer' and 'no listing needed,' which trigger skepticism in distressed homeowners who fear being lowballed.
+- **Oráculo critique**: Concept was correctly anchored to Segment 6 (Relocation) but lacked empathy depth. The hook did not distinguish voluntary relocation from job-loss pressure. 'Real cash offer' and 'no listing needed' read as a sales pitch rather than a homeowner-first education frame.
+- **Rewrite pattern**: Replaced 'real cash offer' with 'every option' language to reduce skepticism and center the homeowner's decision-making. Hook softened to feel conversational. Slides reframed around the homeowner's timeline and peace of mind, not Pinnacle's process. CTA preserved 'know your options' — the most trusted framing for this audience.
+- **Segment anchor**: Relocation
+
+### 2026-05-07 — Heredaste una casa en Wisconsin y no sabes qué hacer
+- **Rejected pattern**: Spanish title paired with English-only content created audience confusion; CTA 'Cash for Your House' was transactional and salesy, breaking the empathetic no-pressure tone established in the slides.
+- **Oráculo critique**: Language mismatch between title and body left both Spanish and English audiences underserved. 'Cash for Your House' read as a pitch, not a reassurance — inconsistent with the warm, grief-aware framing of the hook.
+- **Rewrite pattern**: 100% English throughout all fields. Replaced transactional CTA with a low-pressure 'know your options' frame. Reanchored each slide to the inheritor's emotional and logistical pain (grief, obligation, uncertainty) rather than Pinnacle's service features. Visuals softened to match a contemplative, empathetic mood.
+- **Segment anchor**: Inherited
+
+### 2026-05-07 — S6 - Oferta de Efectivo en 24 Horas Reel
+- **Rejected pattern**: Pitch genérico de velocidad sin anclar a ninguna situación de vida real; uso de 'garantizado' (prohibido por compliance); tono orientado al vendedor, no al dolor del propietario.
+- **Oráculo critique**: El reel nunca nombraba el segmento S6 ni su dolor específico (traslado, presión de tiempo, doble gasto). 'Garantizado' viola las guías de marca. 'Efectivo, rápido, justo' suena a pitch de inversionista, no a empatía.
+- **Rewrite pattern**: Abrir con la situación exacta del segmento S6 (traslado de trabajo, casa sin vender). Describir el dolor concreto (pagar dos lugares). Presentar la solución como alivio, no como promesa absoluta. Eliminar 'garantizado'; reemplazar con 'en menos de 24 horas' (aspiracional, no garantía legal). Cerrar con CTA cálido.
+- **Segment anchor**: Relocation
+
+### 2026-05-07 — ¿Preocupado por perder tu casa en Wisconsin? Hay opciones
+- **Rejected pattern**: Title in Spanish on an EN record caused a language mismatch; CTA phrase 'Cash for Your House' read as transactional and salesy; hook line repeated verbatim in caption, wasting caption space; visual flux prompts contained Spanish text fragments.
+- **Oráculo critique**: Language inconsistency (Spanish title on EN record), transactional CTA tone, verbatim hook repetition in caption, and Spanish text embedded in flux prompts — all weakened segment precision and brand voice.
+- **Rewrite pattern**: Title now fully in English and segment-specific. CTA reframed from transactional ('Cash for Your House') to empowerment-driven ('Know your options'). Caption uses all-new copy that extends the narrative rather than repeating the hook. Flux prompts are 100% English. Each slide carries a distinct, substantive point building from awareness → relief → action.
+- **Segment anchor**: Pre-Foreclosure
+
+### 2026-05-07 — S4 - Jorge Habla: Por Qué Fundé Pinnacle Holdings
+- **Rejected pattern**: Historia del fundador genérica sin ancla a un segmento específico; hook y caption mezclaban inglés y español; duplicación de líneas en slides; sin mención de dolor concreto del propietario.
+- **Oráculo critique**: El reel no se conectaba con ninguno de los 6 segmentos de propietarios en dificultades. La ejecución bilingüe estaba rota con hook y caption en inglés a pesar de Language=ES. Las líneas de slides eran duplicadas y genéricas.
+- **Rewrite pattern**: Se ancló la historia personal de Jorge al segmento Pre-Foreclosure (miedo a perder la casa por deudas). El hook abre con el dolor específico del segmento. Cada slide aborda una etapa emocional real del propietario. Todo el contenido está 100% en español con ortografía correcta.
+- **Segment anchor**: Pre-Foreclosure
+
+### 2026-05-07 — Cuando Jorge llegó, Marta no sabía qué iba a pasar con su ca
+- **Rejected pattern**: Name inconsistency across title, caption, and visuals (Marta vs Maria vs Jorge) eroded authenticity; '#RealEstateInvestor' hashtag broke brand voice by signaling investor perspective instead of homeowner empathy.
+- **Oráculo critique**: Identity confusion between character names across touchpoints undermined trust with a skeptical inherited-property audience. Investor-facing hashtag violated brand voice. Slides were truncated and incomplete, failing the 8–14 word substantive-line requirement.
+- **Rewrite pattern**: Unified a single consistent character name (Maria) across all fields; removed all investor hashtags; each slide now carries a complete, homeowner-POV sentence meeting word count; Jorge is named only in slide 4 as the empathetic guide, not the protagonist.
+- **Segment anchor**: Inherited
+
+### 2026-05-07 — Historia Personal — Mi Primer Deal
+- **Rejected pattern**: Historia en primera persona enmarcada como 'guerra de deals' de inversionista — jargón ('deal', 'bienes raíces como vehículo de inversión'), dirigida a audiencia de inversionistas, sin conexión con ninguno de los seis segmentos de propietarios en crisis.
+- **Oráculo critique**: El contenido hablaba AL inversionista, no AL propietario en estrés. Usó lenguaje de deal-making ('primer deal', 'presupuesto') y carecía de cualquier ancla emocional o situacional para los segmentos definidos.
+- **Rewrite pattern**: Se reencuadró la misma historia personal de Jorge como evidencia de experiencia que BENEFICIA al vendedor en crisis (casa con problemas, sin reparaciones requeridas). El protagonista del reel pasa a ser el propietario con miedo de que su casa no valga nada — Jorge es solo la prueba social. Se eliminó todo jargón de inversión.
+- **Segment anchor**: Pre-Foreclosure
