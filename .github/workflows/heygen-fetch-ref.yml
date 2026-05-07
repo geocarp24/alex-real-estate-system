@@ -27,21 +27,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Doppler CLI
-        uses: dopplerhq/cli-action@v3
-
-      - name: Load HEYGEN_API_KEY from Doppler
-        env:
-          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
-        run: |
-          if [ -n "$DOPPLER_TOKEN" ]; then
-            HEYGEN_KEY=$(doppler secrets get HEYGEN_API_KEY --plain --token "$DOPPLER_TOKEN")
-            echo "HEYGEN_API_KEY=$HEYGEN_KEY" >> "$GITHUB_ENV"
-          fi
-
       - name: Fetch video status from HeyGen
         env:
-          HEYGEN_API_KEY: ${{ env.HEYGEN_API_KEY }}
+          HEYGEN_API_KEY: ${{ secrets.HEYGEN_API_KEY }}
           VID: ${{ inputs.video_id }}
           NOTE: ${{ inputs.note }}
         run: |
