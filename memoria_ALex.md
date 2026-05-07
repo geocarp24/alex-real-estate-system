@@ -60,9 +60,31 @@
 4. Top-left libre de captions y UI chrome, mejor que bottom-center
 5. Cache key incluye script completo → cualquier edición invalida cache (correcto)
 
+**Template #3 — B-ROLL VOICEOVER ONLY** ✅ APROBADO POR JORGE (EN) — 2026-05-07
+
+| Aspecto | Detalle |
+|---|---|
+| **Estructura** | 5 escenas FLUX2 cinemáticas full-screen — sin avatar visible, solo b-roll |
+| **Voz** | Mismo HeyGen V3 global del Template #2 — flag `audioOnly:true` skipea overlay circular |
+| **Cache** | Mismo cacheKey que Template #2 (script idéntico) → HIT inmediato, $0 voz |
+| **Sync** | Mismo ffprobe + char-count distribution (Template #2 logic) |
+| **Trigger** | spec field `template:"voiceover"` + `Tipo=Personal` |
+| **Validado** | EN: `v1778121086/…` (cache HIT, 9.80s, scenes [3.09,1.37,1.37,1.46,4.90]) |
+| **Costo/Reel** | ~$1 inicial (FLUX2 5×) — re-runs cache HIT ~$0.05 |
+
+**Template #4 — TALKING HEAD SOLO** ✅ APROBADO POR JORGE (EN) — 2026-05-07
+
+| Aspecto | Detalle |
+|---|---|
+| **Estructura** | Avatar Jorge full-screen toda la duración — sin FLUX2, sin xfades |
+| **Pipeline** | Single-scene fullscreen + combined ASS con N karaoke events a offsets calculados (`buildCombinedAssSubtitle`) |
+| **Cache** | Mismo cacheKey HeyGen → HIT del Template #2 |
+| **Caption** | 1 ASS file con 5 Dialogue events (uno por frase del script), karaoke `\kf` por evento |
+| **Trigger** | spec field `template:"talkinghead"` + `Tipo=Personal` |
+| **Validado** | EN: `v1778121726/…` (cache HIT, 9.80s, 5 caption events) |
+| **Costo/Reel** | $0 voz (cache HIT) + compose ~$0.05 |
+
 **Próximas variantes pendientes de aprobar:**
-- Template #3 — B-Roll Voiceover Only (no avatar visible)
-- Template #4 — Talking Head Solo (Jorge full-screen)
 - Template #5 — Magazine Editorial (split-screen)
 
 ---
