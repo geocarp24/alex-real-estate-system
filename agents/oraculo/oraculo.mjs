@@ -457,15 +457,17 @@ async function main() {
   }
 
   const results = [];
-  for (const rec of records) {
+  for (const item of pending) {
+    const { tableId, format, record: rec } = item;
     let out;
-    try { out = await processOne(rec, ctx); }
+    try { out = await processOne(rec, ctx, tableId, format); }
     catch (e) {
-      out = { id: rec.id, titulo: rec.fields?.["Título de Idea"] || rec.id, status: "exception", error: String(e?.message || e).slice(0, 200) };
+      out = { id: rec.id, titulo: rec.fields?.Title || rec.id, status: "exception", error: String(e?.message || e).slice(0, 200) };
     }
+    out.format = format;
     results.push(out);
     const tail = out.score ? ` (${out.score}/10)` : "";
-    console.error(`[oraculo] ${out.titulo}: ${out.status}${tail}${out.error ? ` — ${out.error}` : ""}${out.reason ? ` — ${out.reason.slice(0, 100)}` : ""}`);
+    console.error(`[oraculo] [${format}] ${out.titulo}: ${out.status}${tail}${out.error ? ` — ${out.error}` : ""}${out.reason ? ` — ${out.reason.slice(0, 100)}` : ""}`);
   }
 
   const completedAt = isoNow();
