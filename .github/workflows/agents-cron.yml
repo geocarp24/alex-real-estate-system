@@ -48,6 +48,8 @@ on:
     - cron:  "30 21 */3 * *"          # creativo:batch
     # El Director v2 — faceless reels (text + Pexels stock + ffmpeg + music) for Reel Formato
     - cron:  "0 22 */3 * *"           # director_v2:batch
+    # El Analítico — daily engagement metrics + lessons feedback to SM Manager
+    - cron:  "0 6 * * *"              # analitico:batch (every day at 06:00 UTC)
   workflow_dispatch:
     inputs:
       agent:
