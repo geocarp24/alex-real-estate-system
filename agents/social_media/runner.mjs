@@ -286,7 +286,12 @@ async function processPosts(cfg, runId) {
 
   const results = [];
   let slotOffset = 0;
+  let halted = false;  // Set true when classifyError returns { action: 'halt' } — stops batch.
   for (const idea of ideas) {
+    if (halted) {
+      results.push({ id: idea.id, formato: idea.fields?.Formato, status: "halted_by_safety" });
+      continue;
+    }
     const f = idea.fields || {};
     const visualUrl = f.visual_url || "";
     const formato   = f.Formato || "";
@@ -296,6 +301,22 @@ async function processPosts(cfg, runId) {
     const caption   = `${captionEs}\n\n${captionEn}\n\n${hashtags}`.trim();
     const scheduledTime = Math.floor(new Date(nextSlotISO(slotOffset * 24)).getTime() / 1000);  // Unix seconds for Meta
     slotOffset++;
+
+    // ── SAFETY GATE — caption audit + visual audit + rate budget ──
+    const safety = await safetyCheckBeforePublish({
+      caption, visualUrl, formato,
+      durationSec: f.video_duration || 0,
+      platform: "both",
+      smFetch,
+      fieldPublishedIds: FIELD_PUBLISHED_POST_IDS,
+    });
+    if (!safety.ok) {
+      const reason = `safety blocked (${safety.blockReason}): ${(safety.details || []).join("; ")}`.slice(0, 500);
+      console.error(`[social_media] ${idea.id} ${reason}`);
+      await smUpdate(idea.id, { Error_Reason: reason }).catch(() => null);
+      results.push({ id: idea.id, formato, status: "safety_blocked", reason: safety.blockReason });
+      continue;
+    }
 
     let fbResult = null, igResult = null, fbErr = null, igErr = null;
 
@@ -310,9 +331,14 @@ async function processPosts(cfg, runId) {
         // Post / Story → single image.
         fbResult = await publishFacebookPhotoPost({ pageId: FB_PAGE_ID, pageAccessToken: pageToken, imageUrls: [visualUrl], caption, scheduledPublishTime: scheduledTime });
       }
-    } catch (e) { fbErr = e.message; }
+    } catch (e) {
+      fbErr = e.message;
+      const cls = classifyError(e);
+      if (cls.alert) await alertTelegram(`FB publish error on ${idea.id}: ${e.message}`, 'WARN').catch(() => null);
+      if (cls.action === 'halt') { halted = true; await alertTelegram(`HALT triggered: ${cls.reason}`, 'CRITICAL').catch(() => null); }
+    }
 
-    if (igUserId) {
+    if (igUserId && !halted) {
       try {
         if (formato === "Reel" || isVideo(visualUrl)) {
           igResult = await publishInstagramReel({ igUserId, pageAccessToken: pageToken, videoUrl: visualUrl, caption });
@@ -323,7 +349,12 @@ async function processPosts(cfg, runId) {
         } else {
           igResult = await publishInstagramImage({ igUserId, pageAccessToken: pageToken, imageUrl: visualUrl, caption });
         }
-      } catch (e) { igErr = e.message; }
+      } catch (e) {
+        igErr = e.message;
+        const cls = classifyError(e);
+        if (cls.alert) await alertTelegram(`IG publish error on ${idea.id}: ${e.message}`, 'WARN').catch(() => null);
+        if (cls.action === 'halt') { halted = true; await alertTelegram(`HALT triggered: ${cls.reason}`, 'CRITICAL').catch(() => null); }
+      }
     }
 
     const fbId = fbResult?.id || fbResult?.video_id || null;
