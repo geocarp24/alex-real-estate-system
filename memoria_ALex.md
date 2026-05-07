@@ -34,8 +34,33 @@
 7. Locale-aware routing (`spec.locale` honors EN/ES per record)
 8. `narrative_B` all-crossfade (sin wipeleft/slideup mecánicos)
 
+**Template #2 — CIRCLE AVATAR PIP + SPEECH-SYNCED SLIDES** ✅ APROBADO POR JORGE (ES + EN) — 2026-05-07
+
+| Aspecto | Detalle |
+|---|---|
+| **Estructura** | 5 escenas FLUX2 cinemáticas full-screen (hook + 3 puntos + cta) — backgrounds cambian, avatar persistente arriba-izquierda |
+| **Avatar** | UNA sola call HeyGen V3 con script completo concatenado (`hook . points . cta` — sin "today/hoy"). Cacheado por hash en Cloudinary `directorv2/cache/{recordId}_global_{hash}` |
+| **Posición avatar** | Círculo 360px, top-left (x=60, y=140) — libre del IG status bar y de los captions inferiores |
+| **Crop circular** | `geq` filter alpha-mask (sin asset externo), borde feathered 4px |
+| **Voz** | Audio del avatar global (continuo) → sidechain compressor duckea música |
+| **Sync slides ↔ voz** | `ffprobe` mide duración real del avatar, redistribuye scene durations proporcional al char-count de cada segmento. El cambio de fondo cae cuando empieza la frase. |
+| **Música** | Background con sidechain ducking (mismo que Template #1) |
+| **Captions** | Karaoke ASS por-escena (mismo estilo Template #1, amarillo/blanco) |
+| **Trigger** | Airtable `Tipo=Personal` + spec field `template:"pip"` (default sin field = `hybrid` = Template #1) |
+| **Costo/Reel** | ~$2.50 (HeyGen 1× full-script ~$1.50 + 5× FLUX2 ~$0.50 + compose). Re-runs con cache HIT = solo compose ~$0.05 |
+| **Output** | 1080×1920 H.264 CRF 20 / preset medium / AAC 192k @ 48kHz |
+| **Validados** | EN synced: `v1778119937/…reciqvavtbcbg72wm.mp4` (avatar 9.80s, scene durations [3.09, 1.37, 1.37, 1.46, 4.90]). ES top-left: `v1778118796/…` |
+| **Spec example** | `{"narrative":"B","aspect":"9:16","template":"pip","locale":"en","hook":{...},"points":[...],"cta":{...}}` |
+| **Files** | `agents/director_v2/director_v2.mjs` (PiP routing + global avatar gen + duration sync) · `agents/director_v2/src/ffmpeg.mjs` (`probeMediaDuration`, `XFADE_OVERLAP` exports, circular overlay) |
+
+**Lecciones Template #2 (2026-05-07):**
+1. Avatar continuo = 1 sola call HeyGen (no 5) → costo controlado
+2. Duración fija por escena causa drift voice/visual — solución = probar duración real con ffprobe + redistribuir por char-count
+3. Pausas naturales entre frases con `". "` join — HeyGen respeta puntuación
+4. Top-left libre de captions y UI chrome, mejor que bottom-center
+5. Cache key incluye script completo → cualquier edición invalida cache (correcto)
+
 **Próximas variantes pendientes de aprobar:**
-- Template #2 — Circle Avatar PiP (TikTok style)
 - Template #3 — B-Roll Voiceover Only (no avatar visible)
 - Template #4 — Talking Head Solo (Jorge full-screen)
 - Template #5 — Magazine Editorial (split-screen)
