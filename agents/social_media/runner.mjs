@@ -20,6 +20,10 @@
  */
 import { parseArgs, loadTenant, telegramSend, genRunId, isoNow } from "../_shared/runner.mjs";
 import {
+  SM_BASE_ID as SM_BASE, SM_POSTS_TABLE_ID, SM_REELS_TABLE_ID, SM_VIDEOS_TABLE_ID,
+  SM_LEGACY_TABLE_ID, SM_TABLES, SM_TOKEN as SHARED_SM_TOKEN, STATUS,
+} from "../_shared/sm_tables.mjs";
+import {
   publishFacebookPhotoPost, publishFacebookReel,
   publishInstagramReel, publishInstagramCarousel, publishInstagramImage,
   getInstagramUserId, getPageAccessToken,
@@ -27,11 +31,14 @@ import {
 
 const VALID_MODES = ["generate_ideas", "process_posts", "full_pipeline"];
 
-// ── Pinnacle SM Airtable (separate base from CRM) ──
-const SM_BASE  = "appU9s3kGkVpdrJkw";
-const SM_TABLE = "tblAj0Pkj1jW4p5Ld";  // Ideas de Contenido
-const SM_TOKEN = process.env.SM_AIRTABLE_TOKEN
+// SM_TOKEN — fall back to the legacy hardcoded value if neither env nor shared module has it.
+const SM_TOKEN = SHARED_SM_TOKEN
+  || process.env.SM_AIRTABLE_TOKEN
   || "patSlNwngu7SJoa52.003c83df8f6e378af5309237e310a36568a037448709d94b10739d032f9e8ef7";
+
+// Legacy single table — only used by old generateIdeas + processVisuals paths
+// during transition. New 3-table flow uses SM_TABLES from _shared/sm_tables.mjs.
+const SM_TABLE = SM_LEGACY_TABLE_ID;
 
 // ── Meta Graph API config ──
 // META_USER_TOKEN: long-lived User Access Token from "Pinnacle Social Publisher" app.
