@@ -481,7 +481,7 @@ async function processPosts(cfg, runId) {
     const captionBody = f.Caption || "";
     const hashtags    = f.Hashtags || "";
     const caption     = `${captionBody}\n\n${hashtags}`.trim();
-    const scheduledTime = Math.floor(new Date(nextSlotISO(slotOffset * 24)).getTime() / 1000);
+    const scheduledTime = Math.floor(new Date(nextSlotISO(slotOffset)).getTime() / 1000);
     slotOffset++;
 
     // ── SAFETY GATE ──
