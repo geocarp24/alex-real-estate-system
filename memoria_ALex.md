@@ -1,6 +1,71 @@
 # memoria_ALex.md — Memoria Persistente del Sistema ALEX
 
 > Este archivo es leído y actualizado por ALEX al inicio y fin de cada sesión de análisis.
+
+---
+
+## 2026-05-07 (PM-4) — Restructure SM completa: 3 tablas + bilingüe separado (Jorge directo)
+
+**Jorge directo 2026-05-07 PM**: rearchitect SM Manager — 3 tablas separadas (Posts/Reels/Videos), cada record en UN solo idioma (no más bilingüe en el mismo record), Reels = 5 slides × 2s = 10s con campos `Slide_N_Text` explícitos por slide.
+
+### Esquema Airtable (base `appU9s3kGkVpdrJkw`)
+
+| Tabla | ID | Fields | Uso |
+|---|---|---|---|
+| Posts | `tblE3lz6XNcBNgpg5` | 22 | IG/FB single-frame post, mono-idioma |
+| Reels | `tblhbg4JSm2iND3Cs` | 32 | Vertical 8-10s, 5 slides explícitos |
+| Videos | `tblbjYosR1tpnjRV0` | 27 | Long-form 30-60s (schema only, wireup pendiente) |
+| _legacy_ Ideas de Contenido | `tblAj0Pkj1jW4p5Ld` | 21 | Preservada read-only — Carrusel format (no migrado) |
+
+### Campos comunes (todas las 3 tablas)
+`Title • Language(ES|EN) • Source_Idea_ID(UUID) • Tipo • Segment_Anchor • Plataforma • Theme_Code(T1-T5) • Status • Oraculo_Score • Oraculo_Notes • Error_Reason • Published_FB_ID • Published_IG_ID • Scheduled_Time • Created_At`
+
+### Status enum (single select)
+`Idea` → `Oraculo OK` → `Visual Listo` → `Programado` → `Publicado`
+Side states: `Rechazada` (Reescritor target), `Error`
+
+### Bilingüe = records separados
+- 1 idea genera 2 records: 1 Language=ES + 1 Language=EN
+- Linkados por `Source_Idea_ID` (UUID corto)
+- Mono-idioma elimina confusión render: cada record solo tiene Caption en su idioma
+
+### Reels — 5 slides explícitos
+- `Slide_1_Hook` (5-7 palabras apertura)
+- `Slide_2_Text` + `Slide_2_Visual` (8-14 palabras + Pexels query | flux: prompt)
+- `Slide_3_Text` + `Slide_3_Visual`
+- `Slide_4_Text` + `Slide_4_Visual`
+- `Slide_5_CTA` (5-7 palabras cierre)
+- Director v2 lee directamente los Slide_N — ya NO parsea Visual_Prompt JSON
+- Plus: `Caption` (full IG description, separada del in-video text), `Hashtags`, `Template`(hybrid|pip|voiceover|editorial), `Music_Track`, `Avatar_Mode`, `Avatar_Script`, `Series_Part`, `Series_Title`
+
+### Migración ejecutada (2026-05-07)
+- Old → new: 23 Posts + 15 Reels + 2 Stories migrados → 50 Posts + 30 Reels (bilingual split)
+- 14 Carruseles preservados en legacy table (sin migrar — Jorge especificó solo Posts/Reels/Videos)
+- 3 records fantasma sin título eliminados
+
+### Files actualizados (Phase 4)
+- `agents/_shared/sm_tables.mjs` (NEW) — config central de table IDs + STATUS enum
+- `.github/workflows/agents-cron.yml` — env vars `AIRTABLE_SM_POSTS_TABLE_ID`, `AIRTABLE_SM_REELS_TABLE_ID`, `AIRTABLE_SM_VIDEOS_TABLE_ID`
+- `agents/creativo/creativo.mjs` — lee Posts table, single editorial frame, single-language render
+- `agents/director_v2/src/airtable.mjs` — `buildSpecFromReelRecord()` builds spec from Slide_N fields; PENDING_FILTER ahora `Status='Oraculo OK'`
+- `agents/director_v2/director_v2.mjs` — usa `AIRTABLE_SM_REELS_TABLE_ID`; lee Slide_N fields antes de parseVisualPrompt fallback
+- `agents/oraculo/oraculo.mjs` — loop sobre 3 tablas, Status='Idea' filter, escribe Status='Oraculo OK' o 'Rechazada'
+- `agents/reescritor/reescritor.mjs` — loop 3 tablas, Status='Rechazada' filter, mono-language rewrite por format
+- `agents/social_media/runner.mjs` — generateIdeas crea 2 records (ES+EN) por idea en tabla correcta; processPosts loop 3 tablas
+
+### Decisiones arquitectónicas
+- **Status enum > prefix hack** — el `[ORACULO_OK score=N]` prefix de Visual_Prompt fue reemplazado por `Status='Oraculo OK'` field (cleaner, type-safe)
+- **Mono-idioma per record** — elimina toda la lógica `if lang==EN ? captionEn : captionEs` en cada agente
+- **Slide_N explícitos** — Director v2 NO necesita parseVisualPrompt JSON ni Sonnet hallucination de specs
+
+### Pendiente (post-restructure)
+- E2E test: dispatch SM Manager → Oráculo → Reescritor → Creativo → Director v2 → publisher (smoke con 1 record por format)
+- Documentar en CLAUDE.md regla nueva (3 tablas + bilingüe)
+- Carrusel migration (cuando Jorge decida si crear `tbl_Carruseles` o tratar como Posts multi-slide)
+- Director v2 `Avatar_Mode` field-driven (vs Tipo=Personal heuristic actual)
+- Videos tabla wireup en Director v2 (long-form module)
+
+---
 > Formato de fecha: YYYY-MM-DD. Añadir siempre fecha a cada entrada.
 
 ---
