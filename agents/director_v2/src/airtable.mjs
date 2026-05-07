@@ -61,6 +61,56 @@ function parseSlideVisual(raw) {
   return { heroQuery, heroPrompt };
 }
 
+// ─── Videos schema → narrative B variable spec builder (Jorge 2026-05-07) ───
+// Videos are long-form 30-50s with Hook + Main_Message + Script_Outline.
+// We split Main_Message into 5 narrative beats (one per Script_Outline section
+// or sentence) → narrative B with 5 points → 7 scenes total.
+// Same template/theme/avatar fields as Reels so Director v2 reuses pipeline.
+export function buildSpecFromVideoRecord(record) {
+  const f = record.fields || {};
+  const lang = String(f.Language || 'ES').toUpperCase();
+  const localeKey = lang === 'EN' ? 'en' : 'es';
+
+  const hookText = f.Hook || f.Title || '';
+  const ctaText  = f.CTA  || '';
+  // Split Main_Message + Script_Outline into 5 narrative beats.
+  const narrativeText = [(f.Main_Message || ''), (f.Script_Outline || '')].filter(Boolean).join(' || ');
+  const beats = String(narrativeText)
+    .split(/(?:\|\|)|(?:\n+)|(?<=[.!?])\s+/)
+    .map(s => s.trim())
+    .filter(s => s.length >= 15 && s.length <= 200);
+
+  // Pad with placeholder if not enough beats (need 5 for 7-scene Video).
+  while (beats.length < 5) beats.push('Sin presión, conoces tus opciones reales.');
+  const points = beats.slice(0, 5).map(text => ({
+    headingEs: text, headingEn: text,
+    captionEs: text, captionEn: text,
+    heroQuery: 'wisconsin home golden hour suburban',
+    heroPrompt: `cinematic photo, ${text.slice(0, 60)}, warm wisconsin home, no text, no logos`,
+  }));
+
+  return {
+    narrative: 'B',
+    theme:     f.Theme_Code || 'T1',
+    template:  f.Template   || 'voiceover',
+    aspect:    '9:16',
+    duration:  Number(f.Duration_Sec) || 35,    // 7 scenes × 5s = 35s budget → ~30s output
+    locale:    localeKey,
+    hook: {
+      [localeKey]: hookText,
+      [localeKey === 'es' ? 'en' : 'es']: hookText,
+    },
+    points,
+    cta: {
+      [localeKey]: ctaText,
+      [localeKey === 'es' ? 'en' : 'es']: ctaText,
+    },
+    music_track:  f.Music_Track || 'cinematic',
+    avatar_mode:  f.Avatar_Mode || 'NO_avatar',
+    avatar_script: f.Avatar_Script || '',
+  };
+}
+
 export function buildSpecFromReelRecord(record) {
   const f = record.fields || {};
   const lang = String(f.Language || 'ES').toUpperCase();
