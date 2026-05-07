@@ -239,51 +239,103 @@ function nextSlotISO(offsetHours = 0) {
   return target.toISOString();
 }
 
+// Parse `Blotato_Visual_ID` legacy field for carousel slide URLs.
+// Two historical shapes:
+//   modern Cloudinary:  "puppeteer:6_slides|<url1>|<url2>|..."
+//   legacy Blotato:     "<id>|||<url1>|<url2>|..."
+// Returns array of media URLs, or empty array if no slides parseable.
+function parseCarouselSlides(raw) {
+  if (!raw || typeof raw !== "string") return [];
+  let body = raw;
+  if (body.includes("|||")) body = body.split("|||")[1] || "";       // legacy Blotato format
+  else if (body.startsWith("puppeteer:")) body = body.split("|").slice(1).join("|");
+  const urls = body.split("|").map(s => s.trim()).filter(u => u.startsWith("http"));
+  return urls;
+}
+
+function isVideo(url) {
+  return /\.(mp4|mov|webm)(\?|$)/i.test(url || "");
+}
+
 async function processPosts(cfg, runId) {
-  // Find ideas with visual_url set and no Blotato_Post_IDs yet.
+  if (!META_USER_TOKEN && !META_PAGE_TOKEN) {
+    return { posted: 0, reason: "META_USER_TOKEN / META_PAGE_ACCESS_TOKEN not configured — set in Doppler/secrets" };
+  }
+
+  // Resolve Page Access Token (cached for the run).
+  let pageToken = META_PAGE_TOKEN;
+  if (!pageToken) {
+    pageToken = await getPageAccessToken({ userAccessToken: META_USER_TOKEN, pageId: FB_PAGE_ID });
+    if (!pageToken) return { posted: 0, reason: `Page ${FB_PAGE_ID} not found in /me/accounts — token may lack pages_show_list scope` };
+  }
+
+  // Resolve IG Business Account once (cached).
+  const igUserId = await getInstagramUserId({ pageId: FB_PAGE_ID, pageAccessToken: pageToken }).catch(() => null);
+  if (!igUserId) {
+    console.error("[social_media] IG Business Account not linked to FB Page — IG publishing will be skipped");
+  }
+
+  // Find ideas with visual_url set, Status=Visual Listo, and no published IDs yet.
   const filter = encodeURIComponent(
-    `AND({visual_url}!='', OR({Blotato_Post_IDs}='', NOT({Blotato_Post_IDs})))`
+    `AND({visual_url}!='', {Status}='Visual Listo', OR({${FIELD_PUBLISHED_POST_IDS}}='', NOT({${FIELD_PUBLISHED_POST_IDS}})))`
   );
   const r = await smFetch(`filterByFormula=${filter}&maxRecords=${POSTS_PER_RUN}`);
   const ideas = r.records || [];
-  if (ideas.length === 0) return { posted: 0, reason: "no ideas with visual ready" };
+  if (ideas.length === 0) return { posted: 0, reason: "no ideas with Visual Listo + missing published IDs" };
 
   const results = [];
   let slotOffset = 0;
   for (const idea of ideas) {
     const f = idea.fields || {};
     const visualUrl = f.visual_url || "";
+    const formato   = f.Formato || "";
     const captionEn = f["🇺🇸 Caption EN"] || "";
     const captionEs = f["🇲🇽 Caption ES"] || f["Mensaje Principal"] || "";
-    const hashtags = f.Hashtags || "";
-    if (!visualUrl) {
-      results.push({ id: idea.id, status: "skip", reason: "no visual_url" });
-      continue;
-    }
-
-    const text = `${captionEs}\n\n${captionEn}\n\n${hashtags}`.trim();
-    const scheduledTime = nextSlotISO(slotOffset * 24);
+    const hashtags  = f.Hashtags || "";
+    const caption   = `${captionEs}\n\n${captionEn}\n\n${hashtags}`.trim();
+    const scheduledTime = Math.floor(new Date(nextSlotISO(slotOffset * 24)).getTime() / 1000);  // Unix seconds for Meta
     slotOffset++;
 
-    const fbResult = await blotatoCreatePost({
-      accountId: FB_ACCOUNT_ID, platform: "facebook", pageId: FB_PAGE_ID,
-      text, mediaUrls: [visualUrl], scheduledTime,
-    });
-    const igResult = await blotatoCreatePost({
-      accountId: IG_ACCOUNT_ID, platform: "instagram",
-      text, mediaUrls: [visualUrl], scheduledTime,
-    });
+    let fbResult = null, igResult = null, fbErr = null, igErr = null;
 
-    const fbId = fbResult.id || null;
-    const igId = igResult.id || null;
+    try {
+      if (formato === "Reel" || isVideo(visualUrl)) {
+        fbResult = await publishFacebookReel({ pageId: FB_PAGE_ID, pageAccessToken: pageToken, videoUrl: visualUrl, caption, scheduledPublishTime: scheduledTime });
+      } else if (formato === "Carrusel") {
+        const slides = parseCarouselSlides(f[FIELD_CAROUSEL_URLS]);
+        const imgs = slides.length >= 2 ? slides : [visualUrl];
+        fbResult = await publishFacebookPhotoPost({ pageId: FB_PAGE_ID, pageAccessToken: pageToken, imageUrls: imgs, caption, scheduledPublishTime: scheduledTime });
+      } else {
+        // Post / Story → single image.
+        fbResult = await publishFacebookPhotoPost({ pageId: FB_PAGE_ID, pageAccessToken: pageToken, imageUrls: [visualUrl], caption, scheduledPublishTime: scheduledTime });
+      }
+    } catch (e) { fbErr = e.message; }
+
+    if (igUserId) {
+      try {
+        if (formato === "Reel" || isVideo(visualUrl)) {
+          igResult = await publishInstagramReel({ igUserId, pageAccessToken: pageToken, videoUrl: visualUrl, caption });
+        } else if (formato === "Carrusel") {
+          const slides = parseCarouselSlides(f[FIELD_CAROUSEL_URLS]);
+          if (slides.length >= 2) igResult = await publishInstagramCarousel({ igUserId, pageAccessToken: pageToken, imageUrls: slides, caption });
+          else                    igResult = await publishInstagramImage({ igUserId, pageAccessToken: pageToken, imageUrl: visualUrl, caption });
+        } else {
+          igResult = await publishInstagramImage({ igUserId, pageAccessToken: pageToken, imageUrl: visualUrl, caption });
+        }
+      } catch (e) { igErr = e.message; }
+    }
+
+    const fbId = fbResult?.id || fbResult?.video_id || null;
+    const igId = igResult?.media_id || igResult?.id || null;
     const ids = [fbId && `fb:${fbId}`, igId && `ig:${igId}`].filter(Boolean).join(",");
 
     await smUpdate(idea.id, {
-      "Blotato_Post_IDs": ids,
+      [FIELD_PUBLISHED_POST_IDS]: ids,
       "Status": ids ? "Programado" : "Error",
+      ...(fbErr || igErr ? { "Error_Reason": [fbErr && `FB: ${fbErr}`, igErr && `IG: ${igErr}`].filter(Boolean).join(" | ").slice(0, 500) } : {}),
     }).catch(() => null);
 
-    results.push({ id: idea.id, status: ids ? "scheduled" : "failed", fb: fbId, ig: igId, when: scheduledTime });
+    results.push({ id: idea.id, formato, status: ids ? "scheduled" : "failed", fb: fbId, ig: igId, fbErr, igErr, when: scheduledTime });
   }
   return { posted: results.filter((r) => r.status === "scheduled").length, total: results.length, results };
 }
