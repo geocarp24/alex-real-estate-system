@@ -25,6 +25,28 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const TMP  = join(HERE, 'tmp');
 const SAMPLES = join(HERE, 'samples');
 
+// Wrap caption text for 1080-wide portrait at fontsize ~62 (≈22 chars/line is the sweet spot for IG Reels readability).
+// Hard-wraps long words by splitting at maxChars; preserves existing line breaks in the source.
+export function wrapCaption(text, maxChars = 22) {
+  if (!text) return '';
+  const lines = [];
+  for (const para of String(text).split(/\r?\n/)) {
+    const words = para.trim().split(/\s+/).filter(Boolean);
+    let line = '';
+    for (const word of words) {
+      const candidate = line ? `${line} ${word}` : word;
+      if (candidate.length <= maxChars) {
+        line = candidate;
+      } else {
+        if (line) lines.push(line);
+        line = word;
+      }
+    }
+    if (line) lines.push(line);
+  }
+  return lines.join('\n');
+}
+
 export function shortMessage(err) {
   const name = err?.name || 'Error';
   const msg  = String(err?.message || err || 'unknown');
