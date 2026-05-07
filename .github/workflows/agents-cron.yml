@@ -189,7 +189,11 @@ jobs:
           TELEGRAM_BOT_TOKEN:       ${{ secrets.FER_TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:         ${{ secrets.TELEGRAM_CHAT_ID }}
           ANTHROPIC_API_KEY:        ${{ secrets.ANTHROPIC_API_KEY }}
-          BLOTATO_API_KEY:          ${{ secrets.BLOTATO_API_KEY }}
+          # Meta Graph API publisher (replaces Blotato 2026-05-07). Set in Doppler.
+          # META_USER_TOKEN: long-lived User Access Token from "Pinnacle Social Publisher" app.
+          # META_PAGE_ACCESS_TOKEN: optional pre-resolved Page token (auto-derived if absent).
+          META_USER_TOKEN:          ${{ secrets.META_USER_TOKEN }}
+          META_PAGE_ACCESS_TOKEN:   ${{ secrets.META_PAGE_ACCESS_TOKEN }}
           # Director v2 expects AIRTABLE_SM_* prefix. AIRTABLE_SM_TOKEN comes from Doppler ($GITHUB_ENV).
           AIRTABLE_SM_BASE_ID:      "appU9s3kGkVpdrJkw"
           AIRTABLE_SM_TABLE_ID:     "tblAj0Pkj1jW4p5Ld"
