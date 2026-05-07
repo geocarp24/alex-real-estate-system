@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 
 const FPS = 30;
-const XFADE_OVERLAP = 0.3;
+const XFADE_OVERLAP = 0.6;   // 2026-05-07: bumped from 0.3 → 0.6 for smoother cinematic transitions (Jorge feedback "muy robotico")
 const TRANSITION_MAP = {
   crossfade: 'fade',
   wipeleft:  'wipeleft',
