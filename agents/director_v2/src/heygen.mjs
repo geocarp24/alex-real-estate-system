@@ -40,7 +40,7 @@ async function getJson(path, apiKey) {
 }
 
 // V3 payload (Avatar IV/V engine — premium)
-function buildV3Payload({ avatarId, script, voiceId, aspectRatio, resolution, expressiveness, motionPrompt, background }) {
+function buildV3Payload({ avatarId, script, voiceId, aspectRatio, resolution, expressiveness, motionPrompt, background, speed }) {
   const p = {
     type: 'avatar',
     avatar_id: avatarId,
@@ -52,6 +52,7 @@ function buildV3Payload({ avatarId, script, voiceId, aspectRatio, resolution, ex
   };
   if (expressiveness) p.expressiveness = expressiveness;
   if (motionPrompt)   p.motion_prompt  = motionPrompt;
+  if (typeof speed === 'number') p.speed = speed;     // 1.0 default; >1 faster, <1 slower
   return p;
 }
 
