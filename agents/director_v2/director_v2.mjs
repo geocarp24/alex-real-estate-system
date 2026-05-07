@@ -98,25 +98,52 @@ async function resolveHero(scene, { pexelsKey, geminiKey, replicateKey, heygenEn
         const voiceId = pickVoiceId(scene.locale || 'en', heygenEnv);
         if (!voiceId) throw new HeyGenFailedError(`HEYGEN_VOICE_ID_JORGE_${(scene.locale || 'en').toUpperCase()} missing`);
         const videoPath = join(tmpDir, `hero_${scene.index}.mp4`);
-        // motion_prompt + expressiveness are photo_avatar-only — only forward them when
-        // the spec explicitly opts in (scene.heyMotionPrompt / scene.heyExpressiveness).
-        // For digital_twin avatars (default) HeyGen rejects these fields.
-        const { videoUrl, durationSec } = await generateAvatarVideo({
-          script:        scene.heyScript || scene.text || scene.heroPrompt,
-          avatarId:      heygenEnv.HEYGEN_AVATAR_ID_JORGE,
+
+        // Cache lookup BEFORE calling HeyGen — saves $$$ when re-rendering same record.
+        const heygenInputs = {
+          avatarId:   heygenEnv.HEYGEN_AVATAR_ID_JORGE,
           voiceId,
+          script:     scene.heyScript || scene.text || scene.heroPrompt,
+          engine:     scene.heyEngine || 'v3',
+          resolution: scene.heyResolution || '1080p',
+          background: scene.heyBackground || { type: 'color', value: '#0d1117' },
+        };
+        const cacheKey = heygenCacheKey(heygenInputs);
+        const cachePublicId = `cache/${recordId}_scene_${scene.index}_heygen_${cacheKey}`;
+        const cacheFolder   = 'pinnacle-social-media/videos/directorv2';
+        if (heygenEnv.CLOUDINARY_NAME) {
+          const cacheUrl = buildVideoUrl({ cloudName: heygenEnv.CLOUDINARY_NAME, folder: cacheFolder, publicId: cachePublicId });
+          const cached = await tryDownloadCachedVideo(cacheUrl, videoPath);
+          if (cached.hit) {
+            console.log(`[scene ${scene.index}] HeyGen cache HIT (${(cached.sizeBytes/1024).toFixed(0)}KB) — skipping API call`);
+            stats.heygenCacheHits = (stats.heygenCacheHits || 0) + 1;
+            return { path: videoPath, sourceActual: 'heygen_avatar_cached', isVideo: true, durationSec: null };
+          }
+        }
+
+        // motion_prompt + expressiveness are photo_avatar-only — only forward when explicitly set.
+        const { videoUrl, durationSec } = await generateAvatarVideo({
+          ...heygenInputs,
           apiKey:        heygenEnv.HEYGEN_API_KEY,
-          engine:        scene.heyEngine || 'v3',                                   // 'v3' premium / 'v1' legacy 4x cheaper
           aspectRatio:   '9:16',
-          resolution:    scene.heyResolution || '1080p',
-          expressiveness: scene.heyExpressiveness,                                  // photo_avatar only; undefined skips
-          motionPrompt:   scene.heyMotionPrompt,                                    // photo_avatar only; undefined skips
-          speed:          typeof scene.heySpeed === 'number' ? scene.heySpeed : 1.1, // slightly faster than default for natural cadence (Jorge feedback 2026-05-07)
-          background:     scene.heyBackground || { type: 'color', value: '#0d1117' },
+          expressiveness: scene.heyExpressiveness,
+          motionPrompt:   scene.heyMotionPrompt,
+          speed:          typeof scene.heySpeed === 'number' ? scene.heySpeed : 1.1,
         });
         await downloadVideo(videoUrl, videoPath);
         stats.heygenCalls = (stats.heygenCalls || 0) + 1;
         stats.heygenSeconds = (stats.heygenSeconds || 0) + (durationSec || 0);
+
+        // Upload to Cloudinary cache so future re-renders skip the HeyGen call entirely.
+        if (heygenEnv.CLOUDINARY_NAME && heygenEnv.CLOUDINARY_API_KEY && heygenEnv.CLOUDINARY_API_SECRET) {
+          try {
+            await uploadVideo(videoPath, {
+              publicId: cachePublicId, folder: cacheFolder,
+              cloudName: heygenEnv.CLOUDINARY_NAME, apiKey: heygenEnv.CLOUDINARY_API_KEY, apiSecret: heygenEnv.CLOUDINARY_API_SECRET,
+            });
+            console.log(`[scene ${scene.index}] HeyGen MP4 cached at ${cachePublicId}`);
+          } catch (e) { console.error(`[scene ${scene.index}] cache upload failed: ${e.message} — continuing`); }
+        }
         return { path: videoPath, sourceActual: 'heygen_avatar', isVideo: true, durationSec };
       } catch (err) {
         if (!(err instanceof HeyGenFailedError)) throw err;
