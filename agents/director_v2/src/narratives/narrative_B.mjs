@@ -48,7 +48,7 @@ export function expand(spec) {
       captionEn: spec.points[0].headingEn, captionEs: spec.points[0].headingEs,
       heroSource: 'pexels', heroPrompt: spec.points[0].heroPrompt || null, heroQuery: deriveHeroQuery(spec.points[0].headingEn),
       kinetic: false, zoompan: { from: 1.0, to: 1.03 },
-      transitionOut: 'wipeleft', mood,
+      transitionOut: 'crossfade', mood,
     },
     {
       index: 3, duration: D[2], layoutType: 'point',
