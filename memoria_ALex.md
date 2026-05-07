@@ -84,8 +84,37 @@
 | **Validado** | EN: `v1778121726/…` (cache HIT, 9.80s, 5 caption events) |
 | **Costo/Reel** | $0 voz (cache HIT) + compose ~$0.05 |
 
-**Próximas variantes pendientes de aprobar:**
-- Template #5 — Magazine Editorial (split-screen)
+**Template #5 — MAGAZINE EDITORIAL (SPLIT-SCREEN 70/30)** ✅ APROBADO POR JORGE (EN) — 2026-05-07
+
+| Aspecto | Detalle |
+|---|---|
+| **Estructura** | Split horizontal 70/30 — top 1080×1344 = FLUX2 cinemáticos cambiando, bottom 1080×576 = avatar Jorge head/shoulders strip |
+| **Avatar shape** | `globalAvatar.shape='split'`, `splitRatio=0.30` (override por defecto disponible) |
+| **Composite** | FLUX2 xfade chain a 1080×1920 + overlay avatar `1080×576` en `y=1344` |
+| **Captions** | Karaoke standard en bottom band (~y=1660) — encima del torso de Jorge, estilo editorial pull-quote |
+| **Trigger** | spec field `template:"editorial"` + `Tipo=Personal` |
+| **Validado** | EN: `v1778122816/…reciqvavtbcbg72wm.mp4` (cache HIT, 9.80s, 70/30 + fucsia) |
+| **Costo/Reel** | ~$1 inicial (FLUX2 5×) — re-runs cache HIT ~$0.05 |
+
+**🎨 ACTUALIZACIÓN COLOR GLOBAL — KARAOKE FUCSIA (Jorge 2026-05-07)**
+
+| Antes | Ahora |
+|---|---|
+| PrimaryColour `&H003BEBFF` (yellow #FFEB3B) | PrimaryColour `&H009314FF` (deep pink #FF1493) |
+
+Aplica a **TODOS los templates #1-#5** — `buildAssSubtitle` + `buildCombinedAssSubtitle` comparten la misma Style line. Re-renders futuros heredan automáticamente el color nuevo. SecondaryColour (white) sin cambios.
+
+**🏆 ARSENAL COMPLETO — 5 TEMPLATES VIDEO PRODUCTION READY:**
+
+| # | Nombre | Trigger | Avatar | Backgrounds |
+|---|---|---|---|---|
+| 1 | Hybrid Cinematic | (default, sin field) | HeyGen full hook+CTA | FLUX2 puntos |
+| 2 | Circle PiP | `template:"pip"` | Circle 360px top-left | FLUX2 5× full-screen |
+| 3 | B-Roll Voiceover | `template:"voiceover"` | Audio only (sin visual) | FLUX2 5× full-screen |
+| 4 | Talking Head Solo | `template:"talkinghead"` | Full-screen avatar | (ninguno) |
+| 5 | Magazine Editorial | `template:"editorial"` | Split 30% bottom | FLUX2 70% top |
+
+**Próximo paso (Jorge directiva):** integrar este arsenal con sub-agentes El Director (selección de template por contenido/contexto) y El Programador (publishing FB+IG vía Graph API directo, deprecando Blotato — pendiente token de Jorge).
 
 ---
 
