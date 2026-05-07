@@ -16,7 +16,7 @@ import { generateImage, NanoBananaFailedError } from './src/nano_banana.mjs';
 import { generateAvatarVideo, downloadVideo, pickVoiceId, HeyGenFailedError } from './src/heygen.mjs';
 import { generateImage as toolkitGenerateImage, isAvailable as toolkitAvailable, VideoToolkitError } from './src/video_toolkit.mjs';
 import { pickMusic } from './src/audio.mjs';
-import { buildVideoCommand, runFfmpeg } from './src/ffmpeg.mjs';
+import { buildVideoCommand, runFfmpeg, probeMediaDuration, XFADE_OVERLAP } from './src/ffmpeg.mjs';
 import { uploadVideo, tryDownloadCachedVideo, buildVideoUrl } from './src/cloudinary.mjs';
 import { createHash } from 'node:crypto';
 import { sanitizeRecordId } from './src/util/sanitize.mjs';
