@@ -112,6 +112,7 @@ jobs:
             "15 21 */3 * *")     agent=oraculo;      mode=batch ;;
             "30 21 */3 * *")     agent=creativo;     mode=batch ;;
             "0 22 */3 * *")      agent=director_v2;  mode=batch ;;
+            "0 6 * * *")         agent=analitico;    mode=batch ;;
             *)                   agent="${{ inputs.agent || 'mercader' }}"; mode="${{ inputs.mode || 'quick_health' }}" ;;
           esac
           echo "agent=$agent" >> $GITHUB_OUTPUT
