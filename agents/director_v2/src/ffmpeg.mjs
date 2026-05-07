@@ -89,8 +89,9 @@ export function buildVideoCommand({ scenes, musicPath, outputPath, width = 1080,
   // geq filter computes alpha=255 inside the inscribed circle, 0 outside — clean circle without external mask asset.
   // Soft 4px edge feather smooths the circle boundary against the background imagery.
   // Position: top-left corner — avoids covering karaoke captions (lower third) and IG/TikTok bottom UI chrome.
+  // Template #3 Voiceover: globalAvatar.audioOnly=true skips the visual overlay — only the avatar audio is used as voice track.
   let videoOutLabel = scenes.length === 1 ? 'v0' : 'vout';
-  if (globalAvatar) {
+  if (globalAvatar && !globalAvatar.audioOnly) {
     const size       = globalAvatar.size       || 360;
     const marginLeft = globalAvatar.marginLeft || 60;     // breathing room from left edge
     const marginTop  = globalAvatar.marginTop  || 140;    // clears IG status bar / TikTok top chrome (~120px safe zone)
