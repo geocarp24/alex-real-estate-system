@@ -76,21 +76,31 @@ export function buildSpecFromReelRecord(record) {
   const slide3 = parseSlideVisual(f.Slide_3_Visual);
   const slide4 = parseSlideVisual(f.Slide_4_Visual);
 
+  // narrative_B.mjs reads spec.points[i].headingEn / headingEs for the on-screen
+  // text. Map Slide_N_Text → heading{En,Es} (mirror to the other lang since each
+  // record is mono-language). Bug fix 2026-05-07: previously used caption{En,Es}
+  // keys which narrative B ignores → middle slides rendered without text.
+  // Duration bumped to 12 (was 10) so output ~10s after xfade overlap accounting.
+  const slideText = (raw) => {
+    const t = String(raw || '').slice(0, 120);
+    return { headingEn: t, headingEs: t };
+  };
+
   return {
     narrative: 'B',
     theme:     f.Theme_Code || 'T1',
     template:  f.Template   || 'voiceover',
     aspect:    '9:16',
-    duration:  10,                        // 5 slides x 2s = 10s (Jorge rule)
+    duration:  12,                        // gives ~10s output after 4 xfade × 0.6s overlap
     locale:    localeKey,
     hook: {
       [localeKey]: hookText,
-      [localeKey === 'es' ? 'en' : 'es']: hookText,    // mirror so Director v2 has both keys defined
+      [localeKey === 'es' ? 'en' : 'es']: hookText,
     },
     points: [
-      { captionEs: f.Slide_2_Text || '', captionEn: f.Slide_2_Text || '', heroQuery: slide2.heroQuery, heroPrompt: slide2.heroPrompt },
-      { captionEs: f.Slide_3_Text || '', captionEn: f.Slide_3_Text || '', heroQuery: slide3.heroQuery, heroPrompt: slide3.heroPrompt },
-      { captionEs: f.Slide_4_Text || '', captionEn: f.Slide_4_Text || '', heroQuery: slide4.heroQuery, heroPrompt: slide4.heroPrompt },
+      { ...slideText(f.Slide_2_Text), heroQuery: slide2.heroQuery, heroPrompt: slide2.heroPrompt },
+      { ...slideText(f.Slide_3_Text), heroQuery: slide3.heroQuery, heroPrompt: slide3.heroPrompt },
+      { ...slideText(f.Slide_4_Text), heroQuery: slide4.heroQuery, heroPrompt: slide4.heroPrompt },
     ],
     cta: {
       [localeKey]: ctaText,
