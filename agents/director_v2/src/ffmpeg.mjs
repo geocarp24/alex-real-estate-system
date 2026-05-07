@@ -19,7 +19,7 @@ const TRANSITION_MAP = {
   none:      null,
 };
 
-export function buildVideoCommand({ scenes, musicPath, outputPath, width = 1080, height = 1920 }) {
+export function buildVideoCommand({ scenes, musicPath, outputPath, width = 1080, height = 1920, globalAvatar = null }) {
   const args = ['-y'];
 
   for (const s of scenes) {
@@ -31,6 +31,9 @@ export function buildVideoCommand({ scenes, musicPath, outputPath, width = 1080,
     }
   }
   args.push('-i', musicPath);
+  // Template #2 (PiP): single global HeyGen avatar input becomes the last input — its video is overlaid as circle, its audio drives the voice.
+  const avatarInputIdx = globalAvatar ? scenes.length + 1 : -1;
+  if (globalAvatar) args.push('-i', globalAvatar.videoPath);
 
   const filterParts = [];
   scenes.forEach((s, i) => {
