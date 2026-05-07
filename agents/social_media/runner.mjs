@@ -359,11 +359,20 @@ Return JSON only — both ES and EN versions in EVERY idea.`;
 }
 
 async function getRecentTitles() {
-  // Past 14 days of titles to avoid duplicates.
+  // Past 14 days of titles across all 3 new tables to avoid duplicates.
   const since = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
   const filter = encodeURIComponent(`IS_AFTER(CREATED_TIME(), '${since}')`);
-  const r = await smFetch(`filterByFormula=${filter}&maxRecords=20&fields%5B%5D=Título de Idea`).catch(() => ({}));
-  return (r.records || []).map((rec) => rec.fields?.["Título de Idea"]).filter(Boolean);
+  const titles = [];
+  for (const t of SM_TABLES) {
+    try {
+      const r = await smFetchIn(t.id, `filterByFormula=${filter}&maxRecords=20&fields%5B%5D=Title`);
+      for (const rec of (r.records || [])) {
+        const tt = rec.fields?.Title;
+        if (tt) titles.push(tt);
+      }
+    } catch {}
+  }
+  return [...new Set(titles)];
 }
 
 // ──────────────────────────────────────────────────────────────
