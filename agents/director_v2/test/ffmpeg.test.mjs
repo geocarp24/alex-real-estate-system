@@ -132,7 +132,7 @@ test('buildVideoCommand Template #2 PiP: circular avatar overlay + global avatar
   assert.ok(filter.includes('geq=r='), 'circular alpha mask via geq');
   assert.ok(filter.includes('hypot('), 'distance-from-center math');
   assert.ok(filter.includes('[avatar_circ]'), 'circular avatar label');
-  assert.ok(filter.includes('overlay=x=(W-w)/2'), 'centered horizontal overlay');
+  assert.ok(filter.includes('overlay=x=60:y=140'), 'top-left overlay (60px from left, 140px from top — clears IG/TikTok top chrome)');
   assert.ok(filter.includes('[vfinal]'), 'final video label after overlay');
   assert.ok(filter.includes('[vavatar]'), 'avatar audio label for sidechain voice path');
   assert.ok(filter.includes('sidechaincompress'), 'music still ducked under avatar voice');
