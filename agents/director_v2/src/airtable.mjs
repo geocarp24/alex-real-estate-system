@@ -4,10 +4,10 @@ let _fetch = globalThis.fetch;
 export function __setFetch(fn) { _fetch = fn; }
 
 const BASE = 'https://api.airtable.com/v0';
-// Filter requires [ORACULO_OK] gate prefix in Visual_Prompt (Jorge 2026-05-07).
-// Director v2 only renders Reels approved by El Oráculo. Note: parseVisualPrompt
-// strips the prefix before JSON.parse — see parseVisualPrompt for the strip logic.
-const PENDING_FILTER = "AND({Formato}='Reel',{Status}='Nueva',FIND('[ORACULO_OK',{Visual_Prompt})>0,{visual_url}='',{Error_Reason}='')";
+// New Reels schema (Jorge 2026-05-07): Reels live in their own table with
+// Slide_N fields. Director v2 only renders records that El Oráculo approved
+// (Status='Oraculo OK') and that don't yet have a visual.
+const PENDING_FILTER = "AND({Status}='Oraculo OK', OR({visual_url}='', NOT({visual_url})))";
 
 export async function listPending({ token, baseId, tableId, baseDelayMs = 1000 }) {
   const url = `${BASE}/${baseId}/${tableId}?filterByFormula=${encodeURIComponent(PENDING_FILTER)}&pageSize=10`;
