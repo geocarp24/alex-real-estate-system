@@ -24,6 +24,7 @@
  */
 
 import { parseArgs, loadTenant, telegramSend, genRunId, isoNow } from "../_shared/runner.mjs";
+import { SM_BASE_ID as SM_BASE, SM_TOKEN, SM_TABLES, STATUS } from "../_shared/sm_tables.mjs";
 import { readFile, writeFile, appendFile, mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -33,10 +34,6 @@ const ORACULO_DIR = join(__dirname, "..", "oraculo_inputs");
 const LESSONS_FILE = join(ORACULO_DIR, "sm_lessons.md");
 
 const VALID_MODES = ["batch", "one"];
-
-const SM_BASE  = process.env.AIRTABLE_SM_BASE_ID  || "appU9s3kGkVpdrJkw";
-const SM_TABLE = process.env.AIRTABLE_SM_TABLE_ID || "tblAj0Pkj1jW4p5Ld";
-const SM_TOKEN = process.env.AIRTABLE_SM_TOKEN    || "";
 
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || "";
 const SONNET_MODEL  = "claude-sonnet-4-6";
