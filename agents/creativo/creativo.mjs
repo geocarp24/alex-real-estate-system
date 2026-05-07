@@ -354,7 +354,7 @@ async function main() {
   if (args.dryRun) {
     console.log(`=== DRY RUN [creativo] ${records.length} ideas ===`);
     for (const r of records) {
-      console.log(`  ${r.id} | ${r.fields?.["Título de Idea"]}`);
+      console.log(`  ${r.id} | ${r.fields?.Title} | lang=${r.fields?.Language}`);
     }
     return;
   }
