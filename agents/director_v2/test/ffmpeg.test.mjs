@@ -142,10 +142,10 @@ test('buildVideoCommand Template #5 Editorial split: avatar bottom half + FLUX2 
     globalAvatar: { videoPath: '/tmp/global_avatar.mp4', durationSec: 10, shape: 'split' },
   });
   const filter = cmd.args[cmd.args.indexOf('-filter_complex') + 1];
-  assert.ok(filter.includes('scale=1080:960'), 'avatar scaled to 1080x960 (bottom half of 9:16)');
-  assert.ok(filter.includes('crop=1080:960'), 'crop to bottom-half dims');
+  assert.ok(filter.includes('scale=1080:576'), 'avatar scaled to 1080x576 (30% bottom strip of 9:16)');
+  assert.ok(filter.includes('crop=1080:576'), 'crop to bottom-30% dims');
   assert.ok(filter.includes('[avatar_split]'), 'split-shape avatar label');
-  assert.ok(filter.includes('overlay=x=0:y=960'), 'avatar positioned at y=960 (bottom half)');
+  assert.ok(filter.includes('overlay=x=0:y=1344'), 'avatar positioned at y=1344 (top of bottom 30%)');
   assert.ok(!filter.includes('[avatar_circ]'), 'split shape does NOT use circular mask');
   assert.ok(filter.includes('[vavatar]'), 'editorial uses avatar audio for voice');
 });
