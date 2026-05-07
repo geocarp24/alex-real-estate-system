@@ -69,19 +69,21 @@ export function buildVideoCommand({ scenes, musicPath, outputPath, width = 1080,
   }
   if (scenes.length === 1) lastLabel = 'v0';
 
-  // Template #2 PiP: circular alpha-masked avatar overlaid on the xfade chain at fixed position (bottom-center).
+  // Template #2 PiP: circular alpha-masked avatar overlaid on the xfade chain at fixed position (top-left).
   // geq filter computes alpha=255 inside the inscribed circle, 0 outside — clean circle without external mask asset.
   // Soft 4px edge feather smooths the circle boundary against the background imagery.
+  // Position: top-left corner — avoids covering karaoke captions (lower third) and IG/TikTok bottom UI chrome.
   let videoOutLabel = scenes.length === 1 ? 'v0' : 'vout';
   if (globalAvatar) {
-    const size   = globalAvatar.size   || 360;
-    const margin = globalAvatar.marginBottom || 280;       // clear of caption band (260px) + IG UI safe zone
-    const r      = size / 2;
+    const size       = globalAvatar.size       || 360;
+    const marginLeft = globalAvatar.marginLeft || 60;     // breathing room from left edge
+    const marginTop  = globalAvatar.marginTop  || 140;    // clears IG status bar / TikTok top chrome (~120px safe zone)
+    const r          = size / 2;
     filterParts.push(
       `[${avatarInputIdx}:v]scale=${size}:${size}:force_original_aspect_ratio=increase,crop=${size}:${size},format=rgba,geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':a='if(lt(hypot(X-${r},Y-${r}),${r-2}),255,if(lt(hypot(X-${r},Y-${r}),${r}),255*(${r}-hypot(X-${r},Y-${r}))/2,0))'[avatar_circ]`
     );
     filterParts.push(
-      `[${videoOutLabel}][avatar_circ]overlay=x=(W-w)/2:y=H-h-${margin}:format=auto:eof_action=pass[vfinal]`
+      `[${videoOutLabel}][avatar_circ]overlay=x=${marginLeft}:y=${marginTop}:format=auto:eof_action=pass[vfinal]`
     );
     videoOutLabel = 'vfinal';
   }
