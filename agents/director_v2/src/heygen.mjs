@@ -89,6 +89,7 @@ export async function generateAvatarVideo({
   resolution    = '1080p',                    // V3 only
   expressiveness,                             // V3 photo_avatar ONLY — leave undefined for digital_twin (HeyGen rejects)
   motionPrompt,                               // V3 photo_avatar ONLY — leave undefined for digital_twin (HeyGen rejects)
+  speed,                                      // V3 only; numeric; pass undefined to use HeyGen default (1.0)
   background    = { type: 'color', value: '#0d1117' },
   pollIntervalMs = 5000,
   pollTimeoutMs  = 600000,
