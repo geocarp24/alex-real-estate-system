@@ -37,7 +37,9 @@ const CLD_SECRET = process.env.CLOUDINARY_API_SECRET || "";
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || "";
 const SONNET_MODEL  = "claude-sonnet-4-6";
 
-const BATCH_MAX_PER_RUN = 3;
+// Override via CREATIVO_BATCH_MAX env (used for one-shot migrations).
+// Default 3 keeps normal scheduled runs lightweight.
+const BATCH_MAX_PER_RUN = Number(process.env.CREATIVO_BATCH_MAX || 3);
 
 // ─── Airtable SM helpers (separate base from CRM) ───
 async function smFetch(params = "") {
