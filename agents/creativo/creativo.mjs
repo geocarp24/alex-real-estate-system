@@ -19,8 +19,9 @@
  * after Replicate Nano Banana attempt failed Jorge's review.
  */
 import { parseArgs, loadTenant, telegramSend, genRunId, isoNow } from "../_shared/runner.mjs";
-import { THEMES, VALID_THEME_CODES, slideHook, slidePoint, slideCTA, buildCarousel } from "../creativo_runner/themes.mjs";
+import { THEMES, VALID_THEME_CODES, slideHook, slidePoint, slideCTA, slidePostEditorial, buildCarousel } from "../creativo_runner/themes.mjs";
 import { renderHtmlToPng, closeBrowser } from "./render.mjs";
+import { fetchPostBackground, deriveBgQuery } from "./backgrounds.mjs";
 import crypto from "node:crypto";
 
 const VALID_MODES = ["batch", "one"];
