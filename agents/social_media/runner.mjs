@@ -223,58 +223,7 @@ async function getRecentTitles() {
 }
 
 // ──────────────────────────────────────────────────────────────
-// Mode 2 — Process visuals (Blotato create + poll)
-// ──────────────────────────────────────────────────────────────
-async function processVisuals(cfg, runId) {
-  // Find ideas with Visual_Prompt set but no completed Blotato_Visual_ID
-  // (i.e., the field is empty OR ends with "|||pending").
-  const filter = encodeURIComponent(
-    `AND({Visual_Prompt}!='', OR({Blotato_Visual_ID}='', FIND('pending', {Blotato_Visual_ID})>0))`
-  );
-  const r = await smFetch(`filterByFormula=${filter}&maxRecords=${VISUALS_PER_RUN}`);
-  const ideas = r.records || [];
-  if (ideas.length === 0) return { processed: 0, reason: "no pending visuals" };
-
-  const results = [];
-  for (const idea of ideas) {
-    const f = idea.fields || {};
-    const prompt = f.Visual_Prompt || "";
-    const templateId = TEMPLATE_CARRUSEL;
-    if (!prompt || !BLOTATO_KEY) {
-      results.push({ id: idea.id, status: "skip", reason: "no prompt or no key" });
-      continue;
-    }
-
-    // Create visual.
-    const create = await blotatoCreateVisual(templateId, prompt, { logo: LOGO_URL });
-    const visualId = create.id;
-    if (!visualId) {
-      results.push({ id: idea.id, status: "create_failed", error: JSON.stringify(create).slice(0, 150) });
-      continue;
-    }
-
-    // Mark as pending in Airtable so future runs see it.
-    await smUpdate(idea.id, { "Blotato_Visual_ID": `${visualId}|||pending` }).catch(() => null);
-
-    // Poll until done.
-    const final = await blotatoPollVisual(visualId);
-    if (final.status === "done") {
-      const url = final.url || final.outputs?.[0]?.url || "";
-      await smUpdate(idea.id, {
-        "Blotato_Visual_ID": visualId,
-        "visual_url": url,
-        "Status": "Visual Listo",
-      });
-      results.push({ id: idea.id, status: "done", url });
-    } else {
-      results.push({ id: idea.id, status: final.status || "unknown", visual_id: visualId });
-    }
-  }
-  return { processed: results.filter((r) => r.status === "done").length, total: results.length, results };
-}
-
-// ──────────────────────────────────────────────────────────────
-// Mode 3 — Process posts (schedule on FB + IG)
+// Mode 2 — Process posts (Meta Graph API publish to FB + IG)
 // ──────────────────────────────────────────────────────────────
 function nextSlotISO(offsetHours = 0) {
   // Next Tue/Thu/Sat 10am-12pm CST (= 15-17 UTC summer / 16-18 winter).
