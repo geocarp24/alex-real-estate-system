@@ -179,10 +179,14 @@ function reviewIdeaDeterministic(record, format = "Post") {
 
   // 2. Brand voice (0–2)
   let brandVoice = "OK";
-  // Spanish accents present (ortografía perfecta)
-  const hasAccents = /[áéíóúñ]/i.test(captionEs);
-  if (hasAccents || captionEs.length < 30) score += 1;
-  else { brandVoice = "Spanish sin acentos"; notes.push("Caption ES debe tener acentos perfectos (á é í ó ú ñ)"); }
+  // Spanish accents present (ortografía perfecta) — only enforce on ES records.
+  if (r.lang === "ES") {
+    const hasAccents = /[áéíóúñ]/i.test(caption);
+    if (hasAccents || caption.length < 30) score += 1;
+    else { brandVoice = "Spanish sin acentos"; notes.push("Caption ES debe tener acentos perfectos (á é í ó ú ñ)"); }
+  } else {
+    score += 1; // EN records skip accent check
+  }
 
   // No investor jargon
   const hasJargon = /\broi\b|\bcap rate\b|off-market|wholesaler|deal flow|flip margin/i.test(allText);
