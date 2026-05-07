@@ -38,7 +38,9 @@ on:
     - cron:  "0 20 */3 * *"           # auditor:weekly
     # Social Media (full pipeline: ideas → visuals → publish to FB+IG)
     - cron:  "30 20 */3 * *"          # social_media:full_pipeline
-    # El Creativo — generates visuals via Replicate Nano Banana + Cloudinary
+    # El Oráculo — quality gate between SM Manager and Creativo (review + approve/reject)
+    - cron:  "45 20 */3 * *"          # oraculo:batch (runs 15min after social_media)
+    # El Creativo — generates visuals via Puppeteer + Pexels + FLUX (only Oraculo-approved)
     - cron:  "0 21 */3 * *"           # creativo:batch
     # El Director v2 — faceless reels (text + Pexels stock + ffmpeg + music) for Reel Formato
     - cron:  "30 21 */3 * *"          # director_v2:batch
