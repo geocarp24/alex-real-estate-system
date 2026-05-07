@@ -97,23 +97,20 @@ test('buildVideoCommand uses high-quality output codecs (CRF 20, AAC 192k @ 48kH
   assert.ok(s.includes('-ar 48000'), 'audio sample rate 48kHz');
 });
 
-test('buildVideoCommand burns in IG-style captions per scene when captionFile provided', () => {
+test('buildVideoCommand burns in karaoke ASS captions per scene via subtitles filter', () => {
   const captionScenes = [
-    { index: 1, duration: 2.5, videoPath: '/tmp/heygen.mp4', transitionOut: 'crossfade', captionFile: '/tmp/cap_1.txt' },
-    { index: 2, duration: 2.0, imagePaths: ['/tmp/s.jpg'], zoompan: { from: 1.0, to: 1.03 }, transitionOut: 'crossfade', kinetic: false, captionFile: '/tmp/cap_2.txt' },
+    { index: 1, duration: 2.5, videoPath: '/tmp/heygen.mp4', transitionOut: 'crossfade', captionFile: '/tmp/cap_1.ass' },
+    { index: 2, duration: 2.0, imagePaths: ['/tmp/s.jpg'], zoompan: { from: 1.0, to: 1.03 }, transitionOut: 'crossfade', kinetic: false, captionFile: '/tmp/cap_2.ass' },
   ];
   const cmd = buildVideoCommand({ scenes: captionScenes, musicPath: '/tmp/m.mp3', outputPath: '/tmp/out.mp4' });
   const filter = cmd.args[cmd.args.indexOf('-filter_complex') + 1];
-  assert.ok(filter.includes('drawtext='), 'must apply drawtext filter when captionFile present');
-  assert.ok(filter.includes('textfile=/tmp/cap_1.txt'), 'must reference scene 1 caption file');
-  assert.ok(filter.includes('textfile=/tmp/cap_2.txt'), 'must reference scene 2 caption file');
-  assert.ok(filter.includes('fontsize=62'), 'IG Reels caption sizing');
-  assert.ok(filter.includes('fontcolor=white'), 'white fill');
-  assert.ok(filter.includes('borderw=5'), 'heavy outline for legibility');
+  assert.ok(filter.includes('subtitles='), 'must apply libass subtitles filter when captionFile present');
+  assert.ok(filter.includes("'/tmp/cap_1.ass'") || filter.includes('/tmp/cap_1.ass'), 'must reference scene 1 ASS file');
+  assert.ok(filter.includes("'/tmp/cap_2.ass'") || filter.includes('/tmp/cap_2.ass'), 'must reference scene 2 ASS file');
 });
 
-test('buildVideoCommand omits drawtext when captionFile is null', () => {
+test('buildVideoCommand omits subtitles filter when captionFile is null', () => {
   const cmd = buildVideoCommand({ scenes: sampleScenes(), musicPath: '/tmp/m.mp3', outputPath: '/tmp/out.mp4' });
   const filter = cmd.args[cmd.args.indexOf('-filter_complex') + 1];
-  assert.ok(!filter.includes('drawtext='), 'no drawtext when scenes lack captionFile');
+  assert.ok(!filter.includes('subtitles='), 'no subtitles filter when scenes lack captionFile');
 });
