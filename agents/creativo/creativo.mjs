@@ -250,6 +250,10 @@ async function processOne(record) {
   const titulo = f["Título de Idea"] || record.id;
   const formato = f.Formato || "Post";
   const isCarrusel = String(formato).toLowerCase() === "carrusel";
+  const isPostOrStory = !isCarrusel && (
+    String(formato).toLowerCase() === "post" ||
+    String(formato).toLowerCase() === "story"
+  );
 
   if (!f.Visual_Prompt) {
     return { id: record.id, titulo, status: "skip", reason: "no Visual_Prompt" };
