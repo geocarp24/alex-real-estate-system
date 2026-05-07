@@ -17,7 +17,8 @@ import { generateAvatarVideo, downloadVideo, pickVoiceId, HeyGenFailedError } fr
 import { generateImage as toolkitGenerateImage, isAvailable as toolkitAvailable, VideoToolkitError } from './src/video_toolkit.mjs';
 import { pickMusic } from './src/audio.mjs';
 import { buildVideoCommand, runFfmpeg } from './src/ffmpeg.mjs';
-import { uploadVideo } from './src/cloudinary.mjs';
+import { uploadVideo, tryDownloadCachedVideo, buildVideoUrl } from './src/cloudinary.mjs';
+import { createHash } from 'node:crypto';
 import { sanitizeRecordId } from './src/util/sanitize.mjs';
 import { registerNanoBananaCall, enforcePerVideoBudget, shouldForcePexelsFallback } from './src/cost_control.mjs';
 
