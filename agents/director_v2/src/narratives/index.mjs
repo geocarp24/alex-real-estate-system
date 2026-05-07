@@ -13,8 +13,11 @@ export function validateSpec(spec) {
   if (!['A', 'B', 'C'].includes(spec.narrative)) throw new Error(`narrative must be A|B|C, got: ${spec.narrative}`);
   if (spec.aspect !== '9:16') throw new Error(`aspect must be 9:16 for Director, got: ${spec.aspect}`);
   if (!['T1', 'T2', 'T3', 'T4', 'T5'].includes(spec.theme)) throw new Error(`theme must be T1-T5, got: ${spec.theme}`);
+  // Duration is the SCENE BUDGET (sum of scene durations before xfade overlap).
+  // After 4 xfade × 0.6s overlap, output is ~2.4s shorter. Bumped max 15→18 so
+  // duration=17 yields ~15s output (Jorge 2026-05-07: 5 slides × 3s = 15s).
   const d = Number(spec.duration);
-  if (!Number.isFinite(d) || d < 7 || d > 15) throw new Error(`duration must be 7-15, got: ${spec.duration}`);
+  if (!Number.isFinite(d) || d < 7 || d > 18) throw new Error(`duration must be 7-18, got: ${spec.duration}`);
 
   if (spec.narrative === 'B') {
     if (!spec.hook?.en || !spec.hook?.es) throw new Error('narrative B requires hook.en and hook.es');
