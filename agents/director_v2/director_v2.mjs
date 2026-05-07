@@ -329,12 +329,71 @@ async function processRecord(record, { env, dryRun, stats }) {
   const spec = parseVisualPrompt(record.fields.Visual_Prompt);
   validateSpec(spec);
   const scenes = expandNarrative(spec);
-  applyTipoContenidoRouting(scenes, record.fields.Tipo, env, spec.locale || 'es');
+  const template = (spec.template || 'hybrid').toLowerCase();
+  applyTipoContenidoRouting(scenes, record.fields.Tipo, env, spec.locale || 'es', template);
   enforcePerVideoBudget(scenes);
   const forcePexels = await shouldForcePexelsFallback(scenes);
 
   const captionLocale = spec.locale === 'en' ? 'en' : 'es';
   const captionField  = captionLocale === 'en' ? 'captionEn' : 'captionEs';
+
+  // Template #2 PiP: build ONE continuous HeyGen avatar from the joined script (hook + points + cta).
+  // The avatar gets overlaid as a circle on every scene at compose time. Cached by combined-script hash.
+  let globalAvatar = null;
+  if (template === 'pip' && env.HEYGEN_API_KEY && env.HEYGEN_AVATAR_ID_JORGE && String(record.fields.Tipo || '').toLowerCase() === 'personal') {
+    const lang = captionLocale;
+    const continuousScript = [
+      lang === 'en' ? spec.hook?.en : spec.hook?.es,
+      ...scenes.filter(s => s.layoutType === 'point').map(s => lang === 'en' ? s.captionEn : s.captionEs),
+      lang === 'en' ? spec.cta?.en  : spec.cta?.es,
+    ].filter(Boolean).join('. ');
+
+    const voiceId = pickVoiceId(lang, env);
+    const avatarPath = join(recordTmp, `global_avatar.mp4`);
+    const heygenInputs = {
+      avatarId: env.HEYGEN_AVATAR_ID_JORGE,
+      voiceId,
+      script: continuousScript,
+      engine: 'v3',
+      resolution: '1080p',
+      background: { type: 'color', value: '#0d1117' },
+    };
+    const cacheKey = heygenCacheKey(heygenInputs);
+    const cachePublicId = `cache/${recordId}_global_${cacheKey}`;
+    const cacheFolder   = 'pinnacle-social-media/videos/directorv2';
+
+    if (env.CLOUDINARY_NAME) {
+      const cacheUrl = buildVideoUrl({ cloudName: env.CLOUDINARY_NAME, folder: cacheFolder, publicId: cachePublicId });
+      const cached = await tryDownloadCachedVideo(cacheUrl, avatarPath);
+      if (cached.hit) {
+        console.log(`[pip] global avatar cache HIT (${(cached.sizeBytes/1024).toFixed(0)}KB) — skipping HeyGen`);
+        globalAvatar = { videoPath: avatarPath };
+        stats.heygenCacheHits = (stats.heygenCacheHits || 0) + 1;
+      }
+    }
+    if (!globalAvatar) {
+      console.log(`[pip] generating global avatar via HeyGen V3, script="${continuousScript.slice(0,80)}..."`);
+      const { videoUrl, durationSec } = await generateAvatarVideo({
+        ...heygenInputs,
+        apiKey: env.HEYGEN_API_KEY,
+        aspectRatio: '9:16',
+        speed: 1.1,
+      });
+      await downloadVideo(videoUrl, avatarPath);
+      stats.heygenCalls = (stats.heygenCalls || 0) + 1;
+      stats.heygenSeconds = (stats.heygenSeconds || 0) + (durationSec || 0);
+      globalAvatar = { videoPath: avatarPath, durationSec };
+      if (env.CLOUDINARY_NAME && env.CLOUDINARY_API_KEY && env.CLOUDINARY_API_SECRET) {
+        try {
+          await uploadVideo(avatarPath, {
+            publicId: cachePublicId, folder: cacheFolder,
+            cloudName: env.CLOUDINARY_NAME, apiKey: env.CLOUDINARY_API_KEY, apiSecret: env.CLOUDINARY_API_SECRET,
+          });
+          console.log(`[pip] global avatar cached at ${cachePublicId}`);
+        } catch (e) { console.error(`[pip] avatar cache upload failed: ${e.message}`); }
+      }
+    }
+  }
   const frameOutputs = [];
   for (const scene of scenes) {
     const hero = await resolveHero(scene, {
