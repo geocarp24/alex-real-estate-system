@@ -68,7 +68,9 @@ on:
         default: ""
 
 concurrency:
-  group: agents-${{ github.event.schedule || 'manual' }}
+  # Agent-specific group so dispatches of different agents (oraculo / reescritor /
+  # creativo / director_v2) can run in parallel. Same agent dispatches still queue.
+  group: agents-${{ github.event.schedule || inputs.agent || 'manual' }}
   cancel-in-progress: false
 
 # Reescritor needs write access to push sm_lessons.md back to master.
