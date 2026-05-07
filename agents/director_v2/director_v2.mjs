@@ -474,7 +474,31 @@ async function processRecord(record, { env, dryRun, stats }) {
       console.error(`[pip] duration sync failed (${e.message}) — keeping default scene durations`);
     }
   }
+
+  // Template #4 Talking Head Solo: collapse to single fullscreen avatar scene + combined karaoke ASS (5 events at proper offsets).
+  // No FLUX2, no xfade chain — Jorge IS the visual. Skip per-scene resolveHero loop entirely.
   const frameOutputs = [];
+  if (template === 'talkinghead' && globalAvatar) {
+    let cum = 0;
+    const events = scenes.map(s => {
+      const text = (captionField === 'captionEn' ? s.captionEn : s.captionEs) || s.captionEs || s.captionEn || '';
+      const ev = { startSec: cum, durationSec: s.duration, text, scriptForKaraoke: s.heyScript || text };
+      cum += s.duration;
+      return ev;
+    });
+    const combinedAss = buildCombinedAssSubtitle(events);
+    const captionPath = join(recordTmp, 'caption_combined.ass');
+    if (combinedAss) await writeFile(captionPath, combinedAss, 'utf8');
+    frameOutputs.push({
+      index: 0,
+      duration: globalAvatar.durationSec || cum,
+      videoPath: globalAvatar.videoPath,
+      transitionOut: 'none',
+      captionFile: combinedAss ? captionPath : null,
+    });
+    console.log(`[talkinghead] single fullscreen scene, total=${(globalAvatar.durationSec || cum).toFixed(2)}s, ${events.length} caption events`);
+    globalAvatar = null;  // ffmpeg uses scene[0]:v + scene[0]:a directly — no overlay/dup-input needed.
+  } else {
   for (const scene of scenes) {
     const hero = await resolveHero(scene, {
       pexelsKey: env.PEXELS_API_KEY, geminiKey: env.GEMINI_API_KEY, replicateKey: env.REPLICATE_API_TOKEN,
