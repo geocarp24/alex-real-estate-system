@@ -242,6 +242,22 @@ jobs:
             --mode ${{ steps.job.outputs.mode }} \
             $EXTRA
 
+      # Persist sm_lessons.md after Reescritor runs — this is the learning-loop
+      # storage so SM Manager picks up new lessons on its next run.
+      - name: Commit + push sm_lessons.md (reescritor only)
+        if: steps.job.outputs.agent == 'reescritor' && success()
+        run: |
+          cd "${{ github.workspace }}"
+          if [ -n "$(git status --porcelain agents/oraculo_inputs/sm_lessons.md 2>/dev/null)" ]; then
+            git config user.name  "ALEX-Reescritor"
+            git config user.email "alex@pinnaclegroupwi.com"
+            git add agents/oraculo_inputs/sm_lessons.md
+            git commit -m "reescritor: append Oraculo lessons (run ${{ github.run_number }})"
+            git push origin HEAD:master || echo "::warning::push failed — lessons stay only on this runner"
+          else
+            echo "::notice::sm_lessons.md unchanged — nothing to commit"
+          fi
+
       - name: Upload run artifacts (if any)
         if: always()
         uses: actions/upload-artifact@v4
