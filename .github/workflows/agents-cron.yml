@@ -100,8 +100,10 @@ jobs:
             "0 20 */3 * *")      agent=auditor;      mode=weekly ;;
             "30 20 */3 * *")     agent=social_media; mode=full_pipeline ;;
             "45 20 */3 * *")     agent=oraculo;      mode=batch ;;
-            "0 21 */3 * *")      agent=creativo;     mode=batch ;;
-            "30 21 */3 * *")     agent=director_v2;  mode=batch ;;
+            "0 21 */3 * *")      agent=reescritor;   mode=batch ;;
+            "15 21 */3 * *")     agent=oraculo;      mode=batch ;;
+            "30 21 */3 * *")     agent=creativo;     mode=batch ;;
+            "0 22 */3 * *")      agent=director_v2;  mode=batch ;;
             *)                   agent="${{ inputs.agent || 'mercader' }}"; mode="${{ inputs.mode || 'quick_health' }}" ;;
           esac
           echo "agent=$agent" >> $GITHUB_OUTPUT
