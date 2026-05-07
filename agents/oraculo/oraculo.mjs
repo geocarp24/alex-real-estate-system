@@ -226,15 +226,17 @@ function reviewIdeaDeterministic(record, format = "Post") {
     notes.push("Hook muy largo (>120 chars) — recortar");
   }
 
-  // 5. CTA presence (0–1.5)
-  const phoneInCta = /920.*777.*9886|9207779886|\(920\) 777/.test(captionEs + " " + captionEn + " " + cta);
-  const webInCta   = /pinnaclegroupwi\.com/i.test(captionEs + " " + captionEn + " " + cta);
+  // 5. CTA presence (0–1.5) — phone + website required in caption or CTA
+  const ctaPool = caption + " " + cta;
+  const phoneInCta = /920.*777.*9886|9207779886|\(920\) 777/.test(ctaPool);
+  const webInCta   = /pinnaclegroupwi\.com/i.test(ctaPool);
   if (phoneInCta) score += 0.75; else notes.push("Falta teléfono (920) 777-9886 en CTA");
   if (webInCta)   score += 0.75; else notes.push("Falta pinnaclegroupwi.com en CTA");
 
-  // 6. Visual_Prompt clarity (0–1)
-  if (/T[1-5]\b/i.test(visualPrompt)) score += 1;
-  else notes.push("Visual_Prompt debe especificar TEMA T1-T5");
+  // 6. Theme code present (0–1) — Theme_Code is now an explicit Airtable field.
+  const themeCode = (record.fields || {}).Theme_Code;
+  if (themeCode && /^T[1-5]$/.test(themeCode)) score += 1;
+  else notes.push("Theme_Code debe ser T1-T5");
 
   // Clamp to 0–10 and round
   score = Math.max(0, Math.min(10, Math.round(score * 10) / 10));
