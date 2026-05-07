@@ -343,9 +343,9 @@ function applyTipoContenidoRouting(scenes, tipo, env, locale = 'es', template = 
   const lang = locale === 'en' ? 'en' : 'es';
   if (!t) return;
   if (t === 'personal' && env.HEYGEN_API_KEY && env.HEYGEN_AVATAR_ID_JORGE) {
-    if (template === 'pip' || template === 'voiceover') {
-      // Template #2 PiP / Template #3 Voiceover: ALL scenes show FLUX2 backgrounds. One global HeyGen avatar
-      // generated with full script — PiP overlays the circle, voiceover uses audio-only (no visual avatar).
+    if (template === 'pip' || template === 'voiceover' || template === 'editorial') {
+      // Template #2 PiP / #3 Voiceover / #5 Magazine Editorial: ALL scenes show FLUX2 backgrounds. One global HeyGen avatar
+      // generated with full script — PiP overlays a circle, voiceover uses audio-only, editorial splits the screen 50/50.
       for (const s of scenes) {
         if (env.MODAL_FLUX2_ENDPOINT_URL) s.heroSource = 'flux2';
       }
