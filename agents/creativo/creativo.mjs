@@ -244,110 +244,75 @@ async function cloudinaryUploadBuffer(buffer, publicIdHint = "") {
   return j.secure_url;
 }
 
-// ─── Process one idea ───
+// ─── Process one Post record (new schema 2026-05-07) ───
+// Posts table: single language per record (Language=ES|EN), single editorial frame.
+// Fields used: Title, Language, Hook, Caption, CTA, Theme_Code, Visual_Concept,
+//              Tipo, Segment_Anchor, Background_Source.
 async function processOne(record) {
   const f = record.fields || {};
-  const titulo = f["Título de Idea"] || record.id;
-  const formato = f.Formato || "Post";
-  const isCarrusel = String(formato).toLowerCase() === "carrusel";
-  const isPostOrStory = !isCarrusel && (
-    String(formato).toLowerCase() === "post" ||
-    String(formato).toLowerCase() === "story"
-  );
+  const titulo = f.Title || record.id;
+  const lang = String(f.Language || "ES").toUpperCase();
+  const themeCode = String(f.Theme_Code || "T1").toUpperCase();
+  const theme = VALID_THEME_CODES.includes(themeCode) ? themeCode : "T1";
 
-  if (!f.Visual_Prompt) {
-    return { id: record.id, titulo, status: "skip", reason: "no Visual_Prompt" };
+  if (!f.Hook && !f.Caption) {
+    return { id: record.id, titulo, status: "skip", reason: "no Hook/Caption" };
   }
 
-  // 1. Build spec — try Sonnet for quality, fall back to deterministic.
-  let spec;
-  if (ANTHROPIC_KEY) {
-    try { spec = await buildSpecWithSonnet(f); }
-    catch (e) {
-      console.error(`[creativo] Sonnet failed (${e.message.slice(0, 80)}), falling back to deterministic`);
-      spec = buildSpecDeterministic(f);
-    }
-  } else {
-    spec = buildSpecDeterministic(f);
-  }
-
-  // 2. themes.mjs builds BODY HTML for each slide.
-  // Post/Story → single editorial frame with Pexels photo background (NEW 2026-05-07).
-  // Carrusel → hook + N points + CTA stack (existing flow).
-  // Anything else → legacy 2-slide hook+CTA fallback.
-  let slidesHtml;
+  // 1. Resolve background — Pexels by default, FLUX for conceptual queries.
   let bgInfo = null;
+  let slideHtml;
   try {
-    if (isCarrusel) {
-      slidesHtml = buildCarousel(spec); // hook + N points + CTA
-    } else if (isPostOrStory) {
-      // Resolve a portrait background from Pexels (with deterministic seed for
-      // idempotency — same record always picks same photo across reruns).
-      const bgQuery = deriveBgQuery({
-        visualPrompt: f.Visual_Prompt,
-        tipo: f.Tipo,
-        titulo,
-        captionEn: f["🇺🇸 Caption EN"],
-      });
-      bgInfo = await fetchPostBackground(bgQuery, { seed: record.id });
-      slidesHtml = [
-        slidePostEditorial(spec.theme, {
-          hookEn:       spec.hook?.hookEn,
-          hookEs:       spec.hook?.hookEs,
-          ctaEs:        spec.cta?.ctaEs,
-          bgUrl:        bgInfo.bgUrl,
-          photographer: bgInfo.photographer,
-          badge:        spec.hook?.badge || "WI Cash Buyer",
-        }),
-      ];
-    } else {
-      slidesHtml = [
-        slideHook(spec.theme, spec.hook || {}),
-        slideCTA(spec.theme, spec.cta || {}),
-      ];
-    }
+    const bgQuery = deriveBgQuery({
+      visualPrompt: f.Visual_Concept,
+      tipo:         f.Tipo,
+      titulo,
+      captionEn:    lang === "EN" ? f.Caption : "",
+      segment:      f.Segment_Anchor,
+    });
+    bgInfo = await fetchPostBackground(bgQuery, { seed: record.id });
+
+    // For ES record, hookEs gets the content; for EN, hookEn does.
+    const hookText = f.Hook || titulo;
+    const ctaText  = f.CTA  || "";
+    slideHtml = slidePostEditorial(theme, {
+      hookEn:       lang === "EN" ? hookText : "",
+      hookEs:       lang === "ES" ? hookText : "",
+      ctaEs:        ctaText,
+      bgUrl:        bgInfo.bgUrl,
+      photographer: bgInfo.photographer,
+      badge:        f.Segment_Anchor === "Pre-Foreclosure" ? (lang === "EN" ? "WI Foreclosure Help" : "Ayuda Foreclosure WI")
+                  : f.Segment_Anchor === "Inherited"        ? (lang === "EN" ? "WI Inherited Property" : "Propiedad Heredada WI")
+                  : (lang === "EN" ? "WI Cash Buyer" : "Compradores Efectivo WI"),
+    });
   } catch (e) {
     return { id: record.id, titulo, status: "build_failed", error: String(e.message).slice(0, 150) };
   }
 
-  // 3. Render each slide → PNG Buffer.
-  const buffers = [];
-  for (const html of slidesHtml) {
-    try {
-      buffers.push(await renderHtmlToPng(html, { width: 1080, height: 1350 }));
-    } catch (e) {
-      return { id: record.id, titulo, status: "render_failed", error: String(e.message).slice(0, 150) };
-    }
+  // 2. Render PNG.
+  let buffer;
+  try {
+    buffer = await renderHtmlToPng(slideHtml, { width: 1080, height: 1350 });
+  } catch (e) {
+    return { id: record.id, titulo, status: "render_failed", error: String(e.message).slice(0, 150) };
   }
 
-  // 4. Upload each PNG → Cloudinary.
-  const urls = [];
-  for (const buf of buffers) {
-    try {
-      urls.push(await cloudinaryUploadBuffer(buf));
-    } catch (e) {
-      return { id: record.id, titulo, status: "upload_failed", error: String(e.message).slice(0, 150) };
-    }
+  // 3. Upload to Cloudinary.
+  let coverUrl;
+  try {
+    coverUrl = await cloudinaryUploadBuffer(buffer);
+  } catch (e) {
+    return { id: record.id, titulo, status: "upload_failed", error: String(e.message).slice(0, 150) };
   }
 
-  // 5. Update Airtable: cover URL + all slide URLs joined.
-  // Field "Blotato_Visual_ID" holds the carousel slide URLs (legacy field name from Blotato era — Jorge will rename in Airtable UI to Carousel_URLs).
-  // Format: "puppeteer:N_slides|url1|url2|..." — parsed by social_media/runner.mjs::parseCarouselSlides().
-  const coverUrl = urls[0];
-  const allUrls  = urls.join("|");
+  // 4. Update Airtable with new schema.
   await smUpdate(record.id, {
-    visual_url: coverUrl,
-    Blotato_Visual_ID: `puppeteer:${urls.length}_slides|${allUrls.slice(0, 800)}`,
-    Status: "Visual Listo",
+    visual_url:        coverUrl,
+    Status:            STATUS.VISUAL_LISTO,
+    Background_Source: bgInfo.source === "flux" ? "FLUX-AI" : "Pexels",
   });
 
-  return {
-    id: record.id, titulo, status: "done",
-    theme: spec.theme,
-    slides: urls.length,
-    cover: coverUrl,
-    all: urls,
-  };
+  return { id: record.id, titulo, lang, status: "done", theme, cover: coverUrl, bg_source: bgInfo.source };
 }
 
 // ─── Main ───
