@@ -270,24 +270,26 @@ async function processRecord(record, { env, dryRun, stats }) {
   for (const scene of scenes) {
     const hero = await resolveHero(scene, {
       pexelsKey: env.PEXELS_API_KEY, geminiKey: env.GEMINI_API_KEY, replicateKey: env.REPLICATE_API_TOKEN,
-      heygenEnv: env, tmpDir: recordTmp, stats, forcePexels,
+      heygenEnv: env, tmpDir: recordTmp, stats, forcePexels, recordId,
     });
 
-    // Write caption text to a per-scene file (textfile= avoids ffmpeg drawtext escape hell with quotes/colons).
-    const captionText = wrapCaption(scene[captionField] || scene.captionEs || scene.captionEn || '');
-    const captionFile = join(recordTmp, `caption_${scene.index}.txt`);
-    if (captionText) await writeFile(captionFile, captionText, 'utf8');
+    const isHeyGen = hero.isVideo;
+    const captionText = scene[captionField] || scene.captionEs || scene.captionEn || '';
+    // Karaoke ASS for HeyGen scenes (Jorge speaks → highlight word-by-word). Plain ASS for FLUX2 scenes (no voice).
+    // ASS via libass `subtitles` filter renders TikTok/IG-style highlighted captions natively — no per-word frame rendering.
+    const sceneDur = isHeyGen ? (hero.durationSec || scene.duration) : scene.duration;
+    const assBody  = buildAssSubtitle({ text: captionText, durationSec: sceneDur, karaoke: isHeyGen, scriptForKaraoke: scene.heyScript || captionText });
+    const assFile  = join(recordTmp, `caption_${scene.index}.ass`);
+    if (assBody) await writeFile(assFile, assBody, 'utf8');
 
-    if (hero.isVideo) {
-      // HeyGen avatar clip: ffmpeg consumes the MP4 directly. Skip HTML overlay so the avatar's mouth and audio are not occluded.
-      const duration = hero.durationSec || scene.duration;
-      frameOutputs.push({ index: scene.index, duration, videoPath: hero.path, transitionOut: scene.transitionOut, captionFile: captionText ? captionFile : null });
+    if (isHeyGen) {
+      frameOutputs.push({ index: scene.index, duration: sceneDur, videoPath: hero.path, transitionOut: scene.transitionOut, captionFile: assBody ? assFile : null });
       continue;
     }
     const body = buildSceneHtml(scene, hero.path, spec.theme, spec.aspect);
     const html = wrapSlideHtml(body, spec.theme, spec.aspect);
     const files = await renderScene(html, scene, recordTmp);
-    frameOutputs.push({ index: scene.index, duration: scene.duration, imagePaths: files, zoompan: scene.zoompan, transitionOut: scene.transitionOut, kinetic: scene.kinetic, captionFile: captionText ? captionFile : null });
+    frameOutputs.push({ index: scene.index, duration: scene.duration, imagePaths: files, zoompan: scene.zoompan, transitionOut: scene.transitionOut, kinetic: scene.kinetic, captionFile: assBody ? assFile : null });
   }
 
   const musicPath = pickMusic(spec.mood || 'upbeat', scenes.reduce((t, s) => t + s.duration, 0));
