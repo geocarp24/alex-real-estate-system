@@ -46,6 +46,48 @@ Si ninguno de la tabla aplica pero hay un skill cuya descripción matchea la tar
 ### 1c. SAAS-READY / MULTI-TENANT-FIRST — PRINCIPIO ARQUITECTURAL (orden directa de Jorge 2026-04-23)
 Todo lo que construyamos es producto SaaS vendible. Pinnacle es el tenant cero, no el único. Reglas: (1) nada hardcodeado — todo config por-tenant; (2) tenant isolation (datos, creds, branding separados); (3) separación core engine / tenant config / deployment adapter; (4) onboarding documentado; (5) billing hooks upfront (Stripe + usage metrics); (6) validar licencias de deps — AGPL-3.0 requiere tratamiento especial, MIT/Apache/BSD safe; (7) documentation-first por componente; (8) naming genérico (`{TENANT_NAME}`, no "Pinnacle"); (9) security defaults día 1; (10) mobile-first se complementa. Detalle completo en `memoria_ALex.md` regla R8.
 
+### 1h. SOCIAL MEDIA — 3 TABLAS + BILINGÜE SEPARADO (orden directa Jorge 2026-05-07)
+**REGLA NO NEGOCIABLE — Arquitectura SM Manager production:**
+
+**3 tablas Airtable separadas** (base `appU9s3kGkVpdrJkw`):
+- `Posts` (`tblE3lz6XNcBNgpg5`) — single-frame IG/FB feed posts
+- `Reels` (`tblhbg4JSm2iND3Cs`) — vertical 8-10s, 5 slides × 2s explícitos (`Slide_1_Hook`, `Slide_2_Text`+`Slide_2_Visual`, `Slide_3_*`, `Slide_4_*`, `Slide_5_CTA`)
+- `Videos` (`tblbjYosR1tpnjRV0`) — long-form 30-60s con `Hook` + `Main_Message` + `Script_Outline` + timecodes
+
+**Bilingüe = records separados**: cada idea genera **2 records** (1 ES + 1 EN) linked por `Source_Idea_ID` UUID. NO mezclar ES + EN en el mismo record/render. Cada record es mono-idioma.
+
+**Status enum** (single select, no más prefix-hack):
+`Idea` → `Oraculo OK` → `Visual Listo` → `Programado` → `Publicado` (+ `Rechazada` / `Error` side-states)
+
+**Flow obligatorio** (sin saltos, sin bypass — Jorge directo: "verificar primero, render último"):
+```
+SM Manager → Status=Idea (lee sm_lessons.md, escribe a tabla por format)
+    ↓
+Oráculo gate → si OK: Status=Oraculo OK | si REJECT: Status=Rechazada + Error_Reason
+    ↓ (loop hasta aprobar)
+Reescritor (mono-language) → reescribe + appendea lesson a sm_lessons.md → Status=Idea
+    ↓
+Oráculo round 2 → re-review (SM Manager ya aprendió)
+    ↓ (si Oraculo OK)
+Creativo (Posts) / Director v2 (Reels) → render mono-language → Status=Visual Listo
+    ↓
+Publisher (con safety.mjs gate) → FB+IG via Meta Graph API → Status=Programado/Publicado
+```
+
+**Filtros Airtable enforce gate** (cada agent solo lee records con su Status correcto):
+- Oráculo: `{Status}='Idea'`
+- Reescritor: `{Status}='Rechazada'`
+- Creativo / Director v2: `{Status}='Oraculo OK' AND visual_url empty`
+- Publisher: `{Status}='Visual Listo'`
+
+**Razón**: $0 desperdicio en Pexels/FLUX/Cloudinary/HeyGen — solo se renderiza lo que pasa el gate Oráculo.
+
+**Files críticos**: `agents/_shared/sm_tables.mjs` (config central + STATUS enum), `agents/oraculo/oraculo.mjs`, `agents/reescritor/reescritor.mjs`, `agents/creativo/creativo.mjs`, `agents/director_v2/`, `agents/social_media/social_media.mjs`, `.github/workflows/agents-cron.yml`.
+
+**Cron schedule**: SM Manager (20:30) → Oráculo (20:45) → Reescritor (21:00) → Oráculo round 2 (21:15) → Creativo (21:30) → Director v2 (22:00).
+
+**Anti-regresión**: cualquier nuevo agent SM debe importar de `_shared/sm_tables.mjs` (no hardcodear table IDs). Cualquier render mono-idioma — NUNCA mezclar ES + EN en el mismo PNG/MP4.
+
 ### 1g. VIDEO LENGTH — MAX 15s, SERIES POR PARTES SI NECESITA MÁS (orden directa Jorge 2026-05-07)
 **REGLA NO NEGOCIABLE — Todo Reel/Video producido por Director v2 debe durar 7-15 segundos máximo.** Razón: rendimiento óptimo en IG/FB (retention rate, completion rate, algorithm boost para shorts <15s).
 
