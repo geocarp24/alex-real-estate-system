@@ -272,18 +272,39 @@ async function processOne(record) {
     });
     bgInfo = await fetchPostBackground(bgQuery, { seed: record.id });
 
-    // For ES record, hookEs gets the content; for EN, hookEn does.
-    const hookText = f.Hook || titulo;
-    const ctaText  = f.CTA  || "";
+    // Mono-language render (Jorge 2026-05-07): record's language only.
+    // Hook = the record's Hook field. Subtitle = first sentence of Caption
+    // for editorial supporting line. CTA = the CTA field.
+    const hookText = (f.Hook || titulo).toString().slice(0, 110);
+    const captionFirstSentence = String(f.Caption || "")
+      .split(/(?<=[.!?¿])\s+/)[0]
+      ?.replace(/^[¡¿]/, "")
+      ?.trim()
+      ?.slice(0, 110);
+    // Skip subtitle if it duplicates the hook content.
+    const subtitleText = (captionFirstSentence && captionFirstSentence.toLowerCase() !== hookText.toLowerCase())
+      ? captionFirstSentence : "";
+    const ctaText = String(f.CTA || "").trim();
+
+    const badgeBySegment = {
+      "Pre-Foreclosure": lang === "EN" ? "WI Foreclosure Help" : "Ayuda Foreclosure WI",
+      "Inherited":       lang === "EN" ? "WI Inherited Property" : "Propiedad Heredada WI",
+      "Divorce":         lang === "EN" ? "WI Divorce Sale"   : "Venta por Divorcio WI",
+      "Back-Taxes":      lang === "EN" ? "WI Tax Lien Help"  : "Ayuda Impuestos WI",
+      "Tired-Landlord":  lang === "EN" ? "WI Landlord Exit"  : "Salida Landlord WI",
+      "Relocation":      lang === "EN" ? "WI Quick Move"     : "Mudanza Rápida WI",
+    };
+    const badge = badgeBySegment[f.Segment_Anchor]
+      || (lang === "EN" ? "WI Cash Buyer" : "Compradores Efectivo WI");
+
     slideHtml = slidePostEditorial(theme, {
-      hookEn:       lang === "EN" ? hookText : "",
-      hookEs:       lang === "ES" ? hookText : "",
-      ctaEs:        ctaText,
+      hook:         hookText,
+      subtitle:     subtitleText,
+      cta:          ctaText,
+      lang,
       bgUrl:        bgInfo.bgUrl,
       photographer: bgInfo.photographer,
-      badge:        f.Segment_Anchor === "Pre-Foreclosure" ? (lang === "EN" ? "WI Foreclosure Help" : "Ayuda Foreclosure WI")
-                  : f.Segment_Anchor === "Inherited"        ? (lang === "EN" ? "WI Inherited Property" : "Propiedad Heredada WI")
-                  : (lang === "EN" ? "WI Cash Buyer" : "Compradores Efectivo WI"),
+      badge,
     });
   } catch (e) {
     return { id: record.id, titulo, status: "build_failed", error: String(e.message).slice(0, 150) };
