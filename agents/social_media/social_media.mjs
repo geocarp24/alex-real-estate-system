@@ -56,7 +56,8 @@ const FIELD_PUBLISHED_POST_IDS = "Blotato_Post_IDs";
 
 // ── Caps ──
 const IDEAS_PER_RUN  = 3;
-const POSTS_PER_RUN  = 5;
+// Override via POSTS_PER_RUN env (used for limited test runs).
+const POSTS_PER_RUN  = Number(process.env.POSTS_PER_RUN || 5);
 const POLL_MAX_SEC   = 300;
 const POLL_INTERVAL  = 15;
 
