@@ -349,7 +349,7 @@ async function processOne(record, ctx) {
       // Clear any previous Error_Reason if the record was previously rejected.
       Error_Reason: "",
     });
-    return { id: record.id, titulo, status: "approved", score, notes: review.improvement_notes };
+    return { id: record.id, titulo, status: "approved", score, source: reviewSource, notes: review.improvement_notes };
   }
 
   // Rejected: write notes to Error_Reason — SM Manager (or Jorge) reviews.
