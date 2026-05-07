@@ -88,21 +88,26 @@ Publisher (con safety.mjs gate) → FB+IG via Meta Graph API → Status=Programa
 
 **Anti-regresión**: cualquier nuevo agent SM debe importar de `_shared/sm_tables.mjs` (no hardcodear table IDs). Cualquier render mono-idioma — NUNCA mezclar ES + EN en el mismo PNG/MP4.
 
-### 1g. VIDEO LENGTH — MAX 15s, SERIES POR PARTES SI NECESITA MÁS (orden directa Jorge 2026-05-07)
-**REGLA NO NEGOCIABLE — Todo Reel/Video producido por Director v2 debe durar 7-15 segundos máximo.** Razón: rendimiento óptimo en IG/FB (retention rate, completion rate, algorithm boost para shorts <15s).
+### 1g. VIDEO LENGTH — TARGET 15s OUTPUT (5 slides × 3s), SERIES POR PARTES SI NECESITA MÁS (Jorge 2026-05-07)
+**REGLA NO NEGOCIABLE — Todo Reel producido por Director v2 debe tener 5 slides × 3s = ~15s output.** Razón: rendimiento óptimo en IG/FB + cada slide tiene tiempo suficiente para que el viewer lea/absorba (3s mínimo de visibilidad).
+
+**Spec mecánico**:
+- `narrative_B.mjs` BASE = `[3, 3, 3, 3, 3]` (equal per-slide budget)
+- `buildSpecFromReelRecord` → `duration: 17` (scene budget; ffmpeg xfade overlap 4×0.6s = 2.4s shared → output ≈ 14.6s)
+- `validateSpec` permite `duration` 7-18 (max bumped from 15 → 18 para acomodar el budget que produce ~15s output)
 
 Si un concepto genuinamente necesita más story:
-- **NO** generar un solo video largo (>15s)
+- **NO** generar un solo Reel >15s
 - **SÍ** dividir en serie de partes:
   - Title: "Topic — Parte 1", "Topic — Parte 2", "Topic — Parte 3"
-  - Cada parte = 1 record Reel separado en Airtable, cada uno con su propio Visual_Prompt JSON narrative B duration 7-15
-  - SM Manager debe planear el series upfront y emitir N records linkeados por nombre
+  - Cada parte = 1 record Reel separado en Airtable
+  - SM Manager debe planear el series upfront y emitir N records linkeados por `Source_Idea_ID`
 
 **Anti-regresión** (aplicado en código):
-- `agents/director_v2/src/narratives/index.mjs` — `validateSpec` rechaza `duration < 7 || > 15` con error explícito
-- `agents/reescritor/reescritor.mjs` — system prompt instruye "NEVER duration=30 or 20, compress or split into series"
-- `agents/social_media/runner.mjs` — system prompt incluye VIDEO LENGTH RULE para generación inicial
-- Esta regla está documentada en `memoria_ALex.md` y `agents/oraculo_inputs/sm_lessons.md`
+- `agents/director_v2/src/narratives/index.mjs::validateSpec` cap duration 7-18
+- `agents/director_v2/src/narratives/narrative_B.mjs` BASE [3,3,3,3,3]
+- `agents/director_v2/src/airtable.mjs::buildSpecFromReelRecord` duration=17
+- Esta regla está en `memoria_ALex.md` y `agents/oraculo_inputs/sm_lessons.md`
 
 ### 1d. CREATIVO/DIRECTOR — PUPPETEER + HTML/CSS, NO AI IMAGEN PARA TEXTO (orden directa Jorge 2026-04-29)
 **REGLA NO NEGOCIABLE — NUNCA proponer AI imagen models (Replicate Nano Banana, Imagen-4, Flux, DALL-E, etc.) para generar visuales que contengan TEXTO en español.** Razón: todos alucinan ortografía y branding inconsistente. Esta decisión YA se tomó antes — repetirla es regresión.
