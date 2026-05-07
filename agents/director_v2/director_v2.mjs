@@ -322,7 +322,7 @@ async function processRecord(record, { env, dryRun, stats }) {
   const spec = parseVisualPrompt(record.fields.Visual_Prompt);
   validateSpec(spec);
   const scenes = expandNarrative(spec);
-  applyTipoContenidoRouting(scenes, record.fields.Tipo, env);
+  applyTipoContenidoRouting(scenes, record.fields.Tipo, env, spec.locale || 'es');
   enforcePerVideoBudget(scenes);
   const forcePexels = await shouldForcePexelsFallback(scenes);
 
