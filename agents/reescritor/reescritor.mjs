@@ -73,75 +73,121 @@ async function smGet(tableId, recordId) {
 }
 
 // ─── Sonnet rewrite + lesson extraction ───
-async function rewriteRecord(record, persona) {
+// New 3-table architecture (2026-05-07): each record is single-language.
+// rewriteRecord receives format ("Post" | "Reel" | "Video") and the record's
+// language so the rewrite stays in the same language only.
+async function rewriteRecord(record, persona, format) {
   const f = record.fields || {};
-  const titulo     = f["Título de Idea"] || "";
-  const hook       = f.Hook || "";
-  const captionEs  = f["🇲🇽 Caption ES"] || "";
-  const captionEn  = f["🇺🇸 Caption EN"] || "";
-  const cta        = f.CTA || "";
-  const formato    = f.Formato || "";
-  const tipo       = f.Tipo || "";
-  const visualPrompt = f.Visual_Prompt || "";
-  const errorReason  = f.Error_Reason || "";
+  const titulo = f.Title || "";
+  const lang   = String(f.Language || "ES").toUpperCase();
+  const tipo   = f.Tipo || "";
+  const errorReason = f.Error_Reason || "";
 
-  const isReel = String(formato).toLowerCase() === "reel";
+  // Pull format-specific source content.
+  let hook, caption, cta, visualHints;
+  if (format === "Reel") {
+    hook = f.Slide_1_Hook || "";
+    caption = [f.Slide_2_Text, f.Slide_3_Text, f.Slide_4_Text].filter(Boolean).join(" / ");
+    cta = f.Slide_5_CTA || "";
+    visualHints = [f.Slide_2_Visual, f.Slide_3_Visual, f.Slide_4_Visual].filter(Boolean).join(" | ");
+  } else if (format === "Video") {
+    hook = f.Hook || "";
+    caption = [f.Main_Message, f.Script_Outline].filter(Boolean).join(" / ");
+    cta = f.CTA || "";
+    visualHints = f.Script_Outline || "";
+  } else { // Post
+    hook = f.Hook || "";
+    caption = f.Caption || "";
+    cta = f.CTA || "";
+    visualHints = f.Visual_Concept || "";
+  }
 
-  const systemPrompt = `You are El Reescritor — Pinnacle Holdings' content rewriter. Your job: take an idea El Oráculo rejected and rewrite it to pass the gate while preserving the original concept.
+  const langLabel = lang === "EN" ? "English" : "Spanish";
+
+  // Build per-format JSON shape spec for the rewrite output.
+  let outputShape;
+  if (format === "Reel") {
+    outputShape = `{
+  "title": "${langLabel} title (max 80 chars)",
+  "hook": "${langLabel} hook for Slide_1 (5-7 words, opens curiosity to a SPECIFIC distressed segment)",
+  "slide_2_text": "${langLabel} 8-14 words — point 1, derived from original message",
+  "slide_2_visual": "Pexels search query 4-6 words | flux: cinematic prompt 12-20 words",
+  "slide_3_text": "${langLabel} 8-14 words — point 2",
+  "slide_3_visual": "same format as slide_2_visual",
+  "slide_4_text": "${langLabel} 8-14 words — point 3",
+  "slide_4_visual": "same format",
+  "slide_5_cta": "${langLabel} closing CTA 5-7 words including phone (920) 777-9886",
+  "caption": "Full IG/FB caption 200-400 chars in ${langLabel}, ends with phone + pinnaclegroupwi.com",
+  "theme_code": "T1|T2|T3|T4|T5",
+  "template": "hybrid|pip|voiceover|editorial (use hybrid when Tipo=Personal — never talkinghead)",
+  "lesson": { "rejected_pattern":"...", "oraculo_critique_summary":"...", "rewrite_pattern":"...", "segment_anchor":"Pre-Foreclosure|Inherited|Divorce|Back-Taxes|Tired-Landlord|Relocation" }
+}`;
+  } else if (format === "Video") {
+    outputShape = `{
+  "title": "${langLabel} title",
+  "hook": "${langLabel} 3-second opening hook",
+  "main_message": "${langLabel} core narrative 1-2 paragraphs",
+  "script_outline": "${langLabel} segmented script with timecodes",
+  "cta": "${langLabel} CTA with phone + website",
+  "caption": "Full caption 200-400 chars in ${langLabel}",
+  "theme_code": "T1|T2|T3|T4|T5",
+  "template": "hybrid|pip|voiceover|editorial",
+  "lesson": { ... same shape as Reel }
+}`;
+  } else { // Post
+    outputShape = `{
+  "title": "${langLabel} title (max 80 chars)",
+  "hook": "${langLabel} 1-line hook (max 100 chars, opens curiosity to a SPECIFIC distressed segment)",
+  "caption": "${langLabel} 200-400 chars, ends with phone (920) 777-9886 + pinnaclegroupwi.com",
+  "cta": "Single-line ${langLabel} CTA (max 100 chars)",
+  "visual_concept": "Pexels query OR FLUX prompt for the editorial bg",
+  "theme_code": "T1|T2|T3|T4|T5",
+  "lesson": { ... same shape }
+}`;
+  }
+
+  const systemPrompt = `You are El Reescritor — Pinnacle Holdings' content rewriter. Your job: take a ${format} record El Oráculo rejected and rewrite it to pass the gate while preserving the original concept.
+
+This record is in ${langLabel} (Language=${lang}). DO NOT mix languages — output 100% in ${langLabel}.
 
 Output ONLY a JSON object — no prose, no markdown fences:
-{
-  "titulo": "Spanish title (max 80 chars)",
-  "hook": "Spanish hook 1 line — opens curiosity to a SPECIFIC distressed segment (max 100 chars)",
-  "caption_es": "Caption ES 200-400 chars, anchored to a 6-segments distressed homeowner pain point, ends with phone (920) 777-9886 + pinnaclegroupwi.com",
-  "caption_en": "Caption EN 200-400 chars, mirrors ES tone, same anchor segment, same CTA",
-  "cta": "Single-line Spanish CTA (max 100 chars)",
-  "visual_prompt": "${isReel ? 'JSON narrative B for Director v2 (validated by validateSpec). HARD CONSTRAINTS — render fails if violated: {\"narrative\":\"B\", \"theme\":one of EXACTLY [\"T1\",\"T2\",\"T3\",\"T4\",\"T5\"] (NEVER hallucinate names like \"distressed_segment_edu\"), \"template\":one of EXACTLY [\"hybrid\",\"pip\",\"voiceover\",\"editorial\"] — DO NOT use \"talkinghead\" because it is full-screen avatar with no slides, \"aspect\":\"9:16\", \"duration\":9 (sweet spot 8-10s, NEVER 12, NEVER 30), \"locale\":\"es\", \"hook\":{\"en\":string,\"es\":string} — short 8-12 words each, \"points\":array of EXACTLY 3 items (Director v2 narrative B renders 1 hook + 3 points + 1 cta = 5 scenes total) each with {\"captionEs\":string of 8-14 words derived from the actual Caption ES message, \"captionEn\":string of 8-14 words, \"heroQuery\":Pexels search 4-6 words for portrait photo,\"heroPrompt\":FLUX2 prompt 12-20 words for cinematic image}, \"cta\":{\"en\":string,\"es\":string} — short 8-12 words each. For Tipo=Personal records, set template=\"hybrid\" so Jorge appears in hook+CTA only and FLUX2 b-roll covers the 3 points. Each captionEs MUST be a substantive line from the original Caption ES (split into 3 progressive beats), NOT generic placeholders.' : 'TITLE: <titulo> | TEMA: one of T1/T2/T3/T4/T5 EXACTLY | <Formato> Pinnacle Audiencia: distressed Wisconsin homeowner [target segment]'}",
-  "lesson": {
-    "rejected_pattern": "1 line — what was wrong (e.g. 'company-centric framing')",
-    "oraculo_critique_summary": "1 line — Oráculo's main point",
-    "rewrite_pattern": "1 line — the rule to apply going forward (e.g. 'Always frame from the homeowner POV, not Pinnacle POV')",
-    "segment_anchor": "Pre-Foreclosure | Inherited Property | Divorce | Behind on Taxes | Tired Landlord | Relocation"
-  }
-}
+${outputShape}
 
 REWRITE PRINCIPLES (apply ALL):
-1. Anchor to ONE distressed segment from the 6 — pick the most relevant given the original concept.
-2. Frame from the homeowner's POV (their pain, their fear, their relief), NOT from Pinnacle's POV (our growth, our process, our team).
+1. Anchor to ONE distressed segment from the 6 — pick the most relevant.
+2. Frame from the homeowner's POV (their pain, their fear, their relief), NOT from Pinnacle's POV.
 3. Warm tone, no investor jargon (no ROI / cap rate / off-market / deal / flip).
-4. Spanish must have perfect ortografía (acentos, ñ).
+4. ${lang === "ES" ? "Spanish must have perfect ortografía (acentos á é í ó ú, ñ)." : "English must be natural and warm, no marketing-speak."}
 5. NO FTC red flags ("guaranteed", "no risk", "100%").
 6. NO HUD Fair Housing violations.
 7. NO promotion of homosexuality in visual concepts.
-8. CTA must include phone (920) 777-9886 AND pinnaclegroupwi.com.
-9. ${isReel ? 'visual_prompt MUST be valid JSON narrative B (Director v2 spec). HARD RULE (Jorge 2026-05-07): duration must be 7-15s — NEVER exceed 15. If the concept genuinely needs more story, COMPRESS it: tighten copy, drop redundant points, or label the title "Parte 1" and write the rewrite to be the first part of a series. NEVER set duration=30 or duration=20.' : 'visual_prompt MUST specify TEMA T1-T5 (Creativo theme code)'}
+8. CTA / caption must include phone (920) 777-9886 AND pinnaclegroupwi.com.
+${format === "Reel" ? "9. Reels are 5 slides × 2s = 10s total. Each slide_N_text must be a substantive line (NOT generic placeholder). For Tipo=Personal use template=hybrid (Jorge in hook+CTA, b-roll on points)." : ""}
+${format === "Video" ? "9. Videos are 30-90s longer-form, segmented script with timecodes." : ""}
 
 [AUDIENCE PERSONA]
 ${persona}`;
 
-  const userPrompt = `ORIGINAL IDEA (rejected by Oráculo):
+  const userPrompt = `ORIGINAL ${format.toUpperCase()} (rejected by Oráculo):
 
 Título: ${titulo}
-Tipo: ${tipo} | Formato: ${formato}
+Tipo: ${tipo} | Language: ${lang}
 
 Hook actual:
 ${hook}
 
-Caption ES actual:
-${captionEs.slice(0, 500)}
-
-Caption EN actual:
-${captionEn.slice(0, 500)}
+Caption / Slides actual:
+${(caption || "").slice(0, 600)}
 
 CTA actual: ${cta}
 
-Visual_Prompt actual:
-${visualPrompt.slice(0, 500)}
+Visual hints:
+${(visualHints || "").slice(0, 400)}
 
 ORACULO REJECTION FEEDBACK:
 ${errorReason}
 
-Rewrite to address the feedback. Return JSON only.`;
+Rewrite to address the feedback (stay in ${langLabel} only). Return JSON only.`;
 
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
