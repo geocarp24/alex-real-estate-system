@@ -28,50 +28,47 @@ export function expand(spec) {
   const ctaPrompt  = spec.prompts?.cta
     || 'Pinnacle Holdings Group branded CTA scene, modern craftsman home exterior at twilight, cinematic, 9:16 vertical';
 
-  // Scale scene durations proportionally so total matches spec.duration.
-  // BASE = [3,3,3,3,3] → equal per-slide budget for "3s per slide" rule
-  // (Jorge 2026-05-07: 5 slides x 3s = 15s output with xfade overlap accounted).
-  // Default duration 17 gives 14.6s output after 4 xfade x 0.6s overlap.
-  const BASE = [3.0, 3.0, 3.0, 3.0, 3.0];
-  const target = Number(spec.duration) || 17;
+  // Variable scenes: 1 hook + N points + 1 cta (N = spec.points.length, min 3 max 7).
+  // Reels: 3 points → 5 scenes total → ~15s output (Reels rule).
+  // Videos: 5-7 points → 7-9 scenes total → ~30-50s output (long-form).
+  // BASE per scene = 3s (Jorge 2026-05-07: 3s per slide for readability).
+  const numPoints = Math.max(3, Math.min(7, (spec.points || []).length));
+  const totalScenes = numPoints + 2;  // hook + N points + cta
+  const BASE = new Array(totalScenes).fill(3.0);
+  const target = Number(spec.duration) || (BASE.length * 3.0 + 2.0);   // small buffer for xfade
   const factor = target / BASE.reduce((a, b) => a + b, 0);
   const D = BASE.map(d => +(d * factor).toFixed(2));
 
-  return [
-    {
-      index: 1, duration: D[0], layoutType: 'hook',
-      captionEn: spec.hook.en, captionEs: spec.hook.es,
-      heroSource: tier, heroPrompt: hookPrompt, heroQuery: null,
-      kinetic: true, zoompan: { from: 1.0, to: 1.05 },
-      transitionOut: 'crossfade', mood,
-    },
-    {
-      index: 2, duration: D[1], layoutType: 'point',
-      captionEn: spec.points[0].headingEn, captionEs: spec.points[0].headingEs,
-      heroSource: 'pexels', heroPrompt: spec.points[0].heroPrompt || null, heroQuery: deriveHeroQuery(spec.points[0].headingEn),
+  const scenes = [];
+  // Hook scene.
+  scenes.push({
+    index: 1, duration: D[0], layoutType: 'hook',
+    captionEn: spec.hook.en, captionEs: spec.hook.es,
+    heroSource: tier, heroPrompt: hookPrompt, heroQuery: null,
+    kinetic: true, zoompan: { from: 1.0, to: 1.05 },
+    transitionOut: 'crossfade', mood,
+  });
+  // Point scenes.
+  for (let i = 0; i < numPoints; i++) {
+    const p = spec.points[i] || {};
+    scenes.push({
+      index: i + 2, duration: D[i + 1], layoutType: 'point',
+      captionEn: p.headingEn || p.captionEn || '',
+      captionEs: p.headingEs || p.captionEs || '',
+      heroSource: 'pexels',
+      heroPrompt: p.heroPrompt || null,
+      heroQuery: deriveHeroQuery(p.headingEn || p.captionEn || ''),
       kinetic: false, zoompan: { from: 1.0, to: 1.03 },
       transitionOut: 'crossfade', mood,
-    },
-    {
-      index: 3, duration: D[2], layoutType: 'point',
-      captionEn: spec.points[1].headingEn, captionEs: spec.points[1].headingEs,
-      heroSource: 'pexels', heroPrompt: spec.points[1].heroPrompt || null, heroQuery: deriveHeroQuery(spec.points[1].headingEn),
-      kinetic: false, zoompan: { from: 1.0, to: 1.03 },
-      transitionOut: 'crossfade', mood,
-    },
-    {
-      index: 4, duration: D[3], layoutType: 'point',
-      captionEn: spec.points[2].headingEn, captionEs: spec.points[2].headingEs,
-      heroSource: 'pexels', heroPrompt: spec.points[2].heroPrompt || null, heroQuery: deriveHeroQuery(spec.points[2].headingEn),
-      kinetic: false, zoompan: { from: 1.0, to: 1.03 },
-      transitionOut: 'crossfade', mood,
-    },
-    {
-      index: 5, duration: D[4], layoutType: 'cta',
-      captionEn: spec.cta.en, captionEs: spec.cta.es,
-      heroSource: tier, heroPrompt: ctaPrompt, heroQuery: null,
-      kinetic: true, zoompan: { from: 1.0, to: 1.05 },
-      transitionOut: 'none', mood,
-    },
-  ];
+    });
+  }
+  // CTA scene.
+  scenes.push({
+    index: totalScenes, duration: D[totalScenes - 1], layoutType: 'cta',
+    captionEn: spec.cta.en, captionEs: spec.cta.es,
+    heroSource: tier, heroPrompt: ctaPrompt, heroQuery: null,
+    kinetic: true, zoompan: { from: 1.0, to: 1.05 },
+    transitionOut: 'none', mood,
+  });
+  return scenes;
 }
