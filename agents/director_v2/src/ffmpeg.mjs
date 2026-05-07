@@ -3,31 +3,13 @@ import { spawn } from 'node:child_process';
 const FPS = 30;
 const XFADE_OVERLAP = 0.6;   // 2026-05-07: bumped from 0.3 → 0.6 for smoother cinematic transitions (Jorge feedback "muy robotico")
 
-// IG Reels-style caption: heavy bold sans, white with black outline + semi-transparent box, lower-third safe zone.
-// Uses textfile= so caption text bypasses ffmpeg's drawtext escape rules entirely (quotes/colons/commas safe).
-// DejaVu Sans Bold is preinstalled on Ubuntu GHA runners; falls back to system default if absent.
-const CAPTION_FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf';
-function buildCaptionDrawtext(captionFile) {
+// IG/TikTok-style karaoke captions via libass `subtitles` filter, fed an ASS file with `\kf` (fill karaoke) tags.
+// Subtitles filter reads the ASS PrimaryColour/SecondaryColour to do word-by-word color sweep automatically.
+// Path needs single-colon escape inside filter chain (drives libass through the filter graph).
+function buildCaptionSubtitles(captionFile) {
   if (!captionFile) return '';
-  const opts = [
-    `fontfile=${CAPTION_FONT}`,
-    `textfile=${captionFile}`,
-    'reload=0',
-    'fontsize=62',
-    'fontcolor=white',
-    'borderw=5',
-    'bordercolor=black@0.95',
-    'shadowcolor=black@0.7',
-    'shadowx=2',
-    'shadowy=3',
-    'box=1',
-    'boxcolor=black@0.45',
-    'boxborderw=24',
-    'line_spacing=12',
-    'x=(w-text_w)/2',
-    'y=h-text_h-220',           // ~11% from bottom — clear of IG/FB UI controls
-  ].join(':');
-  return `,drawtext=${opts}`;
+  const escaped = String(captionFile).replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "\\'");
+  return `,subtitles='${escaped}'`;
 }
 const TRANSITION_MAP = {
   crossfade: 'fade',
