@@ -76,14 +76,24 @@ test('buildVideoCommand mixes HeyGen voice audio with music — Jorge must be he
   assert.ok(filter.includes('[va0]') && filter.includes('[va4]'), 'must label per-scene voice tracks');
   // Voice tracks must be delayed to their timeline positions (scene 4 lands well after t=0).
   assert.ok(/adelay=\d+\|\d+/.test(filter), 'must delay voice tracks via adelay');
-  // Music must be ducked (lower volume) when voice present, and mixed with voice via amix.
-  assert.ok(filter.includes('amix=inputs=3'), 'must amix two voices + music = 3 inputs');
-  assert.ok(filter.includes('volume=0.18'), 'music must be ducked to 0.18 when voice present');
+  // Music must be dynamically ducked under voice via sidechain compression (broadcast-grade).
+  assert.ok(filter.includes('sidechaincompress'), 'must use sidechaincompress for dynamic music ducking under voice');
+  assert.ok(filter.includes('asplit=2'), 'voice must be split for sidechain trigger');
+  assert.ok(filter.includes('volume=0.35'), 'music keeps full volume — sidechain compressor handles ducking');
 });
 
 test('buildVideoCommand keeps music-only path when no HeyGen scenes present', () => {
   const cmd = buildVideoCommand({ scenes: sampleScenes(), musicPath: '/tmp/m.mp3', outputPath: '/tmp/out.mp4' });
   const filter = cmd.args[cmd.args.indexOf('-filter_complex') + 1];
   assert.ok(filter.includes('volume=0.35'), 'music keeps full volume when no voice');
-  assert.ok(!filter.includes('amix='), 'no amix needed when only music');
+  assert.ok(!filter.includes('sidechaincompress'), 'no sidechain ducking needed when only music');
+});
+
+test('buildVideoCommand uses high-quality output codecs (CRF 20, AAC 192k @ 48kHz)', () => {
+  const cmd = buildVideoCommand({ scenes: sampleScenes(), musicPath: '/tmp/m.mp3', outputPath: '/tmp/out.mp4' });
+  const s = cmd.args.join(' ');
+  assert.ok(s.includes('-crf 20'), 'visual quality CRF 20');
+  assert.ok(s.includes('-preset medium'), 'medium preset for quality/speed balance');
+  assert.ok(s.includes('-b:a 192k'), 'audio bitrate 192k');
+  assert.ok(s.includes('-ar 48000'), 'audio sample rate 48kHz');
 });
