@@ -153,13 +153,17 @@ export async function checkRateBudget({ smFetch, platform, fieldPublishedIds, fo
   const cadence = CADENCE[CURRENT_PHASE];
   const since24h = new Date(Date.now() - 24 * 3600 * 1000).toISOString().slice(0, 19);
 
-  // Query Airtable (table-specific, smFetch is bound to the format's table) for
-  // posts published in last 24h on this platform.
+  // Query Airtable for posts that are scheduled to go LIVE within ±24h of NOW.
+  // Bug fix 2026-05-07: previously used LAST_MODIFIED_TIME which counts when we
+  // called the API, not when posts go live. Multiple scheduled posts created in
+  // one batch all share the same modified timestamp → falsely blocked each other.
+  // The new check uses Scheduled_Time so spaced-out scheduling passes correctly.
+  const since24hPlus = new Date(Date.now() + 24 * 3600 * 1000).toISOString().slice(0, 19);
   const filter = encodeURIComponent(
-    `AND({${fieldPublishedIds}}!='', IS_AFTER(LAST_MODIFIED_TIME(), '${since24h}'))`
+    `AND({${fieldPublishedIds}}!='', IS_AFTER({Scheduled_Time}, '${since24h}'), IS_BEFORE({Scheduled_Time}, '${since24hPlus}'))`
   );
   const r = await smFetch(`filterByFormula=${filter}&maxRecords=50`).catch(() => ({ records: [] }));
-  const recent = (r.records || []).map(rec => rec.fields?.['_LAST_MODIFIED_TIME'] || rec.createdTime);
+  const recent = (r.records || []).map(rec => rec.fields?.Scheduled_Time || rec.createdTime);
 
   // Per-format cap (this format only — smFetch is table-bound).
   const perFormatCap = cadence.perFormat?.[format] ?? cadence.postsPerDayPerPlatform;
