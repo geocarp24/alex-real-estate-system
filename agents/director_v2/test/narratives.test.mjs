@@ -61,7 +61,7 @@ test('validateSpec throws on invalid aspect for Director', () => {
 
 test('validateSpec throws on duration out of 7-18', () => {
   const bad = { ...B_VALID, duration: 30 };
-  assert.throws(() => validateSpec(bad), /duration must be 7-15/);
+  assert.throws(() => validateSpec(bad), /duration must be 7-18/);
 });
 
 test('dispatcher throws on unknown narrative code', () => {
