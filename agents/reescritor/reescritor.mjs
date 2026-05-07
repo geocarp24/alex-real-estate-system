@@ -117,7 +117,7 @@ REWRITE PRINCIPLES (apply ALL):
 6. NO HUD Fair Housing violations.
 7. NO promotion of homosexuality in visual concepts.
 8. CTA must include phone (920) 777-9886 AND pinnaclegroupwi.com.
-9. ${isReel ? 'visual_prompt MUST be valid JSON narrative B (Director v2 spec)' : 'visual_prompt MUST specify TEMA T1-T5 (Creativo theme code)'}
+9. ${isReel ? 'visual_prompt MUST be valid JSON narrative B (Director v2 spec). HARD RULE (Jorge 2026-05-07): duration must be 7-15s — NEVER exceed 15. If the concept genuinely needs more story, COMPRESS it: tighten copy, drop redundant points, or label the title "Parte 1" and write the rewrite to be the first part of a series. NEVER set duration=30 or duration=20.' : 'visual_prompt MUST specify TEMA T1-T5 (Creativo theme code)'}
 
 [AUDIENCE PERSONA]
 ${persona}`;
