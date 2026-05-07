@@ -364,7 +364,7 @@ async function main() {
     let out;
     try { out = await processOne(rec); }
     catch (e) {
-      out = { id: rec.id, titulo: rec.fields?.["Título de Idea"] || rec.id, status: "exception", error: String(e?.message || e).slice(0, 200) };
+      out = { id: rec.id, titulo: rec.fields?.Title || rec.id, status: "exception", error: String(e?.message || e).slice(0, 200) };
     }
     results.push(out);
     console.error(`[creativo] ${out.titulo}: ${out.status}${out.error ? ` (${out.error})` : ""}${out.cover ? ` → ${out.cover}` : ""}`);
