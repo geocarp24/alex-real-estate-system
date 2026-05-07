@@ -76,15 +76,24 @@ export function buildVideoCommand({ scenes, musicPath, outputPath, width = 1080,
     voiceLabels.push(`[va${i}]`);
   });
 
-  // Music: ducked when voice present (so Jorge is intelligible), normal otherwise.
-  const musicVol = voiceLabels.length > 0 ? 0.18 : 0.35;
-  filterParts.push(`[${scenes.length}:a]volume=${musicVol},aloop=loop=-1:size=2e+09[amusic]`);
+  // Music: looped, full volume (sidechain compressor handles dynamic ducking when voice present).
+  filterParts.push(`[${scenes.length}:a]volume=0.35,aloop=loop=-1:size=2e+09[amusic]`);
 
   if (voiceLabels.length === 0) {
     filterParts.push(`[amusic]anull[aout]`);
   } else {
-    const inputs = [...voiceLabels, '[amusic]'].join('');
-    filterParts.push(`${inputs}amix=inputs=${voiceLabels.length + 1}:duration=longest:dropout_transition=0:normalize=0[aout]`);
+    // Combine all voice tracks into one signal.
+    let voiceLabel;
+    if (voiceLabels.length === 1) {
+      voiceLabel = voiceLabels[0];
+    } else {
+      filterParts.push(`${voiceLabels.join('')}amix=inputs=${voiceLabels.length}:duration=longest:dropout_transition=0:normalize=0[vall]`);
+      voiceLabel = '[vall]';
+    }
+    // Split voice for sidechain trigger (broadcast-grade auto-ducking — music drops under speech, restores in pauses).
+    filterParts.push(`${voiceLabel}asplit=2[vsig][vtrigger]`);
+    filterParts.push(`[amusic][vtrigger]sidechaincompress=threshold=0.04:ratio=8:attack=10:release=300:makeup=1[mducked]`);
+    filterParts.push(`[vsig][mducked]amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[aout]`);
   }
 
   const filterComplex = filterParts.join(';');
