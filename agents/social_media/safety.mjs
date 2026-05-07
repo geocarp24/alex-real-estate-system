@@ -146,21 +146,27 @@ export function auditVisual({ url, formato, durationSec }) {
 }
 
 // ── Rate limiter — uses Airtable as the source of truth on what we've posted ──
+// Per-format cap enforcement (Jorge 2026-05-07 GROWTH ramp): each format has
+// its own daily cap (Post=3, Reel=2, Video=1 max in GROWTH phase).
 // Returns { allowed: bool, reason?: string, retryAfterSec?: number }
-export async function checkRateBudget({ smFetch, platform, fieldPublishedIds }) {
+export async function checkRateBudget({ smFetch, platform, fieldPublishedIds, format }) {
   const cadence = CADENCE[CURRENT_PHASE];
   const since24h = new Date(Date.now() - 24 * 3600 * 1000).toISOString().slice(0, 19);
 
-  // Query Airtable for posts published in last 24h on this platform.
+  // Query Airtable (table-specific, smFetch is bound to the format's table) for
+  // posts published in last 24h on this platform.
   const filter = encodeURIComponent(
-    `AND({${fieldPublishedIds}}!='', FIND('${platform}:', {${fieldPublishedIds}})>0, IS_AFTER(LAST_MODIFIED_TIME(), '${since24h}'))`
+    `AND({${fieldPublishedIds}}!='', IS_AFTER(LAST_MODIFIED_TIME(), '${since24h}'))`
   );
   const r = await smFetch(`filterByFormula=${filter}&maxRecords=50`).catch(() => ({ records: [] }));
   const recent = (r.records || []).map(rec => rec.fields?.['_LAST_MODIFIED_TIME'] || rec.createdTime);
 
-  if (recent.length >= cadence.postsPerDayPerPlatform) {
-    return { allowed: false, reason: `daily_cap_${recent.length}/${cadence.postsPerDayPerPlatform}_${CURRENT_PHASE}` };
+  // Per-format cap (this format only — smFetch is table-bound).
+  const perFormatCap = cadence.perFormat?.[format] ?? cadence.postsPerDayPerPlatform;
+  if (recent.length >= perFormatCap) {
+    return { allowed: false, reason: `${format}_per_format_cap_${recent.length}/${perFormatCap}_${CURRENT_PHASE}` };
   }
+  // Hard caps Meta BUC (per-platform absolute ceiling).
   if (recent.length >= HARD_CAPS_24H[`${platform}_posts_per_${platform === 'fb' ? 'page' : 'user'}`]) {
     return { allowed: false, reason: `hard_cap_${platform}_24h` };
   }
