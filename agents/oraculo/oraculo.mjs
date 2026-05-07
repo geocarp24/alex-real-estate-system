@@ -149,6 +149,27 @@ function reviewIdeaDeterministic(record, format = "Post") {
   const visualPrompt = r.visual;
   const allText = `${titulo} ${hook} ${caption} ${cta} ${tipo}`;
 
+  // STRUCTURAL VALIDATION — Reel must have all 5 slides populated (Jorge 2026-05-07).
+  // Director v2 is a dumb executor: it copy-pastes from Airtable. If Slide_2/3/4
+  // are empty, the rendered video shows blank middle slides. Oráculo MUST catch
+  // this BEFORE approving so $0 desperdicio en render.
+  if (format === "Reel") {
+    const f = record.fields || {};
+    const requiredSlides = ["Slide_1_Hook", "Slide_2_Text", "Slide_3_Text", "Slide_4_Text", "Slide_5_CTA"];
+    const empty = requiredSlides.filter(k => !String(f[k] || "").trim());
+    if (empty.length > 0) {
+      return {
+        score: 0,
+        verdict: "REJECT",
+        persona_fit: "N/A — structural failure",
+        brand_voice: "N/A",
+        compliance: `STRUCTURAL: missing required Reel fields: ${empty.join(", ")}`,
+        improvement_notes: `Reel record incomplete — ${empty.join(", ")} must be populated by SM Manager before Oráculo approval. Director v2 cannot render blank slides.`,
+        _source: "deterministic_structural",
+      };
+    }
+  }
+
   let score = 0;
   const notes = [];
   let compliance = "OK";
