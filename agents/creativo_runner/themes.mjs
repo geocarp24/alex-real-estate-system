@@ -325,21 +325,6 @@ export function slidePostEditorial(themeCode, opts = {}) {
     ${photographerCredit}
   </div>`;
 }
-          font-size:54px; font-weight:900; color:${heroColor};
-          letter-spacing:-0.015em; line-height:1;">
-          ${PHONE}
-        </span>
-        <span style="
-          font-size:26px; font-weight:500; color:${muteColor};
-          letter-spacing:.02em; line-height:1;">
-          ${WEBSITE}
-        </span>
-      </div>
-    </div>
-
-    ${photographerCredit}
-  </div>`;
-}
 
 // ---------------------------------------------------------------------------
 // buildCarousel — convenience: takes a spec object and returns [html, html, ...]
