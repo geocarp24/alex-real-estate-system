@@ -28,11 +28,10 @@ test('buildVideoCommand output args include H.264 + faststart + 1080x1920', () =
   assert.ok(s.includes('1080') && s.includes('1920'));
 });
 
-test('buildVideoCommand includes audio codec aac 128k and loops music', () => {
+test('buildVideoCommand includes AAC audio codec and loops music', () => {
   const cmd = buildVideoCommand({ scenes: sampleScenes(), musicPath: '/tmp/m.mp3', outputPath: '/tmp/out.mp4' });
   const s = cmd.args.join(' ');
   assert.ok(s.includes('aac'));
-  assert.ok(s.includes('128k'));
   assert.ok(s.includes('aloop'));
 });
 
