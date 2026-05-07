@@ -1,7 +1,23 @@
 import { spawn } from 'node:child_process';
 
 const FPS = 30;
-const XFADE_OVERLAP = 0.6;   // 2026-05-07: bumped from 0.3 → 0.6 for smoother cinematic transitions (Jorge feedback "muy robotico")
+export const XFADE_OVERLAP = 0.6;   // 2026-05-07: bumped from 0.3 → 0.6 for smoother cinematic transitions (Jorge feedback "muy robotico")
+
+// Probe a media file's duration (seconds) via ffprobe. Used by Template #2 PiP to align scene cuts to the avatar's actual speech rate.
+export function probeMediaDuration(filePath) {
+  return new Promise((resolve, reject) => {
+    const proc = spawn('ffprobe', ['-v','error','-show_entries','format=duration','-of','default=nw=1:nk=1', filePath], { stdio: ['ignore','pipe','pipe'] });
+    let out = '';
+    proc.stdout.on('data', d => { out += d.toString(); });
+    proc.on('close', code => {
+      if (code !== 0) return reject(new Error(`ffprobe exit=${code}`));
+      const sec = parseFloat(out.trim());
+      if (!Number.isFinite(sec) || sec <= 0) return reject(new Error(`ffprobe parse failed: ${out.trim()}`));
+      resolve(sec);
+    });
+    proc.on('error', reject);
+  });
+}
 
 // IG/TikTok-style karaoke captions via libass `subtitles` filter, fed an ASS file with `\kf` (fill karaoke) tags.
 // Subtitles filter reads the ASS PrimaryColour/SecondaryColour to do word-by-word color sweep automatically.
