@@ -140,12 +140,35 @@ function parseAllJSON(text) {
 }
 
 // ──────────────────────────────────────────────────────────────
+// Lessons learned from Oráculo (curated by Reescritor) — read at every run
+// so SM Manager improves over time and Oráculo rejects less.
+// Jorge 2026-05-07: "el oráculo va trabajando cada vez menos".
+// ──────────────────────────────────────────────────────────────
+async function loadLessons() {
+  try {
+    const { readFile } = await import("node:fs/promises");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const __dirname = dirname(fileURLToPath(import.meta.url));
+    const path = join(__dirname, "..", "oraculo_inputs", "sm_lessons.md");
+    const text = await readFile(path, "utf8");
+    // Truncate to last 4000 chars (most recent lessons matter most).
+    return text.length > 4000 ? "..." + text.slice(-4000) : text;
+  } catch { return ""; }
+}
+
+// ──────────────────────────────────────────────────────────────
 // Mode 1 — Generate ideas (Anthropic)
 // ──────────────────────────────────────────────────────────────
 async function generateIdeas(cfg, runId) {
+  const lessons = await loadLessons();
+  const lessonsBlock = lessons
+    ? `\n\n[LESSONS LEARNED FROM ORACULO — apply these on every idea you generate]\n${lessons}\n[END LESSONS]\n\nFollow the rewrite_pattern from each lesson above. Do NOT repeat any rejected_pattern.`
+    : "";
+
   const systemPrompt = `You are the Social Media Agent for Pinnacle Holdings Group LLC, a real estate cash home buyer in Wisconsin. Owner: Jorge Cruz. Phone: (920) 777-9886. Web: pinnaclegroupwi.com.
 
-You generate post ideas optimized for Instagram + Facebook. Audience: distressed homeowners (foreclosure, inherited property, divorce, back taxes, relocation). 70% educational, 20% promotional, 10% personal.
+You generate post ideas optimized for Instagram + Facebook. Audience: distressed homeowners (foreclosure, inherited property, divorce, back taxes, relocation). 70% educational, 20% promotional, 10% personal.${lessonsBlock}
 
 Output ONLY a JSON object: { "ideas": [ {idea1}, {idea2}, ... ] }. No prose outside JSON.
 
