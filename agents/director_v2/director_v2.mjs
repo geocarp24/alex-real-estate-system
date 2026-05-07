@@ -424,7 +424,7 @@ async function processRecord(record, { env, dryRun, stats }) {
   const outputPath = dryRun ? join(SAMPLES, `dry_run_${recordId}.mp4`) : join(recordTmp, `${recordId}.mp4`);
   await mkdir(dirname(outputPath), { recursive: true });
 
-  const cmd = buildVideoCommand({ scenes: frameOutputs, musicPath, outputPath });
+  const cmd = buildVideoCommand({ scenes: frameOutputs, musicPath, outputPath, globalAvatar });
   await runFfmpeg(cmd);
   const { size } = await stat(outputPath);
   stats.uploadMb += size / 1_048_576;
