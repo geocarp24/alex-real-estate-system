@@ -421,22 +421,30 @@ async function main() {
     console.error("[oraculo] WARNING: oraculo_inputs/ files empty or missing — review will be generic");
   }
 
-  let records = [];
+  // 3-table architecture: loop Posts/Reels/Videos, review records with Status='Idea'.
+  let pending = [];   // [{ tableId, format, record }, ...]
   if (args.mode === "one") {
     if (!args.recordId) { console.error("[oraculo] --record-id required for mode=one"); process.exit(2); }
-    const rec = await smGet(args.recordId);
-    if (rec.id) records = [rec];
+    // Try each table — recordId only exists in one of them.
+    for (const t of SM_TABLES) {
+      try {
+        const rec = await smGet(t.id, args.recordId);
+        if (rec.id) { pending.push({ tableId: t.id, format: t.format, record: rec }); break; }
+      } catch {}
+    }
   } else {
-    // Filter: Visual_Prompt set, no [ORACULO_OK] prefix, no recent Error_Reason
-    // (rejected records stay rejected until SM Manager fixes them and clears Error_Reason).
-    const filter = encodeURIComponent(
-      `AND({Visual_Prompt}!='', NOT(FIND('[ORACULO_OK', {Visual_Prompt})>0), OR({Error_Reason}='', NOT({Error_Reason})))`
-    );
-    const r = await smFetch(`filterByFormula=${filter}&maxRecords=${BATCH_MAX_PER_RUN}`);
-    records = r.records || [];
+    const filter = encodeURIComponent(`{Status}='${STATUS.IDEA}'`);
+    for (const t of SM_TABLES) {
+      const r = await smFetch(t.id, `filterByFormula=${filter}&maxRecords=${BATCH_MAX_PER_RUN}`);
+      for (const rec of (r.records || [])) {
+        if (pending.length >= BATCH_MAX_PER_RUN) break;
+        pending.push({ tableId: t.id, format: t.format, record: rec });
+      }
+      if (pending.length >= BATCH_MAX_PER_RUN) break;
+    }
   }
 
-  if (records.length === 0) {
+  if (pending.length === 0) {
     console.error("[oraculo] no records pending review");
     await telegramSend(cfg, `🔮 *El Oráculo* — ${cfg.tenant_name}\nNo hay ideas pendientes de review.`);
     return;
