@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-05-07 (PM-3) — Reference video ID para future Director v2 styles (Jorge)
+
+**Video ID**: `06542d8b77b54fd6b9504725b8609f35`
+
+Jorge 2026-05-07 PM: "check this video ID for futures reference to create a video some different as a normal video, this will catch eyes definitely, so learn about it".
+
+**Plataforma**: PENDIENTE — Jorge debe especificar (HeyGen / Arcads / Replicate / otra).
+
+**Intención**: cuando Director v2 genere Reels en el futuro, debe inspirarse en el estilo de este video — eye-catching, diferente del look "normal", para destacar el feed Pinnacle. Es referencia de estética/dinámica de cámara/transiciones, NO de contenido.
+
+**Acción siguiente**: cuando Jorge aclare la plataforma, fetch metadata del video, analizar y documentar atributos (motion style, transitions, color grading, hook timing) para inyectar como template hint en `agents/director_v2/director_v2.mjs::applyTipoContenidoRouting()` o como nuevo template arsenal #6.
+
+---
+
 ## 2026-05-07 (PM-2) — El Oráculo wired como gate SM→Creativo (Jorge directiva)
 
 **Jorge 2026-05-07 06:47 UTC**: "el Oráculo debe ir de la mano con el Social Media Manager primero, y después que el Oráculo avala que el Social Media hizo un buen trabajo a través del research especializado, entonces se proceden a realizar los creativos. Esto se transforma en $0 desperdicios, y el Director entra directamente a poner en schedule las publicaciones con sus respectivos visuales."
