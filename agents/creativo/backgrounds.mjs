@@ -61,10 +61,70 @@ function pickEvergreen(seed) {
 }
 
 /**
- * Search Pexels for a portrait photo matching the query.
- * Returns { bgUrl, photographer, source } where source is "pexels" or "evergreen".
+ * Generate a conceptual/symbolic image via Replicate FLUX-schnell (~$0.003/img).
+ * Used when Pexels stock cannot match the concept (e.g. surreal/symbolic ideas
+ * like "couple arguing with lightning splitting the house"). Per CLAUDE.md
+ * regla 1d, AI imagen is allowed for backgrounds WITHOUT text — text is
+ * overlaid via HTML/CSS in slidePostEditorial.
+ */
+async function generateConceptualImage(prompt) {
+  if (!REPLICATE_TOKEN || !prompt) return null;
+  try {
+    const r = await fetch(REPLICATE_FLUX_API, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${REPLICATE_TOKEN}`,
+        "Content-Type": "application/json",
+        Prefer: "wait",
+      },
+      body: JSON.stringify({
+        input: {
+          prompt: String(prompt).slice(0, 500),
+          aspect_ratio: "4:5",
+          output_format: "png",
+          output_quality: 90,
+          num_outputs: 1,
+        },
+      }),
+      signal: AbortSignal.timeout(60000),
+    });
+    if (!r.ok) {
+      console.error(`[backgrounds] Replicate HTTP ${r.status}`);
+      return null;
+    }
+    const data = await r.json();
+    if (data.status === "failed") {
+      console.error(`[backgrounds] Replicate failed: ${data.error}`);
+      return null;
+    }
+    const url = Array.isArray(data.output) ? data.output[0] : data.output;
+    return url || null;
+  } catch (e) {
+    console.error(`[backgrounds] Replicate error: ${e.message}`);
+    return null;
+  }
+}
+
+/**
+ * Search Pexels for a portrait photo matching the query — OR generate a
+ * conceptual image via FLUX if the query is a flux directive (object form).
+ *
+ * Query forms:
+ *   "wisconsin home golden hour"       → Pexels search
+ *   { flux: "Conceptual: ..." }        → Replicate FLUX-schnell generation
+ *
+ * Returns { bgUrl, photographer, source } where source is one of
+ * "pexels" | "flux" | "evergreen".
  */
 export async function fetchPostBackground(rawQuery, { seed } = {}) {
+  // Flux directive: conceptual / symbolic / surreal scenes Pexels cannot match.
+  if (rawQuery && typeof rawQuery === "object" && rawQuery.flux) {
+    const url = await generateConceptualImage(rawQuery.flux);
+    if (url) return { bgUrl: url, photographer: "AI · FLUX-schnell", source: "flux" };
+    // Fall through to evergreen if FLUX fails.
+    return pickEvergreen(seed || rawQuery.flux);
+  }
+
   const query = sanitizeQuery(rawQuery);
 
   if (!PEXELS_API_KEY || !query) {
