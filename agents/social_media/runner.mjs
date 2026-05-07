@@ -353,21 +353,18 @@ async function main() {
 
   if (args.dryRun) {
     console.log(`=== DRY RUN [social_media ${args.mode}] ===`);
-    console.log(`Would call Blotato + Anthropic + Airtable SM (${SM_BASE}/${SM_TABLE}).`);
-    console.log(`Caps: ideas=${IDEAS_PER_RUN}, visuals=${VISUALS_PER_RUN}, posts=${POSTS_PER_RUN}.`);
+    console.log(`Would call Anthropic + Meta Graph API + Airtable SM (${SM_BASE}/${SM_TABLE}).`);
+    console.log(`Caps: ideas=${IDEAS_PER_RUN}, posts=${POSTS_PER_RUN}.`);
     return;
   }
 
-  if (!BLOTATO_KEY && args.mode !== "generate_ideas") {
-    console.error("[social_media] BLOTATO_API_KEY missing — visuals/posts will skip");
+  if (!META_USER_TOKEN && !META_PAGE_TOKEN && args.mode !== "generate_ideas") {
+    console.error("[social_media] META_USER_TOKEN / META_PAGE_ACCESS_TOKEN missing — posts will skip");
   }
 
   const summary = {};
   if (args.mode === "generate_ideas" || args.mode === "full_pipeline") {
     summary.ideas = await generateIdeas(cfg, runId).catch((e) => ({ error: e.message }));
-  }
-  if (args.mode === "process_visuals" || args.mode === "full_pipeline") {
-    summary.visuals = await processVisuals(cfg, runId).catch((e) => ({ error: e.message }));
   }
   if (args.mode === "process_posts" || args.mode === "full_pipeline") {
     summary.posts = await processPosts(cfg, runId).catch((e) => ({ error: e.message }));
