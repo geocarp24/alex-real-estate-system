@@ -210,6 +210,11 @@ jobs:
           META_USER_TOKEN:          ${{ secrets.META_USER_TOKEN }}
           META_PAGE_ACCESS_TOKEN:   ${{ secrets.META_PAGE_ACCESS_TOKEN }}
           # Director v2 expects AIRTABLE_SM_* prefix. AIRTABLE_SM_TOKEN comes from Doppler ($GITHUB_ENV).
+          # Batch sizes — bumped temporarily for migration backlog (Jorge 2026-05-07).
+          # Revert to defaults (3-10) when queue is cleared.
+          ORACULO_BATCH_MAX:        "20"
+          REESCRITOR_BATCH_MAX:     "15"
+          CREATIVO_BATCH_MAX:       "15"
           AIRTABLE_SM_BASE_ID:      "appU9s3kGkVpdrJkw"
           # Legacy unified table — kept for Carrusel format until migrated.
           AIRTABLE_SM_TABLE_ID:     "tblAj0Pkj1jW4p5Ld"
