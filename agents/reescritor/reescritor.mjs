@@ -343,41 +343,51 @@ async function main() {
 
   const persona = await loadPersona();
 
-  let records = [];
+  // 3-table architecture: loop over Posts/Reels/Videos, find Status=Rechazada records.
+  let pending = [];   // [{ tableId, format, record }, ...]
   if (args.mode === "one") {
     if (!args.recordId) { console.error("[reescritor] --record-id required"); process.exit(2); }
-    const rec = await smGet(args.recordId);
-    if (rec.id) records = [rec];
+    for (const t of SM_TABLES) {
+      try {
+        const rec = await smGet(t.id, args.recordId);
+        if (rec.id) { pending.push({ tableId: t.id, format: t.format, record: rec }); break; }
+      } catch {}
+    }
   } else {
-    // Filter: records rejected by Oráculo (Error_Reason contains 'Oraculo REJECT')
-    const filter = encodeURIComponent(
-      `AND(NOT({Error_Reason}=''), NOT(NOT({Error_Reason})), FIND('Oraculo REJECT',{Error_Reason})>0)`
-    );
-    const r = await smFetch(`filterByFormula=${filter}&maxRecords=${BATCH_MAX_PER_RUN}`);
-    records = r.records || [];
+    const filter = encodeURIComponent(`{Status}='${STATUS.RECHAZADA}'`);
+    for (const t of SM_TABLES) {
+      const r = await smFetch(t.id, `filterByFormula=${filter}&maxRecords=${BATCH_MAX_PER_RUN}`);
+      for (const rec of (r.records || [])) {
+        if (pending.length >= BATCH_MAX_PER_RUN) break;
+        pending.push({ tableId: t.id, format: t.format, record: rec });
+      }
+      if (pending.length >= BATCH_MAX_PER_RUN) break;
+    }
   }
 
-  if (records.length === 0) {
+  if (pending.length === 0) {
     console.error("[reescritor] no Oráculo-rejected records pending");
     await telegramSend(cfg, `✍️ *El Reescritor* — ${cfg.tenant_name}\nNo hay rejections pendientes de rewrite.`);
     return;
   }
 
   if (args.dryRun) {
-    console.log(`=== DRY RUN [reescritor] ${records.length} records ===`);
-    for (const r of records) console.log(`  ${r.id} | ${r.fields?.["Título de Idea"]}`);
+    console.log(`=== DRY RUN [reescritor] ${pending.length} records ===`);
+    for (const it of pending) console.log(`  [${it.format}] ${it.record.id} | ${it.record.fields?.Title}`);
     return;
   }
 
   const results = [];
-  for (const rec of records) {
+  for (const item of pending) {
+    const { tableId, format, record: rec } = item;
     let out;
-    try { out = await processOne(rec, persona); }
+    try { out = await processOne(rec, persona, tableId, format); }
     catch (e) {
-      out = { id: rec.id, titulo: rec.fields?.["Título de Idea"] || rec.id, status: "exception", error: String(e?.message || e).slice(0, 200) };
+      out = { id: rec.id, titulo: rec.fields?.Title || rec.id, status: "exception", error: String(e?.message || e).slice(0, 200), format };
     }
+    out.format = out.format || format;
     results.push(out);
-    console.error(`[reescritor] ${out.titulo}: ${out.status}${out.segment_anchor ? ` → anchor=${out.segment_anchor}` : ""}${out.error ? ` — ${out.error}` : ""}`);
+    console.error(`[reescritor] [${format}] ${out.titulo}: ${out.status}${out.segment_anchor ? ` → ${out.segment_anchor}` : ""}${out.error ? ` — ${out.error}` : ""}`);
   }
 
   const completedAt = isoNow();
