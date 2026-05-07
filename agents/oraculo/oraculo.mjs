@@ -67,26 +67,72 @@ async function loadContext() {
   return _contextCache;
 }
 
-// ─── Airtable SM helpers ───
-async function smFetch(params = "") {
-  const r = await fetch(`https://api.airtable.com/v0/${SM_BASE}/${SM_TABLE}?${params}`, {
+// ─── Airtable SM helpers (3-table aware: Posts/Reels/Videos) ───
+async function smFetch(tableId, params = "") {
+  const r = await fetch(`https://api.airtable.com/v0/${SM_BASE}/${tableId}?${params}`, {
     headers: { Authorization: `Bearer ${SM_TOKEN}` },
   });
   return r.json();
 }
-async function smUpdate(recordId, fields) {
-  const r = await fetch(`https://api.airtable.com/v0/${SM_BASE}/${SM_TABLE}/${recordId}`, {
+async function smUpdate(tableId, recordId, fields) {
+  const r = await fetch(`https://api.airtable.com/v0/${SM_BASE}/${tableId}/${recordId}`, {
     method: "PATCH",
     headers: { Authorization: `Bearer ${SM_TOKEN}`, "Content-Type": "application/json" },
     body: JSON.stringify({ fields, typecast: true }),
   });
   return r.json();
 }
-async function smGet(recordId) {
-  const r = await fetch(`https://api.airtable.com/v0/${SM_BASE}/${SM_TABLE}/${recordId}`, {
+async function smGet(tableId, recordId) {
+  const r = await fetch(`https://api.airtable.com/v0/${SM_BASE}/${tableId}/${recordId}`, {
     headers: { Authorization: `Bearer ${SM_TOKEN}` },
   });
   return r.json();
+}
+
+// ─── Build review text from a record per format (Post / Reel / Video) ───
+// New schema (2026-05-07): Posts have Hook+Caption+CTA, Reels have Slide_1..5,
+// Videos have Hook+Main_Message+Script_Outline+CTA. Each record is mono-language.
+function extractReviewText(record, format) {
+  const f = record.fields || {};
+  const lang = String(f.Language || "ES").toUpperCase();
+  if (format === "Reel") {
+    return {
+      lang, format,
+      titulo: f.Title || "",
+      tipo:   f.Tipo  || "",
+      hook:   f.Slide_1_Hook || "",
+      caption: [f.Slide_1_Hook, f.Slide_2_Text, f.Slide_3_Text, f.Slide_4_Text, f.Slide_5_CTA].filter(Boolean).join(" / "),
+      cta:    f.Slide_5_CTA || "",
+      visual: [f.Slide_2_Visual, f.Slide_3_Visual, f.Slide_4_Visual].filter(Boolean).join(" | "),
+      hashtags: f.Hashtags || "",
+      formato_label: "Reel",
+    };
+  }
+  if (format === "Video") {
+    return {
+      lang, format,
+      titulo: f.Title || "",
+      tipo:   f.Tipo  || "",
+      hook:   f.Hook  || "",
+      caption: [f.Main_Message, f.Script_Outline].filter(Boolean).join(" || "),
+      cta:    f.CTA   || "",
+      visual: f.Script_Outline || "",
+      hashtags: f.Hashtags || "",
+      formato_label: "Video",
+    };
+  }
+  // Post (default)
+  return {
+    lang, format: "Post",
+    titulo: f.Title || "",
+    tipo:   f.Tipo  || "",
+    hook:   f.Hook  || "",
+    caption: f.Caption || "",
+    cta:     f.CTA    || "",
+    visual:  f.Visual_Concept || "",
+    hashtags: f.Hashtags || "",
+    formato_label: "Post",
+  };
 }
 
 // ─── Deterministic fallback (no Sonnet) ───
