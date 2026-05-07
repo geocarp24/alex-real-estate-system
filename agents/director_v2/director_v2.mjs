@@ -27,7 +27,6 @@ const TMP  = join(HERE, 'tmp');
 const SAMPLES = join(HERE, 'samples');
 
 // Wrap caption text for 1080-wide portrait at fontsize ~62 (≈22 chars/line is the sweet spot for IG Reels readability).
-// Hard-wraps long words by splitting at maxChars; preserves existing line breaks in the source.
 export function wrapCaption(text, maxChars = 22) {
   if (!text) return '';
   const lines = [];
@@ -36,16 +35,75 @@ export function wrapCaption(text, maxChars = 22) {
     let line = '';
     for (const word of words) {
       const candidate = line ? `${line} ${word}` : word;
-      if (candidate.length <= maxChars) {
-        line = candidate;
-      } else {
-        if (line) lines.push(line);
-        line = word;
-      }
+      if (candidate.length <= maxChars) line = candidate;
+      else { if (line) lines.push(line); line = word; }
     }
     if (line) lines.push(line);
   }
   return lines.join('\n');
+}
+
+// ASS time format: H:MM:SS.cs (centiseconds). Used for Dialogue start/end fields.
+function formatAssTime(secs) {
+  const total = Math.max(0, Math.round(secs * 100));
+  const cs = total % 100, totalSec = Math.floor(total / 100);
+  const ss = totalSec % 60, totalMin = Math.floor(totalSec / 60);
+  const mm = totalMin % 60, hh = Math.floor(totalMin / 60);
+  return `${hh}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}.${String(cs).padStart(2,'0')}`;
+}
+
+// IG Reels-style karaoke captions via ASS + libass.
+// PrimaryColour = active/spoken word color (bright yellow). SecondaryColour = un-spoken color (white).
+// `\kf` (fill karaoke) sweeps each word from secondary → primary over its slice of the scene duration.
+// For non-HeyGen scenes (no voice), karaoke=false → static white text for the whole duration.
+export function buildAssSubtitle({ text, durationSec, karaoke = false, scriptForKaraoke = '' }) {
+  if (!text || !durationSec) return '';
+  const wrapped  = wrapCaption(text);                                 // visual wrap for non-karaoke fallback
+  const safeText = wrapped.replace(/\n/g, '\\N').replace(/[{}]/g, '');
+  const start    = formatAssTime(0);
+  const end      = formatAssTime(durationSec);
+
+  let dialogueText;
+  if (karaoke && scriptForKaraoke) {
+    // Distribute total duration evenly across the spoken words (linear forced-alignment estimate — accurate enough at 0.4-0.5s/word).
+    const words = scriptForKaraoke.trim().split(/\s+/).filter(Boolean);
+    if (!words.length) {
+      dialogueText = safeText;
+    } else {
+      const totalCs   = Math.round(durationSec * 100);
+      const perWord   = Math.floor(totalCs / words.length);
+      let remainder   = totalCs - perWord * words.length;
+      // Wrap karaoke output every ~3 words to keep on screen, matching ~22 char visual rule.
+      const lineEvery = 3;
+      const tagged = words.map((w, i) => {
+        let cs = perWord; if (remainder > 0) { cs++; remainder--; }
+        const sep = (i > 0 && i % lineEvery === 0) ? '\\N' : (i > 0 ? ' ' : '');
+        return `${sep}{\\kf${cs}}${w.replace(/[{}]/g, '')}`;
+      }).join('');
+      dialogueText = tagged;
+    }
+  } else {
+    dialogueText = safeText;
+  }
+
+  // ASS color format: &HBBGGRR&  (alpha 00 = opaque). Yellow = #FFEB3B → BGR 3BEBFF. White = #FFFFFF.
+  return [
+    '[Script Info]',
+    'ScriptType: v4.00+',
+    'PlayResX: 1080',
+    'PlayResY: 1920',
+    'WrapStyle: 0',
+    'ScaledBorderAndShadow: yes',
+    '',
+    '[V4+ Styles]',
+    'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
+    'Style: Default,DejaVu Sans,68,&H003BEBFF,&H00FFFFFF,&H00000000,&H80000000,1,0,0,0,100,100,1,0,1,5,3,2,40,40,260,1',
+    '',
+    '[Events]',
+    'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text',
+    `Dialogue: 0,${start},${end},Default,,0,0,0,,${dialogueText}`,
+    '',
+  ].join('\n');
 }
 
 export function shortMessage(err) {
