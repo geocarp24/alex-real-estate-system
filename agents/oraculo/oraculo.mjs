@@ -149,22 +149,31 @@ function reviewIdeaDeterministic(record, format = "Post") {
   const visualPrompt = r.visual;
   const allText = `${titulo} ${hook} ${caption} ${cta} ${tipo}`;
 
-  // STRUCTURAL VALIDATION — Reel must have all 5 slides populated (Jorge 2026-05-07).
-  // Director v2 is a dumb executor: it copy-pastes from Airtable. If Slide_2/3/4
-  // are empty, the rendered video shows blank middle slides. Oráculo MUST catch
-  // this BEFORE approving so $0 desperdicio en render.
+  // STRUCTURAL VALIDATION — Reel must have all 5 slides populated UNLESS
+  // template=talkinghead (which uses Avatar_Script instead of Slide_N) (Jorge 2026-05-07).
+  // Director v2 is a dumb executor: it copy-pastes from Airtable. If required
+  // fields are empty, video shows blanks. Oráculo catches this BEFORE approving
+  // so $0 desperdicio en render.
   if (format === "Reel") {
     const f = record.fields || {};
-    const requiredSlides = ["Slide_1_Hook", "Slide_2_Text", "Slide_3_Text", "Slide_4_Text", "Slide_5_CTA"];
-    const empty = requiredSlides.filter(k => !String(f[k] || "").trim());
+    const tmpl = String(f.Template || "").toLowerCase();
+    let required;
+    if (tmpl === "talkinghead") {
+      // Talkinghead = full-screen Jorge speaking. Needs Avatar_Script + at least Hook+CTA framing.
+      required = ["Slide_1_Hook", "Slide_5_CTA", "Avatar_Script"];
+    } else {
+      // hybrid/pip/voiceover/editorial = slide-driven. All 5 slides required.
+      required = ["Slide_1_Hook", "Slide_2_Text", "Slide_3_Text", "Slide_4_Text", "Slide_5_CTA"];
+    }
+    const empty = required.filter(k => !String(f[k] || "").trim());
     if (empty.length > 0) {
       return {
         score: 0,
         verdict: "REJECT",
         persona_fit: "N/A — structural failure",
         brand_voice: "N/A",
-        compliance: `STRUCTURAL: missing required Reel fields: ${empty.join(", ")}`,
-        improvement_notes: `Reel record incomplete — ${empty.join(", ")} must be populated by SM Manager before Oráculo approval. Director v2 cannot render blank slides.`,
+        compliance: `STRUCTURAL: template=${tmpl || "(empty)"} requires ${empty.join(", ")} — campos vacíos`,
+        improvement_notes: `Reel record incomplete — ${empty.join(", ")} must be populated by SM Manager. Director v2 cannot render blank fields.`,
         _source: "deterministic_structural",
       };
     }
