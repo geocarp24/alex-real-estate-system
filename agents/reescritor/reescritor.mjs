@@ -51,22 +51,22 @@ async function loadPersona() {
 }
 
 // ─── Airtable SM helpers ───
-async function smFetch(params = "") {
-  const r = await fetch(`https://api.airtable.com/v0/${SM_BASE}/${SM_TABLE}?${params}`, {
+async function smFetch(tableId, params = "") {
+  const r = await fetch(`https://api.airtable.com/v0/${SM_BASE}/${tableId}?${params}`, {
     headers: { Authorization: `Bearer ${SM_TOKEN}` },
   });
   return r.json();
 }
-async function smUpdate(recordId, fields) {
-  const r = await fetch(`https://api.airtable.com/v0/${SM_BASE}/${SM_TABLE}/${recordId}`, {
+async function smUpdate(tableId, recordId, fields) {
+  const r = await fetch(`https://api.airtable.com/v0/${SM_BASE}/${tableId}/${recordId}`, {
     method: "PATCH",
     headers: { Authorization: `Bearer ${SM_TOKEN}`, "Content-Type": "application/json" },
     body: JSON.stringify({ fields, typecast: true }),
   });
   return r.json();
 }
-async function smGet(recordId) {
-  const r = await fetch(`https://api.airtable.com/v0/${SM_BASE}/${SM_TABLE}/${recordId}`, {
+async function smGet(tableId, recordId) {
+  const r = await fetch(`https://api.airtable.com/v0/${SM_BASE}/${tableId}/${recordId}`, {
     headers: { Authorization: `Bearer ${SM_TOKEN}` },
   });
   return r.json();
