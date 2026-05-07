@@ -177,7 +177,7 @@ export function deriveBgQuery({ visualPrompt = "", tipo = "", titulo = "", capti
   // concept Jorge requested. AI imagen permitted because no text is in the
   // image — text is overlaid via slidePostEditorial CSS).
   if (/divorce|divorc|separation|separac/.test(text))
-    return { flux: "Editorial cinematic illustration, photo-realistic style: a couple in their 40s standing on the front lawn of a suburban Wisconsin two-story home, arguing with body language facing apart, while a dramatic vivid lightning bolt strikes vertically and cleanly splits the house in half straight down the center, exposing both halves of the interior. Warm golden-hour twilight sky, deep moody shadows, vertical 4:5 composition, no text, no captions, no logos, no watermarks, dramatic contrast" };
+    return { flux: "Editorial cinematic illustration, photo-realistic style: a heterosexual married couple in their 40s — ONE WOMAN with shoulder-length hair on the left, ONE MAN with short hair on the right — standing on the front lawn of a suburban Wisconsin two-story home, arguing with body language facing apart, while a dramatic vivid lightning bolt strikes vertically and cleanly splits the house in half straight down the center, exposing both halves of the interior. Warm golden-hour twilight sky, deep moody shadows, vertical 4:5 composition, no text, no captions, no logos, no watermarks, dramatic contrast. Subjects must be one man and one woman." };
   if (/foreclosure|embarg|deuda|debt|behind on|atrasado/.test(text))
     return "stressed homeowner kitchen window light";
   if (/inherited|hered|estate|funeral/.test(text))
