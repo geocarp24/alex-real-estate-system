@@ -46,6 +46,22 @@ Si ninguno de la tabla aplica pero hay un skill cuya descripción matchea la tar
 ### 1c. SAAS-READY / MULTI-TENANT-FIRST — PRINCIPIO ARQUITECTURAL (orden directa de Jorge 2026-04-23)
 Todo lo que construyamos es producto SaaS vendible. Pinnacle es el tenant cero, no el único. Reglas: (1) nada hardcodeado — todo config por-tenant; (2) tenant isolation (datos, creds, branding separados); (3) separación core engine / tenant config / deployment adapter; (4) onboarding documentado; (5) billing hooks upfront (Stripe + usage metrics); (6) validar licencias de deps — AGPL-3.0 requiere tratamiento especial, MIT/Apache/BSD safe; (7) documentation-first por componente; (8) naming genérico (`{TENANT_NAME}`, no "Pinnacle"); (9) security defaults día 1; (10) mobile-first se complementa. Detalle completo en `memoria_ALex.md` regla R8.
 
+### 1g. VIDEO LENGTH — MAX 15s, SERIES POR PARTES SI NECESITA MÁS (orden directa Jorge 2026-05-07)
+**REGLA NO NEGOCIABLE — Todo Reel/Video producido por Director v2 debe durar 7-15 segundos máximo.** Razón: rendimiento óptimo en IG/FB (retention rate, completion rate, algorithm boost para shorts <15s).
+
+Si un concepto genuinamente necesita más story:
+- **NO** generar un solo video largo (>15s)
+- **SÍ** dividir en serie de partes:
+  - Title: "Topic — Parte 1", "Topic — Parte 2", "Topic — Parte 3"
+  - Cada parte = 1 record Reel separado en Airtable, cada uno con su propio Visual_Prompt JSON narrative B duration 7-15
+  - SM Manager debe planear el series upfront y emitir N records linkeados por nombre
+
+**Anti-regresión** (aplicado en código):
+- `agents/director_v2/src/narratives/index.mjs` — `validateSpec` rechaza `duration < 7 || > 15` con error explícito
+- `agents/reescritor/reescritor.mjs` — system prompt instruye "NEVER duration=30 or 20, compress or split into series"
+- `agents/social_media/runner.mjs` — system prompt incluye VIDEO LENGTH RULE para generación inicial
+- Esta regla está documentada en `memoria_ALex.md` y `agents/oraculo_inputs/sm_lessons.md`
+
 ### 1d. CREATIVO/DIRECTOR — PUPPETEER + HTML/CSS, NO AI IMAGEN PARA TEXTO (orden directa Jorge 2026-04-29)
 **REGLA NO NEGOCIABLE — NUNCA proponer AI imagen models (Replicate Nano Banana, Imagen-4, Flux, DALL-E, etc.) para generar visuales que contengan TEXTO en español.** Razón: todos alucinan ortografía y branding inconsistente. Esta decisión YA se tomó antes — repetirla es regresión.
 
