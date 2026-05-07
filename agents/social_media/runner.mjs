@@ -433,59 +433,67 @@ async function processPosts(cfg, runId) {
     console.error("[social_media] IG Business Account not linked to FB Page — IG publishing will be skipped");
   }
 
-  // Find ideas with visual_url set, Status=Visual Listo, and no published IDs yet.
+  // 3-table architecture: gather Visual Listo records from Posts/Reels/Videos.
+  // Each table contributes records whose format = its table's format (Post|Reel|Video).
   const filter = encodeURIComponent(
-    `AND({visual_url}!='', {Status}='Visual Listo', OR({${FIELD_PUBLISHED_POST_IDS}}='', NOT({${FIELD_PUBLISHED_POST_IDS}})))`
+    `AND({visual_url}!='', {Status}='${STATUS.VISUAL_LISTO}')`
   );
-  const r = await smFetch(`filterByFormula=${filter}&maxRecords=${POSTS_PER_RUN}`);
-  const ideas = r.records || [];
-  if (ideas.length === 0) return { posted: 0, reason: "no ideas with Visual Listo + missing published IDs" };
+  const ideas = []; // { tableId, format, record }
+  for (const t of SM_TABLES) {
+    try {
+      const resp = await smFetchIn(t.id, `filterByFormula=${filter}&maxRecords=${POSTS_PER_RUN}`);
+      for (const rec of (resp.records || [])) {
+        if (ideas.length >= POSTS_PER_RUN) break;
+        ideas.push({ tableId: t.id, format: t.format, record: rec });
+      }
+      if (ideas.length >= POSTS_PER_RUN) break;
+    } catch (e) { console.error(`[sm] fetch ${t.format} failed: ${e.message}`); }
+  }
+  if (ideas.length === 0) return { posted: 0, reason: "no records with Status=Visual Listo across Posts/Reels/Videos" };
 
   const results = [];
   let slotOffset = 0;
-  let halted = false;  // Set true when classifyError returns { action: 'halt' } — stops batch.
-  for (const idea of ideas) {
+  let halted = false;
+  for (const item of ideas) {
     if (halted) {
-      results.push({ id: idea.id, formato: idea.fields?.Formato, status: "halted_by_safety" });
+      results.push({ id: item.record.id, format: item.format, status: "halted_by_safety" });
       continue;
     }
+    const { tableId, format, record: idea } = item;
     const f = idea.fields || {};
     const visualUrl = f.visual_url || "";
-    const formato   = f.Formato || "";
-    const captionEn = f["🇺🇸 Caption EN"] || "";
-    const captionEs = f["🇲🇽 Caption ES"] || f["Mensaje Principal"] || "";
-    const hashtags  = f.Hashtags || "";
-    const caption   = `${captionEs}\n\n${captionEn}\n\n${hashtags}`.trim();
-    const scheduledTime = Math.floor(new Date(nextSlotISO(slotOffset * 24)).getTime() / 1000);  // Unix seconds for Meta
+    const lang      = String(f.Language || "ES").toUpperCase();
+    // Single-language Caption (no more Caption ES + Caption EN). Each record
+    // is one language. Caption + Hashtags compose the final published text.
+    const captionBody = f.Caption || "";
+    const hashtags    = f.Hashtags || "";
+    const caption     = `${captionBody}\n\n${hashtags}`.trim();
+    const scheduledTime = Math.floor(new Date(nextSlotISO(slotOffset * 24)).getTime() / 1000);
     slotOffset++;
 
-    // ── SAFETY GATE — caption audit + visual audit + rate budget ──
+    // ── SAFETY GATE ──
     const safety = await safetyCheckBeforePublish({
-      caption, visualUrl, formato,
-      durationSec: f.video_duration || 0,
+      caption, visualUrl, formato: format,
+      durationSec: f.Duration_Sec || 0,
       platform: "both",
-      smFetch,
-      fieldPublishedIds: FIELD_PUBLISHED_POST_IDS,
+      smFetch: (params) => smFetchIn(tableId, params),
+      fieldPublishedIds: "Published_FB_ID",
     });
     if (!safety.ok) {
       const reason = `safety blocked (${safety.blockReason}): ${(safety.details || []).join("; ")}`.slice(0, 500);
-      console.error(`[social_media] ${idea.id} ${reason}`);
-      await smUpdate(idea.id, { Error_Reason: reason }).catch(() => null);
-      results.push({ id: idea.id, formato, status: "safety_blocked", reason: safety.blockReason });
+      console.error(`[social_media] [${format}] ${idea.id} ${reason}`);
+      await smUpdateIn(tableId, idea.id, { Error_Reason: reason, Status: STATUS.ERROR }).catch(() => null);
+      results.push({ id: idea.id, format, lang, status: "safety_blocked", reason: safety.blockReason });
       continue;
     }
 
     let fbResult = null, igResult = null, fbErr = null, igErr = null;
 
     try {
-      if (formato === "Reel" || isVideo(visualUrl)) {
+      if (format === "Reel" || isVideo(visualUrl)) {
         fbResult = await publishFacebookReel({ pageId: FB_PAGE_ID, pageAccessToken: pageToken, videoUrl: visualUrl, caption, scheduledPublishTime: scheduledTime });
-      } else if (formato === "Carrusel") {
-        const slides = parseCarouselSlides(f[FIELD_CAROUSEL_URLS]);
-        const imgs = slides.length >= 2 ? slides : [visualUrl];
-        fbResult = await publishFacebookPhotoPost({ pageId: FB_PAGE_ID, pageAccessToken: pageToken, imageUrls: imgs, caption, scheduledPublishTime: scheduledTime });
       } else {
-        // Post / Story → single image.
+        // Post / Video (image preview) → single photo post.
         fbResult = await publishFacebookPhotoPost({ pageId: FB_PAGE_ID, pageAccessToken: pageToken, imageUrls: [visualUrl], caption, scheduledPublishTime: scheduledTime });
       }
     } catch (e) {
