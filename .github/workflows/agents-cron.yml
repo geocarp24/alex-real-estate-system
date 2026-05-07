@@ -215,6 +215,9 @@ jobs:
           ORACULO_BATCH_MAX:        "20"
           REESCRITOR_BATCH_MAX:     "15"
           CREATIVO_BATCH_MAX:       "15"
+          # Publisher cap — TEST mode 3 posts (Jorge 2026-05-07 first publisher test).
+          # Revert to 5 (default) after smoke test passes.
+          POSTS_PER_RUN:            "3"
           AIRTABLE_SM_BASE_ID:      "appU9s3kGkVpdrJkw"
           # Legacy unified table — kept for Carrusel format until migrated.
           AIRTABLE_SM_TABLE_ID:     "tblAj0Pkj1jW4p5Ld"
