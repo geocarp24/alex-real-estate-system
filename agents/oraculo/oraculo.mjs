@@ -92,6 +92,119 @@ async function smGet(recordId) {
   return r.json();
 }
 
+// ─── Deterministic fallback (no Sonnet) ───
+// Used when Anthropic API is unavailable (e.g. credit balance too low).
+// Rule-based scoring against the same 6 criteria. Lower confidence than
+// Sonnet but lets the pipeline keep moving without blocking on billing.
+function reviewIdeaDeterministic(record) {
+  const f = record.fields || {};
+  const titulo     = (f["Título de Idea"] || "").toLowerCase();
+  const hook       = (f.Hook || "").toLowerCase();
+  const captionEs  = (f["🇲🇽 Caption ES"] || "").toLowerCase();
+  const captionEn  = (f["🇺🇸 Caption EN"] || "").toLowerCase();
+  const cta        = (f.CTA || "").toLowerCase();
+  const tipo       = (f.Tipo || "").toLowerCase();
+  const visualPrompt = (f.Visual_Prompt || "");
+  const allText    = `${titulo} ${hook} ${captionEs} ${captionEn} ${cta} ${tipo}`;
+
+  let score = 0;
+  const notes = [];
+  let compliance = "OK";
+
+  // 1. Persona fit (0–3) — 6 distressed segments
+  const segments = [
+    { re: /foreclosure|embargo|atrasado|behind on/, label: "Pre-Foreclosure" },
+    { re: /divorce|divorc|separation|separac/, label: "Divorce" },
+    { re: /inherited|hered|estate|funeral/, label: "Inherited Property" },
+    { re: /back tax|taxes|impuestos|lien|tax lien/, label: "Behind on Taxes" },
+    { re: /landlord|tenant|inquilino|propietario cansado/, label: "Tired Landlord" },
+    { re: /relocat|mudanza|moving|out of state|job loss|relocaliza/, label: "Relocation" },
+  ];
+  const segmentMatch = segments.find(s => s.re.test(allText));
+  let personaFit;
+  if (segmentMatch) {
+    score += 3;
+    personaFit = `Segmento detectado: ${segmentMatch.label}`;
+  } else if (/wisconsin|cash buyer|sell my house|vender|distressed|homeowner/.test(allText)) {
+    score += 1.5;
+    personaFit = "Real estate genérico — falta segment específico";
+    notes.push("Refinar para hablar a un segment específico (foreclosure / inherited / divorce / back taxes / tired landlord / relocation)");
+  } else {
+    score += 0;
+    personaFit = "Sin match a persona Pinnacle";
+    notes.push("Idea no parece dirigirse a homeowner WI distressed — re-enfocar");
+  }
+
+  // 2. Brand voice (0–2)
+  let brandVoice = "OK";
+  // Spanish accents present (ortografía perfecta)
+  const hasAccents = /[áéíóúñ]/i.test(captionEs);
+  if (hasAccents || captionEs.length < 30) score += 1;
+  else { brandVoice = "Spanish sin acentos"; notes.push("Caption ES debe tener acentos perfectos (á é í ó ú ñ)"); }
+
+  // No investor jargon
+  const hasJargon = /\broi\b|\bcap rate\b|off-market|wholesaler|deal flow|flip margin/i.test(allText);
+  if (!hasJargon) score += 1;
+  else { brandVoice = (brandVoice === "OK" ? "" : brandVoice + " | ") + "Investor jargon"; notes.push("Eliminar jerga de inversor (ROI/cap rate/off-market) — audiencia es homeowner, no investor"); }
+
+  // 3. Compliance (deduct on red flags)
+  const ftcRed = /guaranteed|garantizado|no risk|sin riesgo|100%|never lose|nunca perder/i.test(allText);
+  if (ftcRed) {
+    score -= 2;
+    compliance = "RISK: FTC red flag (guaranteed/no risk)";
+    notes.push("Eliminar 'guaranteed' / 'no risk' / '100%' — FTC violation");
+  }
+  const hudRed = /only (white|black|hispanic|christian|jewish)|no kids|no families|no disabled/i.test(allText);
+  if (hudRed) {
+    score -= 3;
+    compliance = "RISK: HUD Fair Housing violation (discriminatory targeting)";
+    notes.push("CRITICAL — discriminatory targeting detectada — HUD Fair Housing");
+  }
+  // Homosexuality promotion (Jorge 2026-05-07)
+  const lgbtPromote = /lgbt|gay couple|same-sex|pareja gay|pareja del mismo/i.test(allText);
+  if (lgbtPromote) {
+    score -= 1;
+    compliance = (compliance === "OK" ? "" : compliance + " | ") + "Homosexuality promotion flagged";
+    notes.push("Pinnacle no promueve homosexualidad — usar pareja heterosexual tradicional");
+  }
+  if (compliance === "OK") score += 1;
+
+  // 4. Hook quality (0–1)
+  if (hook && hook.length >= 10 && hook.length <= 120) {
+    score += 1;
+    if (/[?¿]/.test(hook)) score += 0.5;
+  } else if (!hook) {
+    notes.push("Hook vacío — añadir 1 línea que abra curiosidad");
+  } else if (hook.length > 120) {
+    score += 0.3;
+    notes.push("Hook muy largo (>120 chars) — recortar");
+  }
+
+  // 5. CTA presence (0–1.5)
+  const phoneInCta = /920.*777.*9886|9207779886|\(920\) 777/.test(captionEs + " " + captionEn + " " + cta);
+  const webInCta   = /pinnaclegroupwi\.com/i.test(captionEs + " " + captionEn + " " + cta);
+  if (phoneInCta) score += 0.75; else notes.push("Falta teléfono (920) 777-9886 en CTA");
+  if (webInCta)   score += 0.75; else notes.push("Falta pinnaclegroupwi.com en CTA");
+
+  // 6. Visual_Prompt clarity (0–1)
+  if (/T[1-5]\b/i.test(visualPrompt)) score += 1;
+  else notes.push("Visual_Prompt debe especificar TEMA T1-T5");
+
+  // Clamp to 0–10 and round
+  score = Math.max(0, Math.min(10, Math.round(score * 10) / 10));
+  const verdict = score >= APPROVE_THRESHOLD ? "APPROVE" : "REJECT";
+
+  return {
+    score,
+    verdict,
+    persona_fit: personaFit,
+    brand_voice: brandVoice,
+    compliance,
+    improvement_notes: notes.join(" · ").slice(0, 400) || (verdict === "APPROVE" ? "OK — listo para Creativo" : "Revisar criterios"),
+    _source: "deterministic",
+  };
+}
+
 // ─── Sonnet review call ───
 async function reviewIdea(record, ctx) {
   const f = record.fields || {};
