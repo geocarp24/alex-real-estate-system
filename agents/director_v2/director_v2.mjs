@@ -291,16 +291,20 @@ async function resolveHero(scene, { pexelsKey, geminiKey, replicateKey, heygenEn
 //   Personal → hybrid: hook+CTA = HeyGen Jorge talking; points = flux2 cinematic (variety + cost).
 //   Educativo/Tip/Caso/Brand → all flux2 premium AI.
 //   default → keep spec value (Pexels/nano_banana per spec).
-function applyTipoContenidoRouting(scenes, tipo, env) {
+function applyTipoContenidoRouting(scenes, tipo, env, locale = 'es') {
   const t = String(tipo || '').toLowerCase();
+  const lang = locale === 'en' ? 'en' : 'es';
   if (!t) return;
   if (t === 'personal' && env.HEYGEN_API_KEY && env.HEYGEN_AVATAR_ID_JORGE) {
     for (const s of scenes) {
       // Hook + CTA scenes get Jorge talking via HeyGen; point scenes stay on flux2 cinematic.
       if (s.layoutType === 'hook' || s.layoutType === 'cta') {
         s.heroSource = 'heygen_avatar';
-        // Use the bilingual caption as the spoken script if not pre-set.
-        s.heyScript = s.heyScript || s.captionEs || s.captionEn;
+        s.locale = lang;                                              // drives pickVoiceId() inside resolveHero
+        // Honor locale: EN scripts → captionEn first; ES scripts → captionEs first.
+        s.heyScript = s.heyScript || (lang === 'en'
+          ? (s.captionEn || s.captionEs)
+          : (s.captionEs || s.captionEn));
       } else if (s.layoutType === 'point' && env.MODAL_FLUX2_ENDPOINT_URL) {
         s.heroSource = 'flux2';
       }
