@@ -523,6 +523,7 @@ async function processRecord(record, { env, dryRun, stats }) {
     const files = await renderScene(html, scene, recordTmp);
     frameOutputs.push({ index: scene.index, duration: scene.duration, imagePaths: files, zoompan: scene.zoompan, transitionOut: scene.transitionOut, kinetic: scene.kinetic, captionFile: assBody ? assFile : null });
   }
+  }
 
   const musicPath = pickMusic(spec.mood || 'upbeat', scenes.reduce((t, s) => t + s.duration, 0));
   const outputPath = dryRun ? join(SAMPLES, `dry_run_${recordId}.mp4`) : join(recordTmp, `${recordId}.mp4`);
