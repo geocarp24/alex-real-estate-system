@@ -106,6 +106,53 @@ export function buildAssSubtitle({ text, durationSec, karaoke = false, scriptFor
   ].join('\n');
 }
 
+// Template #4 Talking Head: ONE ASS file with N karaoke Dialogue events at proper time offsets — no per-scene xfade chain to break alignment.
+// Each event spans [startSec, startSec+durationSec], karaoke `\kf` over its words. Single fullscreen avatar = single video stream + this ASS burned in.
+export function buildCombinedAssSubtitle(events) {
+  if (!events?.length) return '';
+  const dialogueLines = events.map(ev => {
+    const text = String(ev.text || '').trim();
+    if (!text) return null;
+    const start = formatAssTime(ev.startSec);
+    const end   = formatAssTime(ev.startSec + ev.durationSec);
+    let body;
+    const scriptForKaraoke = ev.scriptForKaraoke || text;
+    const words = scriptForKaraoke.trim().split(/\s+/).filter(Boolean);
+    if (words.length) {
+      const totalCs = Math.round(ev.durationSec * 100);
+      const perWord = Math.floor(totalCs / words.length);
+      let remainder = totalCs - perWord * words.length;
+      const lineEvery = 3;
+      body = words.map((w, i) => {
+        let cs = perWord; if (remainder > 0) { cs++; remainder--; }
+        const sep = (i > 0 && i % lineEvery === 0) ? '\\N' : (i > 0 ? ' ' : '');
+        return `${sep}{\\kf${cs}}${w.replace(/[{}]/g, '')}`;
+      }).join('');
+    } else {
+      body = text.replace(/\n/g, '\\N').replace(/[{}]/g, '');
+    }
+    return `Dialogue: 0,${start},${end},Default,,0,0,0,,${body}`;
+  }).filter(Boolean);
+
+  return [
+    '[Script Info]',
+    'ScriptType: v4.00+',
+    'PlayResX: 1080',
+    'PlayResY: 1920',
+    'WrapStyle: 0',
+    'ScaledBorderAndShadow: yes',
+    '',
+    '[V4+ Styles]',
+    'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
+    'Style: Default,DejaVu Sans,68,&H003BEBFF,&H00FFFFFF,&H00000000,&H80000000,1,0,0,0,100,100,1,0,1,5,3,2,40,40,260,1',
+    '',
+    '[Events]',
+    'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text',
+    ...dialogueLines,
+    '',
+  ].join('\n');
+}
+
 export function shortMessage(err) {
   const name = err?.name || 'Error';
   const msg  = String(err?.message || err || 'unknown');
