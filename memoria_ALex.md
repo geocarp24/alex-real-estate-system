@@ -5,6 +5,64 @@
 
 ---
 
+## 2026-05-07 (PM) — Arsenal completo: 11 templates production-ready
+
+**Jorge confirmación 06:37 UTC**: 5 Reel + 5 Carrusel + 1 Post = 11 templates.
+
+### Reels/Videos — Director v2 (5 templates)
+1. **Hybrid Cinematic** (default) — HeyGen hook+CTA + FLUX2 puntos
+2. **PiP** (`template:"pip"`) — Circle 360px top-left + FLUX2 fullscreen
+3. **Voiceover** (`template:"voiceover"`) — Solo voz + FLUX2 fullscreen
+4. **TalkingHead** (`template:"talkinghead"`) — Avatar fullscreen solo
+5. **Editorial split-screen 70/30** (`template:"editorial"`) — FLUX2 dominante 70% top + avatar 30% bottom
+
+Karaoke globalmente fucsia `&H009314FF` (#FF1493).
+
+### Carruseles — 5 themes T1-T5 (`agents/creativo_runner/themes.mjs`)
+- T1 Dark Premium — bg #0D3B2E, accent gold #C9A84C (DEFAULT Pinnacle)
+- T2 White Clean — bg #FFFFFF, editorial cream
+- T3 Gold & Black — bg #1A1A1A, premium gold heavy
+- T4 Soft Cream — bg #F5F0E8, warm tone
+- T5 Vibrant Blue — bg #1B2A8C, accent fucsia + verde
+
+Builders: `slideHook` + `slidePoint` + `slideCTA` + `buildCarousel`. Logo Pinnacle 540px en hook/CTA.
+
+### Posts — 1 template editorial, 2 modos bg (NUEVO 2026-05-07)
+**Función**: `slidePostEditorial(theme, { hookEn, hookEs, ctaEs, bgUrl, photographer, badge })` en `themes.mjs`.
+
+Arquitectura:
+- Logo Pinnacle 540px (3x) top-left con drop-shadow
+- Hero hookEn 92pt black weight, white, text-shadow
+- Accent bar gold #C9A84C 96×4px
+- hookEs **fucsia #FF1493** 38pt (Jorge 2026-05-07 — fucsia parte del logo, mejor visibilidad sobre photo)
+- Bottom CTA: phrase muted + phone (920) 777-9886 54pt + website
+- Photographer credit micro 12pt rgba(.42)
+
+**Modo 1 — Pexels stock (FREE)**: deriveBgQuery() mapea keyword detection → query portrait. Seed deterministic por record.id (idempotente). Fallback evergreen library 8 fotos pre-curadas Wisconsin.
+
+**Modo 2 — FLUX-schnell ($0.003)**: deriveBgQuery() retorna `{ flux: "..." }` para keywords conceptuales/simbólicos. Replicate API directo, aspect 4:5. Actualmente solo `divorce|divorc|separation|separac`.
+
+Activación regla anti-regresión:
+- Divorce keyword → FLUX prompt explícito **"ONE WOMAN... ONE MAN... heterosexual married couple"** (Jorge: Pinnacle no promueve homosexualidad, target persona es pareja tradicional WI)
+- Divorce priority > testimonio (testimonio sobre divorce rutea a thematic divorce, no for-sale-sign)
+
+### Skills aplicadas (regla 1e)
+`impeccable` + `minimalist-ui` + `high-end-visual-design` + `emil-design-eng`. Default Pinnacle aesthetic: editorial limpio + warmth, NO tech-cyberpunk.
+
+### Aprobaciones Jorge (2026-05-07)
+- Posts: Testimonio Familia Martínez ✅, Green Bay (preserved) ✅, El Futuro Pinnacle ✅, Pinnacle Misión ✅, Testimonio Pareja Divorcio (FLUX hetero) ✅, Divorcio y Propiedades ✅
+- Total Posts producción: 6 (con branding nuevo 2026-05-07)
+
+### Pendientes
+- Wire `safety.mjs` en `runner.mjs::processPosts()` antes de cualquier publicación real FB+IG
+- Integrar `oraculo_inputs/wi_homeowner_persona.md` + `popup_copy.md` en pipeline Sonnet de creativo
+- Revertir `BATCH_MAX_PER_RUN` 10 → 3 cuando complete migración masiva
+- Rename Airtable fields legacy: `Blotato_Visual_ID` → `Carousel_URLs`, `Blotato_Post_IDs` → `Published_Post_IDs` (UI manual Jorge)
+
+---
+
+---
+
 ## 2026-05-07 — ARSENAL DE TEMPLATES VIDEO (Director v2)
 
 **Template #1 — HYBRID CINEMATIC + KARAOKE** ✅ APROBADO POR JORGE (ES + EN)
