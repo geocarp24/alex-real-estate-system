@@ -99,7 +99,7 @@ Output ONLY a JSON object — no prose, no markdown fences:
   "caption_es": "Caption ES 200-400 chars, anchored to a 6-segments distressed homeowner pain point, ends with phone (920) 777-9886 + pinnaclegroupwi.com",
   "caption_en": "Caption EN 200-400 chars, mirrors ES tone, same anchor segment, same CTA",
   "cta": "Single-line Spanish CTA (max 100 chars)",
-  "visual_prompt": "${isReel ? 'JSON narrative B for Director v2 (must be valid JSON with narrative/theme/template/aspect/duration/locale/hook{en,es}/points[]/cta{en,es})' : 'TITLE: <titulo> | TEMA: T1-T5 | <Formato> Pinnacle Audiencia: distressed Wisconsin homeowner [target segment]'}",
+  "visual_prompt": "${isReel ? 'JSON narrative B for Director v2: {\"narrative\":\"B\",\"theme\":\"T1-T5\",\"template\":\"voiceover|talkinghead|pip|editorial|hybrid\",\"aspect\":\"9:16\",\"duration\":7-15 ONLY,\"locale\":\"es\",\"hook\":{\"en\":\"\",\"es\":\"\"},\"points\":[{\"captionEs\":\"\",\"captionEn\":\"\",\"heroQuery\":\"\",\"heroPrompt\":\"\"}],\"cta\":{\"en\":\"\",\"es\":\"\"}}' : 'TITLE: <titulo> | TEMA: T1-T5 | <Formato> Pinnacle Audiencia: distressed Wisconsin homeowner [target segment]'}",
   "lesson": {
     "rejected_pattern": "1 line — what was wrong (e.g. 'company-centric framing')",
     "oraculo_critique_summary": "1 line — Oráculo's main point",
