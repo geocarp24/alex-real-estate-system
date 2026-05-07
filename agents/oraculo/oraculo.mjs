@@ -451,8 +451,8 @@ async function main() {
   }
 
   if (args.dryRun) {
-    console.log(`=== DRY RUN [oraculo] ${records.length} records ===`);
-    for (const r of records) console.log(`  ${r.id} | ${r.fields?.["Título de Idea"]}`);
+    console.log(`=== DRY RUN [oraculo] ${pending.length} records ===`);
+    for (const it of pending) console.log(`  [${it.format}] ${it.record.id} | ${it.record.fields?.Title}`);
     return;
   }
 
