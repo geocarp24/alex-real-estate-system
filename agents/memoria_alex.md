@@ -257,6 +257,25 @@ Detalle completo en `memoria_ALex.md` raíz sección "2026-05-02".
 
 ---
 
+## 2026-05-07 — Director v2: Templates #3 #4 #5 aprobados + karaoke FUCSIA global
+
+**Templates #3 Voiceover, #4 Talking Head, #5 Editorial split-screen 70/30 — APROBADOS por Jorge.** Detalles completos en `memoria_ALex.md` raíz. Triggers: `template:"voiceover"|"talkinghead"|"editorial"`. Todos reusan cache HeyGen del Template #2 (mismo script EN → $0 voz).
+
+**🎨 COLOR KARAOKE GLOBAL CAMBIADO**: amarillo `&H003BEBFF` → fucsia deep pink `&H009314FF` (#FF1493). Aplica a TODOS los templates #1-#5 retroactivamente. SecondaryColour (white) sin cambios.
+
+**Arsenal final 5 templates:**
+| # | Trigger | Layout |
+|---|---|---|
+| 1 | (default) | Hybrid: HeyGen hook+CTA + FLUX2 puntos |
+| 2 | `pip` | Circle 360px top-left + FLUX2 fullscreen |
+| 3 | `voiceover` | Solo voz + FLUX2 fullscreen |
+| 4 | `talkinghead` | Avatar fullscreen solo |
+| 5 | `editorial` | Split 70/30 (FLUX2 top + avatar bottom) |
+
+**Próximo paso:** integrar con El Director (template selection por contexto) + El Programador (Graph API directo Meta, deprecando Blotato).
+
+---
+
 ## 2026-05-07 — Director v2: Template #2 PiP aprobado (ES + EN)
 
 Trigger: spec field `template: "pip"` con `Tipo=Personal`. Detalles completos en `memoria_ALex.md` raíz.
