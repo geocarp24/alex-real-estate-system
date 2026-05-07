@@ -134,6 +134,22 @@ test('buildVideoCommand Template #3 Voiceover (audioOnly): no circle overlay, av
   assert.ok(mapIdx > -1, 'voiceover output map = [vout]');
 });
 
+test('buildVideoCommand Template #5 Editorial split: avatar bottom half + FLUX2 top half', () => {
+  const cmd = buildVideoCommand({
+    scenes: sampleScenes(),
+    musicPath: '/tmp/m.mp3',
+    outputPath: '/tmp/out.mp4',
+    globalAvatar: { videoPath: '/tmp/global_avatar.mp4', durationSec: 10, shape: 'split' },
+  });
+  const filter = cmd.args[cmd.args.indexOf('-filter_complex') + 1];
+  assert.ok(filter.includes('scale=1080:960'), 'avatar scaled to 1080x960 (bottom half of 9:16)');
+  assert.ok(filter.includes('crop=1080:960'), 'crop to bottom-half dims');
+  assert.ok(filter.includes('[avatar_split]'), 'split-shape avatar label');
+  assert.ok(filter.includes('overlay=x=0:y=960'), 'avatar positioned at y=960 (bottom half)');
+  assert.ok(!filter.includes('[avatar_circ]'), 'split shape does NOT use circular mask');
+  assert.ok(filter.includes('[vavatar]'), 'editorial uses avatar audio for voice');
+});
+
 test('buildVideoCommand Template #2 PiP: circular avatar overlay + global avatar audio', () => {
   const cmd = buildVideoCommand({
     scenes: sampleScenes(),
