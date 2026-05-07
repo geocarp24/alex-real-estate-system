@@ -257,7 +257,7 @@ export async function safetyCheckBeforePublish({ caption, visualUrl, formato, du
   if (!vis.ok) return { ok: false, blockReason: 'visual', details: vis.issues };
 
   // 3. Rate budget
-  const rate = await checkRateBudget({ smFetch, platform, fieldPublishedIds });
+  const rate = await checkRateBudget({ smFetch, platform, fieldPublishedIds, format: formato });
   if (!rate.allowed) return { ok: false, blockReason: 'rate', details: [rate.reason], retryAfterSec: rate.retryAfterSec };
 
   return { ok: true };
