@@ -144,56 +144,6 @@ function parseAllJSON(text) {
 }
 
 // ──────────────────────────────────────────────────────────────
-// Blotato REST helpers
-// ──────────────────────────────────────────────────────────────
-function blotatoHeaders() {
-  return { "blotato-api-key": BLOTATO_KEY, "Content-Type": "application/json" };
-}
-
-async function blotatoCreateVisual(templateId, prompt, inputs = {}) {
-  const r = await fetch(`${BLOTATO_BASE}/videos/from-templates`, {
-    method: "POST",
-    headers: blotatoHeaders(),
-    body: JSON.stringify({ templateId, prompt, inputs, render: true }),
-  });
-  return r.json();
-}
-
-async function blotatoGetVisual(visualId) {
-  const r = await fetch(`${BLOTATO_BASE}/videos/creations/${visualId}`, {
-    headers: blotatoHeaders(),
-  });
-  return r.json();
-}
-
-async function blotatoPollVisual(visualId, maxSec = POLL_MAX_SEC, intervalSec = POLL_INTERVAL) {
-  const start = Date.now();
-  while ((Date.now() - start) / 1000 < maxSec) {
-    await new Promise((res) => setTimeout(res, intervalSec * 1000));
-    const status = await blotatoGetVisual(visualId);
-    if (status.status === "done") return status;
-    if (status.status === "failed" || status.error) return status;
-  }
-  return { status: "timeout", id: visualId };
-}
-
-async function blotatoCreatePost({ accountId, platform, text, mediaUrls, scheduledTime, pageId, mediaType }) {
-  const payload = {
-    post: { text, mediaUrls },
-    target: { accountId, platform },
-    scheduledTime,
-  };
-  if (pageId) payload.target.pageId = pageId;
-  if (mediaType) payload.post.mediaType = mediaType;
-  const r = await fetch(`${BLOTATO_BASE}/posts`, {
-    method: "POST",
-    headers: blotatoHeaders(),
-    body: JSON.stringify(payload),
-  });
-  return r.json();
-}
-
-// ──────────────────────────────────────────────────────────────
 // Mode 1 — Generate ideas (Anthropic)
 // ──────────────────────────────────────────────────────────────
 async function generateIdeas(cfg, runId) {
