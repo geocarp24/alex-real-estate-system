@@ -347,7 +347,7 @@ Return JSON only.`;
 }
 
 // ─── Process one record ───
-async function processOne(record, ctx) {
+async function processOne(record, ctx, tableId, format) {
   const f = record.fields || {};
   const titulo = f.Title || record.id;
 
