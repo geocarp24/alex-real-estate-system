@@ -18,8 +18,10 @@
  * a future FLUX2 fallback is permitted but disabled by default to save cost.
  */
 
-const PEXELS_API_KEY = process.env.PEXELS_API_KEY || "";
-const PEXELS_API     = "https://api.pexels.com/v1";
+const PEXELS_API_KEY    = process.env.PEXELS_API_KEY    || "";
+const REPLICATE_TOKEN   = process.env.REPLICATE_API_TOKEN || "";
+const PEXELS_API        = "https://api.pexels.com/v1";
+const REPLICATE_FLUX_API = "https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions";
 
 // 8 evergreen Pinnacle backgrounds — used when Pexels fails. These are
 // portrait-oriented, warm-tone real estate scenes that fit the editorial
