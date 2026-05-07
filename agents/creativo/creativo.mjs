@@ -335,13 +335,11 @@ async function main() {
     const rec = await smGet(args.recordId);
     if (rec.id) records = [rec];
   } else {
-    // ORACULO GATE (Jorge 2026-05-07): Creativo only processes records that
-    // El Oráculo approved. Approved records have Visual_Prompt prefixed with
-    // "[ORACULO_OK score=N]". Rejected records have Error_Reason set and are
-    // skipped. This eliminates wasted Pexels/FLUX/Cloudinary calls on ideas
-    // that don't fit the persona or brand voice.
+    // ORACULO GATE (new schema 2026-05-07): Creativo only processes Posts records
+    // that El Oráculo approved (Status='Oraculo OK') and don't yet have a visual.
+    // Posts table has only Posts (no Reels/Videos), so no Formato filter needed.
     const filter = encodeURIComponent(
-      `AND(FIND('[ORACULO_OK', {Visual_Prompt})>0, OR({visual_url}='', NOT({visual_url})), NOT(OR({Formato}='Reel', {Formato}='Video')))`
+      `AND({Status}='${STATUS.ORACULO_OK}', OR({visual_url}='', NOT({visual_url})))`
     );
     const r = await smFetch(`filterByFormula=${filter}&maxRecords=${BATCH_MAX_PER_RUN}`);
     records = r.records || [];
