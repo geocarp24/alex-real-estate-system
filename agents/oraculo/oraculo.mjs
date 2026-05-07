@@ -283,8 +283,8 @@ REVIEW CRITERIA:
 2. BRAND VOICE — Warm, no-pressure, no investor jargon, no salesy hype. "Cash buyer" OK. "ROI / cap rate / off-market deal" = REJECT.
 3. COMPLIANCE — No FTC red flags ("guaranteed", "no risk"). No HUD Fair Housing violations (race/family/disability targeting). No promotion of homosexuality in visual concepts.
 4. HOOK QUALITY — Opens curiosity in <12 words. Should mention pain point or benefit.
-5. CTA PRESENCE — phone (920) 777-9886 + pinnaclegroupwi.com mandatory in caption ES + EN.
-6. VISUAL_PROMPT CLARITY — Should specify TEMA T1-T5 and be actionable for Creativo.
+5. CTA PRESENCE — phone (920) 777-9886 + pinnaclegroupwi.com mandatory in caption (this record is in ${lang} — perfect orthography for Spanish required: acentos á é í ó ú, ñ).
+6. THEME CLARITY — Theme_Code (T1-T5) should fit the segment + tone.
 
 APPROVE if score >= 7. Otherwise REJECT with concrete improvement_notes.
 
