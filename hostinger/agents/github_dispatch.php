@@ -49,7 +49,7 @@ if (!in_array($repo, $allowed_repos)) {
     die(json_encode(['error' => 'Repo not authorized']));
 }
 
-$allowed_workflows = ['supervisor-cron.yml','agents-cron.yml','deploy-hostinger.yml','deploy-vps-bot.yml','deploy-modal.yml'];
+$allowed_workflows = ['supervisor-cron.yml','agents-cron.yml','deploy-hostinger.yml','deploy-vps-bot.yml','deploy-modal.yml','heygen-fetch-ref.yml'];
 if (!in_array($workflow, $allowed_workflows)) {
     http_response_code(403);
     die(json_encode(['error' => 'Workflow not authorized']));
