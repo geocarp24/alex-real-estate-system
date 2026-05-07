@@ -47,9 +47,6 @@ const FB_PAGE_ID      = "965320503341457";  // Pinnacle Holdings Group
 const FIELD_CAROUSEL_URLS      = "Blotato_Visual_ID";
 const FIELD_PUBLISHED_POST_IDS = "Blotato_Post_IDs";
 
-// ── Pinnacle brand ──
-const LOGO_URL = "https://pinnaclegroupwi.com/wp-content/uploads/2026/03/logo-pinnacle.png";
-
 // ── Caps ──
 const IDEAS_PER_RUN  = 3;
 const VISUALS_PER_RUN = 5;
