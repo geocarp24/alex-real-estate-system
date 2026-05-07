@@ -2,22 +2,30 @@
 /**
  * Social Media — full pipeline orchestrator (Pinnacle Holdings).
  *
- * Replaces the manual Claude-Code-only Social Media Agent + Creativo + Director
- * + Programador chain with a single runner that hits Blotato REST API directly.
- *
  * Modes:
- *   generate_ideas    — Sonnet 4.6 generates N new ideas, stores in Airtable
- *   process_visuals   — for ideas with Visual_Prompt and no visual_url, call
- *                       Blotato AI Slide Generator, poll, store URL.
- *   process_posts     — for ideas with visual_url and no Blotato_Post_IDs,
- *                       schedule on FB + IG via Blotato.
- *   full_pipeline     — generate_ideas → process_visuals → process_posts
+ *   generate_ideas    — Sonnet 4.6 generates N new ideas, stores in Airtable.
+ *   process_posts     — for ideas with visual_url + Status=Visual Listo and no
+ *                       Published_Post_IDs, schedule on FB + IG via Meta Graph API.
+ *   full_pipeline     — generate_ideas → process_posts.
+ *
+ * Visual generation (was process_visuals via Blotato) is now handled by:
+ *   • El Creativo runner (Puppeteer carousels)
+ *   • El Director v2 runner (Reels via HeyGen + FLUX2)
+ * Both have their own crons and read Airtable directly.
  *
  * Cron: every 3 days from agents-cron.yml. Each run aims to publish 1-3 posts.
+ *
+ * 2026-05-07: Blotato deprecated by Jorge — all publishing migrated to direct
+ *             Meta Graph API. See `graph_api.mjs` for the publisher functions.
  */
 import { parseArgs, loadTenant, telegramSend, genRunId, isoNow } from "../_shared/runner.mjs";
+import {
+  publishFacebookPhotoPost, publishFacebookReel,
+  publishInstagramReel, publishInstagramCarousel, publishInstagramImage,
+  getInstagramUserId, getPageAccessToken,
+} from "./graph_api.mjs";
 
-const VALID_MODES = ["generate_ideas", "process_visuals", "process_posts", "full_pipeline"];
+const VALID_MODES = ["generate_ideas", "process_posts", "full_pipeline"];
 
 // ── Pinnacle SM Airtable (separate base from CRM) ──
 const SM_BASE  = "appU9s3kGkVpdrJkw";
@@ -25,13 +33,19 @@ const SM_TABLE = "tblAj0Pkj1jW4p5Ld";  // Ideas de Contenido
 const SM_TOKEN = process.env.SM_AIRTABLE_TOKEN
   || "patSlNwngu7SJoa52.003c83df8f6e378af5309237e310a36568a037448709d94b10739d032f9e8ef7";
 
-// ── Blotato config ──
-const BLOTATO_BASE = "https://backend.blotato.com/v2";
-const BLOTATO_KEY  = process.env.BLOTATO_API_KEY || "";
-const FB_ACCOUNT_ID  = "25638";
-const FB_PAGE_ID     = "965320503341457";
-const IG_ACCOUNT_ID  = "39285";
-const TEMPLATE_CARRUSEL = "53cfec04-2500-41cf-8cc1-ba670d2c341a";  // AI Slide Generator
+// ── Meta Graph API config ──
+// META_USER_TOKEN: long-lived User Access Token from "Pinnacle Social Publisher" app.
+// META_PAGE_ACCESS_TOKEN (optional): pre-resolved Page token. If absent, derived from User token via /me/accounts.
+const META_USER_TOKEN = process.env.META_USER_TOKEN || "";
+const META_PAGE_TOKEN = process.env.META_PAGE_ACCESS_TOKEN || "";
+const FB_PAGE_ID      = "965320503341457";  // Pinnacle Holdings Group
+
+// ── Airtable field names (source of truth, kept in one place for easy rename) ──
+// NOTE 2026-05-07: legacy field names "Blotato_*" still hold the data — Jorge will rename in Airtable UI.
+//   Blotato_Visual_ID  → carousel slide URLs (pipe-separated, prefix `puppeteer:N_slides|`)
+//   Blotato_Post_IDs   → published media IDs after FB/IG publish (`fb:<id>,ig:<id>`)
+const FIELD_CAROUSEL_URLS      = "Blotato_Visual_ID";
+const FIELD_PUBLISHED_POST_IDS = "Blotato_Post_IDs";
 
 // ── Pinnacle brand ──
 const LOGO_URL = "https://pinnaclegroupwi.com/wp-content/uploads/2026/03/logo-pinnacle.png";
