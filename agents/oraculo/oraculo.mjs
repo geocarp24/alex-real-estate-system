@@ -362,7 +362,7 @@ async function processOne(record, ctx) {
   ].filter(Boolean).join(" | ").slice(0, 500);
 
   await smUpdate(record.id, { Error_Reason: reason });
-  return { id: record.id, titulo, status: "rejected", score, reason };
+  return { id: record.id, titulo, status: "rejected", score, source: reviewSource, reason };
 }
 
 // ─── Main ───
