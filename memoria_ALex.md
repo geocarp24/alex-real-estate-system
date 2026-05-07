@@ -11,7 +11,8 @@
 
 Jorge 2026-05-07 PM: "check this video ID for futures reference to create a video some different as a normal video, this will catch eyes definitely, so learn about it".
 
-**Plataforma**: PENDIENTE — Jorge debe especificar (HeyGen / Arcads / Replicate / otra).
+**Plataforma**: HeyGen (Jorge 2026-05-07 19:25 UTC confirmed).
+**Endpoint fetch**: `GET https://api.heygen.com/v1/video_status.get?video_id=06542d8b77b54fd6b9504725b8609f35` con header `X-Api-Key: $HEYGEN_API_KEY`.
 
 **Intención**: cuando Director v2 genere Reels en el futuro, debe inspirarse en el estilo de este video — eye-catching, diferente del look "normal", para destacar el feed Pinnacle. Es referencia de estética/dinámica de cámara/transiciones, NO de contenido.
 
