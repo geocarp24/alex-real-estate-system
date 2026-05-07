@@ -244,16 +244,17 @@ export function slidePostEditorial(themeCode, { hookEn, hookEs, ctaEs, bgUrl, ph
       background:radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.22) 100%);
       z-index:3; pointer-events:none;"></div>
 
-    <!-- Layer 5: brand frame (logo + badge) -->
+    <!-- Layer 5: brand frame (logo + badge) — logo 540px (3x) per Jorge 2026-05-07 -->
     <img src="${LOGO_URL}" alt="Pinnacle Holdings" style="
-      position:absolute; top:64px; left:64px; width:180px; height:auto;
-      filter:drop-shadow(0 4px 14px rgba(0,0,0,.45));
+      position:absolute; top:64px; left:64px; width:540px; height:auto;
+      filter:drop-shadow(0 6px 22px rgba(0,0,0,.55));
       z-index:5;" />
     ${badgeChip}
 
-    <!-- Layer 6: hero hook (vertically centered, slight weight to upper third) -->
+    <!-- Layer 6: hero hook — pushed down to clear larger logo (top:460) -->
+    <!-- hookEs in Pinnacle fuchsia #FF1493 (Jorge 2026-05-07) — replaces gold for visibility on photo bg -->
     <div style="
-      position:absolute; top:340px; left:72px; right:72px;
+      position:absolute; top:460px; left:72px; right:72px;
       z-index:6; display:flex; flex-direction:column; gap:28px;">
       <h1 style="
         margin:0; font-size:92px; font-weight:900; line-height:1.02;
@@ -264,8 +265,8 @@ export function slidePostEditorial(themeCode, { hookEn, hookEs, ctaEs, bgUrl, ph
       <div style="width:104px; height:5px; background:${theme.accent}; border-radius:4px;"></div>
       ${hookEsText ? `<p style="
         margin:0; font-size:38px; font-weight:600; line-height:1.22;
-        color:${theme.accent}; letter-spacing:-0.005em;
-        text-shadow:0 2px 16px rgba(0,0,0,0.45); max-width:920px;">
+        color:#FF1493; letter-spacing:-0.005em;
+        text-shadow:0 2px 18px rgba(0,0,0,0.65); max-width:920px;">
         ${esc(hookEsText)}
       </p>` : ""}
     </div>
