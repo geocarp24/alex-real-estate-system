@@ -301,7 +301,9 @@ async function processOne(record) {
     }
   }
 
-  // 5. Update Airtable: cover URL + all URLs joined.
+  // 5. Update Airtable: cover URL + all slide URLs joined.
+  // Field "Blotato_Visual_ID" holds the carousel slide URLs (legacy field name from Blotato era — Jorge will rename in Airtable UI to Carousel_URLs).
+  // Format: "puppeteer:N_slides|url1|url2|..." — parsed by social_media/runner.mjs::parseCarouselSlides().
   const coverUrl = urls[0];
   const allUrls  = urls.join("|");
   await smUpdate(record.id, {
