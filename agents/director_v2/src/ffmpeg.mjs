@@ -34,7 +34,7 @@ export function buildVideoCommand({ scenes, musicPath, outputPath, width = 1080,
 
   const filterParts = [];
   scenes.forEach((s, i) => {
-    const cap = buildCaptionDrawtext(s.captionFile);
+    const cap = buildCaptionSubtitles(s.captionFile);
     if (s.videoPath) {
       // Video clip: scale/crop to canvas, trim to duration. No zoompan (avatar is the focal element). Caption burned in last so it overlays the avatar.
       filterParts.push(
