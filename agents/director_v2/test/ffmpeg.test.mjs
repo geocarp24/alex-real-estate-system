@@ -114,3 +114,30 @@ test('buildVideoCommand omits subtitles filter when captionFile is null', () => 
   const filter = cmd.args[cmd.args.indexOf('-filter_complex') + 1];
   assert.ok(!filter.includes('subtitles='), 'no subtitles filter when scenes lack captionFile');
 });
+
+test('buildVideoCommand Template #2 PiP: circular avatar overlay + global avatar audio', () => {
+  const cmd = buildVideoCommand({
+    scenes: sampleScenes(),
+    musicPath: '/tmp/m.mp3',
+    outputPath: '/tmp/out.mp4',
+    globalAvatar: { videoPath: '/tmp/global_avatar.mp4', durationSec: 12 },
+  });
+  // Avatar input is the LAST input (after scenes + music).
+  const inputCount = cmd.args.filter(a => a === '-i').length;
+  assert.equal(inputCount, sampleScenes().length + 2, 'must add global avatar as last input');
+  assert.ok(cmd.args.includes('/tmp/global_avatar.mp4'), 'avatar path in args');
+
+  const filter = cmd.args[cmd.args.indexOf('-filter_complex') + 1];
+  assert.ok(filter.includes('format=rgba'), 'avatar must be converted to RGBA for alpha mask');
+  assert.ok(filter.includes('geq=r='), 'circular alpha mask via geq');
+  assert.ok(filter.includes('hypot('), 'distance-from-center math');
+  assert.ok(filter.includes('[avatar_circ]'), 'circular avatar label');
+  assert.ok(filter.includes('overlay=x=(W-w)/2'), 'centered horizontal overlay');
+  assert.ok(filter.includes('[vfinal]'), 'final video label after overlay');
+  assert.ok(filter.includes('[vavatar]'), 'avatar audio label for sidechain voice path');
+  assert.ok(filter.includes('sidechaincompress'), 'music still ducked under avatar voice');
+
+  // Map should select [vfinal] not [vout].
+  const mapIdx = cmd.args.findIndex((a, i) => a === '-map' && cmd.args[i+1] === '[vfinal]');
+  assert.ok(mapIdx > -1, 'output map must be [vfinal]');
+});
