@@ -379,7 +379,11 @@ async function processRecord(record, { env, dryRun, stats }) {
   const recordTmp = join(TMP, recordId);
   await mkdir(recordTmp, { recursive: true });
 
-  const spec = parseVisualPrompt(record.fields.Visual_Prompt);
+  // New schema (2026-05-07): build spec from explicit Slide_N fields.
+  // Backward-compat: if record has legacy Visual_Prompt JSON, parse that.
+  const spec = record.fields.Slide_1_Hook
+    ? buildSpecFromReelRecord(record)
+    : parseVisualPrompt(record.fields.Visual_Prompt);
   validateSpec(spec);
   const scenes = expandNarrative(spec);
   const template = (spec.template || 'hybrid').toLowerCase();
