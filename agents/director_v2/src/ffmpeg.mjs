@@ -52,10 +52,11 @@ export function buildVideoCommand({ scenes, musicPath, outputPath, width = 1080,
 
   const filterParts = [];
   scenes.forEach((s, i) => {
+    const cap = buildCaptionDrawtext(s.captionFile);
     if (s.videoPath) {
-      // Video clip: scale/crop to canvas, trim to duration. No zoompan (avatar is the focal element).
+      // Video clip: scale/crop to canvas, trim to duration. No zoompan (avatar is the focal element). Caption burned in last so it overlays the avatar.
       filterParts.push(
-        `[${i}:v]scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},setsar=1,fps=${FPS},trim=duration=${s.duration}[v${i}]`
+        `[${i}:v]scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},setsar=1,fps=${FPS},trim=duration=${s.duration}${cap}[v${i}]`
       );
       return;
     }
@@ -64,7 +65,7 @@ export function buildVideoCommand({ scenes, musicPath, outputPath, width = 1080,
     const frames = Math.max(1, Math.round(FPS * s.duration));
     const zExpr = `min(${z0}+(${z1}-${z0})*on/${frames-1 || 1},${Math.max(z0, z1)})`;
     filterParts.push(
-      `[${i}:v]scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},zoompan=z='${zExpr}':d=${frames}:s=${width}x${height}:fps=${FPS}[v${i}]`
+      `[${i}:v]scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},zoompan=z='${zExpr}':d=${frames}:s=${width}x${height}:fps=${FPS}${cap}[v${i}]`
     );
   });
 
