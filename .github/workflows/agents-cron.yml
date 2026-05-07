@@ -209,7 +209,13 @@ jobs:
           META_PAGE_ACCESS_TOKEN:   ${{ secrets.META_PAGE_ACCESS_TOKEN }}
           # Director v2 expects AIRTABLE_SM_* prefix. AIRTABLE_SM_TOKEN comes from Doppler ($GITHUB_ENV).
           AIRTABLE_SM_BASE_ID:      "appU9s3kGkVpdrJkw"
+          # Legacy unified table — kept for Carrusel format until migrated.
           AIRTABLE_SM_TABLE_ID:     "tblAj0Pkj1jW4p5Ld"
+          # New 3-table architecture (Jorge 2026-05-07): Posts / Reels / Videos.
+          # Bilingual = separate records per language linked by Source_Idea_ID.
+          AIRTABLE_SM_POSTS_TABLE_ID:  "tblE3lz6XNcBNgpg5"
+          AIRTABLE_SM_REELS_TABLE_ID:  "tblhbg4JSm2iND3Cs"
+          AIRTABLE_SM_VIDEOS_TABLE_ID: "tblbjYosR1tpnjRV0"
           # video_toolkit — Modal cloud GPU endpoints (Plan A: faceless premium Reels).
           # Soft-optional: when missing, video_toolkit branch falls back to Director v2 default.
           MODAL_QWEN3_TTS_ENDPOINT_URL:    ${{ secrets.MODAL_QWEN3_TTS_ENDPOINT_URL }}
