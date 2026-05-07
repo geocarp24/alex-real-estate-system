@@ -55,8 +55,8 @@ test('buildVideoCommand duration roughly matches sum of scenes minus xfade overl
   const cmd = buildVideoCommand({ scenes: sampleScenes(), musicPath: '/tmp/m.mp3', outputPath: '/tmp/out.mp4' });
   const tIdx = cmd.args.indexOf('-t');
   const durArg = parseFloat(cmd.args[tIdx + 1]);
-  // sum(2.5+2.0+2.0+2.0+2.5)=11, minus 4×0.3 overlap = 9.8. Allow ±0.5
-  assert.ok(durArg > 9.0 && durArg < 10.5, `expected ~9.8, got ${durArg}`);
+  // sum(2.5+2.0+2.0+2.0+2.5)=11, minus 4×0.6 overlap = 8.6. Allow ±0.5
+  assert.ok(durArg > 8.0 && durArg < 9.5, `expected ~8.6, got ${durArg}`);
 });
 
 test('buildVideoCommand mixes HeyGen voice audio with music — Jorge must be heard (regression: 2026-05-06)', () => {
