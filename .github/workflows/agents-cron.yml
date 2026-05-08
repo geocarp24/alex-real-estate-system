@@ -130,11 +130,26 @@ jobs:
             "30 21 */3 * *")     agent=creativo;     mode=batch ;;
             "0 22 */3 * *")      agent=director_v2;  mode=batch ;;
             "0 6 * * *")         agent=analitico;    mode=batch ;;
+            # Sprint A4 — slot-driven publisher (12 cron entries, one per CT slot).
+            "30 11 * * *")       agent=social_media; mode=process_posts; tp=IG; tf=Post ;;
+            "0 12 * * *")        agent=social_media; mode=process_posts; tp=FB; tf=Post ;;
+            "30 16 * * *")       agent=social_media; mode=process_posts; tp=FB; tf=Post ;;
+            "30 17 * * *")       agent=social_media; mode=process_posts; tp=FB; tf=Reel ;;
+            "0 18 * * *")        agent=social_media; mode=process_posts; tp=IG; tf=Post ;;
+            "0 21 * * *")        agent=social_media; mode=process_posts; tp=IG; tf=Reel ;;
+            "50 22 * * *")       agent=social_media; mode=process_posts; tp=FB; tf=Post ;;
+            "0 0 * * *")         agent=social_media; mode=process_posts; tp=IG; tf=Post ;;
+            "0 1 * * *")         agent=social_media; mode=process_posts; tp=FB; tf=Reel ;;
+            "30 1 * * 1,2,4,6")  agent=social_media; mode=process_posts; tp=IG; tf=Video ;;
+            "0 2 * * 1,2,4,6")   agent=social_media; mode=process_posts; tp=FB; tf=Video ;;
+            "0 2 * * *")         agent=social_media; mode=process_posts; tp=IG; tf=Reel ;;
             *)                   agent="${{ inputs.agent || 'mercader' }}"; mode="${{ inputs.mode || 'quick_health' }}" ;;
           esac
           echo "agent=$agent" >> $GITHUB_OUTPUT
           echo "mode=$mode"   >> $GITHUB_OUTPUT
-          echo "Selected: $agent --mode $mode"
+          echo "target_platform=${tp:-}" >> $GITHUB_OUTPUT
+          echo "target_format=${tf:-}"   >> $GITHUB_OUTPUT
+          echo "Selected: $agent --mode $mode${tp:+ --target-platform $tp}${tf:+ --target-format $tf}"
 
       - name: Install Doppler CLI
         uses: dopplerhq/cli-action@v3
