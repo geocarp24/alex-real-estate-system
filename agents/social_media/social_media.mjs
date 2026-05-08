@@ -245,18 +245,34 @@ Each idea schema (BILINGUAL — generate BOTH es and en for every field):
   "hashtags_es": "5 hashtags", "hashtags_en": "5 hashtags",
   "theme_code": "T1"|"T2"|"T3"|"T4"|"T5",
   "visual_concept": "Pexels query OR FLUX prompt — for Posts only",
-  "reel": { "slides": [
-    {"hook": "5-7 words"},  // slide 1
-    {"text": "8-14 words", "visual": "pexels query | flux: prompt"},  // slide 2
-    {"text": "8-14 words", "visual": "..."},  // slide 3
-    {"text": "8-14 words", "visual": "..."},  // slide 4
-    {"cta": "5-7 words including phone"}  // slide 5
-  ], "template": "hybrid|pip|voiceover|editorial", "music": "chill|cinematic|tension|upbeat-1" }
+  "reel": {
+    "template": "hybrid|pip|voiceover|editorial",
+    "music": "chill|cinematic|tension|upbeat-1",
+    "slides_es": [
+      {"hook": "5-7 PALABRAS español"},
+      {"text": "8-14 palabras español, sustantivo", "visual": "pexels query | flux: prompt"},
+      {"text": "8-14 palabras español", "visual": "..."},
+      {"text": "8-14 palabras español", "visual": "..."},
+      {"cta": "5-7 palabras español con (920) 777-9886"}
+    ],
+    "slides_en": [
+      {"hook": "5-7 WORDS English"},
+      {"text": "8-14 words English, substantive", "visual": "pexels query | flux: prompt"},
+      {"text": "8-14 words English", "visual": "..."},
+      {"text": "8-14 words English", "visual": "..."},
+      {"cta": "5-7 words English with (920) 777-9886"}
+    ]
+  }
 }
 
-For Posts: include caption + hook + cta + visual_concept. Skip "reel" key.
-For Reels: include reel.slides + reel.template + caption (full IG description, separate from in-video text).
-For Videos: include hook + caption + main_message + script_outline + cta.`;
+HARD RULES (Reel idea is REJECTED if any violated):
+- For Reels you MUST include reel.slides_es AND reel.slides_en — ALWAYS BOTH, ALWAYS 5 elements each.
+- Slides 2/3/4 MUST have non-empty "text" field (8-14 words) — NEVER leave blank or use placeholder.
+- Each slide_2/3/4 visual MUST have format "<pexels query> | flux: <flux prompt>".
+- Slide 1 MUST have "hook" field. Slide 5 MUST have "cta" field including phone (920) 777-9886.
+- For Posts: include hook + caption + cta + visual_concept (no "reel" key).
+- For Videos: include hook + caption + main_message + script_outline + cta (no "reel" key).
+- ALL bilingual fields require BOTH _es and _en versions populated. Never leave EN blank if it's a bilingual field.`;
 
   const userPrompt = `Generate ${IDEAS_PER_RUN} fresh ideas for this week. Mix formats (1 Post, 1 Reel, 1 either). Cover topics like:
 - Foreclosure help Wisconsin
