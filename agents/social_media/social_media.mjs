@@ -44,6 +44,8 @@ import {
   makePlatformAssigner,
   decideFormat,
 } from "./theme_bank_loader.mjs";
+// Sprint A7 (2026-05-08): Director v2 template rotation for visual variety.
+import { makeTemplateRotator } from "./template_rotator.mjs";
 
 const VALID_MODES = ["generate_ideas", "process_posts", "full_pipeline", "batch_weekly"];
 
