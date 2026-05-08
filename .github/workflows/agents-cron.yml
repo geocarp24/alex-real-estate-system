@@ -89,6 +89,18 @@ on:
         type: string
         required: false
         default: ""
+      target_platform:
+        description: "(social_media mode=process_posts) FB or IG"
+        type: choice
+        required: false
+        default: ""
+        options: ["", "FB", "IG"]
+      target_format:
+        description: "(social_media mode=process_posts) Post / Reel / Video"
+        type: choice
+        required: false
+        default: ""
+        options: ["", "Post", "Reel", "Video"]
 
 concurrency:
   # Agent-specific group so dispatches of different agents (oraculo / reescritor /
