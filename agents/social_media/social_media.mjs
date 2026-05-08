@@ -343,7 +343,9 @@ ${recentTitles.join(" / ") || "(none)"}
 
 Return JSON only — for EACH topic above, generate one idea with both ES and EN versions in EVERY bilingual field. Use the SUBTOPIC_ID as a reference but DO NOT include it in the output JSON.`;
 
-  const { text, error } = await callAnthropic(newSystemPrompt, userPrompt, 4000);
+  // Larger batch needs higher max_tokens. ~600 tokens per bilingual idea worst-case.
+  const maxTokens = Math.min(64000, Math.max(4000, count * 700));
+  const { text, error } = await callAnthropic(newSystemPrompt, userPrompt, maxTokens);
   if (error) return { created: 0, error };
   const ideas = parseAllJSON(text);
   if (ideas.length === 0) return { created: 0, error: "no ideas parsed", raw: text.slice(0, 200) };
@@ -353,7 +355,7 @@ Return JSON only — for EACH topic above, generate one idea with both ES and EN
   const platformNext = makePlatformAssigner(0);
 
   const created = [];
-  for (const idea of ideas.slice(0, IDEAS_PER_RUN)) {
+  for (const idea of ideas.slice(0, count)) {
     const format = String(idea.format || "Post");
     const sourceId = String(Date.now()) + Math.floor(Math.random()*1000).toString().padStart(3,"0");
     const targetPlatform = platformNext();  // FB or IG, alternating
