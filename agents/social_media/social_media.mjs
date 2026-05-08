@@ -320,7 +320,7 @@ HARD RULES (Reel idea is REJECTED if any violated):
   try { themeBank = loadThemeBank(); }
   catch (e) { return { created: 0, error: `theme bank load failed: ${e.message}` }; }
   const recentTitles = await getRecentTitles();
-  const picks = pickBatch(themeBank, IDEAS_PER_RUN);
+  const picks = pickBatch(themeBank, count);
   if (picks.length === 0) return { created: 0, error: "theme bank pickBatch returned 0 picks" };
 
   const topicsBlock = picks.map((p, i) => `
@@ -334,7 +334,7 @@ ${i + 1}. PILLAR: ${p.pillar.name_en} (id=${p.pillar.id})
    COLOR_THEME: ${p.pillar.color_theme_default || "T1"}
    TONE: ${p.pillar.tone || "neutral"}`).join("\n");
 
-  const userPrompt = `Generate ${picks.length} ideas — ONE for EACH topic listed below from the curated Theme Bank. The titles were chosen strategically — refine wording if needed but keep the spirit. The format hint, funnel stage, and tone guide your output.
+  const userPrompt = `Generate exactly ${picks.length} ideas — ONE for EACH topic listed below from the curated Theme Bank. The titles were chosen strategically — refine wording if needed but keep the spirit. The format hint, funnel stage, and tone guide your output.
 
 ${topicsBlock}
 
