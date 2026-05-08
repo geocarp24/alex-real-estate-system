@@ -38,11 +38,14 @@ import {
   validatePublisherArgs,
 } from "./publisher_helpers.mjs";
 // Sprint A6 (2026-05-08): Theme Bank guided idea generation.
+// Sprint A12 (2026-05-08): force format mix to match cadence slot inventory.
 import {
   loadThemeBank,
   pickBatch,
   makePlatformAssigner,
   decideFormat,
+  applyFormatDistribution,
+  WEEKLY_FORMAT_MIX,
 } from "./theme_bank_loader.mjs";
 // Sprint A7 (2026-05-08): Director v2 template rotation for visual variety.
 import { makeTemplateRotator } from "./template_rotator.mjs";
