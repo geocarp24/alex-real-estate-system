@@ -37,6 +37,13 @@ import {
   isVideoUrl,
   validatePublisherArgs,
 } from "./publisher_helpers.mjs";
+// Sprint A6 (2026-05-08): Theme Bank guided idea generation.
+import {
+  loadThemeBank,
+  pickBatch,
+  makePlatformAssigner,
+  decideFormat,
+} from "./theme_bank_loader.mjs";
 
 const VALID_MODES = ["generate_ideas", "process_posts", "full_pipeline"];
 
