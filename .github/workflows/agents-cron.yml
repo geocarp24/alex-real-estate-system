@@ -37,16 +37,8 @@ on:
     # Compliance
     - cron:  "0 20 */3 * *"           # auditor:weekly
     # Social Media — batch_weekly idea generation (Sprint A6 Jorge 2026-05-08).
-    # Sunday 18:00 CDT / 17:00 CST = 23:00 UTC. Generates 78 ideas for the week
-    # using the Theme Bank, distributed across 8 pillars by weight_pct.
     - cron:  "0 23 * * 0"             # social_media batch_weekly (Sun 18:00 CDT)
     # Social Media — slot-driven publisher (Sprint A4 Jorge 2026-05-08).
-    # 12 fixed CT slots/day. Time conversion uses CDT (UTC-5) for cron triggers;
-    # the publisher's getNextFixedSlot resolves the actual slot in America/Chicago
-    # (auto-DST), so during CST (Nov-Mar) Meta Graph API still schedules the post
-    # at the intended wall-clock time.
-    # Single-slot fixed cadence: 1 record published per cron run, target platform
-    # and format passed as CLI args. Replaces the old "30 20 */3 * *" full_pipeline.
     - cron:  "30 11 * * *"            # social_media IG Post  06:30 CT
     - cron:  "0 12 * * *"             # social_media FB Post  07:00 CT
     - cron:  "30 16 * * *"            # social_media FB Post  11:30 CT
@@ -56,19 +48,14 @@ on:
     - cron:  "50 22 * * *"            # social_media FB Post  17:50 CT
     - cron:  "0 0 * * *"              # social_media IG Post  19:00 CT (next UTC day)
     - cron:  "0 1 * * *"              # social_media FB Reel  20:00 CT (next UTC day)
-    - cron:  "30 1 * * 1,2,4,6"       # social_media IG Video 20:30 CT Mon/Wed/Fri/Sun (UTC Tue/Thu/Sat/Mon)
-    - cron:  "0 2 * * 1,2,4,6"        # social_media FB Video 21:00 CT Mon/Wed/Fri/Sun (UTC Tue/Thu/Sat/Mon)
+    - cron:  "30 1 * * 1,2,4,6"       # social_media IG Video 20:30 CT Mon/Wed/Fri/Sun
+    - cron:  "0 2 * * 1,2,4,6"        # social_media FB Video 21:00 CT Mon/Wed/Fri/Sun
     - cron:  "0 2 * * *"              # social_media IG Reel  21:00 CT (next UTC day)
-    # El Oráculo — quality gate between SM Manager and Creativo (review + approve/reject)
-    - cron:  "45 20 */3 * *"          # oraculo:batch (runs 15min after social_media)
-    # El Reescritor — rewrites Oráculo-rejected ideas + appends lessons to sm_lessons.md
-    - cron:  "0 21 */3 * *"           # reescritor:batch (runs 15min after Oráculo)
-    # El Oráculo round 2 — re-reviews rewritten ideas (closes the learning loop)
-    - cron:  "15 21 */3 * *"          # oraculo:batch (round 2)
-    # El Creativo — generates visuals via Puppeteer + Pexels + FLUX (only Oraculo-approved)
-    - cron:  "30 21 */3 * *"          # creativo:batch
-    # El Director v2 — faceless reels (text + Pexels stock + ffmpeg + music) for Reel Formato
-    - cron:  "0 22 */3 * *"           # director_v2:batch
+    # Sprint A14 (Jorge 2026-05-08): pipeline every 4-6h to keep up with batch_weekly.
+    - cron:  "0 */4 * * *"            # oraculo:batch (every 4h)
+    - cron:  "30 */4 * * *"           # reescritor:batch (every 4h, 30min after oraculo)
+    - cron:  "0 */6 * * *"            # creativo:batch (every 6h)
+    - cron:  "15 */6 * * *"           # director_v2:batch (every 6h - Reels + Videos)
     # El Analítico — daily engagement metrics + lessons feedback to SM Manager
     - cron:  "0 6 * * *"              # analitico:batch (every day at 06:00 UTC)
   workflow_dispatch:
@@ -103,12 +90,9 @@ on:
         options: ["", "Post", "Reel", "Video"]
 
 concurrency:
-  # Agent-specific group so dispatches of different agents (oraculo / reescritor /
-  # creativo / director_v2) can run in parallel. Same agent dispatches still queue.
   group: agents-${{ github.event.schedule || inputs.agent || 'manual' }}
   cancel-in-progress: false
 
-# Reescritor needs write access to push sm_lessons.md back to master.
 permissions:
   contents: write
 
@@ -140,11 +124,11 @@ jobs:
             "30 19 */3 * *")     agent=espia;        mode=weekly_deep ;;
             "0 20 */3 * *")      agent=auditor;      mode=weekly ;;
             "30 20 */3 * *")     agent=social_media; mode=full_pipeline ;;
-            "45 20 */3 * *")     agent=oraculo;      mode=batch ;;
-            "0 21 */3 * *")      agent=reescritor;   mode=batch ;;
-            "15 21 */3 * *")     agent=oraculo;      mode=batch ;;
-            "30 21 */3 * *")     agent=creativo;     mode=batch ;;
-            "0 22 */3 * *")      agent=director_v2;  mode=batch ;;
+            # Sprint A14 — pipeline cadence every 4-6 hours.
+            "0 */4 * * *")       agent=oraculo;      mode=batch ;;
+            "30 */4 * * *")      agent=reescritor;   mode=batch ;;
+            "0 */6 * * *")       agent=creativo;     mode=batch ;;
+            "15 */6 * * *")      agent=director_v2;  mode=batch ;;
             "0 6 * * *")         agent=analitico;    mode=batch ;;
             # Sprint A6 — batch_weekly idea generation (Sun 18:00 CDT).
             "0 23 * * 0")        agent=social_media; mode=batch_weekly ;;
@@ -163,7 +147,6 @@ jobs:
             "0 2 * * *")         agent=social_media; mode=process_posts; tp=IG; tf=Reel ;;
             *)                   agent="${{ inputs.agent || 'mercader' }}"; mode="${{ inputs.mode || 'quick_health' }}" ;;
           esac
-          # workflow_dispatch override: if user provided tp/tf inputs, use them.
           if [ -z "$tp" ] && [ -n "${{ inputs.target_platform }}" ]; then tp="${{ inputs.target_platform }}"; fi
           if [ -z "$tf" ] && [ -n "${{ inputs.target_format }}" ]; then tf="${{ inputs.target_format }}"; fi
           echo "agent=$agent" >> $GITHUB_OUTPUT
@@ -183,10 +166,8 @@ jobs:
             echo "::warning::DOPPLER_TOKEN not set — using GHA secrets only"
             exit 0
           fi
-          # Download all Doppler secrets and append to GITHUB_ENV (one per line, KEY=value).
           doppler secrets download --no-file --format env-no-quotes --token "$DOPPLER_TOKEN" \
             | while IFS= read -r line; do
-                # Skip empty lines and DOPPLER_* meta vars.
                 [ -z "$line" ] && continue
                 case "$line" in DOPPLER_*) continue ;; esac
                 echo "$line" >> "$GITHUB_ENV"
@@ -254,34 +235,20 @@ jobs:
 
       - name: Run ${{ steps.job.outputs.agent }} --mode ${{ steps.job.outputs.mode }}
         env:
-          # Note: AIRTABLE_TOKEN, SM_AIRTABLE_TOKEN, AIRTABLE_SM_TOKEN are loaded via Doppler step
-          # into $GITHUB_ENV — do NOT re-declare here or empty GHA secrets will overshadow Doppler.
           QUO_API_KEY:              ${{ secrets.QUO_API_KEY }}
           TELEGRAM_BOT_TOKEN:       ${{ secrets.FER_TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:         ${{ secrets.TELEGRAM_CHAT_ID }}
           ANTHROPIC_API_KEY:        ${{ secrets.ANTHROPIC_API_KEY }}
-          # Meta Graph API publisher (replaces Blotato 2026-05-07). Set in Doppler.
-          # META_USER_TOKEN: long-lived User Access Token from "Pinnacle Social Publisher" app.
-          # META_PAGE_ACCESS_TOKEN: optional pre-resolved Page token (auto-derived if absent).
           META_USER_TOKEN:          ${{ secrets.META_USER_TOKEN }}
           META_PAGE_ACCESS_TOKEN:   ${{ secrets.META_PAGE_ACCESS_TOKEN }}
-          # Director v2 expects AIRTABLE_SM_* prefix. AIRTABLE_SM_TOKEN comes from Doppler ($GITHUB_ENV).
-          # Batch sizes — bumped temporarily for migration backlog (Jorge 2026-05-07).
-          # Revert to defaults (3-10) when queue is cleared.
           ORACULO_BATCH_MAX:        "20"
           REESCRITOR_BATCH_MAX:     "15"
           CREATIVO_BATCH_MAX:       "15"
-          # Publisher cap — TEST mode 3 posts (Jorge 2026-05-07 first publisher test).
-          # Revert to 5 (default) after smoke test passes.
           POSTS_PER_RUN:            "3"
           AIRTABLE_SM_BASE_ID:      "appU9s3kGkVpdrJkw"
-          # 3-table architecture (Jorge 2026-05-07): Posts / Reels / Videos.
-          # Bilingual = separate records per language linked by Source_Idea_ID.
           AIRTABLE_SM_POSTS_TABLE_ID:  "tblE3lz6XNcBNgpg5"
           AIRTABLE_SM_REELS_TABLE_ID:  "tblhbg4JSm2iND3Cs"
           AIRTABLE_SM_VIDEOS_TABLE_ID: "tblbjYosR1tpnjRV0"
-          # video_toolkit — Modal cloud GPU endpoints (Plan A: faceless premium Reels).
-          # Soft-optional: when missing, video_toolkit branch falls back to Director v2 default.
           MODAL_QWEN3_TTS_ENDPOINT_URL:    ${{ secrets.MODAL_QWEN3_TTS_ENDPOINT_URL }}
           MODAL_FLUX2_ENDPOINT_URL:        ${{ secrets.MODAL_FLUX2_ENDPOINT_URL }}
           MODAL_MUSIC_GEN_ENDPOINT_URL:    ${{ secrets.MODAL_MUSIC_GEN_ENDPOINT_URL }}
@@ -292,8 +259,6 @@ jobs:
           MODAL_DEWATERMARK_ENDPOINT_URL:  ${{ secrets.MODAL_DEWATERMARK_ENDPOINT_URL }}
           MODAL_TOKEN_ID:                  ${{ secrets.MODAL_TOKEN_ID }}
           MODAL_TOKEN_SECRET:              ${{ secrets.MODAL_TOKEN_SECRET }}
-          # HeyGen — Director v2 hybrid (Personal posts with Jorge avatar).
-          # Soft-optional: when missing, scenes with heroSource=heygen_avatar fall back to faceless pipeline.
           HEYGEN_API_KEY:           ${{ secrets.HEYGEN_API_KEY }}
           HEYGEN_AVATAR_ID_JORGE:   ${{ secrets.HEYGEN_AVATAR_ID_JORGE }}
           HEYGEN_VOICE_ID_JORGE_EN: ${{ secrets.HEYGEN_VOICE_ID_JORGE_EN }}
@@ -320,8 +285,6 @@ jobs:
             --mode ${{ steps.job.outputs.mode }} \
             $EXTRA
 
-      # Persist sm_lessons.md after Reescritor runs — this is the learning-loop
-      # storage so SM Manager picks up new lessons on its next run.
       - name: Commit + push generated artifacts (any agent that writes lessons or references)
         if: success()
         run: |
