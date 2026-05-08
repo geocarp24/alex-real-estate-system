@@ -21,7 +21,7 @@
 import { parseArgs, loadTenant, telegramSend, genRunId, isoNow } from "../_shared/runner.mjs";
 import {
   SM_BASE_ID as SM_BASE, SM_POSTS_TABLE_ID, SM_REELS_TABLE_ID, SM_VIDEOS_TABLE_ID,
-  SM_LEGACY_TABLE_ID, SM_TABLES, SM_TOKEN as SHARED_SM_TOKEN, STATUS,
+  SM_TABLES, SM_TOKEN as SHARED_SM_TOKEN, STATUS,
 } from "../_shared/sm_tables.mjs";
 import {
   publishFacebookPhotoPost, publishFacebookReel,
