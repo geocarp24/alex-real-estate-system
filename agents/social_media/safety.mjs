@@ -34,12 +34,17 @@ export const CADENCE = {
   RAMP_WEEK_4:    { postsPerDayPerPlatform: 5,  minHoursBetween: 3,  perFormat: { Post: 3, Reel: 1, Video: 1 } },
   GROWTH:         { postsPerDayPerPlatform: 6,  minHoursBetween: 3,  perFormat: { Post: 3, Reel: 2, Video: 1 } },
   STEADY_STATE:   { postsPerDayPerPlatform: 6,  minHoursBetween: 3,  perFormat: { Post: 3, Reel: 2, Video: 1 } },
+  // Sprint A1.5 (Jorge 2026-05-08): slot-driven cadence. Cron triggers at fixed
+  // CST slots (FB 7/11:30/12:30/17:50/20:00/21:00, IG 6:30/13:00/16:00/19:00/20:30/21:00),
+  // so minHoursBetween shrinks to 15min buffer (some slots are 30min apart on
+  // video days like IG 20:30 Video → 21:00 Reel). Per-format caps unchanged.
+  FIXED_SLOTS_PROD: { postsPerDayPerPlatform: 6,  minHoursBetween: 0.25, perFormat: { Post: 3, Reel: 2, Video: 1 } },
 };
 
-// Approx account age per Meta — Pinnacle posted before via Blotato but app/system-user are fresh.
-// HOY (2026-05-07): treat as WARMUP_WEEK_2. Advance to RAMP_WEEK_3 in ~7 days
-// after seeing zero ban signals (no demotions, no integrity warnings, no rate errors).
-export const CURRENT_PHASE = 'WARMUP_WEEK_2';
+// Sprint A1.5 (Jorge 2026-05-08): switched from WARMUP_WEEK_2 to FIXED_SLOTS_PROD
+// to align with the new slot-driven publisher (12 cron entries, one per platform/
+// format/slot combo). Warmup phases remain available for rollback if needed.
+export const CURRENT_PHASE = 'FIXED_SLOTS_PROD';
 
 // Hard never-cross caps (Meta's published BUC limits, per Page/IG-user/24h).
 export const HARD_CAPS_24H = {

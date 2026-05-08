@@ -175,3 +175,22 @@ Phase 2 SIGUE siendo no-destructiva: auto_apply es FLAG para que Fase 3 actúe, 
 **Pendiente:** Doppler creds verify (test corriendo), Programador (Meta tokens), HeyGen creds.
 
 ---
+
+---
+
+## 2026-05-08 — Sesion Claude Code: InvestorOS aprobado + R9 + Sprint 0
+
+Cierre de planeacion mayor. Decisiones aprobadas por Jorge:
+
+1. **R9 nueva regla:** 97% confidencia obligatoria antes de tocar codigo. Skill `pinnacle-memory-preflight` creado en ~/.claude/skills/ auto-invoca pre-flight grep en memoria/docs antes de preguntas.
+2. **Producto SaaS nombre:** **InvestorOS** — dominio investoros.tech registrado en Hostinger. Wisconsin LLC extension de Pinnacle Holdings Group.
+3. **Track A Social Media:** plan 77-85 posts/sem aprobado con horarios fijos CST. Estrategia 4 fases (Test -> Optimize -> Paid -> Scale). Theme Bank 170 entradas. Director v2 rotacion 5 templates aprobados. Reels 5x3s=15s con division en partes.
+4. **Track B InvestorOS app:** plan 90 dias web-first (Next.js + tRPC + Postgres + Tailwind + shadcn). Mobile native = Phase 2 post-launch. Pricing 297/697/1497/3500+. Multi-tenant RLS. Pinnacle = tenant cero.
+5. **Bugs publisher** identificados (timing + FB no publica). Sprint A1-A2 fix inmediato.
+6. **El Director** (videos largos) = construir desde cero (spec only actualmente).
+7. **Meta Pixel** pinnaclegroupwi.com sigue pendiente — deuda en Sprint A11.
+
+Si Jorge retoma desde Telegram, el contexto completo esta en memoria_ALex.md raiz seccion 2026-05-08.
+
+Sprint 0 arrancando: A1 (fix timing) -> A2 (fix FB) -> A3 (Airtable migration) en paralelo con B1 (repo InvestorOS scaffold) + B2 (branding initial).
+

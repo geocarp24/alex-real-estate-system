@@ -28,8 +28,26 @@ import {
   publishInstagramReel, publishInstagramCarousel, publishInstagramImage,
   getInstagramUserId, getPageAccessToken,
 } from "./graph_api.mjs";
+// Sprint A1.1+ (2026-05-08): fixed-slot scheduling + helpers for slot-driven publish.
+import { getNextFixedSlot } from "./scheduling.mjs";
+import {
+  buildPublisherFilter,
+  selectFieldPublishedId,
+  selectPublisherFn,
+  isVideoUrl,
+  validatePublisherArgs,
+} from "./publisher_helpers.mjs";
+// Sprint A6 (2026-05-08): Theme Bank guided idea generation.
+import {
+  loadThemeBank,
+  pickBatch,
+  makePlatformAssigner,
+  decideFormat,
+} from "./theme_bank_loader.mjs";
+// Sprint A7 (2026-05-08): Director v2 template rotation for visual variety.
+import { makeTemplateRotator } from "./template_rotator.mjs";
 
-const VALID_MODES = ["generate_ideas", "process_posts", "full_pipeline"];
+const VALID_MODES = ["generate_ideas", "process_posts", "full_pipeline", "batch_weekly"];
 
 // SM_TOKEN — fall back to the legacy hardcoded value if neither env nor shared module has it.
 const SM_TOKEN = SHARED_SM_TOKEN
@@ -51,9 +69,12 @@ const FIELD_CAROUSEL_URLS      = "Blotato_Visual_ID";
 const FIELD_PUBLISHED_POST_IDS = "Blotato_Post_IDs";
 
 // ── Caps ──
-const IDEAS_PER_RUN  = 3;
+const IDEAS_PER_RUN   = 3;
+// Sprint A6 (Jorge 2026-05-08): batch_weekly generates a full week of records
+// in one Anthropic call. 78 = 12 slots × 6.5 days average (FB+IG combined).
+const IDEAS_PER_BATCH = Number(process.env.IDEAS_PER_BATCH || 78);
 // Override via POSTS_PER_RUN env (used for limited test runs).
-const POSTS_PER_RUN  = Number(process.env.POSTS_PER_RUN || 5);
+const POSTS_PER_RUN   = Number(process.env.POSTS_PER_RUN || 5);
 const POLL_MAX_SEC   = 300;
 const POLL_INTERVAL  = 15;
 
@@ -200,8 +221,9 @@ async function loadLessons() {
 
 // ──────────────────────────────────────────────────────────────
 // Mode 1 — Generate ideas (Anthropic)
+// Sprint A6 (Jorge 2026-05-08): accepts optional count override for batch_weekly mode.
 // ──────────────────────────────────────────────────────────────
-async function generateIdeas(cfg, runId) {
+async function generateIdeas(cfg, runId, { count = IDEAS_PER_RUN } = {}) {
   // Backlog gate — abort if too many Visual Listo records already waiting.
   const backlog = await countVisualListoBacklog();
   if (backlog > BACKLOG_GATE_MAX) {
@@ -293,28 +315,55 @@ HARD RULES (Reel idea is REJECTED if any violated):
 - For Videos: include hook + caption + main_message + script_outline + cta (no "reel" key).
 - ALL bilingual fields require BOTH _es and _en versions populated. Never leave EN blank if it's a bilingual field.`;
 
-  const userPrompt = `Generate ${IDEAS_PER_RUN} fresh ideas for this week. Mix formats (1 Post, 1 Reel, 1 either). Cover topics like:
-- Foreclosure help Wisconsin
-- Inherited property / probate
-- Cash vs realtor comparison
-- Tired landlord exit
-- Relocation quick sale
-- Behind on taxes
+  // Sprint A6 (Jorge 2026-05-08): replace free-form topic list with Theme Bank
+  // weighted picks. SM Manager now generates ideas from a curated catalog of
+  // 170 subtopics across 8 pillars, balanced by pillar weight_pct.
+  let themeBank;
+  try { themeBank = loadThemeBank(); }
+  catch (e) { return { created: 0, error: `theme bank load failed: ${e.message}` }; }
+  const recentTitles = await getRecentTitles();
+  const picks = pickBatch(themeBank, count);
+  if (picks.length === 0) return { created: 0, error: "theme bank pickBatch returned 0 picks" };
+
+  const topicsBlock = picks.map((p, i) => `
+${i + 1}. PILLAR: ${p.pillar.name_en} (id=${p.pillar.id})
+   SUBTOPIC_ID: ${p.subtopic.id}
+   TITLE_EN: ${p.subtopic.title_en}
+   TITLE_ES: ${p.subtopic.title_es}
+   HOOK_IDEA: ${p.subtopic.hook}
+   FORMAT_HINT: ${decideFormat(p.pillar, p.subtopic)}
+   FUNNEL_STAGE: ${p.subtopic.funnel}
+   COLOR_THEME: ${p.pillar.color_theme_default || "T1"}
+   TONE: ${p.pillar.tone || "neutral"}`).join("\n");
+
+  const userPrompt = `Generate exactly ${picks.length} ideas — ONE for EACH topic listed below from the curated Theme Bank. The titles were chosen strategically — refine wording if needed but keep the spirit. The format hint, funnel stage, and tone guide your output.
+
+${topicsBlock}
 
 Avoid duplicating these recent titles (last 14 days):
-${(await getRecentTitles()).join(" / ") || "(none)"}
+${recentTitles.join(" / ") || "(none)"}
 
-Return JSON only — both ES and EN versions in EVERY idea.`;
+Return JSON only — for EACH topic above, generate one idea with both ES and EN versions in EVERY bilingual field. Use the SUBTOPIC_ID as a reference but DO NOT include it in the output JSON.`;
 
-  const { text, error } = await callAnthropic(newSystemPrompt, userPrompt, 4000);
+  // Larger batch needs higher max_tokens. ~600 tokens per bilingual idea worst-case.
+  const maxTokens = Math.min(64000, Math.max(4000, count * 700));
+  const { text, error } = await callAnthropic(newSystemPrompt, userPrompt, maxTokens);
   if (error) return { created: 0, error };
   const ideas = parseAllJSON(text);
   if (ideas.length === 0) return { created: 0, error: "no ideas parsed", raw: text.slice(0, 200) };
 
+  // Sprint A6 (2026-05-08): assign Target_Platform alternating per idea so each
+  // batch produces a balanced FB/IG mix. Source_Idea_ID groups ES + EN variants.
+  const platformNext = makePlatformAssigner(0);
+  // Sprint A7 (2026-05-08): rotate Reel templates across the batch so we don't
+  // publish 28 identical-looking voiceovers in a row.
+  const templateNext = makeTemplateRotator(0);
+
   const created = [];
-  for (const idea of ideas.slice(0, IDEAS_PER_RUN)) {
+  for (const idea of ideas.slice(0, count)) {
     const format = String(idea.format || "Post");
     const sourceId = String(Date.now()) + Math.floor(Math.random()*1000).toString().padStart(3,"0");
+    const targetPlatform = platformNext();  // FB or IG, alternating
     const tableId  = format === "Reel"  ? SM_REELS_TABLE_ID
                    : format === "Video" ? SM_VIDEOS_TABLE_ID
                    : SM_POSTS_TABLE_ID;
@@ -324,6 +373,8 @@ Return JSON only — both ES and EN versions in EVERY idea.`;
       Title: lang === "ES" ? (idea.title_es || idea.title_en) : (idea.title_en || idea.title_es),
       Language: lang,
       Source_Idea_ID: sourceId,
+      Concept_ID: sourceId,                // shared across ES + EN variants of same concept
+      Target_Platform: targetPlatform,     // Sprint A6: slot-driven publishing target
       Tipo: idea.tipo || "Educativo",
       Segment_Anchor: idea.segment_anchor || "General",
       Plataforma: "AMBAS",
@@ -333,6 +384,8 @@ Return JSON only — both ES and EN versions in EVERY idea.`;
     });
 
     let esFields, enFields;
+    // Pre-assign a rotated template for Reels (used in reelExtraLang below).
+    const assignedTemplate = format === "Reel" ? templateNext() : null;
     if (format === "Reel") {
       // Per-language slides (Jorge 2026-05-08): Sonnet must return slides_es +
       // slides_en separately. PRE-CREATE VALIDATION: if Sonnet returned an
@@ -371,7 +424,8 @@ Return JSON only — both ES and EN versions in EVERY idea.`;
           Slide_4_Visual: slides[3].visual || "wisconsin home golden hour | flux: cinematic warm wisconsin home, no text",
           Slide_5_CTA:   slides[4].cta,
           Caption:       cap || "",
-          Template:      reel.template || "voiceover",
+          // Sprint A7: SM Manager rotates templates, overriding LLM choice for variety.
+          Template:      assignedTemplate,
           Music_Track:   reel.music || "cinematic",
           Avatar_Mode:   String(idea.tipo || "").toLowerCase() === "personal" ? "Jorge_hook+CTA" : "NO_avatar",
         };
@@ -482,15 +536,28 @@ function isVideo(url) {
   return /\.(mp4|mov|webm)(\?|$)/i.test(url || "");
 }
 
-async function processPosts(cfg, runId) {
+async function processPosts(cfg, runId, args = {}) {
   if (!META_USER_TOKEN && !META_PAGE_TOKEN) {
     return { posted: 0, reason: "META_USER_TOKEN / META_PAGE_ACCESS_TOKEN not configured — set in Doppler/secrets" };
   }
 
+  // Sprint A1.2+A1.3 (Jorge 2026-05-08): publisher is now slot-driven. Each cron
+  // entry provides --target-platform and --target-format; the run pulls only
+  // matching records and publishes to that one platform at the fixed slot time.
+  const { ok: argsOk, errors: argsErrors } = validatePublisherArgs({
+    targetPlatform: args.targetPlatform,
+    targetFormat: args.targetFormat,
+  });
+  if (!argsOk) {
+    return { posted: 0, reason: `invalid args: ${argsErrors.join("; ")} — pass --target-platform=FB|IG --target-format=Post|Reel|Video` };
+  }
+  const targetPlatform = args.targetPlatform;
+  const targetFormat = args.targetFormat;
+
   // Safety layer (Jorge 2026-05-07 "si nos banean estamos acabados").
   // Lazy import to avoid breaking generate_ideas mode if safety.mjs is missing.
   const { safetyCheckBeforePublish, classifyError, alertTelegram, CURRENT_PHASE } = await import("./safety.mjs");
-  console.error(`[social_media] safety phase=${CURRENT_PHASE}`);
+  console.error(`[social_media] safety phase=${CURRENT_PHASE} target=${targetPlatform}/${targetFormat}`);
 
   // Resolve Page Access Token (cached for the run).
   let pageToken = META_PAGE_TOKEN;
@@ -499,33 +566,44 @@ async function processPosts(cfg, runId) {
     if (!pageToken) return { posted: 0, reason: `Page ${FB_PAGE_ID} not found in /me/accounts — token may lack pages_show_list scope` };
   }
 
-  // Resolve IG Business Account once (cached).
-  const igUserId = await getInstagramUserId({ pageId: FB_PAGE_ID, pageAccessToken: pageToken }).catch(() => null);
-  if (!igUserId) {
-    console.error("[social_media] IG Business Account not linked to FB Page — IG publishing will be skipped");
+  // Resolve IG Business Account only if the slot targets IG (cached).
+  let igUserId = null;
+  if (targetPlatform === "IG") {
+    igUserId = await getInstagramUserId({ pageId: FB_PAGE_ID, pageAccessToken: pageToken }).catch(() => null);
+    if (!igUserId) {
+      return { posted: 0, reason: "IG Business Account not linked to FB Page — cannot publish IG slot" };
+    }
   }
 
-  // 3-table architecture: gather Visual Listo records from Posts/Reels/Videos.
-  // Each table contributes records whose format = its table's format (Post|Reel|Video).
-  const filter = encodeURIComponent(
-    `AND({visual_url}!='', {Status}='${STATUS.VISUAL_LISTO}')`
-  );
+  // Fetch only records matching the slot (single-table since format determines table).
+  const tableId = targetFormat === "Reel" ? SM_REELS_TABLE_ID
+                : targetFormat === "Video" ? SM_VIDEOS_TABLE_ID
+                : SM_POSTS_TABLE_ID;
+  // Note: do NOT pass targetFormat to buildPublisherFilter — the format is
+  // already implicit in the table choice (Posts/Reels/Videos table per format).
+  // Adding {Format}='...' would 422 since that field doesn't exist on these tables.
+  const filter = encodeURIComponent(buildPublisherFilter({
+    targetPlatform,
+    status: STATUS.VISUAL_LISTO,
+  }));
   const ideas = []; // { tableId, format, record }
-  for (const t of SM_TABLES) {
-    try {
-      const resp = await smFetchIn(t.id, `filterByFormula=${filter}&maxRecords=${POSTS_PER_RUN}`);
-      for (const rec of (resp.records || [])) {
-        if (ideas.length >= POSTS_PER_RUN) break;
-        ideas.push({ tableId: t.id, format: t.format, record: rec });
-      }
+  try {
+    const resp = await smFetchIn(tableId, `filterByFormula=${filter}&maxRecords=${POSTS_PER_RUN}`);
+    for (const rec of (resp.records || [])) {
       if (ideas.length >= POSTS_PER_RUN) break;
-    } catch (e) { console.error(`[sm] fetch ${t.format} failed: ${e.message}`); }
+      ideas.push({ tableId, format: targetFormat, record: rec });
+    }
+  } catch (e) {
+    console.error(`[sm] fetch ${targetFormat} failed: ${e.message}`);
   }
-  if (ideas.length === 0) return { posted: 0, reason: "no records with Status=Visual Listo across Posts/Reels/Videos" };
+  if (ideas.length === 0) {
+    return { posted: 0, reason: `no ${targetPlatform} ${targetFormat} records with Status=Visual Listo` };
+  }
 
   const results = [];
-  let slotOffset = 0;
   let halted = false;
+  const safetyPlatform = targetPlatform === "FB" ? "fb" : "ig";
+  const fieldPublishedIds = selectFieldPublishedId(targetPlatform);
   for (const item of ideas) {
     if (halted) {
       results.push({ id: item.record.id, format: item.format, status: "halted_by_safety" });
@@ -540,16 +618,18 @@ async function processPosts(cfg, runId) {
     const captionBody = f.Caption || "";
     const hashtags    = f.Hashtags || "";
     const caption     = `${captionBody}\n\n${hashtags}`.trim();
-    const scheduledTime = Math.floor(new Date(nextSlotISO(slotOffset)).getTime() / 1000);
-    slotOffset++;
+    // Sprint A1 (2026-05-08): slot-driven scheduling — each cron run hits one
+    // fixed slot for one platform/format combo. getNextFixedSlot returns the
+    // next future slot in America/Chicago (auto-DST), as a UTC unix timestamp.
+    const scheduledTime = getNextFixedSlot(targetPlatform, format, new Date());
 
     // ── SAFETY GATE ──
     const safety = await safetyCheckBeforePublish({
       caption, visualUrl, formato: format,
       durationSec: f.Duration_Sec || 0,
-      platform: "both",
+      platform: safetyPlatform,
       smFetch: (params) => smFetchIn(tableId, params),
-      fieldPublishedIds: "Published_FB_ID",
+      fieldPublishedIds,
     });
     if (!safety.ok) {
       const reason = `safety blocked (${safety.blockReason}): ${(safety.details || []).join("; ")}`.slice(0, 500);
@@ -560,27 +640,27 @@ async function processPosts(cfg, runId) {
     }
 
     let fbResult = null, igResult = null, fbErr = null, igErr = null;
+    const useVideo = format === "Reel" || isVideoUrl(visualUrl);
 
-    try {
-      if (format === "Reel" || isVideo(visualUrl)) {
-        fbResult = await publishFacebookReel({ pageId: FB_PAGE_ID, pageAccessToken: pageToken, videoUrl: visualUrl, caption, scheduledPublishTime: scheduledTime });
-      } else {
-        // Post / Video (image preview) → single photo post.
-        fbResult = await publishFacebookPhotoPost({ pageId: FB_PAGE_ID, pageAccessToken: pageToken, imageUrls: [visualUrl], caption, scheduledPublishTime: scheduledTime });
-      }
-    } catch (e) {
-      fbErr = e.message;
-      const cls = classifyError(e);
-      if (cls.alert) await alertTelegram(`FB publish error on ${idea.id}: ${e.message}`, 'WARN').catch(() => null);
-      if (cls.action === 'halt') { halted = true; await alertTelegram(`HALT triggered: ${cls.reason}`, 'CRITICAL').catch(() => null); }
-    }
-
-    if (igUserId && !halted) {
+    if (targetPlatform === "FB") {
       try {
-        if (format === "Reel" || isVideo(visualUrl)) {
+        if (useVideo) {
+          fbResult = await publishFacebookReel({ pageId: FB_PAGE_ID, pageAccessToken: pageToken, videoUrl: visualUrl, caption, scheduledPublishTime: scheduledTime });
+        } else {
+          fbResult = await publishFacebookPhotoPost({ pageId: FB_PAGE_ID, pageAccessToken: pageToken, imageUrls: [visualUrl], caption, scheduledPublishTime: scheduledTime });
+        }
+      } catch (e) {
+        fbErr = e.message;
+        const cls = classifyError(e);
+        if (cls.alert) await alertTelegram(`FB publish error on ${idea.id}: ${e.message}`, 'WARN').catch(() => null);
+        if (cls.action === 'halt') { halted = true; await alertTelegram(`HALT triggered: ${cls.reason}`, 'CRITICAL').catch(() => null); }
+      }
+    } else {
+      // targetPlatform === "IG"
+      try {
+        if (useVideo) {
           igResult = await publishInstagramReel({ igUserId, pageAccessToken: pageToken, videoUrl: visualUrl, caption });
         } else {
-          // Post / Video → single image (carrusel multi-slide deferred for now).
           igResult = await publishInstagramImage({ igUserId, pageAccessToken: pageToken, imageUrl: visualUrl, caption });
         }
       } catch (e) {
@@ -611,7 +691,7 @@ async function processPosts(cfg, runId) {
 // Main
 // ──────────────────────────────────────────────────────────────
 async function main() {
-  const args = parseArgs(process.argv, VALID_MODES);
+  const args = parseArgs(process.argv, VALID_MODES, { targetPlatform: null, targetFormat: null });
   const cfg = await loadTenant(args.tenant);
   const runId = genRunId();
   const startedAt = isoNow();
@@ -633,8 +713,13 @@ async function main() {
   if (args.mode === "generate_ideas" || args.mode === "full_pipeline") {
     summary.ideas = await generateIdeas(cfg, runId).catch((e) => ({ error: e.message }));
   }
+  if (args.mode === "batch_weekly") {
+    // Sprint A6 (2026-05-08): generate a full week of records in one shot.
+    // Skip backlog gate inside generateIdeas by overriding cap to >current backlog.
+    summary.ideas = await generateIdeas(cfg, runId, { count: IDEAS_PER_BATCH }).catch((e) => ({ error: e.message }));
+  }
   if (args.mode === "process_posts" || args.mode === "full_pipeline") {
-    summary.posts = await processPosts(cfg, runId).catch((e) => ({ error: e.message }));
+    summary.posts = await processPosts(cfg, runId, args).catch((e) => ({ error: e.message }));
   }
 
   const completedAt = isoNow();

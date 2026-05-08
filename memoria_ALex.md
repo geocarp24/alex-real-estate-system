@@ -3519,3 +3519,116 @@ Default Pinnacle aesthetic (homeowners en distress, NO tech): editorial limpio +
 - **`/graphify` es overkill para 1-2 archivos** — usar grep/Read directo. graphify se justifica para 3+ archivos o dependencias no obvias.
 
 ---
+
+---
+
+## 2026-05-08 — DECISIONES MAYORES + ARRANQUE INVESTOROS + R9
+
+### REGLA R9 — 97% CONFIDENCIA OBLIGATORIA (NO NEGOCIABLE)
+Aprobada por Jorge 2026-05-08. Antes de tocar codigo, ALEX debe alcanzar 97% de confidencia minima sobre lo que va a hacer. Si confianza <97% -> hacer todas las preguntas y verificaciones necesarias hasta llegar al umbral. Sin excepciones, todos los modelos, todos los entornos. Skill `pinnacle-memory-preflight` (creado hoy, ~/.claude/skills/) hace pre-flight grep automatico en CLAUDE.md + memoria_ALex.md + agents/memoria_alex.md + telegram_memory.md + docs/ antes de cualquier pregunta o claim sobre Pinnacle.
+
+### NOMBRE COMERCIAL DEL PRODUCTO SAAS - DEFINIDO
+- **Nombre:** InvestorOS
+- **Dominio:** investoros.tech (Hostinger, confirmado disponible y registrado por Jorge)
+- **Tagline trabajo:** "The Operating System for Real Estate Investors"
+- **Entidad legal:** Wisconsin LLC, extension tech de Pinnacle Holdings Group
+- **Aesthetic default:** Editorial limpio + warmth (Pinnacle default)
+
+### TRACK A - SOCIAL MEDIA: plan completo aprobado
+- Volumen: 3 single + 2 Reels + 1 Video dia por medio x FB+IG = 77-85 posts/sem
+- Horarios FB CST: 7am 11:30am 5:50pm singles, 12:30pm + 8pm Reels, 9pm Lun/Mie/Vie/Dom Video
+- Horarios IG CST: 6:30am 1pm 7pm singles, 4pm + 9pm Reels, 8:30pm Lun/Mie/Vie/Dom Video
+- Timezone: America/Chicago auto-DST (luxon)
+- Variantes FB-IG permitidas (mismo concepto reformulado por plataforma)
+- Estrategia 4 fases: Test 2 sem -> Optimize 2 sem reciclando top -> Paid Phase 1 mes 2 -> Scale mes 3+
+- Funnel paid mes 2: 50% Cold+Lookalike + 30% Retargeting + 20% Conversion
+- Director v2: rotar 5 templates ya aprobados (default/pip/voiceover/talkinghead/editorial)
+- Reels: regla 1g 5x3s=15s con division en partes si mas largo
+- Theme Bank: 170 entradas estructurales (8 pillars x ~20 subtopics) - ALEX redacta, Jorge revisa
+- SM Manager: batch semanal Domingo 18:00 CST
+- Auditor de FB: agregar tier scoring (Audit_Score, Audit_Tier) al analitico.mjs existente
+
+### TRACK B - INVESTOROS APP: plan 90 dias web-first
+- Web SaaS primero (Next.js 15 + tRPC + Prisma + Postgres Supabase + Tailwind v4 + shadcn/ui)
+- Mobile native = Phase 2, post-launch web, 90+ dias extra para paridad funcional total (stack TBD)
+- Multi-tenant: row-level security con tenant_id (Pinnacle = tenant cero)
+- Pricing aprobado 2026-04-22: Starter $297 / Growth $697 / Pro $1,497 / Enterprise $3,500+
+- Setup fee $997, Annual 16.6% off, Performance fee 0/5/4/3/2% segun MRR
+- Refund: 30 dias (ajustado de 60)
+- White-label: "Powered by InvestorOS" visible Starter, removible $15/mo Growth, invisible Pro+
+- Branding del form: limitado Starter (solo logo) / full custom Growth+ (Opcion B)
+- Billing: Stripe
+- Plan 90 dias segun docs/COMMERCIALIZATION.md sin cambios en timeline
+
+### B3 - Meta Business Manager admin
+Confirmado: super-token admin a todo (Custom Audiences, Lookalike, Pixel, etc.). Setup Custom Audiences en Phase C usando ese token.
+
+### B4 - Meta Pixel pinnaclegroupwi.com
+Confirmado pendiente desde docs linea 1220 (NO instalado). Deuda mia a cerrar antes de Phase C paid (Sprint A11).
+
+### SKILL CREATED - pinnacle-memory-preflight
+- Path: ~/.claude/skills/pinnacle-memory-preflight/SKILL.md
+- Auto-trigger antes de preguntas a Jorge
+- Greps memoria + CLAUDE.md + docs antes de hablar
+- Tabla de "facts you must NOT ask about" con 15+ items
+- Anti-patterns documentados (Fer, pricing, templates, narratives, Reels)
+
+### Skills activas para esta etapa
+brainstorming, product-discovery, writing-plans/executing-plans, impeccable, emil-design-eng, design-taste-frontend, imagegen-frontend-web/mobile, responsive-design, mobile-ios-design, senior-fullstack, senior-frontend, high-end-visual-design, minimalist-ui, brandkit, senior-security, accessibility-compliance, graphify, self-improving-agent, pinnacle-memory-preflight (custom).
+
+### Bugs publisher conocidos (audit 2026-05-08)
+- BUG #1 timing: nextSlotISO en social_media.mjs:543 calcula scheduledTime ANTES de safety gate. checkRateBudget en safety.mjs:162-186 puede fallar silenciosamente si Airtable lag. Resultado: 3 posts a 6:05/6:06/6:06 PM (sin respetar minHoursBetween 8h).
+- BUG #2 FB no publica: linea 566/569 FB recibe scheduledPublishTime, linea 581 IG NO -> IG publica inmediato, FB queda SCHEDULED. Try/catch lineas 571-575 silencia errores Meta API a Error_Reason field.
+- BUG #3 Airtable bottleneck: query rate counts despues de calcular scheduledTime, antes de validar permission.
+
+### El Director (videos largos) - estado real
+SPEC ONLY, ZERO IMPLEMENTATION. agents/director.md existe pero deprecated 2026-05-08. NO existe runner code. Para producir 4 videos/sem necesitamos construir desde cero (estimado 3-5 dias con HeyGen + Modal stack reuse de director_v2).
+
+### Auditor de FB - estado real
+analitico.mjs YA pulla metricas (Reach_24h, Impressions_24h, Likes_24h, Comments_24h, Shares_24h, Saves_24h, Profile_Visits_24h, Engagement_Rate, Analitico_Last_Run). Cron 06:00 UTC daily. FALTA: Audit_Score + Audit_Tier (Premium/Good/Fair/Poor) calculation + alerting.
+
+### IDs Meta confirmados
+- FB Page ID: 965320503341457 (Pinnacle Holdings Group)
+- IG Business Account ID Graph API: 17841441469416547
+- IG Blotato accountId: 39285
+
+### Proximo inmediato
+Sprint A1: fix timing publisher (lineas 543-560 social_media.mjs + safety.mjs minHoursBetween)
+Sprint A2: fix FB publishing (logs GHA + token validation)
+Sprint A3: migracion Airtable Target_Platform + Concept_ID + Caption_Hash
+Sprint B1: repo InvestorOS scaffold + branding initial
+
+
+### REGLA R10 — NOTIFICACION PROACTIVA CONTINUA (Jorge 2026-05-08)
+ALEX debe informar al Jefe en tiempo real de TODO lo que esta haciendo, sin esperar a que se le pregunte. Sin excepciones. Aplica a:
+- Cada archivo modificado (Edit/Write): reportar path + razon
+- Cada test run: reportar pass/fail con numeros (X/Y passed)
+- Cada Bash command relevante (no triviales como ls/grep): reportar resultado
+- Cada cambio significativo en estado: subir/bajar confianza, sub-sprint complete, blockers detectados
+- Cada Edit a Airtable / GitHub / cualquier sistema externo
+NO molestar con triviales (lecturas read-only de exploracion, greps de orientacion). SI reportar acciones que cambian estado.
+Trade-off: prefiero ser ligeramente verbose que dejar al Jefe a oscuras. R10 prevalece sobre brevity en caso de duda.
+
+
+### REGLA R11 — GH_SUPER_TOKEN en Doppler ES EL TOKEN OFICIAL PARA TODO GITHUB (Jorge 2026-05-08)
+ALEX tiene acceso completo a GitHub via el secret `GH_SUPER_TOKEN` en Doppler:
+- Project: `pinnacle-social-publisher`
+- Config: `dev_personal`
+- Comando: `doppler secrets get GH_SUPER_TOKEN --project pinnacle-social-publisher --config dev_personal --plain`
+- Length: 93 chars, prefix `github_pat_`
+- Scope: super-admin (read/write actions, repos, secrets, etc)
+
+USO OBLIGATORIO:
+- Cuando ALEX necesite leer workflow runs, logs, jobs, secrets — usar este token directamente con curl.
+- NO pedir token a Jorge. NO pedir que pegue logs. NO inventar limitaciones del MCP.
+- Si necesita un token para API call de cualquier endpoint github.com, este es el token.
+
+Ejemplo (smoke test 2026-05-08 verificacion):
+```bash
+export GH_TOKEN=$(doppler secrets get GH_SUPER_TOKEN --project pinnacle-social-publisher --config dev_personal --plain)
+curl -s -H "Authorization: Bearer $GH_TOKEN" \
+  "https://api.github.com/repos/geocarp24/alex-real-estate-system/actions/runs/25580331424"
+```
+
+Anti-regression: cualquier sesion futura de ALEX que no encuentre tokens de GitHub debe leer R11 y usar este Doppler secret. La excusa "el MCP no tiene workflow tools" es valida (sigue siendo cierto), PERO la solucion correcta es bypass via curl + GH_SUPER_TOKEN, no pedir a Jorge.
+

@@ -291,3 +291,24 @@ Resumen para sub-agentes:
 ---
 
 *Última actualización: 2026-05-07*
+
+---
+
+## 2026-05-08 — InvestorOS aprobado + R9 + Theme Bank + arranque Sprint 0
+
+**REGLA R9** (no negociable): 97% confidencia obligatoria antes de tocar codigo. Skill `pinnacle-memory-preflight` (~/.claude/skills/) auto-invoca pre-flight grep en memoria + CLAUDE.md + docs antes de preguntas/claims sobre Pinnacle.
+
+**NOMBRE COMERCIAL SAAS:** InvestorOS — dominio investoros.tech (Hostinger, registrado). WI LLC extension Pinnacle Holdings.
+
+**TRACK A SOCIAL MEDIA** plan completo: 77-85 posts/sem en horarios fijos CST (FB 7/11:30/17:50 singles + 12:30/20:00 Reels + 21:00 Lun/Mie/Vie/Dom Video; IG 6:30/13:00/19:00 singles + 16:00/21:00 Reels + 20:30 Lun/Mie/Vie/Dom Video). Estrategia 4 fases: Test -> Optimize -> Paid -> Scale. Theme Bank 170 entradas (ALEX redacta). SM Manager batch semanal Dom 18:00 CST. Director v2 rotacion 5 templates ya aprobados. Auditor agregar tier scoring.
+
+**TRACK B INVESTOROS APP** plan 90 dias web-first: Next.js 15 + tRPC + Prisma + Postgres Supabase + Tailwind v4 + shadcn/ui + multi-tenant RLS. Pricing 297/697/1497/3500+. Setup $997. Annual 16.6% off. Refund 30 dias. White-label Powered-by visible Starter, invisible Pro+. Stripe billing. Mobile native = Phase 2 post-launch.
+
+**Bugs publisher** (Sprint A1-A2): timing colapsado en nextSlotISO + FB no publica por scheduledPublishTime asimetrico + try/catch silenciador. Fix con luxon DST + slots fijos CST.
+
+**El Director** (videos largos) = SPEC ONLY, zero implementation. Construir desde cero usando HeyGen + Modal reusados de director_v2.
+
+**Skills activas:** brainstorming, product-discovery, writing-plans, impeccable, emil-design-eng, design-taste-frontend, imagegen-frontend-web, responsive-design, mobile-ios-design, senior-fullstack, brandkit, graphify, self-improving-agent, pinnacle-memory-preflight (custom).
+
+Detalle completo en memoria_ALex.md raiz seccion 2026-05-08.
+

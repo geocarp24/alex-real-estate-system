@@ -36,10 +36,29 @@ on:
     - cron:  "30 19 */3 * *"          # espia:weekly_deep
     # Compliance
     - cron:  "0 20 */3 * *"           # auditor:weekly
-    # Social Media (full pipeline: ideas → visuals → publish to FB+IG)
-    # PAUSED 2026-05-08 (Jorge): backlog cleanup phase — generation halted while
-    # we curate the 87-record queue. Re-enable when Visual_Listo < 20.
-    # - cron:  "30 20 */3 * *"          # social_media:full_pipeline
+    # Social Media — batch_weekly idea generation (Sprint A6 Jorge 2026-05-08).
+    # Sunday 18:00 CDT / 17:00 CST = 23:00 UTC. Generates 78 ideas for the week
+    # using the Theme Bank, distributed across 8 pillars by weight_pct.
+    - cron:  "0 23 * * 0"             # social_media batch_weekly (Sun 18:00 CDT)
+    # Social Media — slot-driven publisher (Sprint A4 Jorge 2026-05-08).
+    # 12 fixed CT slots/day. Time conversion uses CDT (UTC-5) for cron triggers;
+    # the publisher's getNextFixedSlot resolves the actual slot in America/Chicago
+    # (auto-DST), so during CST (Nov-Mar) Meta Graph API still schedules the post
+    # at the intended wall-clock time.
+    # Single-slot fixed cadence: 1 record published per cron run, target platform
+    # and format passed as CLI args. Replaces the old "30 20 */3 * *" full_pipeline.
+    - cron:  "30 11 * * *"            # social_media IG Post  06:30 CT
+    - cron:  "0 12 * * *"             # social_media FB Post  07:00 CT
+    - cron:  "30 16 * * *"            # social_media FB Post  11:30 CT
+    - cron:  "30 17 * * *"            # social_media FB Reel  12:30 CT
+    - cron:  "0 18 * * *"             # social_media IG Post  13:00 CT
+    - cron:  "0 21 * * *"             # social_media IG Reel  16:00 CT
+    - cron:  "50 22 * * *"            # social_media FB Post  17:50 CT
+    - cron:  "0 0 * * *"              # social_media IG Post  19:00 CT (next UTC day)
+    - cron:  "0 1 * * *"              # social_media FB Reel  20:00 CT (next UTC day)
+    - cron:  "30 1 * * 1,2,4,6"       # social_media IG Video 20:30 CT Mon/Wed/Fri/Sun (UTC Tue/Thu/Sat/Mon)
+    - cron:  "0 2 * * 1,2,4,6"        # social_media FB Video 21:00 CT Mon/Wed/Fri/Sun (UTC Tue/Thu/Sat/Mon)
+    - cron:  "0 2 * * *"              # social_media IG Reel  21:00 CT (next UTC day)
     # El Oráculo — quality gate between SM Manager and Creativo (review + approve/reject)
     - cron:  "45 20 */3 * *"          # oraculo:batch (runs 15min after social_media)
     # El Reescritor — rewrites Oráculo-rejected ideas + appends lessons to sm_lessons.md
@@ -70,6 +89,18 @@ on:
         type: string
         required: false
         default: ""
+      target_platform:
+        description: "(social_media mode=process_posts) FB or IG"
+        type: choice
+        required: false
+        default: ""
+        options: ["", "FB", "IG"]
+      target_format:
+        description: "(social_media mode=process_posts) Post / Reel / Video"
+        type: choice
+        required: false
+        default: ""
+        options: ["", "Post", "Reel", "Video"]
 
 concurrency:
   # Agent-specific group so dispatches of different agents (oraculo / reescritor /
@@ -115,11 +146,31 @@ jobs:
             "30 21 */3 * *")     agent=creativo;     mode=batch ;;
             "0 22 */3 * *")      agent=director_v2;  mode=batch ;;
             "0 6 * * *")         agent=analitico;    mode=batch ;;
+            # Sprint A6 — batch_weekly idea generation (Sun 18:00 CDT).
+            "0 23 * * 0")        agent=social_media; mode=batch_weekly ;;
+            # Sprint A4 — slot-driven publisher (12 cron entries, one per CT slot).
+            "30 11 * * *")       agent=social_media; mode=process_posts; tp=IG; tf=Post ;;
+            "0 12 * * *")        agent=social_media; mode=process_posts; tp=FB; tf=Post ;;
+            "30 16 * * *")       agent=social_media; mode=process_posts; tp=FB; tf=Post ;;
+            "30 17 * * *")       agent=social_media; mode=process_posts; tp=FB; tf=Reel ;;
+            "0 18 * * *")        agent=social_media; mode=process_posts; tp=IG; tf=Post ;;
+            "0 21 * * *")        agent=social_media; mode=process_posts; tp=IG; tf=Reel ;;
+            "50 22 * * *")       agent=social_media; mode=process_posts; tp=FB; tf=Post ;;
+            "0 0 * * *")         agent=social_media; mode=process_posts; tp=IG; tf=Post ;;
+            "0 1 * * *")         agent=social_media; mode=process_posts; tp=FB; tf=Reel ;;
+            "30 1 * * 1,2,4,6")  agent=social_media; mode=process_posts; tp=IG; tf=Video ;;
+            "0 2 * * 1,2,4,6")   agent=social_media; mode=process_posts; tp=FB; tf=Video ;;
+            "0 2 * * *")         agent=social_media; mode=process_posts; tp=IG; tf=Reel ;;
             *)                   agent="${{ inputs.agent || 'mercader' }}"; mode="${{ inputs.mode || 'quick_health' }}" ;;
           esac
+          # workflow_dispatch override: if user provided tp/tf inputs, use them.
+          if [ -z "$tp" ] && [ -n "${{ inputs.target_platform }}" ]; then tp="${{ inputs.target_platform }}"; fi
+          if [ -z "$tf" ] && [ -n "${{ inputs.target_format }}" ]; then tf="${{ inputs.target_format }}"; fi
           echo "agent=$agent" >> $GITHUB_OUTPUT
           echo "mode=$mode"   >> $GITHUB_OUTPUT
-          echo "Selected: $agent --mode $mode"
+          echo "target_platform=${tp:-}" >> $GITHUB_OUTPUT
+          echo "target_format=${tf:-}"   >> $GITHUB_OUTPUT
+          echo "Selected: $agent --mode $mode${tp:+ --target-platform $tp}${tf:+ --target-format $tf}"
 
       - name: Install Doppler CLI
         uses: dopplerhq/cli-action@v3
@@ -259,7 +310,11 @@ jobs:
           RECORD_ID:                ${{ inputs.record_id }}
         run: |
           EXTRA=""
-          if [ -n "$RECORD_ID" ]; then EXTRA="--record-id $RECORD_ID"; fi
+          if [ -n "$RECORD_ID" ]; then EXTRA="$EXTRA --record-id $RECORD_ID"; fi
+          TP="${{ steps.job.outputs.target_platform }}"
+          TF="${{ steps.job.outputs.target_format }}"
+          if [ -n "$TP" ]; then EXTRA="$EXTRA --target-platform $TP"; fi
+          if [ -n "$TF" ]; then EXTRA="$EXTRA --target-format $TF"; fi
           node agents/${{ steps.job.outputs.agent }}/${{ steps.job.outputs.agent }}.mjs \
             --tenant pinnacle \
             --mode ${{ steps.job.outputs.mode }} \
