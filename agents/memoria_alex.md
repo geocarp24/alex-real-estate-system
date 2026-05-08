@@ -322,3 +322,8 @@ Detalle completo en memoria_ALex.md raiz seccion 2026-05-08.
 ## 2026-05-08 PM — Track 1 maquina Reels/Videos al 100%
 A12 SM Manager force 42/28/8 mix + A14 pipeline cada 4-6h + A13 Director v2 Videos confirmado existente. PR #11 mergeado a master. 138 tests passing.
 Director v2 ya soporta Videos: validateSpec 7-50s + narrative_B 7-9 escenas + buildSpecFromVideoRecord + Videos table iteration.
+
+## 2026-05-08 PM — VISION 8 FASES + 6 TENANTS InvestorOS
+8 fases del sistema: 1.IDENTIDAD 2.CAPTACION 3.PUBLICIDAD 4.CRM 5.AUDIT/SELFHEAL 6.GROWTH-FEEDBACK 7.ATTRIBUTION+PROFIT 8.HORIZONTAL-EXPANSION.
+6 tenants validacion: Ola 1 reales (Pinnacle/Geo/FC Multi) → Ola 2 greenfield (Nica Transports) → Ola 3 ideas (ADHD/Essenthia).
+Pinnacle = dogfooding base. Detalle en memoria_ALex.md.

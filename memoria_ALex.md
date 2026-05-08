@@ -3684,3 +3684,99 @@ La regla aplica desde YA (2026-05-08) y aplica retroactivamente a A12 + A14 que 
 
 **Track 1 estado actual:** maquina al 100% en codigo. Pendiente solo: smoke test del primer batch_weekly Domingo + monitorear primer Reel/Video real.
 
+
+---
+
+## 2026-05-08 PM — VISION ARQUITECTONICA INVESTOROS — 8 FASES + 6 TENANTS (Jorge)
+
+### LAS 8 FASES DEL SISTEMA INVESTOROS
+
+**FASE 1 — IDENTIDAD**
+- Brand kit (logo, colores, tipografia, lema, funcion, objetivo)
+- Presencia online: website, web forms, captacion inicial, mapas, contacto, email, seguimiento
+- Es la fase de mercadeo inicial. Alimenta branding/identity a TODAS las demas fases.
+
+**FASE 2 — CAPTACION DE LEADS**
+- Sources Pinnacle: DealDriven, atom, Fer (AI Receptionist), ALEX
+- Web scraper critico con 3 propositos:
+  1. Identificar competidores
+  2. Identificar aliados (Geo Carpentry → contratistas para nosotros)
+  3. Identificar leads B2B (property managers, realtors, developers)
+- Comunicacion Fase 1↔2: Fer se alimenta de identidad (branding consistency)
+
+**FASE 3 — PUBLICIDAD / SOCIAL MEDIA / OPTIMIZACION**
+- Plataformas: Facebook + Instagram + TikTok (multi-platform, multi-tenant adaptable)
+- Maquina contenido: videos + Reels + Posts + publishing + health monitoring
+- Publicidad pagada: administrar, auditar, optimizar para CPC/CPM bajos (no quemar dinero)
+- Loop hacia Fase 2: engagement = canal captacion
+
+**FASE 4 — CRM (INTERACTIVO + LLAMATIVO)**
+- Hub central para clientes finales (NO rustico tipo Airtable interno)
+- Recibe: leads de Fase 2 + metricas social Fase 3 + produccion
+- UX: bonito, llamativo, facil, sencillo
+- Es lo que el cliente VE de InvestorOS
+
+**FASE 5 — AUDITORIA / SELF-HEALING / EVOLUCION (CRITICA AL 1000%)**
+- Sistema audita TODAS las funciones de los agentes continuamente
+- Agentes evolucionan, aprenden de errores, auto-corrigen
+- Memoria de errores, control de fallas
+- Auto-correccion CROSS-TENANT: 1 fix → TODOS los clientes en un tiron (no individual)
+- Prevencion antes que reaccion: detectar fallas antes que cliente nos llame a las 12am
+- Stakes: 100 clientes con bug masivo = telefono reventado = perdida masiva
+- Confianza tarda mucho en ganarse, se pierde en 2x3
+- "Yo la cago a cada rato" (Jorge) → sistema debe ser robusto independiente de mis errores
+
+**FASE 6 — GROWTH FEEDBACK (lado cliente, no del sistema)**
+- Business growth feedback continuo del negocio del cliente
+- Diagnostico mensual: que falla, que mejorar, camino estrategico
+- Modelo matematico: crecimiento exponencial inicial → curva se aplana → necesita expansion horizontal
+  - Mes 1: +21-30% (de $10k → $12-13k)
+  - Cada mes el % disminuye conforme volumen crece
+- Output: "creciste X%, fallaste en A/B/C, proximo mes mejorar Y"
+- Coaching automatizado equivalente CMO/CFO/COO advisor
+
+**FASE 7 — ATTRIBUTION + PROFIT TRACKING (CRITICA, base del cobro)**
+- Pricing: subscription + % sobre profits atribuibles
+- Pregunta clave: que venta vino del SISTEMA vs del cliente solo?
+- Attribution engine: detectar y trackear leads/deals atribuibles
+- Profit tracking: ganancia real por deal (no revenue, profit neto)
+- Transparencia obligatoria: "donde hay dinero hay problema"
+- Reporte mensual: "tu negocio genero $X de ganancia atribuible al sistema, nuestra parte $Y"
+
+**FASE 8 — HORIZONTAL EXPANSION (endgame del cliente)**
+- Plateau detection: cuando vertical growth se aplana
+- Expansion advisor: "cliente, momento de expandirte"
+- Tipos: nuevos mercados geograficos / nuevas lineas servicio / verticals adyacentes
+- Loop virtuoso: cliente expande → nuestro sistema escala con el → fidelizacion long-term
+
+### LOS 6 TENANTS DE VALIDACION
+
+**Ola 1 — Negocios reales operativos:**
+- Pinnacle Holdings (real estate cash buyer WI) — TENANT 0, dogfooding, riesgo cero
+- Geo Carpentry (carpentry/contractor WI) — TENANT 1, ya tiene partial infra (geo-budget)
+- FC Multiservices (tax prep + notary WI) — TENANT 2, financial/legal seasonal
+
+**Ola 2 — Greenfield (registered, no operating):**
+- Nica Transports LLC (B2B box trucks transport) — TENANT 3, sistema lanza negocio desde 0
+
+**Ola 3 — Ideas exploratorias:**
+- Tenant 4 ADHD infoproducts (digital products global, accessibility-first) — sin nombre todavia
+- Essenthia (skincare dropshipping e-commerce global) — TENANT 5
+
+### COBERTURA DE VALIDACION
+- 6 verticals distintos: real estate, contractor, financial/legal, logistics B2B, digital edu, e-commerce
+- Geografia: local Wisconsin (4) + global (2)
+- Modelo: B2C (4) + B2B (2)
+- Cycle: continuous + project + seasonal + recurring + on-demand
+- Status: operativo (3) + greenfield (1) + idea (2)
+
+### ORDEN DE EJECUCION APROBADO
+1. Pinnacle (Fases 1→8) — ~3-4 semanas
+2. Geo Carpentry (Fases 1→8) — ~1 semana ajustes per fase
+3. FC Multiservices (Fases 1→8) — ~1 semana
+4. Nica Transports (Fases 1→8) — ~2-3 semanas (greenfield)
+5. Tenant 4 ADHD (Fases 1→8) — ~1-2 semanas
+6. Essenthia (Fases 1→8) — ~1-2 semanas
+
+**Total estimado:** 10-13 semanas para sistema completo + 6 tenants validados.
+
