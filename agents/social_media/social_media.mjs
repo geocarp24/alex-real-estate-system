@@ -355,6 +355,9 @@ Return JSON only — for EACH topic above, generate one idea with both ES and EN
   // Sprint A6 (2026-05-08): assign Target_Platform alternating per idea so each
   // batch produces a balanced FB/IG mix. Source_Idea_ID groups ES + EN variants.
   const platformNext = makePlatformAssigner(0);
+  // Sprint A7 (2026-05-08): rotate Reel templates across the batch so we don't
+  // publish 28 identical-looking voiceovers in a row.
+  const templateNext = makeTemplateRotator(0);
 
   const created = [];
   for (const idea of ideas.slice(0, count)) {
