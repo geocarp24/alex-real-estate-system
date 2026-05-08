@@ -534,9 +534,11 @@ async function processPosts(cfg, runId, args = {}) {
   const tableId = targetFormat === "Reel" ? SM_REELS_TABLE_ID
                 : targetFormat === "Video" ? SM_VIDEOS_TABLE_ID
                 : SM_POSTS_TABLE_ID;
+  // Note: do NOT pass targetFormat to buildPublisherFilter — the format is
+  // already implicit in the table choice (Posts/Reels/Videos table per format).
+  // Adding {Format}='...' would 422 since that field doesn't exist on these tables.
   const filter = encodeURIComponent(buildPublisherFilter({
     targetPlatform,
-    targetFormat,
     status: STATUS.VISUAL_LISTO,
   }));
   const ideas = []; // { tableId, format, record }
