@@ -312,3 +312,9 @@ Resumen para sub-agentes:
 
 Detalle completo en memoria_ALex.md raiz seccion 2026-05-08.
 
+
+## 2026-05-08 PM — R12 + A12 + A14
+**R12 nueva regla**: despues de cada tarea, auto-update 3 memorias + commit/push automatico. Sin esperar pedido de Jorge.
+**A12 done**: SM Manager force 42/28/8 mix Posts/Reels/Videos en batch_weekly (143 tests).
+**A14 done**: pipeline cadence 4-6 horas (Oraculo/Reescritor cada 4h, Creativo/Director v2 cada 6h).
+**A13 pendiente**: decision A (atajo Director v2 extendido) vs B (agents/director/ from scratch).
