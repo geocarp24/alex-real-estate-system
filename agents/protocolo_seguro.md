@@ -54,7 +54,7 @@ EL JEFE (Usuario)
 - Escritura en Airtable (Contacts, Leads, Deals, Notes, Tracy) para registrar resultados de análisis
 - Llamadas webhook a `pinnaclegroupwi.com` (dominio propio del Jefe — autorizado permanentemente)
 - Llamadas webhook a `hook.us2.make.com` (Make.com — automatización autorizada por el Jefe)
-- Escritura en Airtable Social Media Base (`appU9s3kGkVpdrJkw`) — Ideas de Contenido y Publicaciones
+- Escritura en Airtable Social Media Base (`appU9s3kGkVpdrJkw`) — ~~Ideas de Contenido~~ (DEPRECATED 2026-05-08) y ~~Publicaciones~~ (DEPRECATED 2026-05-08)
 - Generación de contenido para redes sociales (posts, reels, carruseles, stories)
 - Corrección de errores técnicos menores (timeout, reintentos de API)
 - Actualización de `memoria_ALex.md` y `telegram_memory.md`

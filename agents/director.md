@@ -28,8 +28,6 @@ Colores:  #0D3B2E fondo / #FFFFFF texto / #C9A84C acento dorado
 ```
 Airtable SM Token:  patSlNwngu7SJoa52.003c83df8f6e378af5309237e310a36568a037448709d94b10739d032f9e8ef7
 Airtable SM Base:   appU9s3kGkVpdrJkw
-Ideas de Contenido: tblAj0Pkj1jW4p5Ld
-Scripts de Video:   tbli9BsyIwrhwa3aS
 Blotato MCP:        mcp__blotato__* tools
 
 Fotos de Jorge disponibles en GitHub:
@@ -45,7 +43,6 @@ Fotos de Jorge disponibles en GitHub:
 ### Paso 1 — Leer Reels pendientes de Airtable
 
 ```bash
-curl -s "https://api.airtable.com/v0/appU9s3kGkVpdrJkw/tblAj0Pkj1jW4p5Ld?filterByFormula=AND(OR({Formato}='Reel',{Formato}='Video'),OR({Status}='Nueva',{Status}='Aprobada',{Status}='En Produccion'),{visual_url}='',{Video_Script_EN}!='')" \
   -H "Authorization: Bearer patSlNwngu7SJoa52.003c83df8f6e378af5309237e310a36568a037448709d94b10739d032f9e8ef7"
 ```
 
@@ -63,12 +60,10 @@ Del registro de Airtable extrae:
 - `Visual_Prompt` → instrucciones visuales completas con branding
 - `Título de Idea` → para identificar el video
 
-### Paso 3 — Guardar script en Scripts de Video
+### Paso 3 — Guardar script en ~~Scripts de Video~~ (DEPRECATED 2026-05-08)
 
-Antes de generar, crea el registro en `tbli9BsyIwrhwa3aS`:
 
 ```bash
-curl -s -X POST "https://api.airtable.com/v0/appU9s3kGkVpdrJkw/tbli9BsyIwrhwa3aS" \
   -H "Authorization: Bearer patSlNwngu7SJoa52.003c83df8f6e378af5309237e310a36568a037448709d94b10739d032f9e8ef7" \
   -H "Content-Type: application/json" \
   -d '{
@@ -204,14 +199,12 @@ visual_id = result["id"]
 ### Paso 8 — Guardar en Airtable
 
 ```bash
-# Actualizar Ideas de Contenido
-curl -s -X PATCH "https://api.airtable.com/v0/appU9s3kGkVpdrJkw/tblAj0Pkj1jW4p5Ld/{RECORD_ID}" \
+# Actualizar ~~Ideas de Contenido~~ (DEPRECATED 2026-05-08)
   -H "Authorization: Bearer patSlNwngu7SJoa52.003c83df8f6e378af5309237e310a36568a037448709d94b10739d032f9e8ef7" \
   -H "Content-Type: application/json" \
   -d '{"fields": {"visual_url": "[mediaUrl]", "Blotato_Visual_ID": "[visual_id]", "Status": "Visual Listo"}}'
 
-# Actualizar Scripts de Video
-curl -s -X PATCH "https://api.airtable.com/v0/appU9s3kGkVpdrJkw/tbli9BsyIwrhwa3aS/{SCRIPT_RECORD_ID}" \
+# Actualizar ~~Scripts de Video~~ (DEPRECATED 2026-05-08)
   -H "Authorization: Bearer patSlNwngu7SJoa52.003c83df8f6e378af5309237e310a36568a037448709d94b10739d032f9e8ef7" \
   -H "Content-Type: application/json" \
   -d '{"fields": {"visual_url": "[mediaUrl]", "Blotato_Visual_ID": "[visual_id]", "Status": "Listo"}}'
@@ -262,7 +255,7 @@ CRITICAL BRANDING REQUIREMENTS:
    Duración: ~15 segundos
    Logo incluido: ✅
    Lower third: ✅
-   Script guardado en Scripts de Video: [record ID]
+   Script guardado en ~~Scripts de Video~~ (DEPRECATED 2026-05-08): [record ID]
    Status Airtable: Visual Listo
 ```
 

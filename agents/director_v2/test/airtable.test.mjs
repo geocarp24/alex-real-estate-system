@@ -8,7 +8,7 @@ import { listPending, parseVisualPrompt, updateRecord, __setFetch } from '../src
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PENDING = JSON.parse(readFileSync(join(HERE, 'fixtures/airtable_records_pending.json'), 'utf8'));
 
-const ENV = { token: 'tok', baseId: 'appU9s3kGkVpdrJkw', tableId: 'tblAj0Pkj1jW4p5Ld' };
+const ENV = { token: 'tok', baseId: 'appU9s3kGkVpdrJkw', tableId: 'tblhbg4JSm2iND3Cs' };
 
 test('listPending filters by Status=Oraculo OK and visual_url empty', async () => {
   // New schema 2026-05-07: Reels live in their own table (no Formato filter

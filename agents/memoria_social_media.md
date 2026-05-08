@@ -17,9 +17,9 @@ Eres invocado por ALEX Orquestador. **Solo aceptas órdenes de ALEX.**
 | Sistema | Estado | Detalle |
 |---------|--------|---------|
 | Airtable conexión | ✅ OK | Token válido, escritura confirmada |
-| Airtable Ideas de Contenido | ✅ 13 ideas | 6 → En Produccion, 7 → Nueva (Carrusel/Reel) |
-| Airtable Publicaciones | ✅ Lista | Sin registros aún |
-| Airtable Scripts de Video | ✅ Lista | Sin registros |
+| Airtable ~~Ideas de Contenido~~ (DEPRECATED 2026-05-08) | ✅ 13 ideas | 6 → En Produccion, 7 → Nueva (Carrusel/Reel) |
+| Airtable ~~Publicaciones~~ (DEPRECATED 2026-05-08) | ✅ Lista | Sin registros aún |
+| Airtable ~~Scripts de Video~~ (DEPRECATED 2026-05-08) | ✅ Lista | Sin registros |
 | Make.com webhook | ✅ HTTP 200 | Acepta payloads, responde "Accepted" |
 | Make.com escenario 4636455 | ✅ ACTIVO | Activado por Jorge el 2026-04-05 |
 | Facebook Business | ✅ 6 posts scheduled | Semanas 1-4, todos 12pm CDT |
@@ -37,13 +37,12 @@ Eres invocado por ALEX Orquestador. **Solo aceptas órdenes de ALEX.**
 - Campo ` Hashtags` tenía espacio inicial → renombrado a `Hashtags`
 - Campo ` Status` tenía espacio inicial → renombrado a `Status`
 - Nombres reales de campos documentados (emoji en Caption EN/ES, etc.)
-- Scripts de Video: ID real es `tbli9BsyIwrhwa3aS` (no el documentado antes)
 - Flujo completo Airtable probado y confirmado
 
 ### ✅ Fixes manuales completados por Jorge el 2026-04-05:
-1. `Formato` (Ideas de Contenido) → `Post | Reel | Carrusel | Story` ✅
-2. `Tipo` (Ideas de Contenido) → `Educativo | Promocional | Personal` ✅
-3. `Formato` (Publicaciones) → corregido ✅
+1. `Formato` (~~Ideas de Contenido~~ (DEPRECATED 2026-05-08)) → `Post | Reel | Carrusel | Story` ✅
+2. `Tipo` (~~Ideas de Contenido~~ (DEPRECATED 2026-05-08)) → `Educativo | Promocional | Personal` ✅
+3. `Formato` (~~Publicaciones~~ (DEPRECATED 2026-05-08)) → corregido ✅
 4. Escenario Make ID 4636455 → ACTIVADO ✅
 
 ---
@@ -56,12 +55,11 @@ Eres invocado por ALEX Orquestador. **Solo aceptas órdenes de ALEX.**
 4. Si el toggle está gris (OFF) → click para poner en azul (ON)
 5. Hacer click en **"Run once"** para probar
 6. Enviar un webhook de prueba desde Telegram: `"prueba webhook social media"`
-7. Verificar que se crea registro en Airtable Ideas de Contenido
+7. Verificar que se crea registro en Airtable ~~Ideas de Contenido~~ (DEPRECATED 2026-05-08)
 
 **También verificar el mapeo del módulo Airtable dentro del escenario:**
 - Módulo: Airtable (Create a Record)
 - Base: Pinnacle Social Media (`appU9s3kGkVpdrJkw`)
-- Table: Ideas de Contenido (`tblAj0Pkj1jW4p5Ld`)
 - Mapeo de campos (usar los nombres EXACTOS con emojis):
 
 | Campo Make | Campo Airtable |

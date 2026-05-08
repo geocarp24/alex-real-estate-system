@@ -10,7 +10,7 @@ test('discoverTable returns table metadata for given tableId', async () => {
       ok: true,
       json: async () => ({
         tables: [
-          { id: 'tblAj0Pkj1jW4p5Ld', name: 'Ideas de Contenido', fields: [
+          { id: 'tblhbg4JSm2iND3Cs', name: 'Reels', fields: [
             { id: 'fldF', name: 'Formato', type: 'singleSelect', options: { choices: [{ name: 'Post' }, { name: 'Reel' }] } },
             { id: 'fldVU', name: 'visual_url', type: 'url' }
           ]}
@@ -19,8 +19,8 @@ test('discoverTable returns table metadata for given tableId', async () => {
     };
   });
 
-  const table = await discoverTable('appU9s3kGkVpdrJkw', 'tblAj0Pkj1jW4p5Ld', 'test_token');
-  assert.equal(table.id, 'tblAj0Pkj1jW4p5Ld');
+  const table = await discoverTable('appU9s3kGkVpdrJkw', 'tblhbg4JSm2iND3Cs', 'test_token');
+  assert.equal(table.id, 'tblhbg4JSm2iND3Cs');
   assert.equal(table.fields.length, 2);
 });
 

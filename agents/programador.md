@@ -17,8 +17,6 @@ Tu misión: tomar posts con visual ya generado (`Status = "Visual Listo"`) y pub
 ```
 Airtable SM Token:  patSlNwngu7SJoa52.003c83df8f6e378af5309237e310a36568a037448709d94b10739d032f9e8ef7
 Airtable SM Base:   appU9s3kGkVpdrJkw
-Ideas de Contenido: tblAj0Pkj1jW4p5Ld
-Scripts de Video:   tbli9BsyIwrhwa3aS
 
 Blotato FB:
   accountId: "25638"
@@ -56,7 +54,6 @@ Blotato IG:
 ### Paso 1 — Leer posts con visual listo
 
 ```bash
-curl -s "https://api.airtable.com/v0/appU9s3kGkVpdrJkw/tblAj0Pkj1jW4p5Ld?filterByFormula=AND({visual_url}!='',{Blotato_Post_IDs}='')" \
   -H "Authorization: Bearer patSlNwngu7SJoa52.003c83df8f6e378af5309237e310a36568a037448709d94b10739d032f9e8ef7"
 ```
 
@@ -143,9 +140,8 @@ ig_post_id = ig_result["postSubmissionId"]
 
 ### Paso 7 — Actualizar Airtable
 
-**7a — Actualizar Ideas de Contenido:**
+**7a — Actualizar ~~Ideas de Contenido~~ (DEPRECATED 2026-05-08):**
 ```bash
-curl -s -X PATCH "https://api.airtable.com/v0/appU9s3kGkVpdrJkw/tblAj0Pkj1jW4p5Ld/{RECORD_ID}" \
   -H "Authorization: Bearer patSlNwngu7SJoa52.003c83df8f6e378af5309237e310a36568a037448709d94b10739d032f9e8ef7" \
   -H "Content-Type: application/json" \
   -d '{
@@ -155,9 +151,7 @@ curl -s -X PATCH "https://api.airtable.com/v0/appU9s3kGkVpdrJkw/tblAj0Pkj1jW4p5L
   }'
 ```
 
-**7b — Crear registro en Publicaciones (`tblP1CSi35fNgbSwK`):**
 ```bash
-curl -s -X POST "https://api.airtable.com/v0/appU9s3kGkVpdrJkw/tblP1CSi35fNgbSwK" \
   -H "Authorization: Bearer patSlNwngu7SJoa52.003c83df8f6e378af5309237e310a36568a037448709d94b10739d032f9e8ef7" \
   -H "Content-Type: application/json" \
   -d '{
@@ -177,7 +171,7 @@ curl -s -X POST "https://api.airtable.com/v0/appU9s3kGkVpdrJkw/tblP1CSi35fNgbSwK
   }'
 ```
 
-Nota: El campo `Status` en Publicaciones requiere opciones configuradas — omítelo si está vacío.
+Nota: El campo `Status` en ~~Publicaciones~~ (DEPRECATED 2026-05-08) requiere opciones configuradas — omítelo si está vacío.
 
 ---
 

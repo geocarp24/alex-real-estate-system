@@ -109,7 +109,7 @@ Todas las imágenes son públicas y accesibles directamente:
 https://res.cloudinary.com/{cloud_name}/image/upload/{public_id}.jpg
 ```
 
-Estas URLs se guardan en el campo `URL Visual` de Airtable Ideas de Contenido.
+Estas URLs se guardan en el campo `URL Visual` de Airtable ~~Ideas de Contenido~~ (DEPRECATED 2026-05-08).
 
 ---
 

@@ -26,7 +26,6 @@ Posición: Slide 1 (Hook, watermark esquina) y Slide CTA final (centrado, grande
 ```
 Airtable SM Token:  patSlNwngu7SJoa52.003c83df8f6e378af5309237e310a36568a037448709d94b10739d032f9e8ef7
 Airtable SM Base:   appU9s3kGkVpdrJkw
-Ideas de Contenido: tblAj0Pkj1jW4p5Ld
 Blotato MCP:        mcp__blotato__* tools
 ```
 
@@ -98,7 +97,6 @@ Ideal:   Contenido para audiencia joven, reels, posts de alto engagement
 ### Paso 1 — Leer ideas listas para generar visual
 
 ```bash
-curl -s "https://api.airtable.com/v0/appU9s3kGkVpdrJkw/tblAj0Pkj1jW4p5Ld?filterByFormula=AND(OR({Status}='En Produccion',{Status}='Aprobada',{Status}='Nueva'),{visual_url}='',{Visual_Prompt}!='',NOT(OR({Formato}='Reel',{Formato}='Video')))" \
   -H "Authorization: Bearer patSlNwngu7SJoa52.003c83df8f6e378af5309237e310a36568a037448709d94b10739d032f9e8ef7"
 ```
 
@@ -199,7 +197,6 @@ blotato_visual_id_field = f"{visual_id}|||{all_urls}"
 ### Paso 7 — Guardar en Airtable
 
 ```bash
-curl -s -X PATCH "https://api.airtable.com/v0/appU9s3kGkVpdrJkw/tblAj0Pkj1jW4p5Ld/{RECORD_ID}" \
   -H "Authorization: Bearer patSlNwngu7SJoa52.003c83df8f6e378af5309237e310a36568a037448709d94b10739d032f9e8ef7" \
   -H "Content-Type: application/json" \
   -d '{

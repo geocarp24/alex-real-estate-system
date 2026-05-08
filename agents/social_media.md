@@ -156,7 +156,6 @@ Tono: auténtico, directo, bilingüe, Jorge como persona real
 
 ## FORMATO DE SALIDA COMPLETO EN AIRTABLE
 
-Guarda en `tblAj0Pkj1jW4p5Ld` con estos campos exactos:
 
 ```json
 {
@@ -253,9 +252,6 @@ Subtitle: Spanish translation of script as subtitles throughout video
 ```
 Token:    patSlNwngu7SJoa52.003c83df8f6e378af5309237e310a36568a037448709d94b10739d032f9e8ef7
 Base ID:  appU9s3kGkVpdrJkw
-Ideas de Contenido: tblAj0Pkj1jW4p5Ld
-Scripts de Video:   tbli9BsyIwrhwa3aS
-Publicaciones:      tblP1CSi35fNgbSwK
 ```
 
 ## MAKE.COM WEBHOOK
