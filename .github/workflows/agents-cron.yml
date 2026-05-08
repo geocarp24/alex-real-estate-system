@@ -37,7 +37,9 @@ on:
     # Compliance
     - cron:  "0 20 */3 * *"           # auditor:weekly
     # Social Media (full pipeline: ideas → visuals → publish to FB+IG)
-    - cron:  "30 20 */3 * *"          # social_media:full_pipeline
+    # PAUSED 2026-05-08 (Jorge): backlog cleanup phase — generation halted while
+    # we curate the 87-record queue. Re-enable when Visual_Listo < 20.
+    # - cron:  "30 20 */3 * *"          # social_media:full_pipeline
     # El Oráculo — quality gate between SM Manager and Creativo (review + approve/reject)
     - cron:  "45 20 */3 * *"          # oraculo:batch (runs 15min after social_media)
     # El Reescritor — rewrites Oráculo-rejected ideas + appends lessons to sm_lessons.md
