@@ -595,7 +595,7 @@ async function main() {
   const env = {
     token: process.env.AIRTABLE_SM_TOKEN,
     baseId: process.env.AIRTABLE_SM_BASE_ID,
-    tableId: process.env.AIRTABLE_SM_REELS_TABLE_ID || process.env.AIRTABLE_SM_TABLE_ID,
+    tableId: process.env.AIRTABLE_SM_REELS_TABLE_ID,
     PEXELS_API_KEY: process.env.PEXELS_API_KEY,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
     REPLICATE_API_TOKEN: process.env.REPLICATE_API_TOKEN,
