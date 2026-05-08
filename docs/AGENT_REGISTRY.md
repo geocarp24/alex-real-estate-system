@@ -160,7 +160,7 @@
 | **Prompt** | `agents/social_media.md` |
 | **Modelo** | Sonnet 4.6 (creatividad + bilingüe) |
 | **Dónde corre** | Sub-agente de ALEX (Claude Code + Telegram Bot) |
-| **Output** | Records en Airtable SM base `appU9s3kGkVpdrJkw` tabla `tblAj0Pkj1jW4p5Ld` |
+| **Output** | Records en Airtable SM base `appU9s3kGkVpdrJkw`, 3 tablas (`Posts` / `Reels` / `Videos`) — ver `agents/_shared/sm_tables.mjs` |
 | **Memoria** | `agents/memoria_social_media.md` |
 | **Brand compliance** | Logo Pinnacle + colores `#0D3B2E`/`#C9A84C`/`#FFFFFF` |
 
