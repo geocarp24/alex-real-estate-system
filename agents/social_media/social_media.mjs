@@ -620,7 +620,7 @@ async function main() {
 
   if (args.dryRun) {
     console.log(`=== DRY RUN [social_media ${args.mode}] ===`);
-    console.log(`Would call Anthropic + Meta Graph API + Airtable SM (${SM_BASE}/${SM_TABLE}).`);
+    console.log(`Would call Anthropic + Meta Graph API + Airtable SM (${SM_BASE}: Posts/Reels/Videos).`);
     console.log(`Caps: ideas=${IDEAS_PER_RUN}, posts=${POSTS_PER_RUN}.`);
     return;
   }
