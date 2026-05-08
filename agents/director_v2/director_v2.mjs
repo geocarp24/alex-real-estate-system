@@ -400,6 +400,13 @@ async function processRecord(record, { env, dryRun, stats }) {
   enforcePerVideoBudget(scenes);
   const forcePexels = await shouldForcePexelsFallback(scenes);
 
+  // Reel-vs-Video routing for caption style (Jorge 2026-05-08):
+  // - Videos  → karaoke captions (\kf word-by-word, fucsia) when HeyGen avatar speaks
+  // - Reels   → NO caption overlay (slide text already painted via HTML in scene_layout)
+  // Reels with karaoke felt redundant + cluttered (HTML slide_text + burned-in subtitle = double text).
+  const recordFormat = record._format || (record.fields.Slide_1_Hook ? 'Reel' : record.fields.Main_Message ? 'Video' : null);
+  const isVideoFormat = recordFormat === 'Video';
+
   const captionLocale = spec.locale === 'en' ? 'en' : 'es';
   const captionField  = captionLocale === 'en' ? 'captionEn' : 'captionEs';
 
