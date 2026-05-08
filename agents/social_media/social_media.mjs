@@ -491,15 +491,28 @@ function isVideo(url) {
   return /\.(mp4|mov|webm)(\?|$)/i.test(url || "");
 }
 
-async function processPosts(cfg, runId) {
+async function processPosts(cfg, runId, args = {}) {
   if (!META_USER_TOKEN && !META_PAGE_TOKEN) {
     return { posted: 0, reason: "META_USER_TOKEN / META_PAGE_ACCESS_TOKEN not configured — set in Doppler/secrets" };
   }
 
+  // Sprint A1.2+A1.3 (Jorge 2026-05-08): publisher is now slot-driven. Each cron
+  // entry provides --target-platform and --target-format; the run pulls only
+  // matching records and publishes to that one platform at the fixed slot time.
+  const { ok: argsOk, errors: argsErrors } = validatePublisherArgs({
+    targetPlatform: args.targetPlatform,
+    targetFormat: args.targetFormat,
+  });
+  if (!argsOk) {
+    return { posted: 0, reason: `invalid args: ${argsErrors.join("; ")} — pass --target-platform=FB|IG --target-format=Post|Reel|Video` };
+  }
+  const targetPlatform = args.targetPlatform;
+  const targetFormat = args.targetFormat;
+
   // Safety layer (Jorge 2026-05-07 "si nos banean estamos acabados").
   // Lazy import to avoid breaking generate_ideas mode if safety.mjs is missing.
   const { safetyCheckBeforePublish, classifyError, alertTelegram, CURRENT_PHASE } = await import("./safety.mjs");
-  console.error(`[social_media] safety phase=${CURRENT_PHASE}`);
+  console.error(`[social_media] safety phase=${CURRENT_PHASE} target=${targetPlatform}/${targetFormat}`);
 
   // Resolve Page Access Token (cached for the run).
   let pageToken = META_PAGE_TOKEN;
@@ -508,29 +521,37 @@ async function processPosts(cfg, runId) {
     if (!pageToken) return { posted: 0, reason: `Page ${FB_PAGE_ID} not found in /me/accounts — token may lack pages_show_list scope` };
   }
 
-  // Resolve IG Business Account once (cached).
-  const igUserId = await getInstagramUserId({ pageId: FB_PAGE_ID, pageAccessToken: pageToken }).catch(() => null);
-  if (!igUserId) {
-    console.error("[social_media] IG Business Account not linked to FB Page — IG publishing will be skipped");
+  // Resolve IG Business Account only if the slot targets IG (cached).
+  let igUserId = null;
+  if (targetPlatform === "IG") {
+    igUserId = await getInstagramUserId({ pageId: FB_PAGE_ID, pageAccessToken: pageToken }).catch(() => null);
+    if (!igUserId) {
+      return { posted: 0, reason: "IG Business Account not linked to FB Page — cannot publish IG slot" };
+    }
   }
 
-  // 3-table architecture: gather Visual Listo records from Posts/Reels/Videos.
-  // Each table contributes records whose format = its table's format (Post|Reel|Video).
-  const filter = encodeURIComponent(
-    `AND({visual_url}!='', {Status}='${STATUS.VISUAL_LISTO}')`
-  );
+  // Fetch only records matching the slot (single-table since format determines table).
+  const tableId = targetFormat === "Reel" ? SM_REELS_TABLE_ID
+                : targetFormat === "Video" ? SM_VIDEOS_TABLE_ID
+                : SM_POSTS_TABLE_ID;
+  const filter = encodeURIComponent(buildPublisherFilter({
+    targetPlatform,
+    targetFormat,
+    status: STATUS.VISUAL_LISTO,
+  }));
   const ideas = []; // { tableId, format, record }
-  for (const t of SM_TABLES) {
-    try {
-      const resp = await smFetchIn(t.id, `filterByFormula=${filter}&maxRecords=${POSTS_PER_RUN}`);
-      for (const rec of (resp.records || [])) {
-        if (ideas.length >= POSTS_PER_RUN) break;
-        ideas.push({ tableId: t.id, format: t.format, record: rec });
-      }
+  try {
+    const resp = await smFetchIn(tableId, `filterByFormula=${filter}&maxRecords=${POSTS_PER_RUN}`);
+    for (const rec of (resp.records || [])) {
       if (ideas.length >= POSTS_PER_RUN) break;
-    } catch (e) { console.error(`[sm] fetch ${t.format} failed: ${e.message}`); }
+      ideas.push({ tableId, format: targetFormat, record: rec });
+    }
+  } catch (e) {
+    console.error(`[sm] fetch ${targetFormat} failed: ${e.message}`);
   }
-  if (ideas.length === 0) return { posted: 0, reason: "no records with Status=Visual Listo across Posts/Reels/Videos" };
+  if (ideas.length === 0) {
+    return { posted: 0, reason: `no ${targetPlatform} ${targetFormat} records with Status=Visual Listo` };
+  }
 
   const results = [];
   let slotOffset = 0;
