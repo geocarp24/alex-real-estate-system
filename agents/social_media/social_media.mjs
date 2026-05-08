@@ -554,8 +554,9 @@ async function processPosts(cfg, runId, args = {}) {
   }
 
   const results = [];
-  let slotOffset = 0;
   let halted = false;
+  const safetyPlatform = targetPlatform === "FB" ? "fb" : "ig";
+  const fieldPublishedIds = selectFieldPublishedId(targetPlatform);
   for (const item of ideas) {
     if (halted) {
       results.push({ id: item.record.id, format: item.format, status: "halted_by_safety" });
@@ -570,16 +571,18 @@ async function processPosts(cfg, runId, args = {}) {
     const captionBody = f.Caption || "";
     const hashtags    = f.Hashtags || "";
     const caption     = `${captionBody}\n\n${hashtags}`.trim();
-    const scheduledTime = Math.floor(new Date(nextSlotISO(slotOffset)).getTime() / 1000);
-    slotOffset++;
+    // Sprint A1 (2026-05-08): slot-driven scheduling — each cron run hits one
+    // fixed slot for one platform/format combo. getNextFixedSlot returns the
+    // next future slot in America/Chicago (auto-DST), as a UTC unix timestamp.
+    const scheduledTime = getNextFixedSlot(targetPlatform, format, new Date());
 
     // ── SAFETY GATE ──
     const safety = await safetyCheckBeforePublish({
       caption, visualUrl, formato: format,
       durationSec: f.Duration_Sec || 0,
-      platform: "both",
+      platform: safetyPlatform,
       smFetch: (params) => smFetchIn(tableId, params),
-      fieldPublishedIds: "Published_FB_ID",
+      fieldPublishedIds,
     });
     if (!safety.ok) {
       const reason = `safety blocked (${safety.blockReason}): ${(safety.details || []).join("; ")}`.slice(0, 500);
@@ -590,27 +593,27 @@ async function processPosts(cfg, runId, args = {}) {
     }
 
     let fbResult = null, igResult = null, fbErr = null, igErr = null;
+    const useVideo = format === "Reel" || isVideoUrl(visualUrl);
 
-    try {
-      if (format === "Reel" || isVideo(visualUrl)) {
-        fbResult = await publishFacebookReel({ pageId: FB_PAGE_ID, pageAccessToken: pageToken, videoUrl: visualUrl, caption, scheduledPublishTime: scheduledTime });
-      } else {
-        // Post / Video (image preview) → single photo post.
-        fbResult = await publishFacebookPhotoPost({ pageId: FB_PAGE_ID, pageAccessToken: pageToken, imageUrls: [visualUrl], caption, scheduledPublishTime: scheduledTime });
-      }
-    } catch (e) {
-      fbErr = e.message;
-      const cls = classifyError(e);
-      if (cls.alert) await alertTelegram(`FB publish error on ${idea.id}: ${e.message}`, 'WARN').catch(() => null);
-      if (cls.action === 'halt') { halted = true; await alertTelegram(`HALT triggered: ${cls.reason}`, 'CRITICAL').catch(() => null); }
-    }
-
-    if (igUserId && !halted) {
+    if (targetPlatform === "FB") {
       try {
-        if (format === "Reel" || isVideo(visualUrl)) {
+        if (useVideo) {
+          fbResult = await publishFacebookReel({ pageId: FB_PAGE_ID, pageAccessToken: pageToken, videoUrl: visualUrl, caption, scheduledPublishTime: scheduledTime });
+        } else {
+          fbResult = await publishFacebookPhotoPost({ pageId: FB_PAGE_ID, pageAccessToken: pageToken, imageUrls: [visualUrl], caption, scheduledPublishTime: scheduledTime });
+        }
+      } catch (e) {
+        fbErr = e.message;
+        const cls = classifyError(e);
+        if (cls.alert) await alertTelegram(`FB publish error on ${idea.id}: ${e.message}`, 'WARN').catch(() => null);
+        if (cls.action === 'halt') { halted = true; await alertTelegram(`HALT triggered: ${cls.reason}`, 'CRITICAL').catch(() => null); }
+      }
+    } else {
+      // targetPlatform === "IG"
+      try {
+        if (useVideo) {
           igResult = await publishInstagramReel({ igUserId, pageAccessToken: pageToken, videoUrl: visualUrl, caption });
         } else {
-          // Post / Video → single image (carrusel multi-slide deferred for now).
           igResult = await publishInstagramImage({ igUserId, pageAccessToken: pageToken, imageUrl: visualUrl, caption });
         }
       } catch (e) {
