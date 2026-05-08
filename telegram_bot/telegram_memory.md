@@ -204,3 +204,6 @@ Sprint 0 arrancando: A1 (fix timing) -> A2 (fix FB) -> A3 (Airtable migration) e
 
 ## 2026-05-08 PM — Track 1 cerrado
 Maquina Reels y Videos al 100%. A12 force format mix + A14 pipeline 4-6h + A13 Director v2 Videos ya soporta. PR #11 mergeado. Listo para batch_weekly Domingo.
+
+## 2026-05-08 PM — Vision InvestorOS 8 fases + 6 tenants aprobada
+Jorge cerro lluvia de ideas. 8 fases (Identidad/Captacion/Publicidad/CRM/AuditSelf-heal/GrowthFeedback/Attribution/Expansion). 6 tenants Ola 1 (Pinnacle/Geo/FC) → Ola 2 (Nica Transports greenfield) → Ola 3 (ADHD/Essenthia ideas). Total ~10-13 semanas. Arrancando F1.1 Identidad Pinnacle.
