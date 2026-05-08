@@ -84,25 +84,8 @@ async function countVisualListoBacklog() {
 }
 
 // ──────────────────────────────────────────────────────────────
-// Airtable helpers (SM base — separate token from CRM)
+// Airtable helpers — 3-table aware (Posts/Reels/Videos)
 // ──────────────────────────────────────────────────────────────
-async function smFetch(params = "") {
-  const r = await fetch(`https://api.airtable.com/v0/${SM_BASE}/${SM_TABLE}?${params}`, {
-    headers: { Authorization: `Bearer ${SM_TOKEN}` },
-  });
-  return r.json();
-}
-
-async function smCreate(fields) {
-  const r = await fetch(`https://api.airtable.com/v0/${SM_BASE}/${SM_TABLE}`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${SM_TOKEN}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ fields, typecast: true }),
-  });
-  return r.json();
-}
-
-// New 3-table aware create + fetch helpers.
 async function smCreateIn(tableId, fields) {
   const r = await fetch(`https://api.airtable.com/v0/${SM_BASE}/${tableId}`, {
     method: "POST",
@@ -119,15 +102,6 @@ async function smFetchIn(tableId, params = "") {
 }
 async function smUpdateIn(tableId, recordId, fields) {
   const r = await fetch(`https://api.airtable.com/v0/${SM_BASE}/${tableId}/${recordId}`, {
-    method: "PATCH",
-    headers: { Authorization: `Bearer ${SM_TOKEN}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ fields, typecast: true }),
-  });
-  return r.json();
-}
-
-async function smUpdate(recordId, fields) {
-  const r = await fetch(`https://api.airtable.com/v0/${SM_BASE}/${SM_TABLE}/${recordId}`, {
     method: "PATCH",
     headers: { Authorization: `Bearer ${SM_TOKEN}`, "Content-Type": "application/json" },
     body: JSON.stringify({ fields, typecast: true }),
