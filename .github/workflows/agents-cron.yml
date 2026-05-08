@@ -289,7 +289,11 @@ jobs:
           RECORD_ID:                ${{ inputs.record_id }}
         run: |
           EXTRA=""
-          if [ -n "$RECORD_ID" ]; then EXTRA="--record-id $RECORD_ID"; fi
+          if [ -n "$RECORD_ID" ]; then EXTRA="$EXTRA --record-id $RECORD_ID"; fi
+          TP="${{ steps.job.outputs.target_platform }}"
+          TF="${{ steps.job.outputs.target_format }}"
+          if [ -n "$TP" ]; then EXTRA="$EXTRA --target-platform $TP"; fi
+          if [ -n "$TF" ]; then EXTRA="$EXTRA --target-format $TF"; fi
           node agents/${{ steps.job.outputs.agent }}/${{ steps.job.outputs.agent }}.mjs \
             --tenant pinnacle \
             --mode ${{ steps.job.outputs.mode }} \
