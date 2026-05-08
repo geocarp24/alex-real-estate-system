@@ -61,6 +61,28 @@ const POSTS_PER_RUN  = Number(process.env.POSTS_PER_RUN || 5);
 const POLL_MAX_SEC   = 300;
 const POLL_INTERVAL  = 15;
 
+// Backlog gate (Jorge 2026-05-08): if too many records already rendered and
+// waiting for Publisher, skip generation. Prevents the queue from ballooning
+// past what the Publisher (3 slots/week in WARMUP) can clear.
+const BACKLOG_GATE_MAX = Number(process.env.BACKLOG_GATE_MAX || 30);
+
+async function countVisualListoBacklog() {
+  const filter = encodeURIComponent(`{Status}='Visual Listo'`);
+  let total = 0;
+  for (const t of SM_TABLES) {
+    let offset = "";
+    do {
+      const url = `https://api.airtable.com/v0/${SM_BASE}/${t.id}?filterByFormula=${filter}&pageSize=100${offset ? `&offset=${offset}` : ""}`;
+      const r = await fetch(url, { headers: { Authorization: `Bearer ${SM_TOKEN}` } });
+      if (!r.ok) break;
+      const data = await r.json();
+      total += (data.records || []).length;
+      offset = data.offset || "";
+    } while (offset);
+  }
+  return total;
+}
+
 // ──────────────────────────────────────────────────────────────
 // Airtable helpers (SM base — separate token from CRM)
 // ──────────────────────────────────────────────────────────────
