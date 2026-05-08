@@ -12,9 +12,6 @@ export const SM_BASE_ID         = process.env.AIRTABLE_SM_BASE_ID         || "ap
 export const SM_POSTS_TABLE_ID  = process.env.AIRTABLE_SM_POSTS_TABLE_ID  || "tblE3lz6XNcBNgpg5";
 export const SM_REELS_TABLE_ID  = process.env.AIRTABLE_SM_REELS_TABLE_ID  || "tblhbg4JSm2iND3Cs";
 export const SM_VIDEOS_TABLE_ID = process.env.AIRTABLE_SM_VIDEOS_TABLE_ID || "tblbjYosR1tpnjRV0";
-// Legacy "Ideas de Contenido" table — preserved for historical records and
-// Carrusel format which is not yet migrated. Do NOT write new records here.
-export const SM_LEGACY_TABLE_ID = process.env.AIRTABLE_SM_LEGACY_TABLE_ID || "tblAj0Pkj1jW4p5Ld";
 
 export const SM_TOKEN = process.env.AIRTABLE_SM_TOKEN || "";
 
