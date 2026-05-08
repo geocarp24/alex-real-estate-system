@@ -315,27 +315,50 @@ Return JSON only — both ES and EN versions in EVERY idea.`;
 
     let esFields, enFields;
     if (format === "Reel") {
-      const slides = (idea.reel && Array.isArray(idea.reel.slides)) ? idea.reel.slides : [];
-      const slide = (i, key) => (slides[i] && slides[i][key]) || "";
-      const reelExtra = (lang) => {
-        const cap = lang === "ES" ? idea.caption_es : idea.caption_en;
+      // Per-language slides (Jorge 2026-05-08): Sonnet must return slides_es +
+      // slides_en separately. PRE-CREATE VALIDATION: if Sonnet returned an
+      // incomplete reel structure, REJECT the idea (don't create record) so we
+      // don't waste Oráculo + Reescritor cycles fixing it. Log the rejection
+      // and append a structural lesson so SM Manager learns immediately.
+      const reel = idea.reel || {};
+      const slidesEs = Array.isArray(reel.slides_es) ? reel.slides_es : [];
+      const slidesEn = Array.isArray(reel.slides_en) ? reel.slides_en : [];
+      const validateSlides = (slides, lang) => {
+        if (slides.length < 5) return `${lang}: ${slides.length}/5 slides`;
+        const empty = [];
+        if (!String(slides[0]?.hook || "").trim()) empty.push(`slide_1.hook`);
+        for (let i = 1; i <= 3; i++) if (!String(slides[i]?.text || "").trim()) empty.push(`slide_${i+1}.text`);
+        if (!String(slides[4]?.cta || "").trim()) empty.push(`slide_5.cta`);
+        return empty.length ? `${lang}: empty ${empty.join(",")}` : null;
+      };
+      const errEs = validateSlides(slidesEs, "ES");
+      const errEn = validateSlides(slidesEn, "EN");
+      if (errEs || errEn) {
+        console.error(`[sm] REJECT Reel idea (incomplete slides): ${errEs || ""} ${errEn || ""} | title=${(idea.title_es || "").slice(0,40)}`);
+        // Append structural lesson immediately so the next generation loop fixes itself.
+        await appendStructuralLesson(`Reel idea generated with empty slide fields: ${errEs || ""} ${errEn || ""}. RULE: every Reel idea MUST include reel.slides_es AND reel.slides_en, each with 5 elements, and slides 2/3/4 MUST have non-empty 'text' and slides 1 MUST have 'hook' and slide 5 MUST have 'cta'.`).catch(() => null);
+        continue;  // skip — don't create incomplete records
+      }
+      const reelExtraLang = (lang) => {
+        const slides = lang === "ES" ? slidesEs : slidesEn;
+        const cap    = lang === "ES" ? idea.caption_es : idea.caption_en;
         return {
-          Slide_1_Hook:  slide(0, "hook"),
-          Slide_2_Text:  slide(1, "text"),
-          Slide_2_Visual: slide(1, "visual"),
-          Slide_3_Text:  slide(2, "text"),
-          Slide_3_Visual: slide(2, "visual"),
-          Slide_4_Text:  slide(3, "text"),
-          Slide_4_Visual: slide(3, "visual"),
-          Slide_5_CTA:   slide(4, "cta"),
+          Slide_1_Hook:  slides[0].hook,
+          Slide_2_Text:  slides[1].text,
+          Slide_2_Visual: slides[1].visual || "wisconsin home golden hour | flux: cinematic warm wisconsin home, no text",
+          Slide_3_Text:  slides[2].text,
+          Slide_3_Visual: slides[2].visual || "wisconsin home golden hour | flux: cinematic warm wisconsin home, no text",
+          Slide_4_Text:  slides[3].text,
+          Slide_4_Visual: slides[3].visual || "wisconsin home golden hour | flux: cinematic warm wisconsin home, no text",
+          Slide_5_CTA:   slides[4].cta,
           Caption:       cap || "",
-          Template:      (idea.reel && idea.reel.template) || "voiceover",
-          Music_Track:   (idea.reel && idea.reel.music) || "cinematic",
+          Template:      reel.template || "voiceover",
+          Music_Track:   reel.music || "cinematic",
           Avatar_Mode:   String(idea.tipo || "").toLowerCase() === "personal" ? "Jorge_hook+CTA" : "NO_avatar",
         };
       };
-      esFields = { ...baseFields("ES"), ...reelExtra("ES") };
-      enFields = { ...baseFields("EN"), ...reelExtra("EN") };
+      esFields = { ...baseFields("ES"), ...reelExtraLang("ES") };
+      enFields = { ...baseFields("EN"), ...reelExtraLang("EN") };
     } else if (format === "Video") {
       const videoExtra = (lang) => ({
         Hook:           lang === "ES" ? (idea.hook_es || "") : (idea.hook_en || ""),
