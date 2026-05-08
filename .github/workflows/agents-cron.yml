@@ -267,32 +267,19 @@ jobs:
 
       # Persist sm_lessons.md after Reescritor runs — this is the learning-loop
       # storage so SM Manager picks up new lessons on its next run.
-      - name: Commit + push sm_lessons.md (reescritor only)
-        if: steps.job.outputs.agent == 'reescritor' && success()
+      - name: Commit + push generated artifacts (any agent that writes lessons or references)
+        if: success()
         run: |
           cd "${{ github.workspace }}"
-          if [ -n "$(git status --porcelain agents/oraculo_inputs/sm_lessons.md 2>/dev/null)" ]; then
-            git config user.name  "ALEX-Reescritor"
-            git config user.email "alex@pinnaclegroupwi.com"
-            git add agents/oraculo_inputs/sm_lessons.md
-            git commit -m "reescritor: append Oraculo lessons (run ${{ github.run_number }})"
-            git push origin HEAD:master || echo "::warning::push failed — lessons stay only on this runner"
-          else
-            echo "::notice::sm_lessons.md unchanged — nothing to commit"
-          fi
-
-      - name: Commit + push references/ (audit_meta only)
-        if: (steps.job.outputs.agent == 'audit_meta' || steps.job.outputs.agent == 'analitico') && success()
-        run: |
-          cd "${{ github.workspace }}"
-          if [ -n "$(git status --porcelain references/ agents/oraculo_inputs/sm_lessons.md 2>/dev/null)" ]; then
+          if [ -n "$(git status --porcelain agents/oraculo_inputs/sm_lessons.md references/ 2>/dev/null)" ]; then
             git config user.name  "ALEX-${{ steps.job.outputs.agent }}"
             git config user.email "alex@pinnaclegroupwi.com"
-            git add references/ agents/oraculo_inputs/sm_lessons.md 2>/dev/null || true
-            git commit -m "${{ steps.job.outputs.agent }}: report (run ${{ github.run_number }})"
+            git add agents/oraculo_inputs/sm_lessons.md references/ 2>/dev/null || true
+            git commit -m "${{ steps.job.outputs.agent }}: artifacts (run ${{ github.run_number }})"
+            git pull --rebase origin master 2>/dev/null || true
             git push origin HEAD:master || echo "::warning::push failed"
           else
-            echo "::notice::no audit/lessons changes to commit"
+            echo "::notice::no artifacts changed"
           fi
 
       - name: Upload run artifacts (if any)
