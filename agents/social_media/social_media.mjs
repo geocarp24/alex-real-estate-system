@@ -309,18 +309,35 @@ HARD RULES (Reel idea is REJECTED if any violated):
 - For Videos: include hook + caption + main_message + script_outline + cta (no "reel" key).
 - ALL bilingual fields require BOTH _es and _en versions populated. Never leave EN blank if it's a bilingual field.`;
 
-  const userPrompt = `Generate ${IDEAS_PER_RUN} fresh ideas for this week. Mix formats (1 Post, 1 Reel, 1 either). Cover topics like:
-- Foreclosure help Wisconsin
-- Inherited property / probate
-- Cash vs realtor comparison
-- Tired landlord exit
-- Relocation quick sale
-- Behind on taxes
+  // Sprint A6 (Jorge 2026-05-08): replace free-form topic list with Theme Bank
+  // weighted picks. SM Manager now generates ideas from a curated catalog of
+  // 170 subtopics across 8 pillars, balanced by pillar weight_pct.
+  let themeBank;
+  try { themeBank = loadThemeBank(); }
+  catch (e) { return { created: 0, error: `theme bank load failed: ${e.message}` }; }
+  const recentTitles = await getRecentTitles();
+  const picks = pickBatch(themeBank, IDEAS_PER_RUN);
+  if (picks.length === 0) return { created: 0, error: "theme bank pickBatch returned 0 picks" };
+
+  const topicsBlock = picks.map((p, i) => `
+${i + 1}. PILLAR: ${p.pillar.name_en} (id=${p.pillar.id})
+   SUBTOPIC_ID: ${p.subtopic.id}
+   TITLE_EN: ${p.subtopic.title_en}
+   TITLE_ES: ${p.subtopic.title_es}
+   HOOK_IDEA: ${p.subtopic.hook}
+   FORMAT_HINT: ${decideFormat(p.pillar, p.subtopic)}
+   FUNNEL_STAGE: ${p.subtopic.funnel}
+   COLOR_THEME: ${p.pillar.color_theme_default || "T1"}
+   TONE: ${p.pillar.tone || "neutral"}`).join("\n");
+
+  const userPrompt = `Generate ${picks.length} ideas — ONE for EACH topic listed below from the curated Theme Bank. The titles were chosen strategically — refine wording if needed but keep the spirit. The format hint, funnel stage, and tone guide your output.
+
+${topicsBlock}
 
 Avoid duplicating these recent titles (last 14 days):
-${(await getRecentTitles()).join(" / ") || "(none)"}
+${recentTitles.join(" / ") || "(none)"}
 
-Return JSON only — both ES and EN versions in EVERY idea.`;
+Return JSON only — for EACH topic above, generate one idea with both ES and EN versions in EVERY bilingual field. Use the SUBTOPIC_ID as a reference but DO NOT include it in the output JSON.`;
 
   const { text, error } = await callAnthropic(newSystemPrompt, userPrompt, 4000);
   if (error) return { created: 0, error };
