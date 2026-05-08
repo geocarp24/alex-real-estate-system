@@ -9,10 +9,9 @@
   "company": {
     "legal_name": "Pinnacle Holdings Group LLC",
     "trading_name": "Pinnacle Holdings",
-    "founded": null,
+    "founded": 2026,
     "industry": "real-estate",
-    "subindustry": "cash-home-buyer-investor",
-    "_GAP": "founded year — Jorge to provide"
+    "subindustry": "cash-home-buyer-investor"
   },
 
   "messaging": {
@@ -21,8 +20,7 @@
     "mission": "Help Wisconsin homeowners in difficult situations sell their houses quickly, fairly, and without the burden of traditional sale processes — no commissions, no repairs, no judgment.",
     "vision": "Be the most trusted cash home buyer in Wisconsin and the model for honest real estate investing in the Midwest.",
     "values": ["transparency", "speed", "no judgment", "fair offers", "local Wisconsin pride"],
-    "elevator_pitch": "We buy houses in Wisconsin for cash. As-is, no realtor fees, close in 7 days. Locally owned, not a national chain.",
-    "_GAP_mission": "Jorge approval needed on mission/vision/values wording — current is suggested"
+    "elevator_pitch": "We buy houses in Wisconsin for cash. As-is, no realtor fees, close on your timeline. Locally owned in Green Bay, not a national chain."
   },
 
   "voice": {
