@@ -4,6 +4,27 @@
 
 ---
 
+## 2026-05-08 (AM) — Cleanup completo de tablas SM legacy (3 tablas eliminadas en Airtable)
+
+**Jorge confirma**: tablas `Publicaciones`, `Scripts de Video` e `Ideas de Contenido` eliminadas vía UI Airtable (la API no soporta `DELETE` sobre tablas — solo records). Cleanup final del codebase:
+
+- **Código activo (.mjs/.js/.yml)**: 0 referencias a IDs muertos (`tblP1CSi35fNgbSwK`, `tbli9BsyIwrhwa3aS`, `tblAj0Pkj1jW4p5Ld`) — ya purgado en sesión anterior.
+- **Docs vivas actualizadas en este pase**:
+  - `CLAUDE.md` línea 310 → ahora referencia las 3 tablas SM via `agents/_shared/sm_tables.mjs`
+  - `docs/AGENT_REGISTRY.md` línea 163 → mismo fix
+  - `memoria_ALex.md` (este archivo) → tabla legacy removida del inventario, refs históricas marcadas DEPRECATED
+
+**Estado SM Base final** (`appU9s3kGkVpdrJkw`):
+| Tabla | Records | Notas |
+|---|---|---|
+| Posts | 21 | Todos con Oraculo_Score |
+| Reels | 1 | Todos con Oraculo_Score |
+| Videos | 0 | Schema only, wireup pendiente |
+
+**Anti-regresión**: cualquier nueva referencia a `tblAj0Pkj1jW4p5Ld` / `tblP1CSi35fNgbSwK` / `tbli9BsyIwrhwa3aS` debe rechazarse — son IDs muertos. Toda persistencia SM va por las 3 tablas activas vía `sm_tables.mjs`.
+
+---
+
 ## 2026-05-07 (PM-5) — Mono-language render fix (slidePostEditorial refactor)
 
 **Jorge feedback PM-5**: "los visuales muestran ES + EN mezclados en mismo PNG — separar idiomas".
