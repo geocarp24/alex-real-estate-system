@@ -12,6 +12,12 @@
 
 ## Patrones aprendidos (rolling window — últimas 50)
 
+### 2026-05-08 — Caption karaoke style (Jorge directo, NO viene de Oráculo)
+- **rejected_pattern**: "Reels con captions karaoke (\\kf word-by-word color sweep) burned-in via libass subtitles filter"
+- **oraculo_critique**: N/A — orden directa Jorge
+- **rewrite_pattern**: "Reels NO usan captions karaoke. El texto del slide ya está pintado en el HTML (scene_layout.mjs slide_text). El estilo karaoke solo se aplica en Videos (long-form 30-60s, format='Video'). Director v2 ahora gatea: `isVideoFormat = recordFormat === 'Video'` antes de generar `.ass` files."
+- **segment_anchor**: ALL — aplica a todos los Reels independiente del segment
+
 ### 2026-05-07 — Video length rule (Jorge directo, NO viene de Oráculo)
 - **Rejected pattern**: Reels con duration > 15 segundos
 - **Oráculo critique**: N/A — esta es regla directa del Jefe, anti-regresión permanente
