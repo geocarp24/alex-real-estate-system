@@ -3406,7 +3406,7 @@ Todo lo que se construya para Pinnacle debe diseñarse desde el día 1 como **pr
 
 ### 2. Airtable Schema cleanup + recreate
 
-**Tabla `Ideas de Contenido` (`appU9s3kGkVpdrJkw / tblAj0Pkj1jW4p5Ld`):**
+**Tabla `Ideas de Contenido` (DEPRECATED 2026-05-08, eliminada de Airtable — registro histórico):**
 
 Borrado vía UI (API no soporta DELETE de field, solo CREATE/UPDATE):
 - `Branding_Spec` (12% pop, orphan en código)
