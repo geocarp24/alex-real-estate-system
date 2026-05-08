@@ -163,6 +163,9 @@ jobs:
             "0 2 * * *")         agent=social_media; mode=process_posts; tp=IG; tf=Reel ;;
             *)                   agent="${{ inputs.agent || 'mercader' }}"; mode="${{ inputs.mode || 'quick_health' }}" ;;
           esac
+          # workflow_dispatch override: if user provided tp/tf inputs, use them.
+          if [ -z "$tp" ] && [ -n "${{ inputs.target_platform }}" ]; then tp="${{ inputs.target_platform }}"; fi
+          if [ -z "$tf" ] && [ -n "${{ inputs.target_format }}" ]; then tf="${{ inputs.target_format }}"; fi
           echo "agent=$agent" >> $GITHUB_OUTPUT
           echo "mode=$mode"   >> $GITHUB_OUTPUT
           echo "target_platform=${tp:-}" >> $GITHUB_OUTPUT
