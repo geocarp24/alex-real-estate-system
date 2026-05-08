@@ -207,3 +207,6 @@ Maquina Reels y Videos al 100%. A12 force format mix + A14 pipeline 4-6h + A13 D
 
 ## 2026-05-08 PM — Vision InvestorOS 8 fases + 6 tenants aprobada
 Jorge cerro lluvia de ideas. 8 fases (Identidad/Captacion/Publicidad/CRM/AuditSelf-heal/GrowthFeedback/Attribution/Expansion). 6 tenants Ola 1 (Pinnacle/Geo/FC) → Ola 2 (Nica Transports greenfield) → Ola 3 (ADHD/Essenthia ideas). Total ~10-13 semanas. Arrancando F1.1 Identidad Pinnacle.
+
+## 2026-05-08 — F1.1 IDENTIDAD Pinnacle done
+brand_kit.json multi-tenant en agents/tenants/pinnacle/. 16 secciones (messaging, voice, colors, typography, logo, social, compliance, competitors). 7 GAPs pendientes input Jorge. Schema replicable.

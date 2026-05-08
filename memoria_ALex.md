@@ -3780,3 +3780,13 @@ La regla aplica desde YA (2026-05-08) y aplica retroactivamente a A12 + A14 que 
 
 **Total estimado:** 10-13 semanas para sistema completo + 6 tenants validados.
 
+
+### Sprint F1.1 IDENTIDAD Pinnacle — done 2026-05-08
+- Creado `agents/tenants/pinnacle/brand_kit.json` (multi-tenant replicable schema 16 secciones)
+- Estado existente: pinnacle.json ya tenia `brand` block basico (colors + logo URL + phone + email)
+- Nuevo brand_kit expande con: messaging completo (tagline, mission, vision, values), voice principles (do/don't), typography (Inter + Source Serif 4 + Bebas Neue), logo usage rules, social handles FB+IG IDs, compliance disclaimers Fair Housing, competitors mapping, differentiation vs national chains + vs realtors
+- 7 GAPs marcados con `_GAP_*` keys para input de Jorge: founded year, mission approval, logo variations (stacked/icon/white/mono), physical address (legal HQ schema.org), LinkedIn/TikTok handles, Cloudinary cloud_name, real estate license number
+- Schema replicable para Geo/FC/Nica/T4/Essenthia copiando el file y ajustando
+- Skills usados: `brandkit` + `impeccable` + `design-taste-frontend` + `pinnacle-memory-preflight`
+- Aesthetic Pinnacle confirmed: editorial limpio + warmth (NOT brutalist/cyberpunk)
+

@@ -327,3 +327,6 @@ Director v2 ya soporta Videos: validateSpec 7-50s + narrative_B 7-9 escenas + bu
 8 fases del sistema: 1.IDENTIDAD 2.CAPTACION 3.PUBLICIDAD 4.CRM 5.AUDIT/SELFHEAL 6.GROWTH-FEEDBACK 7.ATTRIBUTION+PROFIT 8.HORIZONTAL-EXPANSION.
 6 tenants validacion: Ola 1 reales (Pinnacle/Geo/FC Multi) → Ola 2 greenfield (Nica Transports) → Ola 3 ideas (ADHD/Essenthia).
 Pinnacle = dogfooding base. Detalle en memoria_ALex.md.
+
+## 2026-05-08 — Sprint F1.1 done — Pinnacle brand_kit.json
+agents/tenants/pinnacle/brand_kit.json (16 secciones + 7 GAPs para Jorge). Multi-tenant replicable. Voice + Typography + Compliance + Competitors + Differentiation. Detalle en memoria_ALex.md.
