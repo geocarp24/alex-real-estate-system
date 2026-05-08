@@ -368,8 +368,12 @@ Return JSON only — for EACH topic above, generate one idea with both ES and EN
   const templateNext = makeTemplateRotator(0);
 
   const created = [];
-  for (const idea of ideas.slice(0, count)) {
-    const format = String(idea.format || "Post");
+  // Sprint A12: enforce format from pre-calculated picks; override LLM if it
+  // returned a different format — the slot mix MUST match cadence.
+  for (let i = 0; i < ideas.length && i < count; i++) {
+    const idea = ideas[i];
+    const enforcedFormat = picks[i]?.format || decideFormat(picks[i]?.pillar, picks[i]?.subtopic);
+    const format = enforcedFormat;
     const sourceId = String(Date.now()) + Math.floor(Math.random()*1000).toString().padStart(3,"0");
     const targetPlatform = platformNext();  // FB or IG, alternating
     const tableId  = format === "Reel"  ? SM_REELS_TABLE_ID
