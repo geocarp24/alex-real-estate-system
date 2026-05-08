@@ -2908,7 +2908,7 @@ Jorge pidió "gistak" = **gstack** (typo de autocorrect). Confirmado + instalado
 1. `agents/creativo_runner/themes.mjs` — 184 líneas con 5 temas T1-T5 ya construidos: `slideHook()`, `slidePoint()`, `slideCTA()`, `buildCarousel()`. Logo Pinnacle integrado, fonts Montserrat, viewport 1080×1350 IG 4:5.
 2. **Puppeteer/Playwright** en GHA runner (npm `puppeteer` o `playwright-chromium`) → render BODY HTML → screenshot PNG.
 3. **Cloudinary** signed upload → URL persistente para FB/IG.
-4. **Airtable SM Base** (`appU9s3kGkVpdrJkw` / `tblAj0Pkj1jW4p5Ld`) → estado + `visual_url` + `Status="Visual Listo"`.
+4. **Airtable SM Base** (`appU9s3kGkVpdrJkw`, 3 tablas: `Posts` / `Reels` / `Videos` — ver `agents/_shared/sm_tables.mjs`) → estado + `visual_url` + `Status="Visual Listo"`.
 
 **Stack APROBADO para El Director (videos/Reels):**
 - HeyGen avatar de Jorge para Reels personalizados (cuando se active)
