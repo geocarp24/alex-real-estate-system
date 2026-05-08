@@ -3632,3 +3632,31 @@ curl -s -H "Authorization: Bearer $GH_TOKEN" \
 
 Anti-regression: cualquier sesion futura de ALEX que no encuentre tokens de GitHub debe leer R11 y usar este Doppler secret. La excusa "el MCP no tiene workflow tools" es valida (sigue siendo cierto), PERO la solucion correcta es bypass via curl + GH_SUPER_TOKEN, no pedir a Jorge.
 
+
+### REGLA R12 — COMPACT + MEMORIA AUTOMATICA POR TAREA (Jorge 2026-05-08)
+Despues de CADA tarea finalizada (sprint, sub-sprint, fix, feature), ALEX debe AUTOMATICAMENTE:
+1. Actualizar memoria_ALex.md con resumen de la tarea (que se hizo, archivos tocados, tests, status)
+2. Actualizar agents/memoria_alex.md con resumen breve cross-channel
+3. Actualizar telegram_bot/telegram_memory.md con resumen breve para continuidad
+4. Hacer compact/commit/push automatico al remote
+NO esperar a que Jorge lo pida. Es regla GENERAL para TODO.
+La regla aplica desde YA (2026-05-08) y aplica retroactivamente a A12 + A14 que se acaban de cerrar.
+
+### Sprint A12 + A14 — cierre 2026-05-08
+**Sprint A12 — SM Manager force format mix** (143 tests passing):
+- Archivo modificado: `agents/social_media/theme_bank_loader.mjs` (agregada `WEEKLY_FORMAT_MIX` + `applyFormatDistribution`)
+- Archivo modificado: `agents/social_media/social_media.mjs` (generateIdeas usa applyFormatDistribution + force format en records)
+- Archivo nuevo: `agents/social_media/test/format_distribution.test.mjs` (9 tests)
+- Resultado: cada batch_weekly ahora genera EXACTAMENTE 42 Posts + 28 Reels + 8 Videos (= 78). Slot inventory matched.
+
+**Sprint A14 — Pipeline cadence acelerada**:
+- Archivo modificado: `.github/workflows/agents-cron.yml`
+- Crons cambiados: oraculo `0 */4 * * *`, reescritor `30 */4 * * *`, creativo `0 */6 * * *`, director_v2 `15 */6 * * *`
+- Antes: cada 3 dias. Ahora: cada 4-6 horas.
+- Razon: 78 records/sem necesita pipeline rapido para no acumular backlog.
+
+**Pendiente Sprint A13** (decision Jorge): El Director (videos largos 30-60s):
+- Approach A (atajo): extender Director v2 con narrative_VIDEO 10-15 slides (~2-3h)
+- Approach B (from scratch): construir agents/director/ nuevo runner (3-5 dias)
+- Mi voto: A.
+
