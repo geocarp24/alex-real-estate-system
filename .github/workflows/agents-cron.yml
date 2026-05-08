@@ -59,16 +59,14 @@ on:
     - cron:  "30 1 * * 1,2,4,6"       # social_media IG Video 20:30 CT Mon/Wed/Fri/Sun (UTC Tue/Thu/Sat/Mon)
     - cron:  "0 2 * * 1,2,4,6"        # social_media FB Video 21:00 CT Mon/Wed/Fri/Sun (UTC Tue/Thu/Sat/Mon)
     - cron:  "0 2 * * *"              # social_media IG Reel  21:00 CT (next UTC day)
-    # El Oráculo — quality gate between SM Manager and Creativo (review + approve/reject)
-    - cron:  "45 20 */3 * *"          # oraculo:batch (runs 15min after social_media)
-    # El Reescritor — rewrites Oráculo-rejected ideas + appends lessons to sm_lessons.md
-    - cron:  "0 21 */3 * *"           # reescritor:batch (runs 15min after Oráculo)
-    # El Oráculo round 2 — re-reviews rewritten ideas (closes the learning loop)
-    - cron:  "15 21 */3 * *"          # oraculo:batch (round 2)
-    # El Creativo — generates visuals via Puppeteer + Pexels + FLUX (only Oraculo-approved)
-    - cron:  "30 21 */3 * *"          # creativo:batch
-    # El Director v2 — faceless reels (text + Pexels stock + ffmpeg + music) for Reel Formato
-    - cron:  "0 22 */3 * *"           # director_v2:batch
+    # Sprint A14 (Jorge 2026-05-08): pipeline frequency increased from every-3-days
+    # to every-few-hours to keep up with batch_weekly's 78 records/week throughput.
+    # Without this, Reels/Videos accumulate as Idea → Visual Listo backlog and
+    # Publisher slots find empty queue.
+    - cron:  "0 */4 * * *"            # oraculo:batch (every 4h - reviews Idea → Oraculo OK or Rechazada)
+    - cron:  "30 */4 * * *"           # reescritor:batch (every 4h, 30min after oraculo)
+    - cron:  "0 */6 * * *"            # creativo:batch (every 6h - renders Posts carousels)
+    - cron:  "15 */6 * * *"           # director_v2:batch (every 6h - renders Reels)
     # El Analítico — daily engagement metrics + lessons feedback to SM Manager
     - cron:  "0 6 * * *"              # analitico:batch (every day at 06:00 UTC)
   workflow_dispatch:
