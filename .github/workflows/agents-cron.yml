@@ -138,11 +138,11 @@ jobs:
             "30 19 */3 * *")     agent=espia;        mode=weekly_deep ;;
             "0 20 */3 * *")      agent=auditor;      mode=weekly ;;
             "30 20 */3 * *")     agent=social_media; mode=full_pipeline ;;
-            "45 20 */3 * *")     agent=oraculo;      mode=batch ;;
-            "0 21 */3 * *")      agent=reescritor;   mode=batch ;;
-            "15 21 */3 * *")     agent=oraculo;      mode=batch ;;
-            "30 21 */3 * *")     agent=creativo;     mode=batch ;;
-            "0 22 */3 * *")      agent=director_v2;  mode=batch ;;
+            # Sprint A14 — pipeline cadence every 4-6 hours (was every 3 days).
+            "0 */4 * * *")       agent=oraculo;      mode=batch ;;
+            "30 */4 * * *")      agent=reescritor;   mode=batch ;;
+            "0 */6 * * *")       agent=creativo;     mode=batch ;;
+            "15 */6 * * *")      agent=director_v2;  mode=batch ;;
             "0 6 * * *")         agent=analitico;    mode=batch ;;
             # Sprint A6 — batch_weekly idea generation (Sun 18:00 CDT).
             "0 23 * * 0")        agent=social_media; mode=batch_weekly ;;
