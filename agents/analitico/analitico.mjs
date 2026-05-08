@@ -308,14 +308,21 @@ async function main() {
 
   // Top 3 performers by engagement rate.
   const top = collected.sort((a, b) => b.engagementRate - a.engagementRate).slice(0, 3);
+
+  // Sprint A8: tier distribution summary for Telegram report.
+  const tierItems = collected.map(r => ({ id: r.id, title: r.titulo, score: r.auditScore || 0 }));
+  const tierSummary = summarizeTiers(tierItems);
+
   const lines = [
     `📊 *El Analítico* — ${cfg.tenant_name}`,
     `${duration}s · ✅ ${collected.length} metrics collected${failed ? ` · ⚠️ ${failed} failed` : ""}`,
+    `Tiers: 🟢 ${tierSummary.counts.Premium} Premium · 🔵 ${tierSummary.counts.Good} Good · 🟡 ${tierSummary.counts.Fair} Fair · 🔴 ${tierSummary.counts.Poor} Poor`,
   ];
   if (top.length > 0) {
     lines.push(`*Top performers:*`);
     for (const t of top) {
-      lines.push(`📈 ${(t.engagementRate * 100).toFixed(1)}% ER · ${t.format} · ${(t.titulo || "").slice(0, 45)} (R=${t.reach} L=${t.likes} C=${t.comments} S=${t.saves})`);
+      const tierBadge = t.auditTier ? `[${t.auditTier}] ` : "";
+      lines.push(`📈 ${tierBadge}${(t.engagementRate * 100).toFixed(1)}% ER · score=${t.auditScore} · ${t.format} · ${(t.titulo || "").slice(0, 40)}`);
     }
   }
   await telegramSend(cfg, lines.join("\n").slice(0, 3800));
