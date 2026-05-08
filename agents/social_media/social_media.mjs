@@ -28,6 +28,15 @@ import {
   publishInstagramReel, publishInstagramCarousel, publishInstagramImage,
   getInstagramUserId, getPageAccessToken,
 } from "./graph_api.mjs";
+// Sprint A1.1+ (2026-05-08): fixed-slot scheduling + helpers for slot-driven publish.
+import { getNextFixedSlot } from "./scheduling.mjs";
+import {
+  buildPublisherFilter,
+  selectFieldPublishedId,
+  selectPublisherFn,
+  isVideoUrl,
+  validatePublisherArgs,
+} from "./publisher_helpers.mjs";
 
 const VALID_MODES = ["generate_ideas", "process_posts", "full_pipeline"];
 

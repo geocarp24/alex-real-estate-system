@@ -3598,3 +3598,14 @@ Sprint A2: fix FB publishing (logs GHA + token validation)
 Sprint A3: migracion Airtable Target_Platform + Concept_ID + Caption_Hash
 Sprint B1: repo InvestorOS scaffold + branding initial
 
+
+### REGLA R10 — NOTIFICACION PROACTIVA CONTINUA (Jorge 2026-05-08)
+ALEX debe informar al Jefe en tiempo real de TODO lo que esta haciendo, sin esperar a que se le pregunte. Sin excepciones. Aplica a:
+- Cada archivo modificado (Edit/Write): reportar path + razon
+- Cada test run: reportar pass/fail con numeros (X/Y passed)
+- Cada Bash command relevante (no triviales como ls/grep): reportar resultado
+- Cada cambio significativo en estado: subir/bajar confianza, sub-sprint complete, blockers detectados
+- Cada Edit a Airtable / GitHub / cualquier sistema externo
+NO molestar con triviales (lecturas read-only de exploracion, greps de orientacion). SI reportar acciones que cambian estado.
+Trade-off: prefiero ser ligeramente verbose que dejar al Jefe a oscuras. R10 prevalece sobre brevity en caso de duda.
+
