@@ -9,10 +9,9 @@
   "company": {
     "legal_name": "Pinnacle Holdings Group LLC",
     "trading_name": "Pinnacle Holdings",
-    "founded": null,
+    "founded": 2026,
     "industry": "real-estate",
-    "subindustry": "cash-home-buyer-investor",
-    "_GAP": "founded year — Jorge to provide"
+    "subindustry": "cash-home-buyer-investor"
   },
 
   "messaging": {
@@ -21,8 +20,7 @@
     "mission": "Help Wisconsin homeowners in difficult situations sell their houses quickly, fairly, and without the burden of traditional sale processes — no commissions, no repairs, no judgment.",
     "vision": "Be the most trusted cash home buyer in Wisconsin and the model for honest real estate investing in the Midwest.",
     "values": ["transparency", "speed", "no judgment", "fair offers", "local Wisconsin pride"],
-    "elevator_pitch": "We buy houses in Wisconsin for cash. As-is, no realtor fees, close in 7 days. Locally owned, not a national chain.",
-    "_GAP_mission": "Jorge approval needed on mission/vision/values wording — current is suggested"
+    "elevator_pitch": "We buy houses in Wisconsin for cash. As-is, no realtor fees, close on your timeline. Locally owned in Green Bay, not a national chain."
   },
 
   "voice": {
@@ -131,10 +129,7 @@
       "clear_space_factor": 0.5,
       "approved_backgrounds": ["white", "light gray", "dark green primary", "photo with overlay"]
     },
-    "_GAPS": [
-      "Logo variations (stacked, icon-only, white, monochrome) — Jorge to design or approve generation via brandkit skill",
-      "SVG version for vector use"
-    ]
+    "_TODO": "Logo variations (stacked, icon-only, white, monochrome, SVG) — to be generated via brandkit skill in Sprint F1.3 or F1 polish phase. Not blocking — horizontal_full works for current social slides + website."
   },
 
   "contact": {
@@ -145,11 +140,12 @@
     "website": "https://pinnaclegroupwi.com",
     "form_url": "https://pinnaclegroupwi.com/get-my-offer/",
     "physical_address": {
-      "street": null,
-      "city": null,
+      "street": "735 East Walnut St.",
+      "city": "Green Bay",
       "state": "WI",
-      "zip": null,
-      "_GAP": "Physical address needed for LocalBusiness schema.org + GBP listing — Jorge to provide"
+      "zip": "54301",
+      "country": "US",
+      "_note": "Office shared with Geo Carpentry (different tenant, same physical location). Pinnacle uses suite for cash buyer ops; Geo uses Suite 3 for carpentry ops."
     }
   },
 
@@ -167,12 +163,19 @@
     "linkedin": null,
     "youtube": null,
     "tiktok": null,
-    "_GAPS": ["LinkedIn company page — recommended for B2B (realtor partnerships)", "TikTok — opcional Phase 2", "YouTube — for long-form videos (Phase 2)"]
+    "_decision": "LinkedIn / YouTube / TikTok — not in current scope. Pinnacle focuses on FB+IG for distressed homeowner audience. Re-evaluate in Phase 2 (B2B realtor partnerships could justify LinkedIn)."
   },
 
   "asset_library": {
-    "cloudinary_cloud_name": null,
+    "cloudinary_cloud_name": "dzzlhhk0m",
     "cloudinary_folder": "pinnacle",
+    "cloudinary_secrets_doppler": {
+      "name_var": "CLOUDINARY_NAME",
+      "key_var": "CLOUDINARY_API_KEY",
+      "secret_var": "CLOUDINARY_API_SECRET",
+      "project": "pinnacle-social-publisher",
+      "config": "dev_personal"
+    },
     "categories_planned": [
       "logo-variations",
       "exteriors-wisconsin-homes",
@@ -183,15 +186,14 @@
       "family-homeowners",
       "before-after-rehabs"
     ],
-    "_GAP": "Cloudinary cloud_name needs Doppler secret reference. Asset categorization is Sprint A9 dependency."
+    "_TODO": "Asset categorization + tagging — Sprint A9 dependency. Cloudinary already configured."
   },
 
   "compliance": {
     "fair_housing_disclaimer": "Pinnacle Holdings Group LLC complies with Federal Fair Housing Act. We make offers without regard to race, color, religion, sex, handicap, familial status, or national origin.",
-    "investor_disclosure": "Pinnacle Holdings is a real estate investor, not a licensed real estate brokerage. We make cash offers to purchase property directly from owners.",
-    "real_estate_license": null,
-    "tcpa_consent_required": true,
-    "_GAP": "Real estate license number (if any) — Jorge to confirm legal status"
+    "investor_disclosure": "Pinnacle Holdings is a real estate investor, not a licensed real estate brokerage. We make cash offers to purchase property directly from owners. No real estate license required for direct property purchase by an investor.",
+    "real_estate_license": "N/A — real estate investor, not agent",
+    "tcpa_consent_required": true
   },
 
   "competitors": [
