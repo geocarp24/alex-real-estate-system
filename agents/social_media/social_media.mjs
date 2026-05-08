@@ -705,6 +705,11 @@ async function main() {
   if (args.mode === "generate_ideas" || args.mode === "full_pipeline") {
     summary.ideas = await generateIdeas(cfg, runId).catch((e) => ({ error: e.message }));
   }
+  if (args.mode === "batch_weekly") {
+    // Sprint A6 (2026-05-08): generate a full week of records in one shot.
+    // Skip backlog gate inside generateIdeas by overriding cap to >current backlog.
+    summary.ideas = await generateIdeas(cfg, runId, { count: IDEAS_PER_BATCH }).catch((e) => ({ error: e.message }));
+  }
   if (args.mode === "process_posts" || args.mode === "full_pipeline") {
     summary.posts = await processPosts(cfg, runId, args).catch((e) => ({ error: e.message }));
   }
