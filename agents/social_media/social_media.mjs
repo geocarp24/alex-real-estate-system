@@ -325,8 +325,11 @@ HARD RULES (Reel idea is REJECTED if any violated):
   try { themeBank = loadThemeBank(); }
   catch (e) { return { created: 0, error: `theme bank load failed: ${e.message}` }; }
   const recentTitles = await getRecentTitles();
-  const picks = pickBatch(themeBank, count);
-  if (picks.length === 0) return { created: 0, error: "theme bank pickBatch returned 0 picks" };
+  const rawPicks = pickBatch(themeBank, count);
+  if (rawPicks.length === 0) return { created: 0, error: "theme bank pickBatch returned 0 picks" };
+  // Sprint A12: force format mix (42 Posts + 28 Reels + 8 Videos for full week).
+  // Each pick now has a `format` field that overrides the subtopic's format_hint.
+  const picks = applyFormatDistribution(rawPicks);
 
   const topicsBlock = picks.map((p, i) => `
 ${i + 1}. PILLAR: ${p.pillar.name_en} (id=${p.pillar.id})
@@ -334,7 +337,7 @@ ${i + 1}. PILLAR: ${p.pillar.name_en} (id=${p.pillar.id})
    TITLE_EN: ${p.subtopic.title_en}
    TITLE_ES: ${p.subtopic.title_es}
    HOOK_IDEA: ${p.subtopic.hook}
-   FORMAT_HINT: ${decideFormat(p.pillar, p.subtopic)}
+   FORMAT_REQUIRED: ${p.format}
    FUNNEL_STAGE: ${p.subtopic.funnel}
    COLOR_THEME: ${p.pillar.color_theme_default || "T1"}
    TONE: ${p.pillar.tone || "neutral"}`).join("\n");
