@@ -270,3 +270,93 @@
 - **Oráculo critique**: El contenido hablaba AL inversionista, no AL propietario en estrés. Usó lenguaje de deal-making ('primer deal', 'presupuesto') y carecía de cualquier ancla emocional o situacional para los segmentos definidos.
 - **Rewrite pattern**: Se reencuadró la misma historia personal de Jorge como evidencia de experiencia que BENEFICIA al vendedor en crisis (casa con problemas, sin reparaciones requeridas). El protagonista del reel pasa a ser el propietario con miedo de que su casa no valga nada — Jorge es solo la prueba social. Se eliminó todo jargón de inversión.
 - **Segment anchor**: Pre-Foreclosure
+
+### 2026-05-08 — Facing Foreclosure in Wisconsin? You Still Have Choices
+- **Rejected pattern**: Reassurance-only framing — content told the viewer 'you have options' but never explained what those options actually do or why selling early beats waiting.
+- **Oráculo critique**: Segment targeting was correct but the educational mechanism (sell before foreclosure = credit protection + control) was missing, leaving the audience without a decision framework. Caption was also too thin to build enough trust or urgency.
+- **Rewrite pattern**: Each slide now carries a concrete, specific benefit of early voluntary sale — credit protection, control vs bank takeover, flexible timeline — so the viewer understands the 'why' and can make an informed decision, not just feel reassured.
+- **Segment anchor**: Pre-Foreclosure
+
+### 2026-05-08 — What a Walkthrough Looks Like for a Tired Landlord
+- **Rejected pattern**: Process-forward framing ('we walk once, no contractors') centered Pinnacle's workflow rather than the landlord's emotional relief. Caption URL was also flagged as a compliance risk.
+- **Oráculo critique**: Segment targeting and visual concept were strong. Primary failures: slide copy leaned transactional/process-focused instead of empathy-first, and the caption was missing pinnaclegroupwi.com causing a compliance flag.
+- **Rewrite pattern**: Lead with the homeowner's emotional state (tired, done, ready to move on), then frame each process step as a relief benefit — 'no judgment,' 'fair number,' 'know your options.' URL restored in caption to meet compliance.
+- **Segment anchor**: Tired-Landlord
+
+### 2026-05-08 — Heredaste una casa y no sabes qué hacer con ella
+- **Rejected pattern**: Hook emocional genérico ('llena de recuerdos') sin anclar al dolor logístico real del heredero — distancia geográfica, proceso de sucesión y agobio operativo nunca mencionados.
+- **Oráculo critique**: El reel apuntaba al Segmento 2 pero omitió los detonadores clave: vivir lejos de la propiedad, navegar el proceso de probate y la carga logística de gestionar una casa en otro estado o ciudad.
+- **Rewrite pattern**: Cada slide ahora activa un detonador específico del segmento: Slide 2 = distancia geográfica, Slide 3 = complejidad legal (probate), Slide 4 = estado físico de la propiedad. El hook abre con el problema concreto ('que no puedes atender') en lugar de un gancho puramente sentimental.
+- **Segment anchor**: Inherited
+
+### 2026-05-08 — Heredé una casa en Wisconsin y no sabía por dónde empezar
+- **Rejected pattern**: CTA directo con '24 horas' sin suavizar el tono comercial; caption omitía pinnaclegroupwi.com
+- **Oráculo critique**: El concepto y el segmento eran correctos (Inherited Property), pero 'Recibe una oferta en 24 horas' sonaba a hype de vendedor. Además, la caption no incluía el sitio web obligatorio pinnaclegroupwi.com.
+- **Rewrite pattern**: Se reemplazó la promesa de velocidad por un marco de 'conocer opciones sin presión', que empodera al heredero sin sonar a pitch. Se agregó pinnaclegroupwi.com al caption. Tono empático mantenido en todo momento.
+- **Segment anchor**: Inherited
+
+### 2026-05-08 — Behind on Payments? Wisconsin Families Have Options
+- **Rejected pattern**: Title used 'Wisconsin Families' (familial-status Fair Housing risk) and slides stayed generic — Jorge-centered rather than homeowner-pain-centered. CTA lacked website.
+- **Oráculo critique**: Segment targeting was correct (Pre-Foreclosure) but 'Families' language raised Fair Housing concern; slides lacked a specific Wisconsin urgency anchor and felt Jorge-promotional rather than homeowner-empowering.
+- **Rewrite pattern**: Replaced 'Families' with neutral homeowner framing. Added concrete urgency anchor ('lender letter') in hook. Reframed each slide from homeowner's POV — their fear, their choice, their relief. Added pinnaclegroupwi.com to CTA and caption.
+- **Segment anchor**: Pre-Foreclosure
+
+### 2026-05-08 — Heredé una casa en Wisconsin y no sabía qué hacer
+- **Rejected pattern**: Hook declarativo sin tensión: 'Heredaste una casa y estás agobiado' es una afirmación que no abre curiosidad ni invita a seguir viendo.
+- **Oráculo critique**: El hook no creaba una brecha de curiosidad suficiente para detener el scroll. Era una declaración, no una pregunta o tensión que jalara al espectador hacia la solución.
+- **Rewrite pattern**: Convertir el hook en pregunta directa al segmento ('¿Heredaste una casa y no sabes qué sigue?') para abrir una brecha de curiosidad inmediata. Los slides profundizan el dolor específico antes de ofrecer la solución, respetando el arco educativo del canal.
+- **Segment anchor**: Inherited
+
+### 2026-05-08 — Inherited a House in Wisconsin? Know Your Real Options
+- **Rejected pattern**: Hook and slides addressed logistics (repairs, taxes, timeline) but stayed surface-level — no emotional acknowledgment of probate overwhelm, out-of-state burden, or the grief/stress layer that Segment 2 actually carries.
+- **Oráculo critique**: Persona targeting was correct but emotional depth was insufficient. Caption lacked mention of probate and the specific out-of-state overwhelm that makes inherited properties uniquely stressful. Copy was warm but read more like a feature list than an empathy-first narrative.
+- **Rewrite pattern**: Lead with the specific geographic and emotional tension (inherited from afar + probate). Each slide now names a concrete pain point before offering relief. Slide 4 adds timeline flexibility framed around the inheritor's control, not Pinnacle's process. Caption opens with empathy and closes with low-pressure invitation.
+- **Segment anchor**: Inherited
+
+### 2026-05-08 — A Wisconsin Family Almost Lost Their Home — Here's What I Le
+- **Rejected pattern**: Story was framed from the founder's POV ('I built Pinnacle') rather than centering the homeowner's emotional journey. The caption used slash-separated fragments that read as choppy and disconnected rather than as a warm, flowing narrative.
+- **Oráculo critique**: Foreclosure segment match was strong and Milwaukee geography was credible, but the founder-centric framing diluted emotional resonance. Caption format was fragmented and reduced readability.
+- **Rewrite pattern**: Recentered every slide on the homeowner's experience — their fear, their discovery of options, their relief at closing. Founder and brand are implied through outcome, not stated directly. Caption rewritten as a single cohesive paragraph with warm, empathetic voice.
+- **Segment anchor**: Pre-Foreclosure
+
+### 2026-05-08 — Job Transfer Coming? Sell Your Home Without the Stress
+- **Rejected pattern**: Hook named the situation without amplifying emotional tension; slides stayed surface-level and generic ('walk you through every option') without grounding the pain in the homeowner's lived experience of deadline pressure and financial anxiety.
+- **Oráculo critique**: Hook was functional but bland — described the scenario without making the viewer feel the urgency. Slides lacked specificity and emotional weight. Tone was safe but too passive to drive engagement from a genuinely time-pressured segment.
+- **Rewrite pattern**: Hook rewritten as a direct question that mirrors the homeowner's exact mental conflict (start date set, house unresolved). Slides now escalate: first anchors the time pressure concretely, second offers empathetic guidance, third delivers the specific relief outcome (close before day one). Every line speaks to the homeowner's fear, not Pinnacle's service list.
+- **Segment anchor**: Relocation
+
+### 2026-05-08 — When the Month Ends and the Bills Don't Stop
+- **Rejected pattern**: Slide copy used 'protect your credit and your dignity' as a firm implied promise without hedging — reads as a guaranteed outcome. Caption also omitted the required pinnaclegroupwi.com URL, failing the mandatory CTA compliance check.
+- **Oráculo critique**: Score 6 reject. Segment fit and tone were solid. Two fixable issues: (1) soft-promise language needed a hedge to avoid implying guaranteed outcomes; (2) caption was missing pinnaclegroupwi.com.
+- **Rewrite pattern**: Added 'may help' hedge to the credit-protection claim to soften the implied guarantee. Rewrote caption to naturally include both (920) 777-9886 and pinnaclegroupwi.com. Kept empathetic, no-pressure framing and homeowner POV throughout. No investor jargon introduced.
+- **Segment anchor**: Pre-Foreclosure
+
+### 2026-05-08 — You Inherited a Wisconsin Home — Here's What to Know
+- **Rejected pattern**: Slide copy listed seller benefits as features ('no repairs, no cleaning, no showings') — read as a pitch rather than education, breaking the trust-first frame needed for grieving inheritors.
+- **Oráculo critique**: Hook was too generic ('you have options' closes curiosity instead of opening it). Slides 2-4 leaned toward feature promotion rather than validating the inheritor's emotional and logistical reality first. Score capped at 6 because the reel told them what Pinnacle offers before earning enough emotional trust.
+- **Rewrite pattern**: Lead with the emotional truth (grief is heavy), then introduce a knowledge gap they didn't know existed (private sale option), then reframe the process as low-intrusion — letting the benefit emerge naturally from context rather than listing it as a feature.
+- **Segment anchor**: Inherited
+
+### 2026-05-08 — ¿Te mudas pronto y necesitas vender tu casa rápido?
+- **Rejected pattern**: El original enumeró ventajas del proceso (sin agentes, sin visitas, sin retrasos) en lugar de abordar el miedo central del segmento: '¿cerrarán realmente antes de mi fecha de mudanza?'
+- **Oráculo critique**: El concepto tocaba el dolor correcto (gastos dobles) pero omitía el miedo más profundo del Segmento 6: la incertidumbre sobre si el comprador cumplirá el plazo de cierre. Además, 'oferta en efectivo sobre la mesa' sonaba a hype de vendedor.
+- **Rewrite pattern**: La diapositiva 3 nombra directamente el miedo al cierre a tiempo. La diapositiva 4 responde ese miedo con la promesa de oferta en 24 horas Y fecha de cierre flexible, sin jerga de inversionista.
+- **Segment anchor**: Relocation
+
+### 2026-05-08 — Worried About Losing Your Wisconsin Home? You Have Options
+- **Rejected pattern**: English-language reel undermined by hashtags or framing that signaled a Hispanic/Latino identity frame, creating a persona-language mismatch that confused the audience signal.
+- **Oráculo critique**: Body copy and segment targeting were strong (Pre-Foreclosure, Wisconsin-specific, warm tone, no jargon), but identity framing outside the slides contradicted the EN-language designation and sent mixed signals about the intended audience.
+- **Rewrite pattern**: Kept all effective body copy elements intact. Removed any bilingual or ethnic-identity framing. Anchored every element — title, hook, slides, caption — cleanly to the Pre-Foreclosure segment in plain, warm English with no persona-signal ambiguity.
+- **Segment anchor**: Pre-Foreclosure
+
+### 2026-05-08 — Por Qué Ayudo a Familias Que Casi Pierden Su Casa
+- **Rejected pattern**: El guión giraba hacia la historia del fundador ('Por eso fundé Pinnacle'), desplazando el foco del dolor del propietario hacia la marca. Esto debilita la resonancia con el segmento y genera un giro comercial prematuro.
+- **Oráculo critique**: El Oráculo detectó que la narrativa de origen del fundador interrumpe la conexión emocional con el propietario en pre-ejecución hipotecaria. El segmento estaba bien identificado, pero el pivot a la marca rompió la confianza construida en el hook.
+- **Rewrite pattern**: Eliminar toda referencia al fundador o a la empresa como protagonista. Mantener al propietario como centro absoluto del relato: su miedo, su situación, su alivio. La empresa aparece solo de forma implícita como la solución discreta y sin presión en el CTA final.
+- **Segment anchor**: Pre-Foreclosure
+
+### 2026-05-08 — She Inherited Her Mom's Green Bay Home From 3 Hours Away
+- **Rejected pattern**: Hashtags included '#RealEstateInvestor' and investor-side language that shifted the frame away from the homeowner's POV and toward the buyer's perspective, undermining the warm, educational tone.
+- **Oráculo critique**: Content and segment targeting were strong. The sole rejection trigger was investor-coded hashtag language (#RealEstateInvestor) that broke the homeowner-first voice and risked alienating the distressed inheritor persona.
+- **Rewrite pattern**: Removed all investor-coded hashtags and language. Caption and slides stay 100% in the homeowner's emotional frame — loss, distance, overwhelm, and relief — with no terminology that signals Pinnacle's buyer interest.
+- **Segment anchor**: Inherited
