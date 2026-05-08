@@ -384,6 +384,8 @@ Return JSON only — for EACH topic above, generate one idea with both ES and EN
     });
 
     let esFields, enFields;
+    // Pre-assign a rotated template for Reels (used in reelExtraLang below).
+    const assignedTemplate = format === "Reel" ? templateNext() : null;
     if (format === "Reel") {
       // Per-language slides (Jorge 2026-05-08): Sonnet must return slides_es +
       // slides_en separately. PRE-CREATE VALIDATION: if Sonnet returned an
