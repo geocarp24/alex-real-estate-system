@@ -176,6 +176,23 @@ function parseAllJSON(text) {
 // so SM Manager improves over time and Oráculo rejects less.
 // Jorge 2026-05-07: "el oráculo va trabajando cada vez menos".
 // ──────────────────────────────────────────────────────────────
+// Append a STRUCTURAL lesson immediately when SM Manager rejects a malformed
+// idea pre-create. This makes next generation cycle learn from the same-run
+// failure (no need to wait for Oráculo + Reescritor to teach the same thing).
+async function appendStructuralLesson(rule) {
+  try {
+    const { appendFile, mkdir } = await import("node:fs/promises");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const __dirname = dirname(fileURLToPath(import.meta.url));
+    const path = join(__dirname, "..", "oraculo_inputs", "sm_lessons.md");
+    const date = new Date().toISOString().slice(0, 10);
+    const entry = `\n### ${date} — Structural reject (SM Manager self-validation)\n- **Rejected pattern**: ${rule}\n- **Source**: SM Manager pre-create validation (saves Oráculo + Reescritor cycles)\n- **Rule for next generation**: read this lesson at startup, NEVER produce an idea matching this pattern\n`;
+    await mkdir(dirname(path), { recursive: true });
+    await appendFile(path, entry, "utf8");
+  } catch (e) { console.error(`[sm] failed to append structural lesson: ${e.message}`); }
+}
+
 async function loadLessons() {
   try {
     const { readFile } = await import("node:fs/promises");
