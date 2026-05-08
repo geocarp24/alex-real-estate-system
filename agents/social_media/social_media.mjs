@@ -422,7 +422,8 @@ Return JSON only — for EACH topic above, generate one idea with both ES and EN
           Slide_4_Visual: slides[3].visual || "wisconsin home golden hour | flux: cinematic warm wisconsin home, no text",
           Slide_5_CTA:   slides[4].cta,
           Caption:       cap || "",
-          Template:      reel.template || "voiceover",
+          // Sprint A7: SM Manager rotates templates, overriding LLM choice for variety.
+          Template:      assignedTemplate,
           Music_Track:   reel.music || "cinematic",
           Avatar_Mode:   String(idea.tipo || "").toLowerCase() === "personal" ? "Jorge_hook+CTA" : "NO_avatar",
         };
