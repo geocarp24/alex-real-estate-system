@@ -194,3 +194,10 @@ Si Jorge retoma desde Telegram, el contexto completo esta en memoria_ALex.md rai
 
 Sprint 0 arrancando: A1 (fix timing) -> A2 (fix FB) -> A3 (Airtable migration) en paralelo con B1 (repo InvestorOS scaffold) + B2 (branding initial).
 
+
+## 2026-05-08 PM — R12 + maquina Reels/Videos avance
+- R12 regla nueva: auto-memoria + auto-commit despues de cada tarea
+- A12: SM Manager fuerza 42/28/8 mix por batch_weekly
+- A14: pipeline cron cada 4-6h (no cada 3 dias)
+- A13 pendiente decision: A atajo Director v2 vs B from scratch
+- Smoke test publisher exitoso (FB ID 122109998012844800 programado 17:50 CT)
