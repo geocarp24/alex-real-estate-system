@@ -40,10 +40,9 @@ Después del restructure 3-tablas (PM-4), los `visual_url` migrados apuntaban a 
 
 | Tabla | ID | Fields | Uso |
 |---|---|---|---|
-| Posts | `tblE3lz6XNcBNgpg5` | 22 | IG/FB single-frame post, mono-idioma |
-| Reels | `tblhbg4JSm2iND3Cs` | 32 | Vertical 8-10s, 5 slides explícitos |
-| Videos | `tblbjYosR1tpnjRV0` | 27 | Long-form 30-60s (schema only, wireup pendiente) |
-| _legacy_ Ideas de Contenido | `tblAj0Pkj1jW4p5Ld` | 21 | Preservada read-only — Carrusel format (no migrado) |
+| Posts | `tblE3lz6XNcBNgpg5` | 21 | IG/FB single-frame post, mono-idioma — todos con Oraculo_Score |
+| Reels | `tblhbg4JSm2iND3Cs` | 1 | Vertical 8-10s, 5 slides explícitos — todos con Oraculo_Score |
+| Videos | `tblbjYosR1tpnjRV0` | 0 | Long-form 30-60s (schema only, wireup pendiente) |
 
 ### Campos comunes (todas las 3 tablas)
 `Title • Language(ES|EN) • Source_Idea_ID(UUID) • Tipo • Segment_Anchor • Plataforma • Theme_Code(T1-T5) • Status • Oraculo_Score • Oraculo_Notes • Error_Reason • Published_FB_ID • Published_IG_ID • Scheduled_Time • Created_At`
