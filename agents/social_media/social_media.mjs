@@ -342,14 +342,16 @@ ${i + 1}. PILLAR: ${p.pillar.name_en} (id=${p.pillar.id})
    COLOR_THEME: ${p.pillar.color_theme_default || "T1"}
    TONE: ${p.pillar.tone || "neutral"}`).join("\n");
 
-  const userPrompt = `Generate exactly ${picks.length} ideas — ONE for EACH topic listed below from the curated Theme Bank. The titles were chosen strategically — refine wording if needed but keep the spirit. The format hint, funnel stage, and tone guide your output.
+  const userPrompt = `Generate exactly ${picks.length} ideas — ONE for EACH topic listed below from the curated Theme Bank. The titles were chosen strategically — refine wording if needed but keep the spirit.
+
+CRITICAL: each idea's "format" field MUST equal the FORMAT_REQUIRED for that topic — do NOT change it. The mix is pre-calculated to match our publishing slot inventory.
 
 ${topicsBlock}
 
 Avoid duplicating these recent titles (last 14 days):
 ${recentTitles.join(" / ") || "(none)"}
 
-Return JSON only — for EACH topic above, generate one idea with both ES and EN versions in EVERY bilingual field. Use the SUBTOPIC_ID as a reference but DO NOT include it in the output JSON.`;
+Return JSON only — for EACH topic above, generate one idea with both ES and EN versions in EVERY bilingual field. Use the SUBTOPIC_ID as a reference but DO NOT include it in the output JSON. Set "format" to exactly the FORMAT_REQUIRED value for that topic (Post / Reel / Video).`;
 
   // Larger batch needs higher max_tokens. ~600 tokens per bilingual idea worst-case.
   const maxTokens = Math.min(64000, Math.max(4000, count * 700));
