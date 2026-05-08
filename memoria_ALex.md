@@ -3609,3 +3609,26 @@ ALEX debe informar al Jefe en tiempo real de TODO lo que esta haciendo, sin espe
 NO molestar con triviales (lecturas read-only de exploracion, greps de orientacion). SI reportar acciones que cambian estado.
 Trade-off: prefiero ser ligeramente verbose que dejar al Jefe a oscuras. R10 prevalece sobre brevity en caso de duda.
 
+
+### REGLA R11 — GH_SUPER_TOKEN en Doppler ES EL TOKEN OFICIAL PARA TODO GITHUB (Jorge 2026-05-08)
+ALEX tiene acceso completo a GitHub via el secret `GH_SUPER_TOKEN` en Doppler:
+- Project: `pinnacle-social-publisher`
+- Config: `dev_personal`
+- Comando: `doppler secrets get GH_SUPER_TOKEN --project pinnacle-social-publisher --config dev_personal --plain`
+- Length: 93 chars, prefix `github_pat_`
+- Scope: super-admin (read/write actions, repos, secrets, etc)
+
+USO OBLIGATORIO:
+- Cuando ALEX necesite leer workflow runs, logs, jobs, secrets — usar este token directamente con curl.
+- NO pedir token a Jorge. NO pedir que pegue logs. NO inventar limitaciones del MCP.
+- Si necesita un token para API call de cualquier endpoint github.com, este es el token.
+
+Ejemplo (smoke test 2026-05-08 verificacion):
+```bash
+export GH_TOKEN=$(doppler secrets get GH_SUPER_TOKEN --project pinnacle-social-publisher --config dev_personal --plain)
+curl -s -H "Authorization: Bearer $GH_TOKEN" \
+  "https://api.github.com/repos/geocarp24/alex-real-estate-system/actions/runs/25580331424"
+```
+
+Anti-regression: cualquier sesion futura de ALEX que no encuentre tokens de GitHub debe leer R11 y usar este Doppler secret. La excusa "el MCP no tiene workflow tools" es valida (sigue siendo cierto), PERO la solucion correcta es bypass via curl + GH_SUPER_TOKEN, no pedir a Jorge.
+
