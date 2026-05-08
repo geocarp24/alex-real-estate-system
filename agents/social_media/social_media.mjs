@@ -36,10 +36,6 @@ const SM_TOKEN = SHARED_SM_TOKEN
   || process.env.SM_AIRTABLE_TOKEN
   || "patSlNwngu7SJoa52.003c83df8f6e378af5309237e310a36568a037448709d94b10739d032f9e8ef7";
 
-// Legacy single table — only used by old generateIdeas + processVisuals paths
-// during transition. New 3-table flow uses SM_TABLES from _shared/sm_tables.mjs.
-const SM_TABLE = SM_LEGACY_TABLE_ID;
-
 // ── Meta Graph API config ──
 // META_USER_TOKEN: long-lived User Access Token from "Pinnacle Social Publisher" app.
 // META_PAGE_ACCESS_TOKEN (optional): pre-resolved Page token. If absent, derived from User token via /me/accounts.
