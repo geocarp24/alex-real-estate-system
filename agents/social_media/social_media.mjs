@@ -620,7 +620,7 @@ async function processPosts(cfg, runId) {
 // Main
 // ──────────────────────────────────────────────────────────────
 async function main() {
-  const args = parseArgs(process.argv, VALID_MODES);
+  const args = parseArgs(process.argv, VALID_MODES, { targetPlatform: null, targetFormat: null });
   const cfg = await loadTenant(args.tenant);
   const runId = genRunId();
   const startedAt = isoNow();
