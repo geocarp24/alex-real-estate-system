@@ -36,6 +36,10 @@ on:
     - cron:  "30 19 */3 * *"          # espia:weekly_deep
     # Compliance
     - cron:  "0 20 */3 * *"           # auditor:weekly
+    # Social Media — batch_weekly idea generation (Sprint A6 Jorge 2026-05-08).
+    # Sunday 18:00 CDT / 17:00 CST = 23:00 UTC. Generates 78 ideas for the week
+    # using the Theme Bank, distributed across 8 pillars by weight_pct.
+    - cron:  "0 23 * * 0"             # social_media batch_weekly (Sun 18:00 CDT)
     # Social Media — slot-driven publisher (Sprint A4 Jorge 2026-05-08).
     # 12 fixed CT slots/day. Time conversion uses CDT (UTC-5) for cron triggers;
     # the publisher's getNextFixedSlot resolves the actual slot in America/Chicago
