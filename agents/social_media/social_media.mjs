@@ -45,7 +45,7 @@ import {
   decideFormat,
 } from "./theme_bank_loader.mjs";
 
-const VALID_MODES = ["generate_ideas", "process_posts", "full_pipeline"];
+const VALID_MODES = ["generate_ideas", "process_posts", "full_pipeline", "batch_weekly"];
 
 // SM_TOKEN — fall back to the legacy hardcoded value if neither env nor shared module has it.
 const SM_TOKEN = SHARED_SM_TOKEN
