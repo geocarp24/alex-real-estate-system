@@ -643,7 +643,7 @@ async function main() {
     summary.ideas = await generateIdeas(cfg, runId).catch((e) => ({ error: e.message }));
   }
   if (args.mode === "process_posts" || args.mode === "full_pipeline") {
-    summary.posts = await processPosts(cfg, runId).catch((e) => ({ error: e.message }));
+    summary.posts = await processPosts(cfg, runId, args).catch((e) => ({ error: e.message }));
   }
 
   const completedAt = isoNow();
