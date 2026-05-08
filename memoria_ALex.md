@@ -3660,3 +3660,27 @@ La regla aplica desde YA (2026-05-08) y aplica retroactivamente a A12 + A14 que 
 - Approach B (from scratch): construir agents/director/ nuevo runner (3-5 dias)
 - Mi voto: A.
 
+
+### Sprint A12+A14+A13 — Track 1 maquina Reels/Videos AL 100% (2026-05-08 cierre)
+**A12 SM Manager force format mix 42/28/8** (138 tests passing):
+- agents/social_media/theme_bank_loader.mjs: WEEKLY_FORMAT_MIX + applyFormatDistribution
+- agents/social_media/social_media.mjs: integracion en generateIdeas + force format en records
+- agents/social_media/test/format_distribution.test.mjs: tests
+- Cada batch_weekly genera 42 Posts + 28 Reels + 8 Videos exacto
+
+**A14 Pipeline cadence cada 4-6h** (de cada 3 dias a cada 4-6h):
+- .github/workflows/agents-cron.yml: oraculo "0 */4 * * *", reescritor "30 */4 * * *", creativo "0 */6 * * *", director_v2 "15 */6 * * *"
+- 78 records/sem ya no acumulan backlog
+
+**A13 Director v2 Videos largos** (CONFIRMADO existente — no requiere codigo nuevo):
+- validateSpec ya acepta duration 7-50s
+- narrative_B.expand genera 7-9 escenas (5-7 points) para Videos 30-50s
+- buildSpecFromVideoRecord parsea Hook + Main_Message + Script_Outline → 5 narrative beats
+- Director v2 itera Reels + Videos tables (lineas 651-655 director_v2.mjs)
+- AIRTABLE_SM_VIDEOS_TABLE_ID env var en GHA cron
+- Approach A es: NO touch code. Director v2 YA soporta Videos.
+
+**PRs mergeados:** #7 (Track1+B1 scaffold), #9 (memoria parcial), #10 (theme_bank A12 partial), #11 (A12+A14 final + A13 confirmado).
+
+**Track 1 estado actual:** maquina al 100% en codigo. Pendiente solo: smoke test del primer batch_weekly Domingo + monitorear primer Reel/Video real.
+

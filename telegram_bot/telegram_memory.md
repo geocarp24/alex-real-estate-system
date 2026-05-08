@@ -201,3 +201,6 @@ Sprint 0 arrancando: A1 (fix timing) -> A2 (fix FB) -> A3 (Airtable migration) e
 - A14: pipeline cron cada 4-6h (no cada 3 dias)
 - A13 pendiente decision: A atajo Director v2 vs B from scratch
 - Smoke test publisher exitoso (FB ID 122109998012844800 programado 17:50 CT)
+
+## 2026-05-08 PM — Track 1 cerrado
+Maquina Reels y Videos al 100%. A12 force format mix + A14 pipeline 4-6h + A13 Director v2 Videos ya soporta. PR #11 mergeado. Listo para batch_weekly Domingo.

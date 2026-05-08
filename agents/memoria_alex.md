@@ -318,3 +318,7 @@ Detalle completo en memoria_ALex.md raiz seccion 2026-05-08.
 **A12 done**: SM Manager force 42/28/8 mix Posts/Reels/Videos en batch_weekly (143 tests).
 **A14 done**: pipeline cadence 4-6 horas (Oraculo/Reescritor cada 4h, Creativo/Director v2 cada 6h).
 **A13 pendiente**: decision A (atajo Director v2 extendido) vs B (agents/director/ from scratch).
+
+## 2026-05-08 PM — Track 1 maquina Reels/Videos al 100%
+A12 SM Manager force 42/28/8 mix + A14 pipeline cada 4-6h + A13 Director v2 Videos confirmado existente. PR #11 mergeado a master. 138 tests passing.
+Director v2 ya soporta Videos: validateSpec 7-50s + narrative_B 7-9 escenas + buildSpecFromVideoRecord + Videos table iteration.
