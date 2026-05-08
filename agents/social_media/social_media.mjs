@@ -344,10 +344,15 @@ Return JSON only — for EACH topic above, generate one idea with both ES and EN
   const ideas = parseAllJSON(text);
   if (ideas.length === 0) return { created: 0, error: "no ideas parsed", raw: text.slice(0, 200) };
 
+  // Sprint A6 (2026-05-08): assign Target_Platform alternating per idea so each
+  // batch produces a balanced FB/IG mix. Source_Idea_ID groups ES + EN variants.
+  const platformNext = makePlatformAssigner(0);
+
   const created = [];
   for (const idea of ideas.slice(0, IDEAS_PER_RUN)) {
     const format = String(idea.format || "Post");
     const sourceId = String(Date.now()) + Math.floor(Math.random()*1000).toString().padStart(3,"0");
+    const targetPlatform = platformNext();  // FB or IG, alternating
     const tableId  = format === "Reel"  ? SM_REELS_TABLE_ID
                    : format === "Video" ? SM_VIDEOS_TABLE_ID
                    : SM_POSTS_TABLE_ID;
@@ -357,6 +362,8 @@ Return JSON only — for EACH topic above, generate one idea with both ES and EN
       Title: lang === "ES" ? (idea.title_es || idea.title_en) : (idea.title_en || idea.title_es),
       Language: lang,
       Source_Idea_ID: sourceId,
+      Concept_ID: sourceId,                // shared across ES + EN variants of same concept
+      Target_Platform: targetPlatform,     // Sprint A6: slot-driven publishing target
       Tipo: idea.tipo || "Educativo",
       Segment_Anchor: idea.segment_anchor || "General",
       Plataforma: "AMBAS",
