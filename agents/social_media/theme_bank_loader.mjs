@@ -133,3 +133,73 @@ export function decideFormat(pillar, subtopic) {
   }
   return "Post";
 }
+
+/**
+ * Sprint A12 (Jorge 2026-05-08): force a target distribution of formats across
+ * a batch — overrides Theme Bank format_hint to match cadence slot inventory.
+ *
+ * Slot inventory per week (approved 2026-05-08):
+ *   42 Posts   (3/day × FB + 3/day × IG × 7 days)
+ *   28 Reels   (2/day × FB + 2/day × IG × 7 days)
+ *    8 Videos  (1/day × FB + 1/day × IG × 4 video days [Mon/Wed/Fri/Sun])
+ *  ──
+ *   78 total
+ *
+ * @param {Array<{pillar, subtopic}>} picks - output of pickBatch
+ * @param {object} [opts]
+ * @param {{Post:number, Reel:number, Video:number}} [opts.distribution]
+ * @returns {Array<{pillar, subtopic, format}>} same length, with `format` enforced
+ */
+export const WEEKLY_FORMAT_MIX = Object.freeze({ Post: 42, Reel: 28, Video: 8 });
+
+export function applyFormatDistribution(picks, { distribution = WEEKLY_FORMAT_MIX } = {}) {
+  const total = (distribution.Post || 0) + (distribution.Reel || 0) + (distribution.Video || 0);
+  if (total === 0) {
+    return picks.map(p => ({ ...p, format: decideFormat(p.pillar, p.subtopic) }));
+  }
+  // Compute per-format slot count proportionally to picks.length.
+  const ratio = picks.length / total;
+  const quota = {
+    Post:  Math.round((distribution.Post  || 0) * ratio),
+    Reel:  Math.round((distribution.Reel  || 0) * ratio),
+    Video: Math.round((distribution.Video || 0) * ratio),
+  };
+  // Adjust rounding so sum equals picks.length.
+  let sum = quota.Post + quota.Reel + quota.Video;
+  while (sum < picks.length) { quota.Post++;  sum++; }
+  while (sum > picks.length) {
+    if (quota.Video > 0) { quota.Video--; sum--; }
+    else if (quota.Reel > 0) { quota.Reel--; sum--; }
+    else { quota.Post--; sum--; }
+  }
+  // Sort picks so subtopics whose format_hint matches their assigned format
+  // get priority — keeps Theme Bank intent aligned with quota.
+  const remaining = quota;
+  const out = [];
+  // Pass 1: subtopics with format_hint matching a remaining quota
+  const used = new Set();
+  for (let i = 0; i < picks.length; i++) {
+    const hint = picks[i].subtopic.format_hint;
+    if (hint && remaining[hint] > 0) {
+      out.push({ ...picks[i], format: hint });
+      remaining[hint]--;
+      used.add(i);
+    }
+  }
+  // Pass 2: fill remaining slots from unused picks, in order Video → Reel → Post
+  // (so the rare Video quota gets filled even if Theme Bank has few Video hints)
+  const fillOrder = ["Video", "Reel", "Post"];
+  for (let i = 0; i < picks.length; i++) {
+    if (used.has(i)) continue;
+    for (const fmt of fillOrder) {
+      if (remaining[fmt] > 0) {
+        out.push({ ...picks[i], format: fmt });
+        remaining[fmt]--;
+        used.add(i);
+        break;
+      }
+    }
+  }
+  // Preserve original picks order for downstream consumers.
+  return out.sort((a, b) => picks.indexOf(picks.find(p => p.subtopic.id === a.subtopic.id)) - picks.indexOf(picks.find(p => p.subtopic.id === b.subtopic.id)));
+}
