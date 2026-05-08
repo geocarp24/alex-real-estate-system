@@ -720,7 +720,7 @@ Aplica a **TODOS los templates #1-#5** — `buildAssSubtitle` + `buildCombinedAs
 - **Webhook Make.com**: ✅ HTTP 200 confirmado — `hook.us2.make.com/zbvy7391qh9n7dlmw1hy8pq9ym69obxk`
 - **Airtable escritura**: ✅ Confirmada — record test `recCM80pqccFhVLr2` creado correctamente
 - **Campos renombrados**: ` Hashtags` y ` Status` tenían espacio inicial — corregidos via Metadata API
-- **Schema real documentado**: nombres con emojis (`🇺🇸 Caption EN`, `🇲🇽 Caption ES`), `Semana` sin `#`, ID Scripts de Video correcto (`tbli9BsyIwrhwa3aS`)
+- **Schema real documentado**: nombres con emojis (`🇺🇸 Caption EN`, `🇲🇽 Caption ES`), `Semana` sin `#`, tabla Scripts de Video (DEPRECATED 2026-05-08, eliminada de Airtable)
 - **Bot `alex_bot.py`**: field mapping actualizado con nombres reales
 - **Pendiente manual (Jorge)**: fix `Formato` y `Tipo` choices en Airtable UI + activar escenario Make 4636455
 
