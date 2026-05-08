@@ -32,6 +32,8 @@ import { SM_BASE_ID as SM_BASE, SM_TOKEN, SM_TABLES } from "../_shared/sm_tables
 import { readFile, appendFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+// Sprint A8 (Jorge 2026-05-08): tier scoring for content-market-fit + Phase B recycling.
+import { audit, summarizeTiers } from "./audit_scoring.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const LESSONS_FILE = join(__dirname, "..", "oraculo_inputs", "sm_lessons.md");
