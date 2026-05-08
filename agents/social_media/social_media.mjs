@@ -232,6 +232,16 @@ async function loadLessons() {
 // Mode 1 — Generate ideas (Anthropic)
 // ──────────────────────────────────────────────────────────────
 async function generateIdeas(cfg, runId) {
+  // Backlog gate — abort if too many Visual Listo records already waiting.
+  const backlog = await countVisualListoBacklog();
+  if (backlog > BACKLOG_GATE_MAX) {
+    const msg = `[generate_ideas] BACKLOG GATE blocked: ${backlog} Visual Listo records exceed cap of ${BACKLOG_GATE_MAX}. Skipping generation. Clear the queue (publish or delete) before generating new ideas.`;
+    console.log(msg);
+    await telegramSend(msg);
+    return { skipped: true, backlog, gate: BACKLOG_GATE_MAX };
+  }
+  console.log(`[generate_ideas] backlog=${backlog} (gate=${BACKLOG_GATE_MAX}) — proceeding`);
+
   const lessons = await loadLessons();
   const lessonsBlock = lessons
     ? `\n\n[LESSONS LEARNED FROM ORACULO — apply these on every idea you generate]\n${lessons}\n[END LESSONS]\n\nFollow the rewrite_pattern from each lesson above. Do NOT repeat any rejected_pattern.`
