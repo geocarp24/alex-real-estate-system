@@ -153,6 +153,11 @@ async function processOne(record, tableId, format, pageToken) {
   const profileVisits = igMetrics.profile_visits || 0;
   const engagementRate = reach > 0 ? +((likes + comments + saves + shares) / reach).toFixed(4) : 0;
 
+  // Sprint A8 (Jorge 2026-05-08): weighted Audit_Score + Tier (Premium/Good/Fair/Poor)
+  // for content-market-fit feedback. Tier surfaces winners for SM Manager Phase B
+  // recycling (Sprint A10).
+  const { score: auditScore, tier: auditTier } = audit({ reach, likes, comments, shares, saves });
+
   await smUpdate(tableId, record.id, {
     Reach_24h:         reach,
     Impressions_24h:   impressions,
@@ -162,6 +167,8 @@ async function processOne(record, tableId, format, pageToken) {
     Saves_24h:         saves,
     Profile_Visits_24h: profileVisits,
     Engagement_Rate:   engagementRate,
+    Audit_Score:       auditScore,
+    Audit_Tier:        auditTier,
     Analitico_Last_Run: new Date().toISOString(),
     Status:            "Publicado",
   });
@@ -170,6 +177,7 @@ async function processOne(record, tableId, format, pageToken) {
     id: record.id, titulo, status: "metrics_collected",
     format,
     reach, likes, comments, saves, shares, engagementRate,
+    auditScore, auditTier,
     fb_error: fbMetrics.error || null,
     ig_error: igMetrics.error || null,
   };
