@@ -506,7 +506,7 @@ async function processRecord(record, { env, dryRun, stats }) {
       cum += s.duration;
       return ev;
     });
-    const combinedAss = buildCombinedAssSubtitle(events);
+    const combinedAss = isVideoFormat ? buildCombinedAssSubtitle(events) : '';
     const captionPath = join(recordTmp, 'caption_combined.ass');
     if (combinedAss) await writeFile(captionPath, combinedAss, 'utf8');
     frameOutputs.push({
