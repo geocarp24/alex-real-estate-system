@@ -67,9 +67,12 @@ const FIELD_CAROUSEL_URLS      = "Blotato_Visual_ID";
 const FIELD_PUBLISHED_POST_IDS = "Blotato_Post_IDs";
 
 // ── Caps ──
-const IDEAS_PER_RUN  = 3;
+const IDEAS_PER_RUN   = 3;
+// Sprint A6 (Jorge 2026-05-08): batch_weekly generates a full week of records
+// in one Anthropic call. 78 = 12 slots × 6.5 days average (FB+IG combined).
+const IDEAS_PER_BATCH = Number(process.env.IDEAS_PER_BATCH || 78);
 // Override via POSTS_PER_RUN env (used for limited test runs).
-const POSTS_PER_RUN  = Number(process.env.POSTS_PER_RUN || 5);
+const POSTS_PER_RUN   = Number(process.env.POSTS_PER_RUN || 5);
 const POLL_MAX_SEC   = 300;
 const POLL_INTERVAL  = 15;
 
@@ -216,8 +219,9 @@ async function loadLessons() {
 
 // ──────────────────────────────────────────────────────────────
 // Mode 1 — Generate ideas (Anthropic)
+// Sprint A6 (Jorge 2026-05-08): accepts optional count override for batch_weekly mode.
 // ──────────────────────────────────────────────────────────────
-async function generateIdeas(cfg, runId) {
+async function generateIdeas(cfg, runId, { count = IDEAS_PER_RUN } = {}) {
   // Backlog gate — abort if too many Visual Listo records already waiting.
   const backlog = await countVisualListoBacklog();
   if (backlog > BACKLOG_GATE_MAX) {
