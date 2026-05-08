@@ -527,10 +527,11 @@ async function processRecord(record, { env, dryRun, stats }) {
 
     const isHeyGen = hero.isVideo;
     const captionText = scene[captionField] || scene.captionEs || scene.captionEn || '';
-    // Karaoke ASS for HeyGen scenes (Jorge speaks → highlight word-by-word). Plain ASS for FLUX2 scenes (no voice).
-    // ASS via libass `subtitles` filter renders TikTok/IG-style highlighted captions natively — no per-word frame rendering.
+    // Reel = no caption overlay (slide text already in HTML). Video = karaoke when HeyGen, plain otherwise.
     const sceneDur = isHeyGen ? (hero.durationSec || scene.duration) : scene.duration;
-    const assBody  = buildAssSubtitle({ text: captionText, durationSec: sceneDur, karaoke: isHeyGen, scriptForKaraoke: scene.heyScript || captionText });
+    const assBody  = isVideoFormat
+      ? buildAssSubtitle({ text: captionText, durationSec: sceneDur, karaoke: isHeyGen, scriptForKaraoke: scene.heyScript || captionText })
+      : '';
     const assFile  = join(recordTmp, `caption_${scene.index}.ass`);
     if (assBody) await writeFile(assFile, assBody, 'utf8');
 
