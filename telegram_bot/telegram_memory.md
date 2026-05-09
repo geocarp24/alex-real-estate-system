@@ -216,3 +216,6 @@ Rastreador agent base creado: 9 fuentes scraping configuradas (court records WI 
 
 ## 2026-05-08 — Geo Carpentry F1 done
 brand_kit replicado a Geo. Schema multi-tenant validado. 7 GAPs pendientes Jorge (brand colors + IG + license).
+
+## 2026-05-08 — F2 Pinnacle CERRADA
+El Rastreador agent al 100%: 70 tests, scraping config 9 endpoints (WI court records + tax delinquent + Craigslist + Reddit + WI State Bar attorneys), 3 cron entries en master.

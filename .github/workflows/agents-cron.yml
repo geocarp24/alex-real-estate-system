@@ -58,6 +58,10 @@ on:
     - cron:  "15 */6 * * *"           # director_v2:batch (every 6h - Reels + Videos)
     # El Analítico — daily engagement metrics + lessons feedback to SM Manager
     - cron:  "0 6 * * *"              # analitico:batch (every day at 06:00 UTC)
+    # El Rastreador — web scraper for lead research (Sprint F2 Jorge 2026-05-08)
+    - cron:  "0 3 * * *"              # rastreador:legal_records (daily 3am UTC)
+    - cron:  "30 3 * * 1"             # rastreador:fsbo_listings (Monday 3:30am UTC)
+    - cron:  "0 4 * * 0"              # rastreador:allies_directory (Sunday 4am UTC)
   workflow_dispatch:
     inputs:
       agent:
@@ -65,7 +69,7 @@ on:
         type: choice
         required: true
         default: "mercader"
-        options: [mercader, posicionador, escriba, cazador, clasificador, analista, espia, auditor, remitente, social_media, oraculo, reescritor, creativo, director_v2, analitico, audit_meta]
+        options: [mercader, posicionador, escriba, cazador, clasificador, analista, espia, auditor, remitente, social_media, oraculo, reescritor, creativo, director_v2, analitico, audit_meta, rastreador]
       mode:
         description: "Mode (depends on agent)"
         type: string
@@ -130,6 +134,10 @@ jobs:
             "0 */6 * * *")       agent=creativo;     mode=batch ;;
             "15 */6 * * *")      agent=director_v2;  mode=batch ;;
             "0 6 * * *")         agent=analitico;    mode=batch ;;
+            # Sprint F2 — El Rastreador web scraper for lead research.
+            "0 3 * * *")         agent=rastreador;   mode=legal_records ;;
+            "30 3 * * 1")        agent=rastreador;   mode=fsbo_listings ;;
+            "0 4 * * 0")         agent=rastreador;   mode=allies_directory ;;
             # Sprint A6 — batch_weekly idea generation (Sun 18:00 CDT).
             "0 23 * * 0")        agent=social_media; mode=batch_weekly ;;
             # Sprint A4 — slot-driven publisher (12 cron entries, one per CT slot).

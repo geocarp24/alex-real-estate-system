@@ -3815,3 +3815,13 @@ La regla aplica desde YA (2026-05-08) y aplica retroactivamente a A12 + A14 que 
 - Schema parity Pinnacle vs Geo: MATCH (Geo agrega seccion `services` vertical-specific — OK pattern)
 - **Multi-tenant schema validado** — schema listo para FC/Nica/T4/Essenthia replicacion
 
+
+### Sprint F2 Pinnacle — CERRADA al 100% (2026-05-08)
+- **F2.2.b** scraper_client.mjs: fetchWithRetry (rate-limit aware), checkRobotsAllowed (User-agent: * parse + Disallow check), extractFirst/extractAll regex helpers
+- **F2.2.c** airtable_writer.mjs: buildAirtableFields (mapper schema), createScrapingResult, bulkCreateScrapingResults (chunks 10), fetchRecentRecords (lookback dedup)
+- **F2.2.d** rastreador.mjs runner: 4 modes (legal_records, fsbo_listings, allies_directory, batch), tenant-aware via loadScrapingConfig, dedup contra Airtable Scraping_Results, Telegram summary
+- **F2.4** Cron entries: 0 3 * * * legal_records (daily), 30 3 * * 1 fsbo (Monday), 0 4 * * 0 allies (Sunday)
+- **F2.5** Fer integration deferred to F2.6 (separate sprint — needs Fer PHP architecture review for SMS auto-outreach with TCPA compliance)
+- **Tests:** 70/70 passing (config_loader 12 + normalizer 11 + dedup 13 + scraper_client 17 + airtable_writer 17)
+- **Compliance:** Zillow/Redfin/Realtor blocked (ToS), respect robots.txt, rate limit 10s, user-agent identifies as Pinnacle Research Bot
+
