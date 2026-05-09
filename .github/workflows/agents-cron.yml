@@ -134,6 +134,10 @@ jobs:
             "0 */6 * * *")       agent=creativo;     mode=batch ;;
             "15 */6 * * *")      agent=director_v2;  mode=batch ;;
             "0 6 * * *")         agent=analitico;    mode=batch ;;
+            # Sprint F2 — El Rastreador web scraper for lead research.
+            "0 3 * * *")         agent=rastreador;   mode=legal_records ;;
+            "30 3 * * 1")        agent=rastreador;   mode=fsbo_listings ;;
+            "0 4 * * 0")         agent=rastreador;   mode=allies_directory ;;
             # Sprint A6 — batch_weekly idea generation (Sun 18:00 CDT).
             "0 23 * * 0")        agent=social_media; mode=batch_weekly ;;
             # Sprint A4 — slot-driven publisher (12 cron entries, one per CT slot).
