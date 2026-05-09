@@ -17,26 +17,28 @@ export function buildDedupKey(record) {
   if (!record) return null;
   const parts = [];
 
-  // Priority 1: case_number from legal records
+  // Priority 1: case_number is GLOBALLY UNIQUE — when present, it dominates.
+  // Court cases are 1-to-1 with property/situation; combining with phone would
+  // miss duplicates where the same case is scraped twice with different phone variants.
   if (record.case_number) {
     parts.push(`case:${String(record.case_number).trim().toUpperCase()}`);
+  } else {
+    // Priority 2: normalized phone (strong identifier when no case)
+    const phone = normalizePhone(record.contact_phone || record.phone);
+    if (phone) parts.push(`phone:${phone}`);
+
+    // Priority 3: normalized address + city
+    const addr = normalizeAddress(record.property_address || record.address);
+    const city = record.property_city || record.city;
+    if (addr && city) {
+      parts.push(`addr:${addr}|${String(city).trim().toUpperCase()}`);
+    }
+
+    // Priority 4: name + post_url (for FSBO when no address yet)
+    const name = normalizeName(record.contact_name || record.name);
+    const url = record.post_url || record.url_scraped;
+    if (name && url) parts.push(`url:${name}|${url}`);
   }
-
-  // Priority 2: normalized phone
-  const phone = normalizePhone(record.contact_phone || record.phone);
-  if (phone) parts.push(`phone:${phone}`);
-
-  // Priority 3: normalized address + city
-  const addr = normalizeAddress(record.property_address || record.address);
-  const city = record.property_city || record.city;
-  if (addr && city) {
-    parts.push(`addr:${addr}|${String(city).trim().toUpperCase()}`);
-  }
-
-  // Priority 4: name + post_url (for FSBO when no address yet)
-  const name = normalizeName(record.contact_name || record.name);
-  const url = record.post_url || record.url_scraped;
-  if (name && url) parts.push(`url:${name}|${url}`);
 
   if (parts.length === 0) return null;
 
