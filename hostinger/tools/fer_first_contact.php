@@ -24,6 +24,16 @@ require_once __DIR__ . '/lib/fer_quo.php';
 
 header('Content-Type: application/json');
 
+// ── KILL-SWITCH outbound SMS (2026-05-09) ─────────────────────
+// Pausado: Quo reporta 100% "Failed to send" downstream en carriers
+// pese a A2P 10DLC + STIR/SHAKEN Approved. Diagnóstico carrier-level pendiente.
+// Reactivar: definir FER_OUTBOUND_ENABLED=true en config.php tras resolver con Quo support.
+if (!defined('FER_OUTBOUND_ENABLED') || FER_OUTBOUND_ENABLED !== true) {
+    fer_log_warn('cron_paused_kill_switch', ['file' => basename(__FILE__), 'reason' => 'quo_carrier_failure_2026-05-09']);
+    echo json_encode(['ok' => true, 'paused' => true, 'reason' => 'quo_carrier_failure_diagnostic', 'since' => '2026-05-09']);
+    exit;
+}
+
 define('FC_BASE', 'appfQbDA750Oihy9J');
 define('FC_CONTACTS', 'tblacvw0Ss770x8l5');
 define('FC_LEADS', 'tblxZz2EWIglOLnEd');

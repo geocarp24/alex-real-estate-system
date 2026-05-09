@@ -3825,3 +3825,24 @@ La regla aplica desde YA (2026-05-08) y aplica retroactivamente a A12 + A14 que 
 - **Tests:** 70/70 passing (config_loader 12 + normalizer 11 + dedup 13 + scraper_client 17 + airtable_writer 17)
 - **Compliance:** Zillow/Redfin/Realtor blocked (ToS), respect robots.txt, rate limit 10s, user-agent identifies as Pinnacle Research Bot
 
+
+### Incident Quo SMS Delivery — 100% FAIL detectado (2026-05-09)
+- **Síntoma:** Jorge reporta SMS no delivered. Screenshots Quo dashboard muestran ~20+ contacts (Nicholas, Terry, Justin, Robert, Michelle, Lindsy, Carl, Kyle, Stephen, Sandra, Debra, Janice, Scott, Erin, Demani, Makayla, Paul, Travis, David, Krystle, Jeffrey, Brian, Brooke, Maggie, Eric, William, Joachim, Bradley, Amber, Bethann, Harvey, Christopher, Patricia, Daniel) TODOS con "Failed to send" en rojo. Patrón ~100% failure rate desde (920) 777-9886.
+- **Descartado:** A2P 10DLC NO es la causa. Trust Center muestra Brand + Campaign + STIR/SHAKEN todos `Approved` (Low Volume Standard).
+- **Root cause likely:** carrier-level rejection (T-Mobile/Verizon/AT&T) downstream de Quo. "Approved" en registry NO inmuniza contra reputation block. Causas probables: (1) número (920) 777-9886 quemado por reports de spam previos, (2) content filter por SMS idénticos serie ("Hey [Name], this is Jorge, a local investor..."), (3) velocity throttling por cron 15min × 6 SMS batch.
+- **Bug en código (independiente del root cause):** `fer_agent.php:84-87` descarta webhook `message.delivered` con early exit. NO hay handler de `message.failed`/`undelivered`. `fer_quo.php` no captura `id` del response → cero visibilidad de delivery_status real. Fer asumió "HTTP 200 = delivered" durante semanas.
+- **Acción inmediata Paso 1 (DONE 2026-05-09 04:40 UTC):** kill-switch agregado a 3 cron PHP outbound:
+  - `hostinger/tools/fer_first_contact.php`
+  - `hostinger/tools/fer_seguimiento.php`
+  - `hostinger/tools/fer_review_request.php`
+  - Mecanismo: check `if (!defined('FER_OUTBOUND_ENABLED') || FER_OUTBOUND_ENABLED !== true)` → `fer_log_warn('cron_paused_kill_switch')` + echo JSON paused + exit. Reactivar agregando `define('FER_OUTBOUND_ENABLED', true);` a `config.php`.
+- **Pendiente Paso 2 (Jorge):** abrir ticket Quo support pidiendo carrier-level rejection reason. Considerar comprar 2do número Pinnacle como backup (el actual puede estar quemado).
+- **Pendiente Paso 3 (ALEX, post-Quo-fix):** visibility patch:
+  - `fer_quo.php` capturar `id` del response, devolverlo, persistirlo en Notes & Activity
+  - `fer_agent.php` handlear `message.delivered` y `message.failed/undelivered` (no descartar)
+  - Cron polling `GET /v1/messages/{id}` cada 30min para SMS sent en últimas 24h sin status terminal
+  - Auto-blacklist phone con 2+ fails consecutivos
+  - Telegram alert si fail rate > 20% última hora
+- **Impacto Dan (F2.6):** PAUSADO hasta resolver Quo. Dan reusará `fer_quo.php` y heredaría el blind-spot — primero arreglar Fer foundation con visibility, después construir Dan dedicado a scraped leads outreach (clon de Fer per orden Jorge 2026-05-09 — NO tocar Fer existente con scraping logic).
+- **Lección R-INCIDENT-2026-05-09:** "HTTP 200 desde provider SMS ≠ delivered al phone." NUNCA asumir delivery sin pollear `delivery_status` o consumir webhook `message.delivered`/`message.failed`. Cualquier nuevo agente outbound (Dan, futuros tenants) DEBE incluir delivery telemetry desde día 1.
+
