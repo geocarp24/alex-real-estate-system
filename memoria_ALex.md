@@ -3790,3 +3790,17 @@ La regla aplica desde YA (2026-05-08) y aplica retroactivamente a A12 + A14 que 
 - Skills usados: `brandkit` + `impeccable` + `design-taste-frontend` + `pinnacle-memory-preflight`
 - Aesthetic Pinnacle confirmed: editorial limpio + warmth (NOT brutalist/cyberpunk)
 
+
+### Sprint F2 Pinnacle parcial — done 2026-05-08
+**F2.1** scraping_config.json multi-tenant: 9 endpoints en 3 categorias (legal_records: WI Circuit Court foreclosure + probate + Milwaukee/Brown tax delinquent; fsbo_listings: Craigslist WI + Reddit; allies_directory: WI State Bar probate/divorce/bankruptcy attorneys). Compliance: respect robots.txt, rate limit 10s, blocked Zillow/Redfin/Realtor (ToS).
+
+**F2.3** Airtable table `Scraping_Results` creada en Pinnacle CRM base: id `tbl29yeJ1KC1OGGi9`, 18 fields (Source_ID, Category, Tenant_ID, Title, URL_Scraped, Raw_Data, Contact_*, Property_*, Situation, Status, Scraped_At, Sent_to_Fer_At, Notes).
+
+**F2.2 (base)** El Rastreador agent estructura creada en `agents/rastreador/`:
+- `src/config_loader.mjs` (load + validate scraping_config + getActiveEndpoints filtra blocked sources)
+- `src/normalizer.mjs` (normalizePhone, normalizeAddress, normalizeName, extractPhoneFromText)
+- `src/dedup.mjs` (buildDedupKey con case_number dominante / phone / address+city / url+name; isDuplicate)
+- `test/*` 38 tests passing
+
+**Pendientes F2:** Firecrawl integration (F2.2.b), Airtable writer (F2.2.c), runner principal con modes (F2.2.d), Cron entries (F2.4), Fer integration (F2.5 — auto SMS leads scraped con consent).
+
