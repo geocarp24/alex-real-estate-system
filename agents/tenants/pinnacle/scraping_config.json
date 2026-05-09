@@ -150,8 +150,8 @@
   "output": {
     "airtable_base_id": "appfQbDA750Oihy9J",
     "airtable_table_name": "Scraping_Results",
-    "airtable_table_id_to_be_set": true,
-    "_note": "Table sera creada en Sprint F2.3 — id se llenara despues"
+    "airtable_table_id": "tbl29yeJ1KC1OGGi9",
+    "airtable_token_env": "AIRTABLE_TOKEN"
   },
 
   "deduplication": {
