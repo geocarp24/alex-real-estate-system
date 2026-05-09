@@ -210,3 +210,6 @@ Jorge cerro lluvia de ideas. 8 fases (Identidad/Captacion/Publicidad/CRM/AuditSe
 
 ## 2026-05-08 — F1.1 IDENTIDAD Pinnacle done
 brand_kit.json multi-tenant en agents/tenants/pinnacle/. 16 secciones (messaging, voice, colors, typography, logo, social, compliance, competitors). 7 GAPs pendientes input Jorge. Schema replicable.
+
+## 2026-05-08 — F2 Pinnacle parcial
+Rastreador agent base creado: 9 fuentes scraping configuradas (court records WI + Craigslist FSBO + bar attorneys), tabla Airtable lista, 38 tests passing. Falta Firecrawl + writer + runner + cron.

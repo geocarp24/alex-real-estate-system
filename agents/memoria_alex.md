@@ -330,3 +330,6 @@ Pinnacle = dogfooding base. Detalle en memoria_ALex.md.
 
 ## 2026-05-08 — Sprint F1.1 done — Pinnacle brand_kit.json
 agents/tenants/pinnacle/brand_kit.json (16 secciones + 7 GAPs para Jorge). Multi-tenant replicable. Voice + Typography + Compliance + Competitors + Differentiation. Detalle en memoria_ALex.md.
+
+## 2026-05-08 — F2 Pinnacle parcial done
+F2.1 scraping_config.json (9 endpoints) + F2.3 Airtable Scraping_Results table (18 fields) + F2.2 base (Rastreador agent: config_loader/normalizer/dedup + 38 tests). Pendiente Firecrawl + writer + runner + cron + Fer integration.
