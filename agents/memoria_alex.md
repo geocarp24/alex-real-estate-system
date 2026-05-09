@@ -336,3 +336,6 @@ F2.1 scraping_config.json (9 endpoints) + F2.3 Airtable Scraping_Results table (
 
 ## 2026-05-08 — Geo F1 schema validated multi-tenant
 brand_kit Geo Carpentry creado replicando schema Pinnacle. 7 GAPs (colors/IG/license/etc). Schema multi-tenant validated — listo para FC/Nica/T4/Essenthia.
+
+## 2026-05-08 — Sprint F2 Pinnacle CERRADA al 100%
+El Rastreador agent completo: 70 tests, 4 modes (legal_records/fsbo_listings/allies_directory/batch), 9 endpoints WI configurados, Airtable Scraping_Results integrado, 3 cron entries activos. F2.5 Fer integration deferida a sub-sprint separado.
