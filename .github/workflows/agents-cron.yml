@@ -58,6 +58,10 @@ on:
     - cron:  "15 */6 * * *"           # director_v2:batch (every 6h - Reels + Videos)
     # El Analítico — daily engagement metrics + lessons feedback to SM Manager
     - cron:  "0 6 * * *"              # analitico:batch (every day at 06:00 UTC)
+    # El Rastreador — web scraper for lead research (Sprint F2 Jorge 2026-05-08)
+    - cron:  "0 3 * * *"              # rastreador:legal_records (daily 3am UTC)
+    - cron:  "30 3 * * 1"             # rastreador:fsbo_listings (Monday 3:30am UTC)
+    - cron:  "0 4 * * 0"              # rastreador:allies_directory (Sunday 4am UTC)
   workflow_dispatch:
     inputs:
       agent:
