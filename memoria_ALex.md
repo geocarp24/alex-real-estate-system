@@ -3804,3 +3804,14 @@ La regla aplica desde YA (2026-05-08) y aplica retroactivamente a A12 + A14 que 
 
 **Pendientes F2:** Firecrawl integration (F2.2.b), Airtable writer (F2.2.c), runner principal con modes (F2.2.d), Cron entries (F2.4), Fer integration (F2.5 — auto SMS leads scraped con consent).
 
+
+### Sprint Geo F1 — Multi-tenant schema VALIDATED (2026-05-08)
+- Creado `agents/tenants/geo-carpentry/brand_kit.json` replicando Pinnacle schema
+- Data confirmada de memoria: Geo Carpentry LLC, founded 2014, Phone (920) 367-1272, WhatsApp (920) 934-0351, admin@geocarpentry.com, 735 E Walnut St Suite 3 Green Bay WI 54301, 10+ years 500+ projects 100mi radius, bilingue EN/ES, 6 servicios (Custom Carpentry, Kitchen, Bathroom, Deck, Home Renovation, General Construction), FB Page reserved 723873447473999, logo geo-budget/logo.png 277x156 PNG RGBA
+- Mission/vision/tagline drafted by ALEX (pendiente Jorge approval)
+- Voice tone: skilled craftsman, transparent pricing, partnership con homeowner
+- Cloudinary shared con Pinnacle (cloud_name dzzlhhk0m, folder geo-carpentry)
+- 7 GAPs marcados: brand colors (primary/secondary/accent), IG handle, contractor license number, logo cloud URL, mission approval, specialties approval, competitors list
+- Schema parity Pinnacle vs Geo: MATCH (Geo agrega seccion `services` vertical-specific — OK pattern)
+- **Multi-tenant schema validado** — schema listo para FC/Nica/T4/Essenthia replicacion
+

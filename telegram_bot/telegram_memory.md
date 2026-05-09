@@ -213,3 +213,6 @@ brand_kit.json multi-tenant en agents/tenants/pinnacle/. 16 secciones (messaging
 
 ## 2026-05-08 — F2 Pinnacle parcial
 Rastreador agent base creado: 9 fuentes scraping configuradas (court records WI + Craigslist FSBO + bar attorneys), tabla Airtable lista, 38 tests passing. Falta Firecrawl + writer + runner + cron.
+
+## 2026-05-08 — Geo Carpentry F1 done
+brand_kit replicado a Geo. Schema multi-tenant validado. 7 GAPs pendientes Jorge (brand colors + IG + license).
