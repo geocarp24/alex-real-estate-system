@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>InvestorOS — Pricing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+  body { background: var(--bg); }
+
+  .nav {
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 56px;
+    border-bottom: 1px solid var(--line-soft);
+    background: var(--bg);
+  }
+  .nav-links { display: flex; gap: 32px; font-size: 14px; color: var(--ink-2); }
+  .nav-links a { padding: 6px 0; }
+  .nav-links a.active { color: var(--green); font-weight: 500; }
+  .nav-cta { display: flex; gap: 12px; align-items: center; }
+
+  .head {
+    text-align: center;
+    padding: 72px 56px 40px;
+    max-width: 820px; margin: 0 auto;
+  }
+  .head .eyebrow { display: inline-block; margin-bottom: 18px; }
+  .head h1 {
+    margin: 0;
+    font-size: 56px;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    font-weight: 500;
+  }
+  .head h1 .accent { font-family: var(--font-serif); font-style: italic; font-weight: 400; color: var(--green); }
+  .head p { color: var(--ink-mute); font-size: 17px; line-height: 1.55; margin-top: 18px; }
+
+  .toggle {
+    display: inline-flex; gap: 4px;
+    background: var(--bg-elev); border: 1px solid var(--line-soft);
+    padding: 4px; border-radius: 999px; margin: 28px auto 0;
+  }
+  .toggle button {
+    border: 0; background: transparent;
+    height: 34px; padding: 0 16px; font-size: 13px; border-radius: 999px;
+    color: var(--ink-mute); cursor: pointer; font-weight: 500;
+    font-family: inherit;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .toggle button.active { background: var(--green); color: var(--bg); }
+  .toggle button .save { font-size: 10px; padding: 1px 6px; background: var(--gold); color: var(--green); border-radius: 999px; font-weight: 700; }
+
+  .tiers {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    max-width: 1320px;
+    margin: 40px auto 0;
+    padding: 0 40px;
+  }
+  .tier {
+    background: var(--bg-elev);
+    border: 1px solid var(--line-soft);
+    border-radius: 16px;
+    padding: 28px;
+    display: flex; flex-direction: column;
+  }
+  .tier.featured {
+    background: var(--green);
+    color: var(--bg);
+    border-color: var(--green);
+    box-shadow: 0 30px 60px -30px rgba(13, 59, 46, 0.35);
+    transform: translateY(-12px);
+    position: relative;
+  }
+  .tier.featured::after {
+    content: 'Most popular'; position: absolute; top: 16px; right: 16px;
+    background: var(--gold); color: var(--green);
+    padding: 4px 10px; border-radius: 999px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em;
+  }
+  .tier .name { font-family: var(--font-serif); font-size: 22px; font-style: italic; letter-spacing: -0.01em; }
+  .tier.featured .name { color: var(--gold); }
+  .tier .desc { font-size: 13px; color: var(--ink-mute); margin-top: 6px; line-height: 1.5; min-height: 48px; }
+  .tier.featured .desc { color: rgba(250, 247, 242, 0.72); }
+  .tier .price { display: flex; align-items: flex-end; gap: 6px; margin-top: 20px; }
+  .tier .price .amount { font-size: 46px; font-weight: 500; letter-spacing: -0.03em; line-height: 1; }
+  .tier .price .per { font-size: 13px; color: var(--ink-mute); padding-bottom: 8px; }
+  .tier.featured .price .per { color: rgba(250, 247, 242, 0.72); }
+  .tier .annual-note { font-size: 11.5px; color: var(--ink-faint); margin-top: 6px; }
+  .tier.featured .annual-note { color: rgba(250, 247, 242, 0.6); }
+  .tier .cta { margin-top: 22px; }
+  .tier .cta .btn { width: 100%; }
+  .tier.featured .btn-primary { background: var(--gold); color: var(--green); }
+  .tier .features { list-style: none; padding: 0; margin: 24px 0 0; display: flex; flex-direction: column; gap: 11px; }
+  .tier .features li { font-size: 13.5px; color: var(--ink-2); display: flex; gap: 10px; align-items: flex-start; line-height: 1.45; }
+  .tier.featured .features li { color: var(--bg); }
+  .tier .features li .check {
+    width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;
+    background: var(--green-tint); color: var(--green);
+    display: grid; place-items: center; font-size: 10px; font-weight: 700;
+    margin-top: 2px;
+  }
+  .tier.featured .features li .check { background: rgba(201, 168, 76, 0.2); color: var(--gold); }
+  .tier .divider { height: 1px; background: var(--line-soft); margin: 18px 0 4px; }
+  .tier.featured .divider { background: rgba(250, 247, 242, 0.12); }
+  .tier .seat { font-size: 12px; color: var(--ink-faint); margin-top: 14px; }
+  .tier.featured .seat { color: rgba(250, 247, 242, 0.55); }
+
+  /* compare table */
+  .compare {
+    max-width: 1320px;
+    margin: 80px auto 0;
+    padding: 0 40px 80px;
+  }
+  .compare h2 { font-size: 28px; letter-spacing: -0.02em; font-weight: 500; margin: 0 0 24px; }
+  .compare h2 .accent { font-family: var(--font-serif); font-style: italic; color: var(--green); }
+  .compare-table {
+    background: var(--bg-elev);
+    border: 1px solid var(--line-soft);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .compare-row {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr 1fr 1fr 1fr;
+    align-items: center;
+  }
+  .compare-row > div { padding: 14px 20px; border-bottom: 1px solid var(--line-soft); font-size: 13.5px; }
+  .compare-row.head > div {
+    background: var(--bg-soft);
+    font-weight: 600;
+    text-align: center;
+    font-size: 13px;
+  }
+  .compare-row.head > div:first-child { text-align: left; }
+  .compare-row.head .featured-col { background: var(--green-tint); color: var(--green); }
+  .compare-row > div:not(:first-child) { text-align: center; color: var(--ink-2); }
+  .compare-row .label-cell { color: var(--ink); font-weight: 500; }
+  .compare-row .feat { color: var(--green); }
+  .compare-row .none { color: var(--ink-faint); }
+  .compare-row.section > div {
+    background: var(--bg-soft);
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--ink-mute);
+    font-weight: 600;
+  }
+
+  /* faq */
+  .faq {
+    max-width: 1080px;
+    margin: 0 auto 80px;
+    padding: 0 40px;
+  }
+  .faq h2 { font-size: 28px; letter-spacing: -0.02em; font-weight: 500; margin: 0 0 32px; text-align: center; }
+  .faq h2 .accent { font-family: var(--font-serif); font-style: italic; color: var(--green); }
+  .faq-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 32px; }
+  .faq-item { padding: 22px 24px; background: var(--bg-elev); border: 1px solid var(--line-soft); border-radius: 12px; }
+  .faq-item .q { font-weight: 600; font-size: 14.5px; }
+  .faq-item .a { color: var(--ink-mute); font-size: 13.5px; line-height: 1.55; margin-top: 8px; }
+
+  /* CTA strip */
+  .cta-strip {
+    background: var(--green);
+    color: var(--bg);
+    padding: 56px 56px;
+    margin: 0 40px 60px;
+    border-radius: 22px;
+    display: grid; grid-template-columns: 1.4fr 1fr; gap: 40px; align-items: center;
+    max-width: 1240px;
+    margin-left: auto; margin-right: auto;
+  }
+  .cta-strip h3 { font-size: 38px; line-height: 1.1; letter-spacing: -0.02em; font-weight: 500; margin: 0; }
+  .cta-strip h3 .accent { font-family: var(--font-serif); font-style: italic; color: var(--gold); }
+  .cta-strip p { color: rgba(250, 247, 242, 0.72); font-size: 15px; line-height: 1.55; margin-top: 16px; }
+  .cta-strip .actions { display: flex; gap: 12px; justify-content: flex-end; }
+  .cta-strip .btn-gold { background: var(--gold); color: var(--green); }
+  .cta-strip .btn-outline { border-color: rgba(250, 247, 242, 0.3); color: var(--bg); }
+  .cta-strip .btn-outline:hover { border-color: var(--bg); }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="logo">
+    <span class="logo-mark">I<span class="dot">·</span></span>
+    InvestorOS
+  </div>
+  <div class="nav-links">
+    <a>Product</a>
+    <a class="active">Pricing</a>
+    <a>Tenants</a>
+    <a>Resources</a>
+    <a>About</a>
+  </div>
+  <div class="nav-cta">
+    <a class="btn btn-ghost btn-sm">Sign in</a>
+    <a class="btn btn-primary btn-sm">Start free trial</a>
+  </div>
+</nav>
+
+<header class="head">
+  <span class="eyebrow">Pricing</span>
+  <h1>Choose the plan<br>that fits <span class="accent">your portfolio.</span></h1>
+  <p>One workspace per tenant. Every plan includes the AI receptionist, lead capture, CRM, and bilingual social media. Upgrade as your operation grows — no contracts.</p>
+  <div class="toggle">
+    <button>Monthly</button>
+    <button class="active">Annual <span class="save">−2 mo</span></button>
+  </div>
+</header>
+
+<section class="tiers">
+  <!-- STARTER -->
+  <div class="tier">
+    <div class="name">Starter</div>
+    <div class="desc">For solo operators just getting their first leads off the ground.</div>
+    <div class="price">
+      <span class="amount tabular">$297</span>
+      <span class="per">/ month</span>
+    </div>
+    <div class="annual-note">$2,970 billed annually · save $594</div>
+    <div class="cta"><a class="btn btn-outline">Start free trial</a></div>
+    <ul class="features">
+      <li><span class="check">✓</span>Up to 200 active leads</li>
+      <li><span class="check">✓</span>1 tenant workspace · 2 seats</li>
+      <li><span class="check">✓</span>AI receptionist (500 msg/mo)</li>
+      <li><span class="check">✓</span>CRM with kanban pipeline</li>
+      <li><span class="check">✓</span>1 web scraper source</li>
+      <li><span class="check">✓</span>Social media (8 posts/mo)</li>
+    </ul>
+    <div class="divider"></div>
+    <div class="seat">+ $29 / additional seat</div>
+  </div>
+
+  <!-- GROWTH -->
+  <div class="tier featured">
+    <div class="name">Growth</div>
+    <div class="desc">For active investors closing 1–4 deals per month with a small team.</div>
+    <div class="price">
+      <span class="amount tabular">$697</span>
+      <span class="per">/ month</span>
+    </div>
+    <div class="annual-note">$6,970 billed annually · save $1,394</div>
+    <div class="cta"><a class="btn btn-primary">Start free trial</a></div>
+    <ul class="features">
+      <li><span class="check">✓</span><b>Unlimited</b> leads + contacts</li>
+      <li><span class="check">✓</span>1 tenant · 5 seats included</li>
+      <li><span class="check">✓</span>AI receptionist (3,000 msg/mo)</li>
+      <li><span class="check">✓</span>4 web scraper sources + dedup</li>
+      <li><span class="check">✓</span>Social — 30 posts + 8 reels / mo</li>
+      <li><span class="check">✓</span>Deal analyzer (Fix &amp; Flip · BRRRR · Buy &amp; Hold)</li>
+      <li><span class="check">✓</span>Skip tracing (50 lookups/mo)</li>
+    </ul>
+    <div class="divider"></div>
+    <div class="seat">+ $39 / additional seat</div>
+  </div>
+
+  <!-- PRO -->
+  <div class="tier">
+    <div class="name">Pro</div>
+    <div class="desc">For teams running 5+ deals per month with multiple acquisition channels.</div>
+    <div class="price">
+      <span class="amount tabular">$1,497</span>
+      <span class="per">/ month</span>
+    </div>
+    <div class="annual-note">$14,970 billed annually · save $2,994</div>
+    <div class="cta"><a class="btn btn-outline">Start free trial</a></div>
+    <ul class="features">
+      <li><span class="check">✓</span>Everything in Growth</li>
+      <li><span class="check">✓</span>2 tenant workspaces · 15 seats</li>
+      <li><span class="check">✓</span>AI receptionist (12k msg/mo)</li>
+      <li><span class="check">✓</span>Unlimited scraper sources</li>
+      <li><span class="check">✓</span>Social — 60 posts + 16 reels + 4 long videos</li>
+      <li><span class="check">✓</span>Skip tracing (250 lookups/mo)</li>
+      <li><span class="check">✓</span>Audit + self‑healing across tenants</li>
+      <li><span class="check">✓</span>Attribution + ROI dashboard</li>
+    </ul>
+    <div class="divider"></div>
+    <div class="seat">+ $49 / additional seat</div>
+  </div>
+
+  <!-- ENTERPRISE -->
+  <div class="tier">
+    <div class="name">Enterprise</div>
+    <div class="desc">For multi‑vertical operators and franchise networks running InvestorOS at scale.</div>
+    <div class="price">
+      <span class="amount tabular">$3,500</span>
+      <span class="per">+ / month</span>
+    </div>
+    <div class="annual-note">Custom annual contract · volume pricing</div>
+    <div class="cta"><a class="btn btn-outline">Talk to sales</a></div>
+    <ul class="features">
+      <li><span class="check">✓</span>Everything in Pro</li>
+      <li><span class="check">✓</span><b>Unlimited</b> tenants &amp; seats</li>
+      <li><span class="check">✓</span>White‑label domain + branding</li>
+      <li><span class="check">✓</span>Dedicated CSM + onboarding</li>
+      <li><span class="check">✓</span>Growth coaching (monthly review)</li>
+      <li><span class="check">✓</span>Custom integrations + API access</li>
+      <li><span class="check">✓</span>SOC 2 + DPA + SSO (SAML)</li>
+      <li><span class="check">✓</span>SLA 99.9% · priority support</li>
+    </ul>
+    <div class="divider"></div>
+    <div class="seat">Custom seat economics</div>
+  </div>
+</section>
+
+<!-- COMPARE -->
+<section class="compare">
+  <h2>Compare every <span class="accent">feature</span></h2>
+  <div class="compare-table">
+    <div class="compare-row head">
+      <div>&nbsp;</div>
+      <div>Starter</div>
+      <div class="featured-col">Growth</div>
+      <div>Pro</div>
+      <div>Enterprise</div>
+    </div>
+
+    <div class="compare-row section"><div>Lead capture</div><div></div><div></div><div></div><div></div></div>
+    <div class="compare-row"><div class="label-cell">Active leads</div><div>200</div><div class="feat">Unlimited</div><div class="feat">Unlimited</div><div class="feat">Unlimited</div></div>
+    <div class="compare-row"><div class="label-cell">Web form + landing pages</div><div class="feat">✓</div><div class="feat">✓</div><div class="feat">✓</div><div class="feat">✓</div></div>
+    <div class="compare-row"><div class="label-cell">Web scraper sources</div><div>1</div><div>4</div><div class="feat">Unlimited</div><div class="feat">Unlimited</div></div>
+    <div class="compare-row"><div class="label-cell">Skip tracing / mo</div><div class="none">—</div><div>50</div><div>250</div><div class="feat">Unlimited</div></div>
+
+    <div class="compare-row section"><div>AI Receptionist (Fer)</div><div></div><div></div><div></div><div></div></div>
+    <div class="compare-row"><div class="label-cell">Conversations / mo</div><div>500</div><div>3,000</div><div>12,000</div><div class="feat">Unlimited</div></div>
+    <div class="compare-row"><div class="label-cell">Bilingual ES / EN</div><div class="feat">✓</div><div class="feat">✓</div><div class="feat">✓</div><div class="feat">✓</div></div>
+    <div class="compare-row"><div class="label-cell">SMS + WhatsApp + Voice</div><div>SMS only</div><div class="feat">All channels</div><div class="feat">All channels</div><div class="feat">All channels</div></div>
+
+    <div class="compare-row section"><div>Social media automation</div><div></div><div></div><div></div><div></div></div>
+    <div class="compare-row"><div class="label-cell">Posts &amp; reels / mo</div><div>8 posts</div><div>30 + 8</div><div>60 + 16 + 4 video</div><div class="feat">Custom</div></div>
+    <div class="compare-row"><div class="label-cell">Approval workflow (Oráculo)</div><div class="none">—</div><div class="feat">✓</div><div class="feat">✓</div><div class="feat">✓</div></div>
+
+    <div class="compare-row section"><div>Workspace</div><div></div><div></div><div></div><div></div></div>
+    <div class="compare-row"><div class="label-cell">Tenants included</div><div>1</div><div>1</div><div>2</div><div class="feat">Unlimited</div></div>
+    <div class="compare-row"><div class="label-cell">Seats included</div><div>2</div><div>5</div><div>15</div><div class="feat">Unlimited</div></div>
+    <div class="compare-row"><div class="label-cell">White‑label domain</div><div class="none">—</div><div class="none">—</div><div class="none">—</div><div class="feat">✓</div></div>
+    <div class="compare-row"><div class="label-cell">SSO (SAML / Google)</div><div class="none">—</div><div>Google</div><div>Google</div><div class="feat">SAML + Google</div></div>
+    <div class="compare-row"><div class="label-cell">SOC 2 + DPA</div><div class="none">—</div><div class="none">—</div><div class="feat">✓</div><div class="feat">✓</div></div>
+  </div>
+</section>
+
+<!-- CTA STRIP -->
+<section class="cta-strip">
+  <div>
+    <h3>Run your operation like the <span class="accent">top investors</span> in your market.</h3>
+    <p>Free 14‑day trial. No credit card. Migrate from Airtable, HubSpot, or REI Reply in under an hour — our team handles the import.</p>
+  </div>
+  <div class="actions">
+    <a class="btn btn-gold btn-lg">Start free trial</a>
+    <a class="btn btn-outline btn-lg">Book a demo</a>
+  </div>
+</section>
+
+</body>
+</html>
