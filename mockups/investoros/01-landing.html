@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>InvestorOS — Landing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+  body { background: var(--bg); }
+
+  .nav {
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 56px;
+    border-bottom: 1px solid var(--line-soft);
+    background: var(--bg);
+  }
+  .nav-links { display: flex; gap: 32px; font-size: 14px; color: var(--ink-2); }
+  .nav-links a { padding: 6px 0; }
+  .nav-cta { display: flex; gap: 12px; align-items: center; }
+
+  .hero {
+    padding: 88px 56px 72px;
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap: 64px;
+    align-items: center;
+    max-width: 1440px;
+    margin: 0 auto;
+  }
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px 6px 8px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    font-size: 12px;
+    color: var(--ink-2);
+    margin-bottom: 28px;
+  }
+  .hero-badge .pip {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--green-tint); color: var(--green);
+    display: grid; place-items: center;
+    font-size: 10px; font-weight: 700;
+  }
+  h1.hero-title {
+    margin: 0;
+    font-size: 72px;
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+    font-weight: 500;
+    color: var(--ink);
+  }
+  h1.hero-title .accent {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 400;
+    color: var(--green);
+  }
+  .hero-sub {
+    margin-top: 28px;
+    font-size: 18px;
+    line-height: 1.55;
+    color: var(--ink-mute);
+    max-width: 540px;
+  }
+  .hero-cta { display: flex; gap: 14px; margin-top: 36px; }
+  .hero-meta {
+    display: flex; gap: 32px; margin-top: 36px;
+    font-size: 13px; color: var(--ink-mute);
+  }
+  .hero-meta b { color: var(--ink); font-weight: 600; }
+
+  /* Right column: dashboard preview */
+  .preview-frame {
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 18px;
+    box-shadow: 0 30px 60px -30px rgba(13, 59, 46, 0.25);
+    transform: rotate(0.3deg);
+  }
+  .preview-bar {
+    display: flex; align-items: center; gap: 6px;
+    height: 26px; border-bottom: 1px solid var(--line-soft);
+    padding: 0 6px 12px; margin-bottom: 14px;
+  }
+  .preview-bar .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--bg-soft); }
+  .preview-bar .url {
+    flex: 1; height: 22px; background: var(--bg);
+    border-radius: 6px; font-size: 11px; color: var(--ink-faint);
+    display: grid; place-items: center;
+  }
+  .preview-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .preview-card {
+    background: var(--bg);
+    border: 1px solid var(--line-soft);
+    border-radius: 10px;
+    padding: 14px;
+  }
+  .preview-card .label { font-size: 11px; color: var(--ink-mute); letter-spacing: 0.04em; text-transform: uppercase; }
+  .preview-card .value { font-size: 28px; font-weight: 500; letter-spacing: -0.02em; margin-top: 4px; }
+  .preview-card .delta { font-size: 11px; color: var(--green); margin-top: 6px; }
+  .preview-card.full { grid-column: span 2; padding: 16px; }
+  .preview-chart {
+    height: 78px;
+    margin-top: 10px;
+    background: linear-gradient(180deg, transparent 0%, var(--green-tint) 100%);
+    -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 80' preserveAspectRatio='none'><path d='M0,60 C20,52 30,40 50,38 C70,36 80,48 100,42 C120,36 130,20 150,18 C170,16 185,28 200,22 L200,80 L0,80 Z' fill='black'/></svg>") no-repeat center / 100% 100%;
+            mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 80' preserveAspectRatio='none'><path d='M0,60 C20,52 30,40 50,38 C70,36 80,48 100,42 C120,36 130,20 150,18 C170,16 185,28 200,22 L200,80 L0,80 Z' fill='black'/></svg>") no-repeat center / 100% 100%;
+  }
+  .preview-line {
+    position: relative; height: 78px; margin-top: 10px;
+  }
+  .preview-line svg { width: 100%; height: 100%; }
+
+  .preview-list { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+  .preview-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; background: var(--bg); border-radius: 8px;
+    border: 1px solid var(--line-soft);
+    font-size: 12px;
+  }
+  .preview-row .av { width: 20px; height: 20px; border-radius: 50%; background: var(--gold); color: var(--green); display: grid; place-items: center; font-size: 9px; font-weight: 700; }
+  .preview-row .meta { color: var(--ink-faint); margin-left: auto; font-size: 11px; }
+
+  /* tenant strip */
+  .tenants {
+    margin-top: 64px;
+    padding: 28px 56px 12px;
+    border-top: 1px solid var(--line-soft);
+    max-width: 1440px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .tenants .label { font-size: 12px; color: var(--ink-mute); letter-spacing: 0.16em; text-transform: uppercase; text-align: center; }
+  .tenants .row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 22px; gap: 32px;
+    padding: 0 24px;
+  }
+  .tenant-mark {
+    font-family: var(--font-serif);
+    font-size: 18px;
+    color: var(--ink-2);
+    letter-spacing: -0.01em;
+    opacity: .82;
+  }
+  .tenant-mark .pin { color: var(--gold); }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="logo">
+    <span class="logo-mark">I<span class="dot">·</span></span>
+    InvestorOS
+  </div>
+  <div class="nav-links">
+    <a>Product</a>
+    <a>Pricing</a>
+    <a>Tenants</a>
+    <a>Resources</a>
+    <a>About</a>
+  </div>
+  <div class="nav-cta">
+    <a class="btn btn-ghost btn-sm">Sign in</a>
+    <a class="btn btn-primary btn-sm">Start free trial</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div>
+    <div class="hero-badge">
+      <span class="pip">★</span>
+      <span>Built for real estate operators · Wisconsin → Nationwide</span>
+    </div>
+    <h1 class="hero-title">
+      The operating <span class="accent">system</span><br>
+      for real estate<br>
+      <span class="accent">investors.</span>
+    </h1>
+    <p class="hero-sub">
+      Lead capture, CRM, AI receptionist, deal analysis, and bilingual social media — one tenant‑isolated workspace, fully automated. From your first foreclosure lead to your hundredth closed deal.
+    </p>
+    <div class="hero-cta">
+      <a class="btn btn-primary btn-lg">Start free trial →</a>
+      <a class="btn btn-outline btn-lg">See how it works</a>
+    </div>
+    <div class="hero-meta">
+      <div><b>14‑day</b> free trial</div>
+      <div><b>No</b> credit card required</div>
+      <div><b>Bilingual</b> ES / EN</div>
+    </div>
+  </div>
+
+  <div class="preview-frame">
+    <div class="preview-bar">
+      <span class="dot" style="background:#E4756B"></span>
+      <span class="dot" style="background:#E5C46B"></span>
+      <span class="dot" style="background:#7FB68C"></span>
+      <span class="url">app.investoros.tech / dashboard</span>
+    </div>
+    <div class="preview-grid">
+      <div class="preview-card">
+        <div class="label">Active Leads</div>
+        <div class="value tabular">47</div>
+        <div class="delta">↑ 12 this week</div>
+      </div>
+      <div class="preview-card">
+        <div class="label">MRR Atribuible</div>
+        <div class="value tabular">$14,200</div>
+        <div class="delta">↑ 8.4% MoM</div>
+      </div>
+      <div class="preview-card full">
+        <div class="row between">
+          <div class="label">Pipeline Velocity · 30d</div>
+          <span class="chip chip-green"><span class="chip-dot"></span>Live</span>
+        </div>
+        <div class="preview-line">
+          <svg viewBox="0 0 400 80" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="lg" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#0D3B2E" stop-opacity="0.18"/>
+                <stop offset="100%" stop-color="#0D3B2E" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <path d="M0,60 C30,55 50,42 80,40 C110,38 130,52 160,46 C190,40 210,22 240,20 C270,18 300,32 330,26 C360,20 380,30 400,24 L400,80 L0,80 Z" fill="url(#lg)"/>
+            <path d="M0,60 C30,55 50,42 80,40 C110,38 130,52 160,46 C190,40 210,22 240,20 C270,18 300,32 330,26 C360,20 380,30 400,24" stroke="#0D3B2E" stroke-width="1.6" fill="none"/>
+            <circle cx="240" cy="20" r="3" fill="#C9A84C"/>
+          </svg>
+        </div>
+      </div>
+      <div class="preview-card full">
+        <div class="row between">
+          <div class="label">Recent Activity</div>
+          <span class="chip chip-neutral">Today</span>
+        </div>
+        <div class="preview-list">
+          <div class="preview-row"><span class="av">F</span><span>Fer responded to lead · 53201 Milwaukee</span><span class="meta">2m</span></div>
+          <div class="preview-row"><span class="av" style="background:var(--pink); color:white">T</span><span>Tracy skip‑traced 8 contacts</span><span class="meta">14m</span></div>
+          <div class="preview-row"><span class="av" style="background:var(--green); color:var(--gold)">A</span><span>ALEX scored deal #142 · Confidence 9/10</span><span class="meta">1h</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="tenants">
+  <div class="label">Trusted by operators across Wisconsin</div>
+  <div class="row">
+    <div class="tenant-mark">Pinnacle Holdings <span class="pin">·</span> Group</div>
+    <div class="tenant-mark">Geo Carpentry LLC</div>
+    <div class="tenant-mark">FC Multiservices</div>
+    <div class="tenant-mark">Nica Transports</div>
+    <div class="tenant-mark">Essenthia Skincare</div>
+  </div>
+</section>
+
+</body>
+</html>
