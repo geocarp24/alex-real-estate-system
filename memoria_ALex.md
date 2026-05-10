@@ -3846,3 +3846,21 @@ La regla aplica desde YA (2026-05-08) y aplica retroactivamente a A12 + A14 que 
 - **Impacto Dan (F2.6):** PAUSADO hasta resolver Quo. Dan reusará `fer_quo.php` y heredaría el blind-spot — primero arreglar Fer foundation con visibility, después construir Dan dedicado a scraped leads outreach (clon de Fer per orden Jorge 2026-05-09 — NO tocar Fer existente con scraping logic).
 - **Lección R-INCIDENT-2026-05-09:** "HTTP 200 desde provider SMS ≠ delivered al phone." NUNCA asumir delivery sin pollear `delivery_status` o consumir webhook `message.delivered`/`message.failed`. Cualquier nuevo agente outbound (Dan, futuros tenants) DEBE incluir delivery telemetry desde día 1.
 
+### HANDOFF — Sesión Claude Code reiniciada para ampliar sandbox a investoros-web (2026-05-10)
+- **Branch activa:** `claude/check-session-context-7Ea4B` — commit HEAD `8f888a9` (pushed a origin).
+- **Contexto:** pivot direccional de "ALEX para real estate" → **InvestorOS: AI agent OS para cualquier negocio** (multi-industria). Jorge creó nuevo repo `geocarp24/investoros-web` para alojar el sitio público.
+- **Bloqueo encontrado:** sandbox de Claude Code tiene whitelist hardcodeada al iniciar sesión = solo `geocarp24/alex-real-estate-system`. El MCP de GitHub y el git proxy local (`127.0.0.1:38071`) ambos rechazan `investoros-web` con "repository not authorized" / "not configured for this session". Tu super token GitHub funciona; el bloqueo es del sandbox.
+- **Decisión Jorge (2026-05-10):** **reiniciar sesión Claude Code** con whitelist ampliada que incluya AMBOS repos (`alex-real-estate-system` + `investoros-web`).
+- **Trabajo ya hecho y pusheado en este repo (NO se pierde):**
+  - `mockups/investoros/avatars/alex.svg`, `scout.svg`, `max.svg`, `vera.svg` — 4 robots SVG (de 11 totales) con sistema visual consistente: cápsula vertical, antena temática, pantalla facial oscura, accesorio único (headset/binoculares/calculadora/lupa), insignia en pecho.
+  - `mockups/investoros/05-team-preview.html` + PNGs renderizados (desktop 1440 + mobile 414) en `mockups/investoros/out/`.
+  - `mockups/investoros/render.mjs` actualizado para incluir el preview.
+- **Roster de 11 agentes propuesto (pendiente aprobación final de Jorge):** ALEX (Chief Orchestrator), Scout (Market Intelligence), Max (Financial Analyst), Vera (Quality Verification), Tracy (Lead Researcher), Pixel (Content Designer), Reel (Video Producer), Echo (Publisher), Fer (Sales Closer), Orin (Quality Critic), Quill (Copy Editor).
+- **Próximos pasos cuando arranque la nueva sesión:**
+  1. Leer esta sección de `memoria_ALex.md` + `agents/shared_conversation.json` para retomar contexto.
+  2. Confirmar acceso a `investoros-web` con `mcp__github__get_file_contents owner=geocarp24 repo=investoros-web path=/`. Si responde 404 (repo vacío) en lugar de "Access denied", la whitelist ya está OK.
+  3. Esperar approval/feedback de Jorge sobre los 4 robots de muestra antes de producir los 7 restantes.
+  4. Después: producir 7 SVGs restantes, iterar landing con multi-industria + sección agentes, crear team.html final, login.html, dashboard/kanban/pricing actualizados.
+  5. Copiar todo el contenido del sitio (`mockups/investoros/*` o moverlo a `/web/`) a `investoros-web` con un solo `mcp__github__push_files` masivo.
+- **Para no perder tiempo:** todo el material producido vive en este repo, branch `claude/check-session-context-7Ea4B`. Jorge puede ver los 4 robots ahora en GitHub abriendo `mockups/investoros/out/05-team-preview.png` (desktop) o `05-team-preview-mobile.png` (mobile).
+
