@@ -507,3 +507,155 @@ Siempre pausa y pide aprobación para: **finanzas, credenciales, datos confidenc
    bash "c:/Users/Admin/OneDrive/Documents/Claude for real estate/agents/alerta_telegram.sh" "CRITICO" "descripcion" "soluciones"
    ```
 4. **Credenciales:** Nunca las imprimas en outputs. Ya están en los archivos de configuración del sistema.
+
+---
+
+## DEVELOPER REFERENCE — Commands & Architecture
+
+> Sección agregada por `/init` el 2026-05-10. Lo de arriba es identidad/reglas operacionales (no tocar). Esta sección es **referencia técnica** para que futuras instancias arranquen productivas sin re-explorar el repo.
+
+### Multi-runtime monorepo
+
+Tres runtimes coexisten — cada uno con su propio gestor de dependencias y entrypoint:
+
+| Runtime | Dónde | Para qué | Instalación |
+|---|---|---|---|
+| **Node 22+** | `apps/investoros/`, `agents/<name>/`, `mockups/investoros/` | Sitio Next.js, R9 sub-agentes, render de mockups | `npm install` por carpeta |
+| **Python 3.10+** | `telegram_bot/`, `secretario/`, `claude_api_server.py`, scripts raíz (`tracy_*.py`, `github_monitor.py`) | Bot Telegram, calendar/email Google, HTTP bridge, scrapers | `pip install -r requirements.txt` por carpeta |
+| **PHP 8+ (WordPress)** | `hostinger/` | MU-plugins, bridges API, tools admin del sitio Pinnacle | Se deploya, no se instala localmente |
+
+`package.json` raíz solo trae `agent-browser` + `playwright-chromium` para uso ad-hoc desde scripts. Los `node_modules` reales viven dentro de cada subproyecto.
+
+### Comandos más usados
+
+**`apps/investoros/` — Next.js 15 + tRPC + Prisma + Tailwind v4 (sitio production):**
+```bash
+cd apps/investoros
+npm install
+npm run dev          # Next dev con Turbopack en :3000
+npm run build        # Build production
+npm run typecheck    # tsc --noEmit
+npm run lint         # next lint
+npm test             # node --test tests/*.test.mjs
+npm run db:push      # Prisma push schema a Supabase
+npm run db:migrate   # Prisma migrate dev (crea migration + apply)
+npm run db:studio    # Prisma Studio UI
+npm run db:seed      # tsx prisma/seed.ts
+```
+Stack: React 19 + Tailwind v4 + tRPC v11 + Prisma 6 + Postgres (Supabase) + Clerk auth (B5) + Stripe (B4). Multi-tenant con RLS — cada tabla tiene `tenantId`. Pinnacle = tenant zero. Ver `apps/investoros/README.md` para roadmap B1-B7.
+
+**`mockups/investoros/` — HTML/CSS prototypes (separado del Next.js, NO es production):**
+```bash
+cd mockups/investoros
+node render.mjs      # Renderiza cada *.html a PNG via Playwright/Chromium
+```
+Los mockups guían el diseño antes de portarlos a `apps/investoros/`. PNGs van a `out/` (committed para preview en GitHub).
+
+**R9 sub-agentes Node (`agents/<name>/`):**
+```bash
+# Patrón estándar — todos los R9 agents heredan de _shared/runner.mjs
+node agents/<name>/<script>.mjs --tenant pinnacle --mode <mode> --dry-run
+# Ejemplo:
+node agents/social_media/social_media.mjs --tenant pinnacle --mode batch_weekly --dry-run
+node agents/oraculo/oraculo.mjs --tenant pinnacle --mode batch
+```
+- `--tenant <slug>` obligatorio. Lee config de `agents/tenants/<slug>.json`.
+- `--mode` debe ser uno de los modes válidos del agente.
+- `--dry-run` evita escrituras a Airtable / publicaciones reales.
+
+**Disparar workflow GHA manualmente** (mientras crons están en kill-switch):
+```bash
+gh workflow run agents-cron.yml -f agent=mercader -f mode=quick_health
+gh workflow run supervisor-cron.yml -f mode=heartbeat
+gh workflow run deploy-hostinger.yml
+```
+
+**Telegram bot (local):**
+```bash
+cd telegram_bot
+pip install -r requirements.txt
+python alex_bot.py
+```
+Requiere `.env` raíz con `ANTHROPIC_KEY`, `TELEGRAM_TOKEN`, `AIRTABLE_TOKEN`. Carga `model_assignment.py` si existe (escalación de modelos por agente); si no, fallback a `claude-sonnet-4-6`.
+
+**Claude API server** (HTTP bridge entre bot y Claude Code CLI):
+```bash
+python claude_api_server.py   # Flask en :5001
+# Header X-Alex-Secret obligatorio en todos los requests
+# POST /task, GET /task/<id>, GET /health, GET /status
+```
+
+### Arquitectura — big picture
+
+**Plano de control (orquestación):**
+- **ALEX en Claude Code** (esta instancia) — coordinador interactivo, lee `memoria_ALex.md`, invoca sub-agentes vía Agent tool.
+- **ALEX en Telegram** (`telegram_bot/alex_bot.py`) — mismo cerebro, canal distinto. Comparte `agents/shared_conversation.json` (campo `channel: telegram | claude_code`) y `memoria_ALex.md` para continuidad cross-channel.
+- **GitHub Actions** — orquestador autónomo. `agents-cron.yml` es el master cron (17+ agentes en un solo workflow, dispatched por línea de cron). `supervisor-cron.yml` es el watchdog.
+
+**Plano de datos:**
+- Airtable CRM `appfQbDA750Oihy9J` — Contacts/Leads/Deals/Notes (tablas: `tblacvw0Ss770x8l5`, `tblxZz2EWIglOLnEd`, `tbliaEKxBHKBx7ZK2`, `tbleOBXJl7sDhwj5w`).
+- Airtable Social Media `appU9s3kGkVpdrJkw` — Posts (`tblE3lz6XNcBNgpg5`), Reels (`tblhbg4JSm2iND3Cs`), Videos (`tblbjYosR1tpnjRV0`). Ver regla 1h.
+- Postgres (Supabase) — datos de `apps/investoros` con RLS por `tenantId`.
+- WordPress (Hostinger) — site público `pinnaclegroupwi.com`.
+
+**Plano de deploy:**
+| Workflow | Trigger | Destino |
+|---|---|---|
+| `deploy-hostinger.yml` | push a `master` con cambios en `hostinger/**` | rsync SSH a `/home/u433637438/domains/pinnaclegroupwi.com/public_html/{Tools,agents,mu-plugins}` |
+| `deploy-vps-bot.yml` | manual / push | VPS donde corre el bot Telegram en producción |
+| `deploy-modal.yml` | manual | Modal.com workers (cuando aplica) |
+| `deploy-geo-budget.yml` | push con cambios en `geo-budget/**` | sitio Geo Carpentry |
+| `apps/investoros` → Vercel | auto en cada push (no en GHA) | `investoros.tech` |
+
+**Plano de comunicación inter-agente:**
+- `agents/shared_conversation.json` — últimos 60 mensajes cross-channel (telegram + claude_code).
+- `agents/cola_mensajes.md` — queue libre-form entre agentes.
+- `agents/claude_inbox.json` / `claude_outbox.json` — buffers Claude API server ↔ bot.
+
+### Sub-agent invocation — dos patrones distintos
+
+**Patrón A — sub-agentes de Claude Code (interactivos):**
+- Files: `agents/<name>.md` (markdown puro con prompt base)
+- Invocados por ALEX vía el **Agent tool** dentro de la conversación
+- Usados para: análisis de deal (Scout, Matemático, Fact-Checker), skip tracing (Tracy), creativo/director ad-hoc
+- Lista canónica: `agents/AGENTS.md`, modelos asignados en `agents/MODEL_CONFIG.yaml`
+
+**Patrón B — sub-agentes R9 (autónomos, cron):**
+- Files: `agents/<name>/*.mjs` (carpeta con scripts Node ESM)
+- Cada uno hereda de `agents/_shared/runner.mjs::main()` — provee `parseArgs`, `loadTenant`, `runClaude`, `airtableFetch/Upsert/Create`, `telegramSend`, extractors.
+- Invocados por GHA cron (`agents-cron.yml`) con args `--tenant <slug> --mode <mode>`
+- Cada uno con su `package.json` (deps mínimas), su `memoria_<name>.md`, y una entry en el cron schedule.
+- Ejemplos: `mercader`, `posicionador`, `escriba`, `cazador`, `clasificador`, `analista`, `espia`, `auditor`, `remitente`, `social_media`, `oraculo`, `reescritor`, `creativo` (runner), `director_v2`, `analitico`, `audit_meta`, `rastreador`.
+
+Cuando agregues un nuevo R9 agent: importa de `_shared/runner.mjs`, define modes válidos, agrega al `tenants/<slug>.json`, regístralo en `agents-cron.yml` (workflow_dispatch options + cron line + determine_job step).
+
+### Estado actual de los crons (IMPORTANTE)
+
+**TODOS los crons schedule están comentados/pausados** (Jorge 2026-05-09) hasta que el stack de outreach Telnyx esté operativo. El `workflow_dispatch` manual sigue habilitado para runs individuales bajo aprobación de Jorge. Antes de descomentar, leer `memoria_ALex.md` para confirmar que Jorge dio luz verde.
+
+`hostinger/tools/fer_*.php` (Fer SMS outbound) tienen kill-switch adicional (`FER_OUTBOUND_ENABLED` define) — reactivar requiere agregar `define('FER_OUTBOUND_ENABLED', true);` a `hostinger/tools/config.php`.
+
+### Convenciones específicas del proyecto
+
+- **Auto-save hooks commitean por cuenta propia.** Cuando edites archivos como `memoria_*.md`, `agents/shared_conversation.json`, los hooks de Claude Code generan commits `auto: save YYYY-MM-DD HH:MM:SS` antes que termines tu turno. Si tu commit explícito dice "nothing to commit" o el push es rejected con "is at SHA-X but expected SHA-Y" — **`git pull --rebase origin <branch>` y luego push**. Es esperado, no es bug.
+- **El git proxy local cambia de puerto entre sesiones** (`127.0.0.1:38xxx`). El remote `origin` se actualiza automáticamente en cada session start hook. No hardcodees el puerto.
+- **El sandbox de Claude Code tiene whitelist de repos** definida al iniciar la sesión. Tools `mcp__github__*` y el git proxy solo aceptan repos en esa whitelist (actual: solo `geocarp24/alex-real-estate-system`). Ampliarla requiere reiniciar la sesión con la lista nueva.
+- **Dos webs paralelas para InvestorOS:**
+  - `mockups/investoros/` = HTML/CSS estáticos para iteración visual rápida (avatares SVG, render PNG, no build step)
+  - `apps/investoros/` = Next.js production (donde se portan los diseños aprobados)
+  - Cuando Jorge dice "el sitio", clarifica cuál — durante prototipado siempre es `mockups/`.
+- **graphify-out/ está gitignored** — regenerar bajo demanda con `/graphify .` (regla 1f).
+- **No commitear `.env*`, `client_secret*.json`, `tracy_trace_input.csv`, `secretario/google_creds/token.json`** — todos en `.gitignore`.
+- **Backup obligatorio antes de cambios destructivos** — ver `agents/PROTOCOLO_EJECUCION.md` Fase 3. Snapshots a `backups/{sistema}/{YYYY-MM-DD_HHMMSS}/`.
+
+### Documentos clave a leer (orden recomendado al onboarding)
+
+1. Esta sección (Developer Reference) + las reglas /GOD de arriba
+2. `memoria_ALex.md` — estado operacional + handoff notes (sección más reciente arriba)
+3. `agents/PROTOCOLO_EJECUCION.md` — 7 fases obligatorias para tareas no triviales
+4. `agents/MODEL_CONFIG.yaml` — qué modelo Claude usa cada agente y por qué
+5. `agents/AGENTS.md` — registro de sub-agentes Patrón A
+6. `apps/investoros/README.md` — stack y roadmap del sitio production
+7. `agents/protocolo_seguro.md` — credenciales + reglas de seguridad
+8. `agents/_shared/runner.mjs` — cabecera con todas las funciones compartidas R9
+9. `agents/_shared/sm_tables.mjs` — config central de las 3 tablas Social Media + STATUS enum
