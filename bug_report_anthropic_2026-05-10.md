@@ -124,7 +124,7 @@ This bug, on its own, would be a minor inconvenience. Combined with Issue #1, it
 - Hard refresh (Cmd/Ctrl+Shift+R) → still freezes.
 - Different browsers (the user did not explicitly verify all browsers, but the freeze was observed consistently in the primary one).
 
-The user's exact words: *"no puedo abrir otra ventana con otra sesión porque se queda pegado"* — "I can't open another window with another session because it freezes."
+The user's exact words: "I can't open another window with another session because it freezes."
 
 ---
 
