@@ -1,0 +1,44 @@
+<svg viewBox="0 0 200 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Max — Financial Analyst">
+  <defs>
+    <radialGradient id="max-shine" cx="35%" cy="30%" r="55%">
+      <stop offset="0%" stop-color="#8B7BB8" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#6B5B95" stop-opacity="1"/>
+    </radialGradient>
+  </defs>
+
+  <ellipse cx="100" cy="205" rx="58" ry="6" fill="#0D3B2E" opacity="0.16"/>
+
+  <!-- Antenna with $ tip -->
+  <line x1="100" y1="38" x2="100" y2="22" stroke="#4A3F6B" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="100" cy="18" r="7" fill="#C9A84C"/>
+  <text x="100" y="22" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="800" fill="#4A3F6B">$</text>
+
+  <!-- Body -->
+  <rect x="42" y="52" width="116" height="138" rx="48" ry="48" fill="url(#max-shine)" stroke="#4A3F6B" stroke-width="2"/>
+
+  <!-- Face screen — calculator style -->
+  <rect x="58" y="78" width="84" height="68" rx="14" ry="14" fill="#2D2548"/>
+
+  <!-- Eyes — square LED -->
+  <rect x="74" y="100" width="14" height="14" rx="2" fill="#7FFFB6"/>
+  <rect x="76" y="102" width="4" height="4" fill="#0D3B2E"/>
+  <rect x="112" y="100" width="14" height="14" rx="2" fill="#7FFFB6"/>
+  <rect x="114" y="102" width="4" height="4" fill="#0D3B2E"/>
+
+  <!-- Display digits below eyes (subtle) -->
+  <text x="100" y="135" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#7FFFB6" letter-spacing="2" font-feature-settings="'tnum'">+24.8%</text>
+
+  <!-- Calculator chest panel -->
+  <rect x="78" y="158" width="44" height="22" rx="4" fill="#2D2548"/>
+  <circle cx="86" cy="164" r="2" fill="#C9A84C"/>
+  <circle cx="94" cy="164" r="2" fill="#A6CFAF"/>
+  <circle cx="102" cy="164" r="2" fill="#A6CFAF"/>
+  <circle cx="86" cy="172" r="2" fill="#A6CFAF"/>
+  <circle cx="94" cy="172" r="2" fill="#A6CFAF"/>
+  <circle cx="102" cy="172" r="2" fill="#A6CFAF"/>
+  <rect x="108" y="161" width="10" height="16" rx="2" fill="#C9A84C"/>
+
+  <!-- Side rivets -->
+  <circle cx="50" cy="120" r="2.5" fill="#4A3F6B" opacity="0.7"/>
+  <circle cx="150" cy="120" r="2.5" fill="#4A3F6B" opacity="0.7"/>
+</svg>
