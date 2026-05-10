@@ -1,0 +1,42 @@
+<svg viewBox="0 0 200 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Scout — Market Intelligence">
+  <defs>
+    <radialGradient id="scout-shine" cx="35%" cy="30%" r="55%">
+      <stop offset="0%" stop-color="#A6CFAF" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#7FB68C" stop-opacity="1"/>
+    </radialGradient>
+  </defs>
+
+  <ellipse cx="100" cy="205" rx="58" ry="6" fill="#0D3B2E" opacity="0.16"/>
+
+  <!-- Antenna with leaf tip -->
+  <line x1="100" y1="38" x2="100" y2="22" stroke="#3F6B49" stroke-width="3" stroke-linecap="round"/>
+  <path d="M 100 22 Q 92 14 100 6 Q 108 14 100 22 Z" fill="#5C9B6C"/>
+
+  <!-- Body -->
+  <rect x="42" y="52" width="116" height="138" rx="48" ry="48" fill="url(#scout-shine)" stroke="#3F6B49" stroke-width="2"/>
+
+  <!-- Face screen -->
+  <rect x="58" y="78" width="84" height="68" rx="22" ry="22" fill="#3F6B49"/>
+
+  <!-- Binocular eyes (slightly larger, twin lenses) -->
+  <circle cx="80" cy="108" r="11" fill="#0D3B2E"/>
+  <circle cx="80" cy="108" r="7" fill="#A6CFAF"/>
+  <circle cx="82" cy="106" r="2.5" fill="#FAF7F2"/>
+  <circle cx="120" cy="108" r="11" fill="#0D3B2E"/>
+  <circle cx="120" cy="108" r="7" fill="#A6CFAF"/>
+  <circle cx="122" cy="106" r="2.5" fill="#FAF7F2"/>
+  <!-- Binocular bridge -->
+  <rect x="89" y="105" width="22" height="6" fill="#0D3B2E"/>
+
+  <!-- Subtle smile -->
+  <path d="M 84 132 Q 100 138 116 132" stroke="#FAF7F2" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+
+  <!-- Compass emblem on chest -->
+  <circle cx="100" cy="170" r="11" fill="#3F6B49"/>
+  <circle cx="100" cy="170" r="9" fill="none" stroke="#C9A84C" stroke-width="1.2"/>
+  <path d="M 100 162 L 103 170 L 100 178 L 97 170 Z" fill="#C9A84C"/>
+
+  <!-- Side rivets -->
+  <circle cx="50" cy="120" r="2.5" fill="#3F6B49" opacity="0.7"/>
+  <circle cx="150" cy="120" r="2.5" fill="#3F6B49" opacity="0.7"/>
+</svg>
