@@ -10,10 +10,12 @@ import path from "node:path";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const PAGES = [
-  { html: "01-landing.html",   out: "out/01-landing.png",   width: 1440, height: 900,  fullPage: true },
-  { html: "02-dashboard.html", out: "out/02-dashboard.png", width: 1440, height: 1000, fullPage: true },
-  { html: "03-kanban.html",    out: "out/03-kanban.png",    width: 1600, height: 1000, fullPage: true },
-  { html: "04-pricing.html",   out: "out/04-pricing.png",   width: 1440, height: 900,  fullPage: true },
+  { html: "01-landing.html",       out: "out/01-landing.png",       width: 1440, height: 900,  fullPage: true },
+  { html: "02-dashboard.html",     out: "out/02-dashboard.png",     width: 1440, height: 1000, fullPage: true },
+  { html: "03-kanban.html",        out: "out/03-kanban.png",        width: 1600, height: 1000, fullPage: true },
+  { html: "04-pricing.html",       out: "out/04-pricing.png",       width: 1440, height: 900,  fullPage: true },
+  { html: "05-team-preview.html",  out: "out/05-team-preview.png",  width: 1440, height: 1100, fullPage: true },
+  { html: "05-team-preview.html",  out: "out/05-team-preview-mobile.png", width: 414,  height: 896,  fullPage: true },
 ];
 
 const browser = await chromium.launch({
