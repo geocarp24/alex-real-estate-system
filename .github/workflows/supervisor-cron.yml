@@ -1,14 +1,20 @@
 name: Supervisor — Autonomous Ops Watchdog
 
 on:
-  schedule:
-    # 2026-04-29 Jorge directive (low contact volume):
-    #   heartbeat — every 6 hours (lightweight watchdog, 4/day)
-    #   deep     — every 3 days  (auto-repair + Learning + Diagnosis Phase 2)
-    #   evolve   — every 3 days  (pattern recognition)
-    - cron: "0 */6 * * *"            # heartbeat
-    - cron: "30 21 */3 * *"          # deep
-    - cron: "0 22 */3 * *"            # evolve
+  # ── KILL-SWITCH GLOBAL — TODOS LOS CRONS PAUSADOS (Jorge 2026-05-09) ─────────
+  # Razón: stack de outreach (Telnyx) en setup. No corremos nada hasta tener
+  # el nuevo número de teléfono vivo y el flow chateado punta a punta.
+  # Sigue activo workflow_dispatch para runs manuales bajo aprobación de Jorge.
+  # Reactivar: descomentar el bloque `schedule:` completo cuando Jorge dé luz verde.
+  # ─────────────────────────────────────────────────────────────────────────────
+  # schedule:
+  #   # 2026-04-29 Jorge directive (low contact volume):
+  #   #   heartbeat — every 6 hours (lightweight watchdog, 4/day)
+  #   #   deep     — every 3 days  (auto-repair + Learning + Diagnosis Phase 2)
+  #   #   evolve   — every 3 days  (pattern recognition)
+  #   - cron: "0 */6 * * *"            # heartbeat
+  #   - cron: "30 21 */3 * *"          # deep
+  #   - cron: "0 22 */3 * *"            # evolve
   workflow_dispatch:
     inputs:
       mode:

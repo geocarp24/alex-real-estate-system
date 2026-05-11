@@ -11,57 +11,63 @@ name: R9 Agents — Scheduled runs
 # Each cron line maps to exactly one agent+mode via the determine_job step.
 
 on:
-  schedule:
-    # Classifier
-    - cron:  "0 12 */3 * *"           # clasificador:score_batch
-    - cron:  "30 12 */3 * *"          # clasificador:rescore_hot
-    # Analista
-    - cron:  "0 13 */3 * *"           # analista:weekly
-    # Health audits
-    - cron:  "0 14 */3 * *"           # mercader:quick_health
-    - cron:  "30 14 */3 * *"          # posicionador:seo_health
-    - cron:  "0 15 */3 * *"           # cazador:ads_health
-    # Deep audits
-    - cron:  "30 15 */3 * *"          # mercader:deep_audit
-    - cron:  "0 16 */3 * *"           # posicionador:seo_deep
-    - cron:  "30 16 */3 * *"          # cazador:ads_deep
-    # Content
-    - cron:  "0 17 */3 * *"           # escriba:content_plan_week
-    # Email engine
-    - cron:  "30 17 */3 * *"          # remitente:process_welcome
-    - cron:  "0 18 */3 * *"           # remitente:process_drip
-    - cron:  "30 18 */3 * *"          # remitente:weekly_report
-    # Intelligence
-    - cron:  "0 19 */3 * *"           # espia:daily
-    - cron:  "30 19 */3 * *"          # espia:weekly_deep
-    # Compliance
-    - cron:  "0 20 */3 * *"           # auditor:weekly
-    # Social Media — batch_weekly idea generation (Sprint A6 Jorge 2026-05-08).
-    - cron:  "0 23 * * 0"             # social_media batch_weekly (Sun 18:00 CDT)
-    # Social Media — slot-driven publisher (Sprint A4 Jorge 2026-05-08).
-    - cron:  "30 11 * * *"            # social_media IG Post  06:30 CT
-    - cron:  "0 12 * * *"             # social_media FB Post  07:00 CT
-    - cron:  "30 16 * * *"            # social_media FB Post  11:30 CT
-    - cron:  "30 17 * * *"            # social_media FB Reel  12:30 CT
-    - cron:  "0 18 * * *"             # social_media IG Post  13:00 CT
-    - cron:  "0 21 * * *"             # social_media IG Reel  16:00 CT
-    - cron:  "50 22 * * *"            # social_media FB Post  17:50 CT
-    - cron:  "0 0 * * *"              # social_media IG Post  19:00 CT (next UTC day)
-    - cron:  "0 1 * * *"              # social_media FB Reel  20:00 CT (next UTC day)
-    - cron:  "30 1 * * 1,2,4,6"       # social_media IG Video 20:30 CT Mon/Wed/Fri/Sun
-    - cron:  "0 2 * * 1,2,4,6"        # social_media FB Video 21:00 CT Mon/Wed/Fri/Sun
-    - cron:  "0 2 * * *"              # social_media IG Reel  21:00 CT (next UTC day)
-    # Sprint A14 (Jorge 2026-05-08): pipeline every 4-6h to keep up with batch_weekly.
-    - cron:  "0 */4 * * *"            # oraculo:batch (every 4h)
-    - cron:  "30 */4 * * *"           # reescritor:batch (every 4h, 30min after oraculo)
-    - cron:  "0 */6 * * *"            # creativo:batch (every 6h)
-    - cron:  "15 */6 * * *"           # director_v2:batch (every 6h - Reels + Videos)
-    # El Analítico — daily engagement metrics + lessons feedback to SM Manager
-    - cron:  "0 6 * * *"              # analitico:batch (every day at 06:00 UTC)
-    # El Rastreador — web scraper for lead research (Sprint F2 Jorge 2026-05-08)
-    - cron:  "0 3 * * *"              # rastreador:legal_records (daily 3am UTC)
-    - cron:  "30 3 * * 1"             # rastreador:fsbo_listings (Monday 3:30am UTC)
-    - cron:  "0 4 * * 0"              # rastreador:allies_directory (Sunday 4am UTC)
+  # ── KILL-SWITCH GLOBAL — TODOS LOS CRONS PAUSADOS (Jorge 2026-05-09) ─────────
+  # Razón: stack de outreach (Telnyx) en setup. No corremos nada hasta tener
+  # el nuevo número de teléfono vivo y el flow chateado punta a punta.
+  # Sigue activo workflow_dispatch para runs manuales bajo aprobación de Jorge.
+  # Reactivar: descomentar el bloque `schedule:` completo cuando Jorge dé luz verde.
+  # ─────────────────────────────────────────────────────────────────────────────
+  # schedule:
+  #   # Classifier
+  #   - cron:  "0 12 */3 * *"           # clasificador:score_batch
+  #   - cron:  "30 12 */3 * *"          # clasificador:rescore_hot
+  #   # Analista
+  #   - cron:  "0 13 */3 * *"           # analista:weekly
+  #   # Health audits
+  #   - cron:  "0 14 */3 * *"           # mercader:quick_health
+  #   - cron:  "30 14 */3 * *"          # posicionador:seo_health
+  #   - cron:  "0 15 */3 * *"           # cazador:ads_health
+  #   # Deep audits
+  #   - cron:  "30 15 */3 * *"          # mercader:deep_audit
+  #   - cron:  "0 16 */3 * *"           # posicionador:seo_deep
+  #   - cron:  "30 16 */3 * *"          # cazador:ads_deep
+  #   # Content
+  #   - cron:  "0 17 */3 * *"           # escriba:content_plan_week
+  #   # Email engine
+  #   - cron:  "30 17 */3 * *"          # remitente:process_welcome
+  #   - cron:  "0 18 */3 * *"           # remitente:process_drip
+  #   - cron:  "30 18 */3 * *"          # remitente:weekly_report
+  #   # Intelligence
+  #   - cron:  "0 19 */3 * *"           # espia:daily
+  #   - cron:  "30 19 */3 * *"          # espia:weekly_deep
+  #   # Compliance
+  #   - cron:  "0 20 */3 * *"           # auditor:weekly
+  #   # Social Media — batch_weekly idea generation (Sprint A6 Jorge 2026-05-08).
+  #   - cron:  "0 23 * * 0"             # social_media batch_weekly (Sun 18:00 CDT)
+  #   # Social Media — slot-driven publisher (Sprint A4 Jorge 2026-05-08).
+  #   - cron:  "30 11 * * *"            # social_media IG Post  06:30 CT
+  #   - cron:  "0 12 * * *"             # social_media FB Post  07:00 CT
+  #   - cron:  "30 16 * * *"            # social_media FB Post  11:30 CT
+  #   - cron:  "30 17 * * *"            # social_media FB Reel  12:30 CT
+  #   - cron:  "0 18 * * *"             # social_media IG Post  13:00 CT
+  #   - cron:  "0 21 * * *"             # social_media IG Reel  16:00 CT
+  #   - cron:  "50 22 * * *"            # social_media FB Post  17:50 CT
+  #   - cron:  "0 0 * * *"              # social_media IG Post  19:00 CT (next UTC day)
+  #   - cron:  "0 1 * * *"              # social_media FB Reel  20:00 CT (next UTC day)
+  #   - cron:  "30 1 * * 1,2,4,6"       # social_media IG Video 20:30 CT Mon/Wed/Fri/Sun
+  #   - cron:  "0 2 * * 1,2,4,6"        # social_media FB Video 21:00 CT Mon/Wed/Fri/Sun
+  #   - cron:  "0 2 * * *"              # social_media IG Reel  21:00 CT (next UTC day)
+  #   # Sprint A14 (Jorge 2026-05-08): pipeline every 4-6h to keep up with batch_weekly.
+  #   - cron:  "0 */4 * * *"            # oraculo:batch (every 4h)
+  #   - cron:  "30 */4 * * *"           # reescritor:batch (every 4h, 30min after oraculo)
+  #   - cron:  "0 */6 * * *"            # creativo:batch (every 6h)
+  #   - cron:  "15 */6 * * *"           # director_v2:batch (every 6h - Reels + Videos)
+  #   # El Analítico — daily engagement metrics + lessons feedback to SM Manager
+  #   - cron:  "0 6 * * *"              # analitico:batch (every day at 06:00 UTC)
+  #   # El Rastreador — web scraper for lead research (Sprint F2 Jorge 2026-05-08)
+  #   - cron:  "0 3 * * *"              # rastreador:legal_records (daily 3am UTC)
+  #   - cron:  "30 3 * * 1"             # rastreador:fsbo_listings (Monday 3:30am UTC)
+  #   - cron:  "0 4 * * 0"              # rastreador:allies_directory (Sunday 4am UTC)
   workflow_dispatch:
     inputs:
       agent:

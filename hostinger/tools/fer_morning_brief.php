@@ -12,6 +12,16 @@ require_once __DIR__ . '/lib/fer_logger.php';
 
 header('Content-Type: application/json');
 
+// ── KILL-SWITCH morning brief (2026-05-09) ────────────────────
+// Pausado: stack de outreach (Telnyx) en setup. No corremos nada hasta tener
+// el nuevo número de teléfono vivo y el flow chateado punta a punta.
+// Reactivar: definir FER_MORNING_BRIEF_ENABLED=true en config.php.
+if (!defined('FER_MORNING_BRIEF_ENABLED') || FER_MORNING_BRIEF_ENABLED !== true) {
+    fer_log_warn('cron_paused_kill_switch', ['file' => basename(__FILE__), 'reason' => 'telnyx_setup_quiet_period_2026-05-09']);
+    echo json_encode(['ok' => true, 'paused' => true, 'reason' => 'telnyx_setup_quiet_period', 'since' => '2026-05-09']);
+    exit;
+}
+
 define('MB_BASE', 'appfQbDA750Oihy9J');
 define('MB_CONTACTS', 'tblacvw0Ss770x8l5');
 define('MB_LEADS', 'tblxZz2EWIglOLnEd');
