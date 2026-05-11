@@ -12,6 +12,16 @@ require_once __DIR__ . '/config.php';
 
 header('Content-Type: application/json');
 
+// ── KILL-SWITCH stale cron (2026-05-11) ────────────────────────────
+// Pausado por Jorge: outreach stack en quiet period (Quo carrier + Telnyx setup).
+// Bloquea la transición Contacted→Seguimiento mientras los crons de Fer estén OFF.
+// Reactivar: definir FER_STALE_ENABLED=true en config.php.
+if (!defined('FER_STALE_ENABLED') || FER_STALE_ENABLED !== true) {
+    error_log('[fer_stale_cron] paused via kill-switch (outreach_quiet_period_2026-05-11)');
+    echo json_encode(['ok' => true, 'paused' => true, 'reason' => 'outreach_quiet_period', 'since' => '2026-05-11']);
+    exit;
+}
+
 define('BASE_ID',     'appfQbDA750Oihy9J');
 define('TABLE_CONTACTS', 'tblacvw0Ss770x8l5');
 define('STALE_DAYS', 5);

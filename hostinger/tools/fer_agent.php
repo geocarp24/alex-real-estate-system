@@ -26,6 +26,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && empty($_GET)) {
     exit;
 }
 
+// ── KILL-SWITCH webhook replies (2026-05-11) ──────────────────────
+// Pausado por Jorge: outreach stack en quiet period (Quo carrier failure + Telnyx setup).
+// Bloquea TODA respuesta SMS + escalación Telegram a partir de inbound webhook.
+// Health checks (GET arriba) y reset/list (auth con token) siguen funcionando.
+// Reactivar: definir FER_AGENT_ENABLED=true en config.php tras resolver carrier + nuevo número.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!defined('FER_AGENT_ENABLED') || FER_AGENT_ENABLED !== true)) {
+    fer_log_warn('webhook_paused_kill_switch', ['reason' => 'outreach_quiet_period_2026-05-11']);
+    http_response_code(200);
+    echo json_encode(['ok' => true, 'paused' => true, 'reason' => 'outreach_quiet_period', 'since' => '2026-05-11']);
+    exit;
+}
+
 // Reset conversation memory: fer_agent.php?token=pinnacle2026&reset=all
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['reset'])) {
     if (($_GET['token'] ?? '') !== 'pinnacle2026') {
