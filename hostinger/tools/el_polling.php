@@ -18,6 +18,16 @@
 
 require_once 'config.php';
 
+// ── KILL-SWITCH polling cron (2026-05-11) ─────────────────────────
+// Pausado por Jorge: outreach stack en quiet period (Quo carrier + Telnyx setup).
+// Reactivar: definir EL_POLLING_ENABLED=true en config.php.
+header('Content-Type: application/json');
+if (!defined('EL_POLLING_ENABLED') || EL_POLLING_ENABLED !== true) {
+    error_log('[el_polling] paused via kill-switch (outreach_quiet_period_2026-05-11)');
+    echo json_encode(['ok' => true, 'paused' => true, 'reason' => 'outreach_quiet_period', 'since' => '2026-05-11']);
+    exit;
+}
+
 set_time_limit(180);       // 3 min max — plenty for 1 lead
 ini_set('memory_limit', '64M');
 
