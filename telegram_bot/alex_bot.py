@@ -2711,12 +2711,25 @@ async def handle_unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
 CLAUDE_API_URL    = "http://localhost:5001"
 CLAUDE_API_SECRET = os.getenv("ALEX_SECRET", "pinnacle2024ALEXsecret99")
 
-# Palabras clave que activan auto-delegación a Claude Code
+# Palabras clave que activan auto-delegación a Claude Code.
+# Estos triggers también determinan si la tool `invoke_claude_code` se incluye
+# en la lista de tools disponibles para el modelo en cada turno (gate en
+# _filter_tools_for_message). Mensajes sin estos keywords NO podrán llamar
+# Claude Code → ahorra tokens de Opus 4.7 en tareas conversacionales.
 CLAUDE_CODE_TRIGGERS = [
     "ejecuta", "corre el script", "bash", "shell", "systemctl",
-    "git commit", "git push", "deploy", "instala", "pip install",
-    "edita el archivo", "modifica el código", "actualiza el bot",
-    "reinicia el servicio", "lee el log", "muestra los logs",
+    "git commit", "git push", "git pull", "git merge", "git checkout",
+    "crea un branch", "rama nueva", "crea un pr", "crea pr", "pull request",
+    "merge", "rebase", "cherry-pick",
+    "deploy", "deployar", "despliega",
+    "workflow", "github actions", "cron", "trigger workflow",
+    "instala", "pip install", "npm install", "yarn add", "apt install",
+    "edita el archivo", "modifica el código", "modifica el archivo",
+    "actualiza el bot", "agrega al script", "añade al script",
+    "crea un archivo", "elimina el archivo", "refactor", "refactoriza",
+    "debuggea", "depura", "arregla el error", "traceback", "stack trace",
+    "docker", "dockerfile", "docker-compose",
+    "reinicia el servicio", "lee el log", "muestra los logs", "tail",
 ]
 
 
