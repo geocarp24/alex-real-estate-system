@@ -33,3 +33,4 @@ Thumbs.db
 # graphify knowledge graph outputs (regenerate on demand)
 graphify-out/
 .graphify/
+ALEX_PROJECT_CONTEXT.md
