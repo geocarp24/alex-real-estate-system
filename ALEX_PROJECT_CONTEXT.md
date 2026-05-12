@@ -3,7 +3,7 @@
 **Auto-generated** for Claude Projects upload — do NOT edit by hand.
 **Regenerate with:** `bash scripts/build_claude_project_context.sh`
 
-- **Last generated:** 2026-05-12 05:07:47 UTC
+- **Last generated:** 2026-05-12 06:00:28 UTC
 - **Tenant:** Pinnacle Holdings Group (tenant cero del SaaS InvestorOS)
 - **Stack:** Wisconsin real estate + InvestorOS multi-tenant SaaS
 - **Idioma por defecto:** Español (cambiar a inglés solo si Jorge lo pide)
