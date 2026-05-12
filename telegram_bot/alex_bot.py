@@ -446,13 +446,14 @@ TOOLS = [
     {
         "name": "invoke_claude_code",
         "description": (
-            "Delega una tarea técnica a Claude Code — el agente de desarrollo del equipo ALEX. "
-            "Claude Code tiene acceso COMPLETO al proyecto: puede leer y escribir archivos, "
-            "ejecutar comandos bash, modificar agentes, crear scripts, depurar código, "
-            "y comparte la misma memoria operacional (memoria_ALex.md). "
-            "Úsalo cuando necesites: escribir o modificar código, crear nuevos agentes, "
-            "depurar errores en scripts, analizar archivos del proyecto, instalar dependencias, "
-            "o cualquier tarea de desarrollo técnico que requiera acceso al sistema."
+            "LAST RESORT — solo cuando ninguna otra tool sirve. "
+            "Antes de invocar esto, intenta resolver con: airtable_list/create/update, "
+            "airtable_sm_list/create/update, web_fetch, read_memoria, write_memoria, "
+            "invoke_scout, invoke_matematico, invoke_fact_checker, invoke_tracy, "
+            "invoke_social_media, invoke_creativo, invoke_director, invoke_programador. "
+            "Úsalo SOLO si la tarea requiere uno de: ejecutar bash/shell, editar archivos del repo, "
+            "git operations (commit/push/branch), instalar dependencias, modificar workflows GHA, "
+            "depurar código en producción. Cualquier otra tarea: usa una tool especializada arriba."
         ),
         "input_schema": {
             "type": "object",
