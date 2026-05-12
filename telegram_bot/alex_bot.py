@@ -2244,6 +2244,28 @@ def _sanitize_history(messages: list) -> list:
     return result
 
 
+def _extract_user_text(content) -> str:
+    """Extrae texto plano de un user content (str o list de bloques)."""
+    if isinstance(content, str):
+        return content
+    parts = []
+    for block in content or []:
+        if isinstance(block, dict) and block.get("type") == "text":
+            parts.append(block.get("text", ""))
+    return " ".join(parts)
+
+
+def _filter_tools_for_message(tools: list, user_text: str) -> list:
+    """
+    Token-frugal gate: oculta invoke_claude_code del modelo a menos que el
+    mensaje del usuario contenga keywords técnicos (CLAUDE_CODE_TRIGGERS).
+    Evita invocaciones accidentales a Opus 4.7 en consultas conversacionales.
+    """
+    if should_delegate_to_claude_code(user_text):
+        return tools
+    return [t for t in tools if t.get("name") != "invoke_claude_code"]
+
+
 async def ask_claude(user_id: int, content: list, progress_callback=None) -> str:
     """
     Main Claude interaction with full agentic tool use loop.
@@ -2263,6 +2285,12 @@ async def ask_claude(user_id: int, content: list, progress_callback=None) -> str
         # in-flight messages (includes tool_use/tool_result blocks, not stored in history)
         safe_messages = _sanitize_history(history)
 
+        # Token-frugal gate: solo exponer invoke_claude_code si hay triggers técnicos.
+        user_text = _extract_user_text(content)
+        effective_tools = _filter_tools_for_message(TOOLS, user_text)
+        if len(effective_tools) < len(TOOLS):
+            logger.info(f"[token-gate] invoke_claude_code hidden for user {user_id} (no tech triggers in '{user_text[:60]}')")
+
         max_iterations = 20
 
         for iteration in range(max_iterations):
@@ -2272,7 +2300,7 @@ async def ask_claude(user_id: int, content: list, progress_callback=None) -> str
                     max_tokens=4096,
                     system=system_prompt,
                     messages=safe_messages,
-                    tools=TOOLS
+                    tools=effective_tools
                 )
 
             response = await loop.run_in_executor(None, _call)
