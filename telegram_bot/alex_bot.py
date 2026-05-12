@@ -990,7 +990,17 @@ def _tool_invoke_social_media(
     )
 
     logger.info(f"Invoking Social Media Agent: {task[:80]}...")
-    return _run_subagent_sync(system_prompt, user_msg, tools=SCOUT_TOOLS)
+    # SMART ESCALATION: Social Media starts with Sonnet, escalates to Opus on complex/creative briefs
+    if MODEL_CONFIG_LOADED:
+        model = get_model_with_escalation_logging(
+            agent_name="social_media",
+            prompt=user_msg,
+            task_id=f"sm_{datetime.now().timestamp()}",
+            log_to_airtable=True
+        )
+    else:
+        model = CLAUDE_MODEL
+    return _run_subagent_sync(system_prompt, user_msg, tools=SCOUT_TOOLS, model=model)
 
 
 # ─────────────────────────────────────────────
