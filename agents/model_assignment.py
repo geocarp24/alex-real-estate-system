@@ -12,7 +12,7 @@ All sub-agents must use these models. Override at runtime if needed.
 MODELS = {
     "haiku": "claude-haiku-4-5",
     "sonnet": "claude-sonnet-4-6",
-    "opus": "claude-opus-4-6",
+    "opus": "claude-opus-4-7",
 }
 
 # ─────────────────────────────────────────────────────────
