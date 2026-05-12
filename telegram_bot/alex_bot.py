@@ -446,13 +446,14 @@ TOOLS = [
     {
         "name": "invoke_claude_code",
         "description": (
-            "Delega una tarea técnica a Claude Code — el agente de desarrollo del equipo ALEX. "
-            "Claude Code tiene acceso COMPLETO al proyecto: puede leer y escribir archivos, "
-            "ejecutar comandos bash, modificar agentes, crear scripts, depurar código, "
-            "y comparte la misma memoria operacional (memoria_ALex.md). "
-            "Úsalo cuando necesites: escribir o modificar código, crear nuevos agentes, "
-            "depurar errores en scripts, analizar archivos del proyecto, instalar dependencias, "
-            "o cualquier tarea de desarrollo técnico que requiera acceso al sistema."
+            "LAST RESORT — solo cuando ninguna otra tool sirve. "
+            "Antes de invocar esto, intenta resolver con: airtable_list/create/update, "
+            "airtable_sm_list/create/update, web_fetch, read_memoria, write_memoria, "
+            "invoke_scout, invoke_matematico, invoke_fact_checker, invoke_tracy, "
+            "invoke_social_media, invoke_creativo, invoke_director, invoke_programador. "
+            "Úsalo SOLO si la tarea requiere uno de: ejecutar bash/shell, editar archivos del repo, "
+            "git operations (commit/push/branch), instalar dependencias, modificar workflows GHA, "
+            "depurar código en producción. Cualquier otra tarea: usa una tool especializada arriba."
         ),
         "input_schema": {
             "type": "object",
@@ -2253,6 +2254,28 @@ def _sanitize_history(messages: list) -> list:
     return result
 
 
+def _extract_user_text(content) -> str:
+    """Extrae texto plano de un user content (str o list de bloques)."""
+    if isinstance(content, str):
+        return content
+    parts = []
+    for block in content or []:
+        if isinstance(block, dict) and block.get("type") == "text":
+            parts.append(block.get("text", ""))
+    return " ".join(parts)
+
+
+def _filter_tools_for_message(tools: list, user_text: str) -> list:
+    """
+    Token-frugal gate: oculta invoke_claude_code del modelo a menos que el
+    mensaje del usuario contenga keywords técnicos (CLAUDE_CODE_TRIGGERS).
+    Evita invocaciones accidentales a Opus 4.7 en consultas conversacionales.
+    """
+    if should_delegate_to_claude_code(user_text):
+        return tools
+    return [t for t in tools if t.get("name") != "invoke_claude_code"]
+
+
 async def ask_claude(user_id: int, content: list, progress_callback=None) -> str:
     """
     Main Claude interaction with full agentic tool use loop.
@@ -2272,6 +2295,12 @@ async def ask_claude(user_id: int, content: list, progress_callback=None) -> str
         # in-flight messages (includes tool_use/tool_result blocks, not stored in history)
         safe_messages = _sanitize_history(history)
 
+        # Token-frugal gate: solo exponer invoke_claude_code si hay triggers técnicos.
+        user_text = _extract_user_text(content)
+        effective_tools = _filter_tools_for_message(TOOLS, user_text)
+        if len(effective_tools) < len(TOOLS):
+            logger.info(f"[token-gate] invoke_claude_code hidden for user {user_id} (no tech triggers in '{user_text[:60]}')")
+
         max_iterations = 20
 
         for iteration in range(max_iterations):
@@ -2281,7 +2310,7 @@ async def ask_claude(user_id: int, content: list, progress_callback=None) -> str
                     max_tokens=4096,
                     system=system_prompt,
                     messages=safe_messages,
-                    tools=TOOLS
+                    tools=effective_tools
                 )
 
             response = await loop.run_in_executor(None, _call)
@@ -2720,12 +2749,25 @@ async def handle_unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
 CLAUDE_API_URL    = "http://localhost:5001"
 CLAUDE_API_SECRET = os.getenv("ALEX_SECRET", "pinnacle2024ALEXsecret99")
 
-# Palabras clave que activan auto-delegación a Claude Code
+# Palabras clave que activan auto-delegación a Claude Code.
+# Estos triggers también determinan si la tool `invoke_claude_code` se incluye
+# en la lista de tools disponibles para el modelo en cada turno (gate en
+# _filter_tools_for_message). Mensajes sin estos keywords NO podrán llamar
+# Claude Code → ahorra tokens de Opus 4.7 en tareas conversacionales.
 CLAUDE_CODE_TRIGGERS = [
     "ejecuta", "corre el script", "bash", "shell", "systemctl",
-    "git commit", "git push", "deploy", "instala", "pip install",
-    "edita el archivo", "modifica el código", "actualiza el bot",
-    "reinicia el servicio", "lee el log", "muestra los logs",
+    "git commit", "git push", "git pull", "git merge", "git checkout",
+    "crea un branch", "rama nueva", "crea un pr", "crea pr", "pull request",
+    "merge", "rebase", "cherry-pick",
+    "deploy", "deployar", "despliega",
+    "workflow", "github actions", "cron", "trigger workflow",
+    "instala", "pip install", "npm install", "yarn add", "apt install",
+    "edita el archivo", "modifica el código", "modifica el archivo",
+    "actualiza el bot", "agrega al script", "añade al script",
+    "crea un archivo", "elimina el archivo", "refactor", "refactoriza",
+    "debuggea", "depura", "arregla el error", "traceback", "stack trace",
+    "docker", "dockerfile", "docker-compose",
+    "reinicia el servicio", "lee el log", "muestra los logs", "tail",
 ]
 
 
