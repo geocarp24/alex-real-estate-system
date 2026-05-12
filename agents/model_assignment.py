@@ -12,7 +12,7 @@ All sub-agents must use these models. Override at runtime if needed.
 MODELS = {
     "haiku": "claude-haiku-4-5",
     "sonnet": "claude-sonnet-4-6",
-    "opus": "claude-opus-4-6",
+    "opus": "claude-opus-4-7",
 }
 
 # ─────────────────────────────────────────────────────────
@@ -144,7 +144,7 @@ def get_model(agent_name: str, prompt: str = "", auto_escalate: bool = True) -> 
 
         # Con escalamiento automático
         model = get_model("scout", prompt="Analizar mercado complejo con patrones inusuales")
-        # Returns: "claude-opus-4-6" (escaló automáticamente a Opus)
+        # Returns: "claude-opus-4-7" (escaló automáticamente a Opus)
     """
     tier = AGENT_MODELS.get(agent_name, "sonnet")
 
