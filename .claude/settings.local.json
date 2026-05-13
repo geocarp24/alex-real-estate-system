@@ -38,7 +38,9 @@
       "Bash(ssh -o BatchMode=yes alex-vps 'echo \"[OK] Alias funciona. whoami=$\\(whoami\\)@$\\(hostname\\)\"')",
       "Bash(ssh alex-vps *)",
       "Bash(python -c \"import json,sys; runs=json.load\\(sys.stdin\\); [print\\(f\\\\\"{r['createdAt'][:19]} | {r['conclusion'] or r['status']:10s} | {r['headBranch']:30s} | {r['displayTitle'][:60]}\\\\\"\\) for r in runs]\")",
-      "Bash(xargs -I {} gh run view {} --log)"
+      "Bash(xargs -I {} gh run view {} --log)",
+      "Bash(PYTHONIOENCODING=utf-8 python -c ' *)",
+      "Bash(python -c ' *)"
     ]
   },
   "hooks": {
