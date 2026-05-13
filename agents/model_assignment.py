@@ -163,6 +163,77 @@ def get_all_agents() -> dict:
     """Return all agent assignments."""
     return {agent: get_model(agent) for agent in AGENT_MODELS}
 
+
+def get_model_with_escalation_logging(
+    agent_name: str,
+    prompt: str = "",
+    task_id: str = "",
+    log_to_airtable: bool = False,
+) -> str:
+    """
+    Smart escalation + optional Airtable logging.
+
+    Used by alex_bot.py sub-agent invocations (Scout, Matemático, Fact-Checker,
+    Social Media, etc.). Returns the Claude model ID after evaluating prompt
+    complexity. If the agent's base tier is escalated (e.g. Sonnet → Opus) and
+    log_to_airtable is True, logs the routing decision to the Model Router
+    Metrics table.
+
+    Args:
+        agent_name: scout, matematico, fact-checker, tracy, social_media, ...
+        prompt: full user prompt — analyzed for complexity heuristics.
+        task_id: unique ID per call (used only for Airtable logging).
+        log_to_airtable: if True and an escalation happened, log it.
+
+    Returns:
+        Claude model ID string, e.g. "claude-sonnet-4-6".
+    """
+    analysis = TaskComplexity.analyze(prompt, agent_name)
+    initial_tier = analysis["initial_model"]
+    final_tier = analysis["recommended_model"]
+
+    if log_to_airtable and analysis["escalate"] and task_id:
+        try:
+            from airtable_escalation_logger import AirtableEscalationLogger
+            input_tokens_estimate = analysis["estimated_tokens"]
+            output_tokens_estimate = max(input_tokens_estimate // 4, 200)
+            costs = COST_PER_1M_TOKENS.get(final_tier, COST_PER_1M_TOKENS["sonnet"])
+            cost_estimate = (
+                input_tokens_estimate / 1_000_000 * costs["input"]
+                + output_tokens_estimate / 1_000_000 * costs["output"]
+            )
+            AirtableEscalationLogger.log_escalation(
+                task_id=task_id,
+                agent_name=agent_name,
+                task_type=_classify_task_type(agent_name),
+                initial_model=initial_tier,
+                final_model=final_tier,
+                escalation_reason=analysis["reason"],
+                input_tokens=input_tokens_estimate,
+                output_tokens=output_tokens_estimate,
+                cost_usd=cost_estimate,
+            )
+        except Exception as e:
+            print(f"⚠️ escalation logging failed (non-fatal): {e}")
+
+    return MODELS[final_tier]
+
+
+def _classify_task_type(agent_name: str) -> str:
+    """Map agent name to task_type category for Airtable logging."""
+    return {
+        "scout": "market_research",
+        "matematico": "financial_analysis",
+        "fact-checker": "quality_audit",
+        "tracy": "skip_tracing",
+        "social_media": "content_generation",
+        "creativo": "creative_production",
+        "director": "video_script",
+        "programador": "code_deployment",
+        "secretario": "email_management",
+        "code_debugger": "code_development",
+    }.get(agent_name, "general")
+
 # ─────────────────────────────────────────────────────────
 # SAVINGS CALCULATION
 # ─────────────────────────────────────────────────────────
