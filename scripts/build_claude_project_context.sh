@@ -193,8 +193,9 @@ echo "  4. Re-sync after every memory edit by re-running this script"
 echo ""
 
 # ── 5. Final safety check — warn if any common secret pattern survived ─
-if grep -qE 'pat[A-Za-z0-9]{14}\.|sk-[A-Za-z0-9]|AKIA[A-Z0-9]|Bearer [A-Za-z0-9]{30}' "$OUT"; then
+if grep -qE 'pat[A-Za-z0-9]{14}\.|sk-ant-[A-Za-z0-9]|AKIA[A-Z0-9]|Bearer [A-Za-z0-9]{30}|ghp_[A-Za-z0-9]{30}|github_pat_[A-Za-z0-9]|hf_[A-Za-z0-9]{30}|eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|AC[a-f0-9]{32}|xox[bpasr]-|dp\.(st|pt|sa|ct)\.|r8_[A-Za-z0-9]{30}|BEGIN[[:space:]](RSA[[:space:]])?PRIVATE[[:space:]]KEY' "$OUT"; then
   echo "⚠️  WARNING: file may still contain unredacted secret patterns. Inspect manually before upload!" >&2
+  echo "Run: grep -nE 'pat[A-Za-z0-9]{14}\.|sk-ant-|AKIA|Bearer [A-Za-z0-9]{30}|ghp_|github_pat_|hf_|eyJ.*\.eyJ.*\..*|AC[a-f0-9]{32}|xox|dp\.(st|pt)|r8_|BEGIN.*PRIVATE.*KEY' \"$OUT\" | head -20  # to inspect" >&2
   exit 1
 fi
 
