@@ -159,11 +159,17 @@ redact 'r8_[A-Za-z0-9]{30,}' '[REDACTED_REPLICATE_TOKEN]' 'Replicate token'
 # Generic API key with at least 32 chars in named env-var style
 redact '(GITHUB_TOKEN|GH_TOKEN|TELEGRAM_TOKEN|AIRTABLE_TOKEN|ANTHROPIC_KEY|OPENAI_KEY|TRACERFY_TOKEN|HEYGEN_API_KEY|HEYGEN_API_TOKEN|MAKE_API_KEY|TWILIO_AUTH_TOKEN|TWILIO_API_KEY|SUPABASE_ANON_KEY|SUPABASE_SERVICE_KEY|SUPABASE_KEY|CLERK_SECRET_KEY|CLERK_PUBLISHABLE_KEY|STRIPE_SECRET_KEY|MODAL_TOKEN|HF_TOKEN|HUGGINGFACE_TOKEN|GEMINI_API_KEY|GOOGLE_API_KEY|REPLICATE_API_TOKEN|BLOTATO_TOKEN|BLOTATO_API_KEY|ALEX_SECRET|X-Alex-Secret)[[:space:]]*[:=][[:space:]]*[\"]?[A-Za-z0-9._-]{16,}[\"]?' '\1=[REDACTED]' 'named env-var credential'
 
-# Google service account private_key block (multi-line begin/end)
-redact -- '-----BEGIN PRIVATE KEY-----[A-Za-z0-9+/=[:space:]]+-----END PRIVATE KEY-----' '[REDACTED_PRIVATE_KEY_BLOCK]' 'Private key block'
+# Private key block markers (multi-line redaction requires sed -z; mark begin/end lines)
+redact '-----BEGIN PRIVATE KEY-----' '[REDACTED_PRIVATE_KEY_BEGIN]' 'Private key begin marker'
+redact '-----END PRIVATE KEY-----' '[REDACTED_PRIVATE_KEY_END]' 'Private key end marker'
+redact '-----BEGIN RSA PRIVATE KEY-----' '[REDACTED_RSA_KEY_BEGIN]' 'RSA private key begin'
+redact '-----END RSA PRIVATE KEY-----' '[REDACTED_RSA_KEY_END]' 'RSA private key end'
 
 # Google service account client_email
 redact '"client_email":[[:space:]]*"[^"]+"' '"client_email": "[REDACTED]"' 'GCP client_email'
+
+# Google service account private_key (JSON field, single-line escaped form)
+redact '"private_key":[[:space:]]*"[^"]+"' '"private_key": "[REDACTED]"' 'GCP private_key JSON field'
 
 # Generic 32+ char hex secrets following common label patterns
 redact '(SECRET|PASSWORD|TOKEN|API_KEY)[[:space:]]*[:=][[:space:]]*[\"]?[A-Za-z0-9_.-]{20,}[\"]?' '\1=[REDACTED]' 'generic secret'
