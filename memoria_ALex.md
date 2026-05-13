@@ -3945,3 +3945,54 @@ La regla aplica desde YA (2026-05-08) y aplica retroactivamente a A12 + A14 que 
 - NextAuth v5 (Google + Email/Password)
 - Deploy: Hostinger Node.js (investoros.tech)
 - Pinnacle = tenant cero
+
+
+
+## 2026-05-09 — CREDENCIALES INVESTOROS COMPLETAS (CONFIDENCIAL — NO IMPRIMIR EN OUTPUTS)
+
+### Supabase InvestorOS
+- Project URL: https://kyatblshmtwawtwxdjmv.supabase.co
+- Publishable Key: sb_publishable_s2ibgr0hxtv-prkfR3feeA_FAz75Gja
+- Database URL: postgresql://postgres:Claudecode2026@db.kyatblshmtwawtwxdjmv.supabase.co:5432/postgres
+
+### Google OAuth InvestorOS
+- Client ID: 26650922402-fo09go130k5akoknd5vkluii49uv8tvk.apps.googleusercontent.com
+- Client Secret: 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
+- Redirect URI: https://investoros.tech/api/auth/callback/google
+- Project: pinnacle-alex-bot
+
+### GitHub
+- GH_SUPER_TOKEN: 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
+- Repo InvestorOS: geocarp24/investor (privado, vacío — setup en progreso 2026-05-09)
+
+### Doppler
+- Access Token: dp.st.dev_personal.h35wlNDdOYhUDLhXPW8S8uZWp9KjFzzZ6H3uvlslO7U
+- Project: pinnacle-social-publisher / config: dev_personal
+
+### Meta / Facebook
+- Pinnacle Graphics Token: EAA8KSl2FwjwBRQGhyRinZCLITHgkhxNmTKxJhcXs2XdOWHN8z9I67SNomwSpnS9JFhix5VjkJ5EpcsOAKSdPJUe9WSCnZCvUrQOO3YWkT4ianDMqezdNEj12fqy3tAIOZB08vaImGjaasJcV9UEofKai3p19g4uXZCBd1ZBP6ugdtYVFikPcYtiwvXFdf9yTXu9BMIHG2QSWHcBl8PGkGlAzK7GBLnFoJdRJXm5qwNtBZBtSE9ETo3CEFBSFOUR7OVPRqbsZBjg7lzL7B4fdHWKqOZBBHgZDZD
+- Alex Publisher Token: EAA8KSl2FwjwBRTRdBnx15ZAZAmv1iZBs6B2ZA5qeyLcbXwWr3Gay9N645Nr5O6jmDbeixKt1XTZCsS2YVSnJgdE0odZCZBNhZCCJ4xxZB8FIyx9i8vzZA1eDlK1Cpz5Q19cLMvGJ7xm64qaQxPe7TBJayofkz9BY0hHiS43O85W6A11fpp1ejrb6E168krJMM8ZBUcMeQZDZD
+- Facebook Pixel ID: 2588649491529264
+- FB Page ID: 965320503341457
+- IG Business ID: 17841441469416547
+
+### HeyGen
+- API Key: sk_V2_hgu_kkMCul3S9xE_ypGBL9JLT341uQVKYNXGXPrIQPA70sHw
+
+### Twilio
+- Auth Token: 801ac9f412de15c3c88f0f2e3f982ca7
+
+### Modal
+- Token ID: ak-ucebwep15lQfbm3087wjRh
+- Token Secret: as-kPz0NLEDonwmynOE6boh9i
+
+### HuggingFace
+- Token: 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
+
+### Stack InvestorOS confirmado
+- Next.js 15 + App Router + TypeScript
+- Supabase (Auth + DB + RLS multi-tenant)
+- Tailwind v4 + shadcn/ui
+- NextAuth v5 (Google + Email/Password)
+- Deploy: Hostinger Node.js (investoros.tech)
+- Pinnacle = tenant cero
