@@ -3846,3 +3846,51 @@ La regla aplica desde YA (2026-05-08) y aplica retroactivamente a A12 + A14 que 
 - **Impacto Dan (F2.6):** PAUSADO hasta resolver Quo. Dan reusará `fer_quo.php` y heredaría el blind-spot — primero arreglar Fer foundation con visibility, después construir Dan dedicado a scraped leads outreach (clon de Fer per orden Jorge 2026-05-09 — NO tocar Fer existente con scraping logic).
 - **Lección R-INCIDENT-2026-05-09:** "HTTP 200 desde provider SMS ≠ delivered al phone." NUNCA asumir delivery sin pollear `delivery_status` o consumir webhook `message.delivered`/`message.failed`. Cualquier nuevo agente outbound (Dan, futuros tenants) DEBE incluir delivery telemetry desde día 1.
 
+
+
+
+## 2026-05-09 — CREDENCIALES INVESTOROS (CONFIDENCIAL — NO IMPRIMIR EN OUTPUTS)
+
+### Supabase InvestorOS
+- Project URL: https://kyatblshmtwawtwxdjmv.supabase.co
+- Publishable Key: sb_publishable_s2ibgr0hxtv-prkfR3feeA_FAz75Gja
+- Database URL: postgresql://postgres:Claudecode2026@db.kyatblshmtwawtwxdjmv.supabase.co:5432/postgres
+
+### Google OAuth InvestorOS
+- Client ID: 26650922402-fo09go130k5akoknd5vkluii49uv8tvk.apps.googleusercontent.com
+- Client Secret: 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
+- Redirect URI: https://investoros.tech/api/auth/callback/google
+- Project: pinnacle-alex-bot
+
+### GitHub
+- GH_SUPER_TOKEN: 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
+- Repo InvestorOS: geocarp24/investor
+
+### Doppler
+- Access Token: dp.st.dev_personal.h35wlNDdOYhUDLhXPW8S8uZWp9KjFzzZ6H3uvlslO7U
+- Project: pinnacle-social-publisher / config: dev_personal
+
+### Meta / Facebook
+- Pinnacle Graphics Token: EAA8KSl2FwjwBRQGhyRinZCLITHgkhxNmTKxJhcXs2XdOWHN8z9I67SNomwSpnS9JFhix5VjkJ5EpcsOAKSdPJUe9WSCnZCvUrQOO3YWkT4ianDMqezdNEj12fqy3tAIOZB08vaImGjaasJcV9UEofKai3p19g4uXZCBd1ZBP6ugdtYVFikPcYtiwvXFdf9yTXu9BMIHG2QSWHcBl8PGkGlAzK7GBLnFoJdRJXm5qwNtBZBtSE9ETo3CEFBSFOUR7OVPRqbsZBjg7lzL7B4fdHWKqOZBBHgZDZD
+- Alex Publisher Token: EAA8KSl2FwjwBRTRdBnx15ZAZAmv1iZBs6B2ZA5qeyLcbXwWr3Gay9N645Nr5O6jmDbeixKt1XTZCsS2YVSnJgdE0odZCZBNhZCCJ4xxZB8FIyx9i8vzZA1eDlK1Cpz5Q19cLMvGJ7xm64qaQxPe7TBJayofkz9BY0hHiS43O85W6A11fpp1ejrb6E168krJMM8ZBUcMeQZDZD
+- Facebook Pixel ID: 2588649491529264
+- FB Page ID: 965320503341457
+- IG Business ID: 17841441469416547
+
+### HeyGen
+- API Key: sk_V2_hgu_kkMCul3S9xE_ypGBL9JLT341uQVKYNXGXPrIQPA70sHw
+
+### Twilio
+- Auth Token: 801ac9f412de15c3c88f0f2e3f982ca7
+
+### Modal
+- Token ID: ak-ucebwep15lQfbm3087wjRh
+- Token Secret: as-kPz0NLEDonwmynOE6boh9i
+
+### HuggingFace
+- Token: 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
+
+### Repo InvestorOS
+- github.com/geocarp24/investor (privado, vacío — setup en progreso 2026-05-09)
+- Stack: Next.js 15 + Supabase + Tailwind v4 + shadcn/ui + NextAuth v5
+- Deploy target: investoros.tech (Hostinger Node.js activo)
