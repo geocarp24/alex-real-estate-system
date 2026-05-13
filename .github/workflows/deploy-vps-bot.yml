@@ -6,6 +6,8 @@ on:
     paths:
       - 'telegram_bot/**'
       - 'secretario/**'
+      - 'agents/**'
+      - 'memoria_ALex.md'
       - '.github/workflows/deploy-vps-bot.yml'
   workflow_dispatch:   # allows manual trigger from GitHub UI
 
