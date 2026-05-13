@@ -24,7 +24,11 @@
       "Bash(nohup venv/bin/python3 telegram_bot/alex_bot.py)",
       "Bash(pkill -f alex_bot.py)",
       "Bash(nohup /opt/alex-bot/venv/bin/python3 /opt/alex-bot/telegram_bot/alex_bot.py)",
-      "Bash(pkill -9 -f alex_bot.py)"
+      "Bash(pkill -9 -f alex_bot.py)",
+      "Bash(xargs grep -l -i \"claude.project\\\\|context.bundle\\\\|investor.os.bundle\")",
+      "Bash(ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 -o BatchMode=yes root@187.77.215.146 'echo \"Connected. whoami=$\\(whoami\\), hostname=$\\(hostname\\), uptime=$\\(uptime -p\\)\"')",
+      "Bash(ssh -o BatchMode=yes -o ConnectTimeout=10 root@187.77.215.146 'systemctl status alex-bot --no-pager 2>&1 | head -15')",
+      "Bash(ssh -o BatchMode=yes -o ConnectTimeout=10 root@187.77.215.146 'cd /opt/alex-bot 2>/dev/null && du -sh . && git rev-parse --abbrev-ref HEAD 2>&1 && git log --oneline -5 2>&1')"
     ]
   },
   "hooks": {
