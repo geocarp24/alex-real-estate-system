@@ -1,0 +1,74 @@
+section_id,start_line,end_line,heading,companies,confidence,note
+S001,1,6,memoria_ALex.md - Memoria Persistente,Compartido,high,Encabezado general
+S002,7,27,Cleanup completo tablas SM legacy,Pinnacle,high,Airtable appU9s3kGkVpdrJkw
+S003,28,31,Mono-language render fix slidePostEditorial,Pinnacle,high,Fix pipeline social media Director v2
+S004,32,55,Root cause + Fix + Leccion,Pinnacle,medium,Debugging social media publication
+S005,56,108,Restructure SM completa 3 tablas,Pinnacle,high,Airtable schema appU9s3kGkVpdrJkw
+S006,109,120,Decisiones arquitectonicas,Pinnacle,high,Post-restructure Airtable
+S007,121,135,Reference video ID Director v2,Pinnacle,high,Director v2 estética Pinnacle
+S008,136,159,El Oráculo wired como gate,Pinnacle;InvestorOS,high,Orquestacion Oráculo
+S009,160,181,Arsenal completo 11 templates,Pinnacle,high,Social media templates
+S010,182,255,ARSENAL DE TEMPLATES VIDEO,Pinnacle,high,11 video templates HeyGen
+S011,256,368,ARSENAL VIDEO + Configuracion,Pinnacle,high,Director v2 HeyGen hybrid
+S012,369,425,Plan B HeyGen Hybrid PRODUCTION,Pinnacle,high,Modal integration Director
+S013,426,481,Plan A + Plan B VALIDADOS,Pinnacle,high,End-to-end validation HeyGen
+S014,482,532,REGLAS DEL JEFE,Compartido,high,Reglas universales Jorge
+S015,533,608,FER AI RECEPTIONIST,Pinnacle,high,Fer AI receptionist sub-agente
+S016,609,626,DEAL ANALYSIS LOG + NOTES,Pinnacle,high,Operational notes Wisconsin
+S017,627,730,BITACORA DE CAMBIOS,Pinnacle,high,Change log Telegram Hostinger
+S018,731,763,ESTADO ACTUAL SISTEMA,Pinnacle,high,Status report all components
+S019,764,790,Credenciales CONFIDENCIAL,Pinnacle,high,CONTIENE TOKEN - sanitizar
+S020,791,855,TAREA PARA CLAUDE CODE,Pinnacle,high,CONTIENE TOKEN Blotato API
+S021,856,899,Blotato MCP Configuracion,Pinnacle,high,FB IG Pinnacle 14 tools
+S022,900,962,Posts Programados + Call Assistant,Pinnacle,high,CONTIENE TOKEN
+S023,963,1001,LightRAG + Skills + SSH,Pinnacle,high,CONTIENE TOKEN pinnaclegroupwi
+S024,1002,1054,TAREA CRITICA BLOTATO VPS,Pinnacle,high,VPS deployment
+S025,1055,1142,SESION Make.com + Calendar,Pinnacle,high,CONTIENE API KEYS
+S026,1143,1229,GEO CARPENTRY LLC,Geo,high,Company profile services market
+S027,1230,1287,REGLA CRITICA OPTIMIZACION,Compartido,high,Model optimization universal
+S028,1288,1308,Tracy Contacts anti-duplicados,Pinnacle;Geo,medium,Skip trace deduplication
+S029,1309,1336,Tracy Contacts linked Leads,Pinnacle,high,Enrichment pipeline
+S030,1337,1433,Tracy + Geo Carpentry website,Pinnacle;Geo,high,Enrichment + website
+S031,1434,1504,Geo Carpentry website v2,Geo,high,WordPress Astra migration
+S032,1505,1513,Make.com API Key,Pinnacle;InvestorOS,high,CONTIENE TOKEN
+S033,1514,1535,REGLA CRITICA Pipeline Social,Pinnacle,high,Automation permanente
+S034,1536,1567,REGLAS CRITICAS OPERACION,Pinnacle,high,Autonomia SM pipeline
+S035,1568,1696,SESION Webform + Chatbot,Pinnacle,high,Public stack CONTIENE CREDENCIALES
+S036,1697,1765,REGLAS PERMANENTES R1-R6,Pinnacle;Compartido,high,Permanent rules /GOD mode
+S037,1766,1868,CIERRE SESION EMAIL POPUP,Pinnacle,high,Session closure popup
+S038,1869,1945,Herramientas + PHASE 1->2,Pinnacle;InvestorOS,medium,Mobile-first tools
+S039,1946,1971,2026-04-23 PM Claude Code,Compartido,medium,Meta setup skills
+S040,1972,2024,PHASE 1->2 + Blotato removal,Pinnacle,high,Creativo Director refocus
+S041,2025,2069,R7 MOBILE-FIRST PERMANENTE,Compartido,high,Universal rule
+S042,2070,2132,Skills queue Phase 2,InvestorOS,medium,Agent development SaaS
+S043,2133,2197,El Mercader + El Posicionador,InvestorOS,high,Sub-agents R9
+S044,2198,2273,El Posicionador + El Escriba,InvestorOS,high,Sub-agent architecture
+S045,2274,2316,El Escriba v1 DRAFT,InvestorOS,high,Jerarquia agentes
+S046,2317,2410,Maps + Cartografo + MCP,InvestorOS;Pinnacle,medium,GBP API development
+S047,2411,2481,El Remitente v1 SHIPPED,InvestorOS,high,Email agent Airtable
+S048,2482,2537,Popup + El Cazador,Pinnacle;InvestorOS,high,R9 production
+S049,2538,2604,Jorge aprueba 4 agentes GAP,InvestorOS,high,SPRINT 2 BUILD
+S050,2605,2666,SPRINT 2 4 agents shipped,InvestorOS,high,Production deployment
+S051,2667,2696,Reloj suizo follow-up,Pinnacle,medium,CRM pipeline debugging
+S052,2697,2753,EL SUPERVISOR auto-evolutivo,InvestorOS;Compartido,high,Self-evolving system
+S053,2754,2846,Unlocks PC + Remitente v2,InvestorOS,medium,Automation refinements
+S054,2847,2887,NotebookLM skill,Compartido,high,Shared infrastructure
+S055,2888,2920,gstack instalado,Compartido,medium,Developer tool
+S056,2921,2954,R10 CREATIVO DIRECTOR PUPPETEER,Pinnacle;InvestorOS,high,Rendering rule
+S057,2955,2987,R9 SUB-AGENTES DEDICADOS,InvestorOS;Compartido,high,Domain-specific architecture
+S058,2988,3031,R8 SAAS-READY MULTI-TENANT,InvestorOS,high,Core principle
+S059,3032,3066,Fix spam Supervisor,InvestorOS,high,Phase 1 learning
+S060,3067,3125,FASE 2 SUPERVISOR LLM,InvestorOS,high,Diagnosis + confidence
+S061,3126,3200,FASE 2 + Stats,InvestorOS,high,Baseline estadisticas
+S062,3201,3222,GHA runs cada 3 dias,InvestorOS;Pinnacle,high,Cost optimization
+S063,3223,3316,FASE 3 SUPERVISOR Auto-fix,InvestorOS,high,Verification + rollback
+S064,3317,3405,FASE 4 SUPERVISOR Self-Mod,InvestorOS,high,Proposal mechanism
+S065,3406,3511,SESION Telegram GHA bridges,Pinnacle;InvestorOS,high,Major session bridges
+S066,3512,3524,Lecciones aprendidas,Pinnacle,medium,Regression prevention
+S067,3525,3601,DECISIONES MAYORES INVESTOROS,InvestorOS;Pinnacle,high,InvestorOS launch R9
+S068,3602,3634,REGLA R10 R11 R12,Compartido,high,Universal rules proactive
+S069,3635,3689,Sprint A12+A14+A13,Pinnacle,high,Video pipeline 100%
+S070,3690,3827,VISION ARQUITECTONICA INVESTOROS,InvestorOS,high,8 phases 6 tenants
+S071,3828,3851,Incident Quo SMS FAIL,InvestorOS;Pinnacle,high,Production incident
+S072,3852,3950,CREDENCIALES INVESTOROS,InvestorOS,high,CONTIENE TOKEN - sanitizar
+S073,3951,3998,CREDENCIALES repetidas x2,InvestorOS,high,CONTIENE TOKEN duplicate

@@ -1,0 +1,2 @@
+section_id,start_line,end_line,heading,companies,confidence,note
+S1_FULL_FILE,1,73,MEMORIA EL FACT-CHECKER (AUDITOR VERACIDAD),Compartido,high,Archivo pequeño (<100 lineas) con estructura coherente: rol + confidence score + checklist auditoría + JSON schema — reglas universales audit no específicas de compañía

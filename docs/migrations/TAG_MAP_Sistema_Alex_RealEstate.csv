@@ -1,0 +1,3 @@
+section_id,start_line,end_line,heading,companies,confidence,note
+S1_ARQUITECTURA,1,24,CONTEXTO + REGLAS GLOBALES + AGENTE ORQUESTADOR ALEX,Compartido,high,Arquitectura local/servidor con Make — memoria acumulativa — veracidad absoluta — operación multi-mercado
+S2_MATEMATICO_JSON,25,56,AGENTE 2: EL MATEMÁTICO + JSON SCHEMA,Compartido,high,Underwriter JSON schema estándar — purchase_price, ARV, rehab_estimate, profit_potential, rental_analysis, stress_test

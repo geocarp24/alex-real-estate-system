@@ -1,0 +1,2 @@
+section_id,start_line,end_line,heading,companies,confidence,note
+S1_FULL_FILE,1,92,MEMORIA EL SCOUT (INVESTIGADOR MERCADO),Compartido,high,Archivo pequeño (<100 lineas) con estructura coherente: rol + herramientas (Firecrawl CLI + 7 fuentes) + tablas vacías + JSON schema output — genérico Wisconsin reutilizable

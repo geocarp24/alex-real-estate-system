@@ -1,0 +1,2 @@
+section_id,start_line,end_line,heading,companies,confidence,note
+S1_FULL_FILE,1,85,MEMORIA EL MATEMÁTICO (UNDERWRITER FINANCIERO),Compartido,high,Archivo pequeño (<100 lineas) con estructura coherente: rol + parámetros base Wisconsin 2026 + tablas históricas vacías + JSON schema — genérico multi-compañía

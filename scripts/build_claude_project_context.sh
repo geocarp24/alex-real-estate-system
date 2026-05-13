@@ -120,6 +120,51 @@ redact 'pk_live_[A-Za-z0-9]+' '[REDACTED_STRIPE_LIVE_PUB]' 'Stripe live publisha
 # Cloudinary
 redact 'cloudinary://[^[:space:]"]+' 'cloudinary://[REDACTED]' 'Cloudinary URL'
 
+# GitHub PAT classic (ghp_) — 36 chars
+redact 'ghp_[A-Za-z0-9]{36}' '[REDACTED_GITHUB_PAT]' 'GitHub PAT (classic)'
+
+# GitHub fine-grained PAT (github_pat_)
+redact 'github_pat_[A-Za-z0-9_]{82}' '[REDACTED_GITHUB_FINE_PAT]' 'GitHub PAT (fine-grained)'
+
+# GitHub OAuth token (gho_)
+redact 'gho_[A-Za-z0-9]{36}' '[REDACTED_GITHUB_OAUTH]' 'GitHub OAuth token'
+
+# GitHub App / refresh / user token (ghu_, ghs_, ghr_)
+redact 'gh[usr]_[A-Za-z0-9]{36}' '[REDACTED_GITHUB_TOKEN]' 'GitHub token'
+
+# HuggingFace token (hf_) — 30+ chars
+redact 'hf_[A-Za-z0-9]{30,}' '[REDACTED_HF_TOKEN]' 'HuggingFace token'
+
+# Doppler service token (dp.st.) and personal token (dp.pt.)
+redact 'dp\.(st|pt|sa|ct)\.[A-Za-z0-9_.-]+' '[REDACTED_DOPPLER_TOKEN]' 'Doppler token'
+
+# Supabase URL
+redact 'https://[a-z0-9]+\.supabase\.(co|in)' '[REDACTED_SUPABASE_URL]' 'Supabase URL'
+
+# Twilio Account SID (AC + 32 hex)
+redact 'AC[a-f0-9]{32}' '[REDACTED_TWILIO_SID]' 'Twilio Account SID'
+
+# JWT tokens (3 base64-url segments separated by dots, starting with eyJ — covers Supabase anon/service keys, Tracerfy tokens, generic JWTs)
+redact 'eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+' '[REDACTED_JWT]' 'JWT (Supabase/Tracerfy/generic)'
+
+# Slack tokens (xoxb-, xoxp-, xoxa-)
+redact 'xox[bpasr]-[A-Za-z0-9-]{10,}' '[REDACTED_SLACK_TOKEN]' 'Slack token'
+
+# Modal tokens (mt_ or mt-)
+redact 'mt[_-][A-Za-z0-9]{20,}' '[REDACTED_MODAL_TOKEN]' 'Modal token'
+
+# Replicate API token (r8_)
+redact 'r8_[A-Za-z0-9]{30,}' '[REDACTED_REPLICATE_TOKEN]' 'Replicate token'
+
+# Generic API key with at least 32 chars in named env-var style
+redact '(GITHUB_TOKEN|GH_TOKEN|TELEGRAM_TOKEN|AIRTABLE_TOKEN|ANTHROPIC_KEY|OPENAI_KEY|TRACERFY_TOKEN|HEYGEN_API_KEY|HEYGEN_API_TOKEN|MAKE_API_KEY|TWILIO_AUTH_TOKEN|TWILIO_API_KEY|SUPABASE_ANON_KEY|SUPABASE_SERVICE_KEY|SUPABASE_KEY|CLERK_SECRET_KEY|CLERK_PUBLISHABLE_KEY|STRIPE_SECRET_KEY|MODAL_TOKEN|HF_TOKEN|HUGGINGFACE_TOKEN|GEMINI_API_KEY|GOOGLE_API_KEY|REPLICATE_API_TOKEN|BLOTATO_TOKEN|BLOTATO_API_KEY|ALEX_SECRET|X-Alex-Secret)[[:space:]]*[:=][[:space:]]*[\"]?[A-Za-z0-9._-]{16,}[\"]?' '\1=[REDACTED]' 'named env-var credential'
+
+# Google service account private_key block (multi-line begin/end)
+redact -- '-----BEGIN PRIVATE KEY-----[A-Za-z0-9+/=[:space:]]+-----END PRIVATE KEY-----' '[REDACTED_PRIVATE_KEY_BLOCK]' 'Private key block'
+
+# Google service account client_email
+redact '"client_email":[[:space:]]*"[^"]+"' '"client_email": "[REDACTED]"' 'GCP client_email'
+
 # Generic 32+ char hex secrets following common label patterns
 redact '(SECRET|PASSWORD|TOKEN|API_KEY)[[:space:]]*[:=][[:space:]]*[\"]?[A-Za-z0-9_.-]{20,}[\"]?' '\1=[REDACTED]' 'generic secret'
 

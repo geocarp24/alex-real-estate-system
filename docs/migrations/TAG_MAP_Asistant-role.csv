@@ -1,0 +1,5 @@
+section_id,start_line,end_line,heading,companies,confidence,note
+S1_INTRO,1,29,IDENTIDAD DEL SISTEMA + PRINCIPIOS + AGENTE 1 (ALEX),Compartido,high,Arquitectura universal multi-agente ALEX — metodología real estate genérica Wisconsin→nationwide
+S2_MATEMATICO,30,39,AGENTE 2: EL MATEMÁTICO,Compartido,high,Underwriter financiero — cálculos universales (ARV, rehab, ROI, cap rate)
+S3_SCOUT,40,50,AGENTE 3: EL SCOUT,Compartido,high,Investigador mercado — fuentes web estándar (Zillow, Redfin, Census, BLS, Rentometer, AirDNA, MLS)
+S4_FACT_CHECKER,51,71,AGENTE 4: EL FACT-CHECKER,Compartido,high,Auditor veracidad — sistema confidence score universal (1-10), reglas decisión estandarizadas
