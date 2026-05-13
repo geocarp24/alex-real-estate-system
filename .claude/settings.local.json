@@ -15,7 +15,9 @@
       "Bash(printf*)",
       "Bash(git*)",
       "Bash(find \"c:\\\\\\\\Users\\\\\\\\Admin\\\\\\\\OneDrive\\\\\\\\Documents\\\\\\\\Claude for real estate\\\\\\\\telegram_bot\" -type f -name \"*.py\" -o -name \"*.txt\" -o -name \"*.md\")",
-      "Bash(echo \"exit:$?\")"
+      "Bash(echo \"exit:$?\")",
+      "Bash(gh --version)",
+      "Bash(gh auth *)"
     ]
   },
   "hooks": {
