@@ -2,7 +2,7 @@
 """
 curate_by_tag_map.py — Extrae versiones curadas de un archivo mezclado.
 
-Lee un tag map CSV (sección → líneas → compañías) y produce una versión
+Lee un tag map CSV (sección -> líneas -> compañías) y produce una versión
 del archivo fuente para cada compañía especificada, conteniendo solo las
 secciones tageadas para esa compañía.
 
@@ -44,7 +44,7 @@ def normalize(tag: str) -> str:
 
 
 def parse_companies_cell(cell: str) -> set[str]:
-    """Parses 'Pinnacle;InvestorOS' or 'Pinnacle' → set of normalized tags."""
+    """Parses 'Pinnacle;InvestorOS' or 'Pinnacle' -> set of normalized tags."""
     if not cell:
         return set()
     return {normalize(t) for t in cell.split(";") if t.strip()}
@@ -55,7 +55,7 @@ def main() -> int:
     parser.add_argument("--source", required=True, type=Path, help="Archivo fuente (.md)")
     parser.add_argument("--tag-map", required=True, type=Path, help="CSV tag map")
     parser.add_argument("--output-dir", required=True, type=Path, help="Carpeta destino")
-    parser.add_argument("--prefix", required=True, help="Prefijo para output files (ej. MEMORIA → INVESTOROS_MEMORIA.md)")
+    parser.add_argument("--prefix", required=True, help="Prefijo para output files (ej. MEMORIA -> INVESTOROS_MEMORIA.md)")
     parser.add_argument(
         "--companies",
         default="Pinnacle,InvestorOS,GeoCarpentry",
@@ -136,7 +136,7 @@ def main() -> int:
             "sections": included_count,
             "lines": included_lines,
         }
-        print(f"  → {out_path}: {included_count} sections, {included_lines} lines")
+        print(f"  -> {out_path}: {included_count} sections, {included_lines} lines")
 
     print()
     print("Summary:")
