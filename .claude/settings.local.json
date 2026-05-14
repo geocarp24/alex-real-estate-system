@@ -70,7 +70,22 @@
       "Bash(Get-ChildItem -Force)",
       "Bash(Select-Object Mode, Name)",
       "Bash(Format-Table -AutoSize)",
-      "Bash(awk '{print $NF}')"
+      "Bash(awk '{print $NF}')",
+      "Bash(ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 -o BatchMode=yes -p 65002 u433637438@45.95.96.103 'echo CONNECTED; whoami; pwd; ls -la | head -10')",
+      "Bash(curl -sI -o /dev/null -w \"HTTP %{http_code} | size %{size_download}b | time %{time_total}s\\\\n\" \"https://blueviolet-gerbil-900105.hostingersite.com/\")",
+      "Bash(curl -sI -o /dev/null -w \"HTTP %{http_code}\\\\n\" \"https://geocarpentry.com/\")",
+      "Bash(curl -sI \"https://geocarpentry.com/\")",
+      "Bash(nslookup geocarpentry.com)",
+      "Bash(nslookup blueviolet-gerbil-900105.hostingersite.com)",
+      "Bash(curl -sI \"https://blueviolet-gerbil-900105.hostingersite.com/wp-admin/\" -w \"HTTP %{http_code}\\\\n\")",
+      "Bash(curl -s \"https://blueviolet-gerbil-900105.hostingersite.com/wp-json/\")",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('Name:', d.get\\('name'\\)\\); print\\('Description:', d.get\\('description'\\)\\); print\\('URL:', d.get\\('url'\\)\\); print\\('Namespaces:', d.get\\('namespaces', []\\)[:5]\\)\")",
+      "Bash(python -m json.tool)",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(f\\\\\"  {b['id']:25s} | {b['name']:40s} | {b['permissionLevel']}\\\\\"\\) for b in d.get\\('bases',[]\\)]\")",
+      "Bash(mkdir -p \"C:/Users/Admin/OneDrive/Documents/Geo-Carpentry-Repo/automation/airtable\" \"C:/Users/Admin/OneDrive/Documents/Geo-Carpentry-Repo/automation/templates\" 2>&1; echo \"Folders created\")"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\Admin\\OneDrive\\Documents\\Geo-Carpentry-Repo\\automation"
     ]
   },
   "hooks": {
