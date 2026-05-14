@@ -27,11 +27,23 @@ from pathlib import Path
 # Lista de (pattern_regex, replacement, label).
 # Orden importa — patrones más específicos antes que genéricos.
 PATTERNS: list[tuple[str, str, str]] = [
-    # Airtable
+    # Supabase URL — MUST come BEFORE Airtable table ID (avoids subdomain getting eaten by tbl pattern)
+    (r'\bhttps://[a-z0-9-]+\.supabase\.(co|in|net)\b', '[REDACTED_SUPABASE_URL]', 'Supabase URL'),
+    (r'\bdb\.[a-z0-9-]+\.supabase\.(co|in|net)\b', '[REDACTED_SUPABASE_DB_HOST]', 'Supabase DB host'),
+    (r'\bsb_publishable_[A-Za-z0-9_-]{20,}', '[REDACTED_SUPABASE_PUBLISHABLE_KEY]', 'Supabase publishable key'),
+    (r'\bsb_secret_[A-Za-z0-9_-]{20,}', '[REDACTED_SUPABASE_SECRET_KEY]', 'Supabase secret key'),
+    # Postgres connection strings (with password embedded)
+    (r'\bpostgres(?:ql)?://[^:\s]+:[^@\s]+@[^/\s]+/[A-Za-z0-9_-]+', 'postgresql://[REDACTED_USER]:[REDACTED_PASS]@[REDACTED_HOST]/[REDACTED_DB]', 'Postgres connection string'),
+    (r'\bmysql://[^:\s]+:[^@\s]+@[^/\s]+/[A-Za-z0-9_-]+', 'mysql://[REDACTED_USER]:[REDACTED_PASS]@[REDACTED_HOST]/[REDACTED_DB]', 'MySQL connection string'),
+    (r'\bmongodb(?:\+srv)?://[^:\s]+:[^@\s]+@[^/\s]+', 'mongodb://[REDACTED_USER]:[REDACTED_PASS]@[REDACTED_HOST]', 'MongoDB connection string'),
+    # Google OAuth
+    (r'\bGOCSPX-[A-Za-z0-9_-]+', '[REDACTED_GOOGLE_OAUTH_CLIENT_SECRET]', 'Google OAuth client secret'),
+    (r'\b[0-9]{10,12}-[a-z0-9]{20,}\.apps\.googleusercontent\.com', '[REDACTED_GOOGLE_OAUTH_CLIENT_ID]', 'Google OAuth client ID'),
+    # Airtable (PAT/IDs)
     (r'pat[A-Za-z0-9]{14}\.[a-f0-9]{40,}', '[REDACTED_AIRTABLE_PAT]', 'Airtable PAT'),
-    (r'app[A-Za-z0-9]{14}', '[REDACTED_AIRTABLE_BASE_ID]', 'Airtable base ID'),
-    (r'tbl[A-Za-z0-9]{14}', '[REDACTED_AIRTABLE_TABLE_ID]', 'Airtable table ID'),
-    (r'fld[A-Za-z0-9]{14}', '[REDACTED_AIRTABLE_FIELD_ID]', 'Airtable field ID'),
+    (r'\bapp[A-Za-z0-9]{14}\b', '[REDACTED_AIRTABLE_BASE_ID]', 'Airtable base ID'),
+    (r'\btbl[A-Za-z0-9]{14}\b', '[REDACTED_AIRTABLE_TABLE_ID]', 'Airtable table ID'),
+    (r'\bfld[A-Za-z0-9]{14}\b', '[REDACTED_AIRTABLE_FIELD_ID]', 'Airtable field ID'),
     # Telegram
     (r'\b[0-9]{9,10}:[A-Za-z0-9_-]{35}\b', '[REDACTED_TELEGRAM_BOT_TOKEN]', 'Telegram token'),
     # Cloud providers

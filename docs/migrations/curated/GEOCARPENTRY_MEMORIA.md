@@ -261,7 +261,7 @@ NIVEL 3 — Opus/Claude Code (más caro):
 3. **FASE C — Audit trail:**
    - Nueva función `logDedupeAudit()` en el_chismoso
    - Cuando se eliminan duplicados, crea registro en `Notes & Activity` linkeado al winner con snapshot de los losers (nombre, teléfonos, tracerfy_id, score) y lista de campos rescatados
-   - Constante `TABLE_NOTES = 'tbleOBXJl7sDhwj5w'`
+   - Constante `TABLE_NOTES = '[REDACTED_AIRTABLE_TABLE_ID]'`
 
 4. **FASE D — Stages diferenciadas:**
    - `atPatch()` ahora acepta `$typecast=true` param para auto-crear select options
@@ -565,8 +565,8 @@ LLM_PROVIDER=claude-cli
 **Construido:** `agents/supervisor/` — 10mo agente R9, meta-watchdog.
 
 **Tablas Airtable:**
-- `Ops_Health` `tbltZWa4PiYPdnyKl` — 1 row per run (heartbeat/deep/evolve)
-- `Ops_Insights` `tblPfJba7iPJBTrw6` — knowledge base de patrones aprendidos + fix proposals
+- `Ops_Health` `[REDACTED_AIRTABLE_TABLE_ID]` — 1 row per run (heartbeat/deep/evolve)
+- `Ops_Insights` `[REDACTED_AIRTABLE_TABLE_ID]` — knowledge base de patrones aprendidos + fix proposals
 
 **4 modos:**
 | Mode | Cadencia | Qué hace |

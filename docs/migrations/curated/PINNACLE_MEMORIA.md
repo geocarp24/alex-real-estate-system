@@ -19,20 +19,20 @@
 
 **Jorge confirma**: tablas `Publicaciones`, `Scripts de Video` e `Ideas de Contenido` eliminadas vía UI Airtable (la API no soporta `DELETE` sobre tablas — solo records). Cleanup final del codebase:
 
-- **Código activo (.mjs/.js/.yml)**: 0 referencias a IDs muertos (`tblP1CSi35fNgbSwK`, `tbli9BsyIwrhwa3aS`, `tblAj0Pkj1jW4p5Ld`) — ya purgado en sesión anterior.
+- **Código activo (.mjs/.js/.yml)**: 0 referencias a IDs muertos (`[REDACTED_AIRTABLE_TABLE_ID]`, `[REDACTED_AIRTABLE_TABLE_ID]`, `[REDACTED_AIRTABLE_TABLE_ID]`) — ya purgado en sesión anterior.
 - **Docs vivas actualizadas en este pase**:
   - `CLAUDE.md` línea 310 → ahora referencia las 3 tablas SM via `agents/_shared/sm_tables.mjs`
   - `docs/AGENT_REGISTRY.md` línea 163 → mismo fix
   - `memoria_ALex.md` (este archivo) → tabla legacy removida del inventario, refs históricas marcadas DEPRECATED
 
-**Estado SM Base final** (`appU9s3kGkVpdrJkw`):
+**Estado SM Base final** (`[REDACTED_AIRTABLE_BASE_ID]`):
 | Tabla | Records | Notas |
 |---|---|---|
 | Posts | 21 | Todos con Oraculo_Score |
 | Reels | 1 | Todos con Oraculo_Score |
 | Videos | 0 | Schema only, wireup pendiente |
 
-**Anti-regresión**: cualquier nueva referencia a `tblAj0Pkj1jW4p5Ld` / `tblP1CSi35fNgbSwK` / `tbli9BsyIwrhwa3aS` debe rechazarse — son IDs muertos. Toda persistencia SM va por las 3 tablas activas vía `sm_tables.mjs`.
+**Anti-regresión**: cualquier nueva referencia a `[REDACTED_AIRTABLE_TABLE_ID]` / `[REDACTED_AIRTABLE_TABLE_ID]` / `[REDACTED_AIRTABLE_TABLE_ID]` debe rechazarse — son IDs muertos. Toda persistencia SM va por las 3 tablas activas vía `sm_tables.mjs`.
 
 ---
 
@@ -74,13 +74,13 @@ Después del restructure 3-tablas (PM-4), los `visual_url` migrados apuntaban a 
 
 **Jorge directo 2026-05-07 PM**: rearchitect SM Manager — 3 tablas separadas (Posts/Reels/Videos), cada record en UN solo idioma (no más bilingüe en el mismo record), Reels = 5 slides × 2s = 10s con campos `Slide_N_Text` explícitos por slide.
 
-### Esquema Airtable (base `appU9s3kGkVpdrJkw`)
+### Esquema Airtable (base `[REDACTED_AIRTABLE_BASE_ID]`)
 
 | Tabla | ID | Fields | Uso |
 |---|---|---|---|
-| Posts | `tblE3lz6XNcBNgpg5` | 21 | IG/FB single-frame post, mono-idioma — todos con Oraculo_Score |
-| Reels | `tblhbg4JSm2iND3Cs` | 1 | Vertical 8-10s, 5 slides explícitos — todos con Oraculo_Score |
-| Videos | `tblbjYosR1tpnjRV0` | 0 | Long-form 30-60s (schema only, wireup pendiente) |
+| Posts | `[REDACTED_AIRTABLE_TABLE_ID]` | 21 | IG/FB single-frame post, mono-idioma — todos con Oraculo_Score |
+| Reels | `[REDACTED_AIRTABLE_TABLE_ID]` | 1 | Vertical 8-10s, 5 slides explícitos — todos con Oraculo_Score |
+| Videos | `[REDACTED_AIRTABLE_TABLE_ID]` | 0 | Long-form 30-60s (schema only, wireup pendiente) |
 
 ### Campos comunes (todas las 3 tablas)
 `Title • Language(ES|EN) • Source_Idea_ID(UUID) • Tipo • Segment_Anchor • Plataforma • Theme_Code(T1-T5) • Status • Oraculo_Score • Oraculo_Notes • Error_Reason • Published_FB_ID • Published_IG_ID • Scheduled_Time • Created_At`
@@ -150,7 +150,7 @@ Jorge 2026-05-07 PM: "check this video ID for futures reference to create a vide
 
 **Intención**: cuando Director v2 genere Reels en el futuro, debe inspirarse en el estilo de este video — eye-catching, diferente del look "normal", para destacar el feed Pinnacle. Es referencia de estética/dinámica de cámara/transiciones, NO de contenido.
 
-**Acción siguiente**: cuando Jorge aclare la plataforma, fetch metadata del video, analizar y documentar atributos (motion style, transitions, color grading, hook timing) para inyectar como template hint en `agents/director_v2/director_v2.mjs::applyTipoContenidoRouting()` o como nuevo template arsenal #6.
+**Acción siguiente**: cuando Jorge aclare la plataforma, fetch metadata del video, analizar y documentar atributos (motion style, transitions, color grading, hook timing) para inyectar como template hint en `agents/director_v2/director_v2.mjs::[REDACTED_AIRTABLE_BASE_ID]oRouting()` o como nuevo template arsenal #6.
 
 ---
 
@@ -409,7 +409,7 @@ Aplica a **TODOS los templates #1-#5** — `buildAssSubtitle` + `buildCombinedAs
    - Polling shared: `GET /v1/video_status.get?video_id=...`
    - **Defaults importantes**: `expressiveness` y `motion_prompt` SIN default (only-if-set) — HeyGen rechaza estos params en `digital_twin` avatars; solo válidos en `photo_avatar`. Pasar `undefined` los excluye del payload.
 
-2. **`director_v2.mjs` `applyTipoContenidoRouting` mejorada — Hybrid Personal**:
+2. **`director_v2.mjs` `[REDACTED_AIRTABLE_BASE_ID]oRouting` mejorada — Hybrid Personal**:
    - Antes: `Tipo=Personal` → todas las scenes vía heygen_avatar (caro y redundante)
    - Ahora: `Tipo=Personal` HYBRID:
      - scenes `layoutType: 'hook'` + `'cta'` → heygen_avatar (Jorge habla)
@@ -419,7 +419,7 @@ Aplica a **TODOS los templates #1-#5** — `buildAssSubtitle` + `buildCombinedAs
    - HeyGen failure fallback: ahora cae a `flux2` (que usa heroPrompt) en vez de `pexels` (que necesita heroQuery, no seteado en hook/cta scenes)
 
 3. **Avatar Pinnacle de Jorge configurado** (sin matting por ahora — pendiente re-train con green screen):
-   - `HEYGEN_AVATAR_ID_JORGE = 0a681eef6a5a4e7680fec9d45b770fc1` (digital_twin "Jorge", look natural)
+   - `HEYGEN_AVATAR_ID_JORGE=[REDACTED]` (digital_twin "Jorge", look natural)
    - Otros looks disponibles: `08e7281db244473382cab2275ee77b80` (photo_avatar "The Real Estate Professional", lip-sync inferior)
    - `HEYGEN_VOICE_ID_JORGE_EN/ES = ec1256cf8c204211b337137d27577f70` (voice clone real validado)
 
@@ -590,12 +590,12 @@ Aplica a **TODOS los templates #1-#5** — `buildAssSubtitle` + `buildCombinedAs
 - `lib/fer_deduplication.php` — dedup por messageId
 
 **Tablas Airtable:**
-- Leads: `tblxZz2EWIglOLnEd` — lista cruda de leads
-- Contacts: `tblacvw0Ss770x8l5` — CRM principal con campos de calificación
-- Deals: `tbliaEKxBHKBx7ZK2` — oportunidades reales, auto-creadas por Fer
-- Fer Conversations: `tbleausFNpHhqLfsm` — transcripciones completas (QC)
-- Tracy: `tbl6CJm4kYspOuTDB` — resultados skip trace
-- Notes & Activity: `tbleOBXJl7sDhwj5w` — historial
+- Leads: `[REDACTED_AIRTABLE_TABLE_ID]` — lista cruda de leads
+- Contacts: `[REDACTED_AIRTABLE_TABLE_ID]` — CRM principal con campos de calificación
+- Deals: `[REDACTED_AIRTABLE_TABLE_ID]` — oportunidades reales, auto-creadas por Fer
+- Fer Conversations: `[REDACTED_AIRTABLE_TABLE_ID]` — transcripciones completas (QC)
+- Tracy: `[REDACTED_AIRTABLE_TABLE_ID]` — resultados skip trace
+- Notes & Activity: `[REDACTED_AIRTABLE_TABLE_ID]` — historial
 
 **Flujo completo:**
 1. Jefe marca Lead "Review this Deal" → el_polling (5min) → Tracy skip trace → Contact
@@ -699,7 +699,7 @@ Aplica a **TODOS los templates #1-#5** — `buildAssSubtitle` + `buildCombinedAs
   - `agents/memoria_social_media.md` — memoria y estado de sistemas SM
 - **Tool `invoke_social_media` agregado al bot:**
   - Parámetros: `task`, `platform` (FB/IG/Ambas/LinkedIn), `format_type` (Post/Reel/Carrusel/Story), `save_to_airtable`, `week_number`
-  - Airtable SM base: `appU9s3kGkVpdrJkw` (separada del CRM de real estate)
+  - Airtable SM base: `[REDACTED_AIRTABLE_BASE_ID]` (separada del CRM de real estate)
   - Make.com webhook autorizado: `hook.us2.make.com/zbvy7391...`
 - **Protocolo de seguridad actualizado** a v1.1 — Social Media Agent en cadena de autoridad
 - **Fuente de datos:** repo `geocarp24/pinnacle-agent-memory` → `PINNACLE_SOCIAL_MEDIA_AGENT.md`
@@ -760,8 +760,8 @@ Aplica a **TODOS los templates #1-#5** — `buildAssSubtitle` + `buildCombinedAs
 | Sub-agente Social Media | ✅ Listo | `agents/social_media.md` — NUEVO hoy |
 | El Secretario (Email) | ✅ Activo | `secretario/email_monitor.py` — servicio systemd |
 | El Planificador (Calendar) | ⚠️ 95% | `secretario/calendar_manager.py` — credentials.json instalado, falta autorización OAuth |
-| Airtable CRM (Real Estate) | ✅ Activo | Base `appfQbDA750Oihy9J` — tablas vacías |
-| Airtable Social Media | ✅ Activo | Base `appU9s3kGkVpdrJkw` — 12 ideas pendientes |
+| Airtable CRM (Real Estate) | ✅ Activo | Base `[REDACTED_AIRTABLE_BASE_ID]` — tablas vacías |
+| Airtable Social Media | ✅ Activo | Base `[REDACTED_AIRTABLE_BASE_ID]` — 12 ideas pendientes |
 | el_polling.php | ✅ Activo | Cron cada 5min en Hostinger |
 | el_chismoso.php | ✅ Activo | Webhook Tracy→Contacts |
 | Make.com escenario SM | ✅ Activo | ID 4636455 — activado 2026-04-05 |
@@ -772,7 +772,7 @@ Aplica a **TODOS los templates #1-#5** — `buildAssSubtitle` + `buildCombinedAs
 
 <!-- section S018 | lines 731-763 | tags: Pinnacle | conf:high -->
 #### 6. Test E2E Social Media — 2026-04-05
-- **Flujo probado:** ALEX → Webhook Make.com → Escenario 4636455 → Airtable `appU9s3kGkVpdrJkw`
+- **Flujo probado:** ALEX → Webhook Make.com → Escenario 4636455 → Airtable `[REDACTED_AIRTABLE_BASE_ID]`
 - **Webhook:** HTTP 200 Accepted ✅
 - **Make.com:** Aceptó el payload ✅
 - **Record creado en Airtable:** ❌ NO — confirmado en sesión siguiente (solo existe `recdF2uT42ay04k69`)
@@ -831,7 +831,7 @@ Aplica a **TODOS los templates #1-#5** — `buildAssSubtitle` + `buildCombinedAs
 **Enviada por:** ALEX Bot via Telegram
 
 **Instrucciones:**
-1. Agrega `BLOTATO_API_KEY=blt_2Jz5IZHqjY6WzhfTWkDVskRANpeibfXkyDTvUB+mn8k=` al archivo `.env` del VPS (`/opt/alex-bot/.env`)
+1. Agrega `BLOTATO_API_KEY=[REDACTED]` al archivo `.env` del VPS (`/opt/alex-bot/.env`)
 2. Verifica que la API Key funciona haciendo un GET a `https://my.blotato.com/api/v1/accounts` con header `api-key: blt_2Jz5IZHqjY6WzhfTWkDVskRANpeibfXkyDTvUB+mn8k=`
 
 <!-- section S020 | lines 791-855 | tags: Pinnacle | conf:high -->
@@ -854,7 +854,7 @@ Aplica a **TODOS los templates #1-#5** — `buildAssSubtitle` + `buildCombinedAs
 1. Abre el archivo `/opt/alex-bot/.env` en el VPS
 2. Agrega esta línea:
    ```
-   BLOTATO_API_KEY=blt_2Jz5IZHqjY6WzhfTWkDVskRANpeibfXkyDTvUB+mn8k=
+   BLOTATO_API_KEY=[REDACTED]
    ```
 3. Guarda el archivo
 4. Verifica que la API Key funciona:
@@ -1333,7 +1333,7 @@ Pero el código PHP **no los poblaba** — solo el Stage, Full Name, Phone, etc.
 3. **FASE C — Audit trail:**
    - Nueva función `logDedupeAudit()` en el_chismoso
    - Cuando se eliminan duplicados, crea registro en `Notes & Activity` linkeado al winner con snapshot de los losers (nombre, teléfonos, tracerfy_id, score) y lista de campos rescatados
-   - Constante `TABLE_NOTES = 'tbleOBXJl7sDhwj5w'`
+   - Constante `TABLE_NOTES = '[REDACTED_AIRTABLE_TABLE_ID]'`
 
 4. **FASE D — Stages diferenciadas:**
    - `atPatch()` ahora acepta `$typecast=true` param para auto-crear select options
@@ -2065,28 +2065,28 @@ LLM_PROVIDER=claude-cli
 - Conclusión: para El Cartógrafo, Jorge sí necesita completar el Google Cloud OAuth setup. El key de Places no sirve.
 - Para El Posicionador `maps_deep` (read-only): puede usar skills `/seo maps` que internamente van vía scraping/SERP APIs, no vía GBP API directo, entonces no necesita OAuth.
 
-**5 tablas Airtable creadas en base Pinnacle CRM `appfQbDA750Oihy9J`:**
+**5 tablas Airtable creadas en base Pinnacle CRM `[REDACTED_AIRTABLE_BASE_ID]`:**
 | Tabla | Table ID | Para qué agente |
 |---|---|---|
-| `Marketing_Audits` | `tbl5vSf886N1WnHU7` | El Mercader |
-| `SEO_Audits` | `tblobZ4d7skx8kPHK` | El Posicionador (incluye maps_deep) |
-| `Content_Queue` | `tblmIlIvmBvX5mLrx` | El Escriba |
-| `GMB_Queue` | `tbl8OWFFT5X9x8A0E` | El Cartógrafo (queue pending approvals) |
-| `GMB_Audit_Log` | `tbl0lzGZbD71rfBzA` | El Cartógrafo (forensic audit trail) |
+| `Marketing_Audits` | `[REDACTED_AIRTABLE_TABLE_ID]` | El Mercader |
+| `SEO_Audits` | `[REDACTED_AIRTABLE_TABLE_ID]` | El Posicionador (incluye maps_deep) |
+| `Content_Queue` | `[REDACTED_AIRTABLE_TABLE_ID]` | El Escriba |
+| `GMB_Queue` | `[REDACTED_AIRTABLE_TABLE_ID]` | El Cartógrafo (queue pending approvals) |
+| `GMB_Audit_Log` | `[REDACTED_AIRTABLE_TABLE_ID]` | El Cartógrafo (forensic audit trail) |
 
 **Script provisión:** `agents/_setup/create_tables.py` (idempotente — safe to re-run).
 
-**pinnacle.json actualizado** con los 5 table_ids reales + `base_id` cambiado a `appfQbDA750Oihy9J` (Pinnacle CRM es donde viven los audits ahora, junto a Contacts/Leads/Deals).
+**pinnacle.json actualizado** con los 5 table_ids reales + `base_id` cambiado a `[REDACTED_AIRTABLE_BASE_ID]` (Pinnacle CRM es donde viven los audits ahora, junto a Contacts/Leads/Deals).
 
 **Smoke test end-to-end:** escribí y borré record de prueba en `Marketing_Audits` con el AIRTABLE_TOKEN → confirmado que el token tiene read + write + schema.bases:write scopes. Todo conectado.
 
 **Scope token Airtable confirmado:**
-- ✅ list bases (ve solo `appfQbDA750Oihy9J` Pinnacle CRM)
+- ✅ list bases (ve solo `[REDACTED_AIRTABLE_BASE_ID]` Pinnacle CRM)
 - ✅ meta.bases.tables.create (puede provisionar tablas)
 - ✅ read records, write records, patch, delete (todas las ops normales)
-- ❌ No tiene acceso a base `appU9s3kGkVpdrJkw` (Social Media Pinnacle) — si algún día necesitamos wiring cross-base, Jorge expande el token
+- ❌ No tiene acceso a base `[REDACTED_AIRTABLE_BASE_ID]` (Social Media Pinnacle) — si algún día necesitamos wiring cross-base, Jorge expande el token
 
-**Nota operativa:** quedó un test table leftover `_test_delete_me` (tblSYqybnImkJGsDQ) en Pinnacle CRM de la sonda inicial — Airtable Meta API no expone DELETE de tablas completas, Jorge puede borrarla manual desde UI si le molesta (es safe).
+**Nota operativa:** quedó un test table leftover `_test_delete_me` ([REDACTED_AIRTABLE_TABLE_ID]) en Pinnacle CRM de la sonda inicial — Airtable Meta API no expone DELETE de tablas completas, Jorge puede borrarla manual desde UI si le molesta (es safe).
 
 **Estado Cartógrafo post-test:** scaffold completo, env vars pendientes de OAuth JSON. Cuando Jorge pase el JSON, cableo las HTTP calls reales de los 10 tools (estimado: 30 min).
 
@@ -2109,7 +2109,7 @@ Archivos:
 - `agents/cazador/SKILL.md` — Anthropic frontmatter + 3 modes + Ad_Performance schema + alert rules + data levels (1/2/3)
 - `agents/cazador/cazador.mjs` — Node orchestrator (chmod +x), 3 modes: `ads_health` (cada 3 días), `ads_deep` (lunes semanal, wraps `/ads audit` 250+ checks 7 platforms), `on_demand` (con `--platform` + `--data` opcional)
 - `agents/cazador/README.md` — deploy guide + data levels + alert thresholds
-- `agents/_setup/create_ad_tables.py` — creó `Ad_Performance` table `tblxkMmNmwlrNnkmX`
+- `agents/_setup/create_ad_tables.py` — creó `Ad_Performance` table `[REDACTED_AIRTABLE_TABLE_ID]`
 - `pinnacle.json` actualizado con `ads_table_id`
 
 **Budget waste sentinel** hard-coded: si `spend_last_7d` > $100 + `conversions_7d` == 0 → Telegram 🚨 `CRITICAL` inmediato con "pause recommended".
@@ -2146,7 +2146,7 @@ Archivos:
 5. **Popup → Email_Subscribers:** el edit ya está pusheado, se deploya en próxima SCP. **Smoke test recomendado:** suscribir un email de prueba en el popup + verificar que aparezca en Email_Subscribers table con status=Active
 6. **Seed templates:** una vez deliverability lista, correr `node agents/remitente/remitente.mjs --tenant pinnacle --mode seed_templates` para crear los 4 templates base en Email_Templates
 
-**Cleanup opcional:** `_test_delete_me` (tblSYqybnImkJGsDQ) sigue en Pinnacle CRM como leftover del primer probe — Jorge puede borrar desde Airtable UI.
+**Cleanup opcional:** `_test_delete_me` ([REDACTED_AIRTABLE_TABLE_ID]) sigue en Pinnacle CRM como leftover del primer probe — Jorge puede borrar desde Airtable UI.
 
 
 <!-- section S051 | lines 2667-2696 | tags: Pinnacle | conf:medium -->
@@ -2189,8 +2189,8 @@ Jorge reportó que los emails/SMS constantes de primeros 30 días NO estaban sal
 **Construido:** `agents/supervisor/` — 10mo agente R9, meta-watchdog.
 
 **Tablas Airtable:**
-- `Ops_Health` `tbltZWa4PiYPdnyKl` — 1 row per run (heartbeat/deep/evolve)
-- `Ops_Insights` `tblPfJba7iPJBTrw6` — knowledge base de patrones aprendidos + fix proposals
+- `Ops_Health` `[REDACTED_AIRTABLE_TABLE_ID]` — 1 row per run (heartbeat/deep/evolve)
+- `Ops_Insights` `[REDACTED_AIRTABLE_TABLE_ID]` — knowledge base de patrones aprendidos + fix proposals
 
 **4 modos:**
 | Mode | Cadencia | Qué hace |
@@ -2330,7 +2330,7 @@ Jorge pidió "gistak" = **gstack** (typo de autocorrect). Confirmado + instalado
 1. `agents/creativo_runner/themes.mjs` — 184 líneas con 5 temas T1-T5 ya construidos: `slideHook()`, `slidePoint()`, `slideCTA()`, `buildCarousel()`. Logo Pinnacle integrado, fonts Montserrat, viewport 1080×1350 IG 4:5.
 2. **Puppeteer/Playwright** en GHA runner (npm `puppeteer` o `playwright-chromium`) → render BODY HTML → screenshot PNG.
 3. **Cloudinary** signed upload → URL persistente para FB/IG.
-4. **Airtable SM Base** (`appU9s3kGkVpdrJkw`, 3 tablas: `Posts` / `Reels` / `Videos` — ver `agents/_shared/sm_tables.mjs`) → estado + `visual_url` + `Status="Visual Listo"`.
+4. **Airtable SM Base** (`[REDACTED_AIRTABLE_BASE_ID]`, 3 tablas: `Posts` / `Reels` / `Videos` — ver `agents/_shared/sm_tables.mjs`) → estado + `visual_url` + `Status="Visual Listo"`.
 
 **Stack APROBADO para El Director (videos/Reels):**
 - HeyGen avatar de Jorge para Reels personalizados (cuando se active)
@@ -2445,9 +2445,9 @@ Borrado vía UI (API no soporta DELETE de field, solo CREATE/UPDATE):
 - `Blotato_Template_ID` (46% pop, no usado por nuevo Creativo Puppeteer)
 
 Re-creado vía Meta API después (director_v2 los necesita):
-- `video_duration` (number precision 1) — `fldgWpORIRHdXMMW4`
-- `video_cost_cents` (number precision 0) — `fld63klplj0o6O85q`
-- `Error_Reason` (multilineText) — `fldiyHueGHFfmeb1h`
+- `video_duration` (number precision 1) — `[REDACTED_AIRTABLE_FIELD_ID]`
+- `video_cost_cents` (number precision 0) — `[REDACTED_AIRTABLE_FIELD_ID]`
+- `Error_Reason` (multilineText) — `[REDACTED_AIRTABLE_FIELD_ID]`
 
 **Estado final**: 22 → 18 → 21 fields (neto: -1).
 
@@ -2663,8 +2663,8 @@ La regla aplica desde YA (2026-05-08) y aplica retroactivamente a A12 + A14 que 
 
 ### Sprint A12 + A14 — cierre 2026-05-08
 **Sprint A12 — SM Manager force format mix** (143 tests passing):
-- Archivo modificado: `agents/social_media/theme_bank_loader.mjs` (agregada `WEEKLY_FORMAT_MIX` + `applyFormatDistribution`)
-- Archivo modificado: `agents/social_media/social_media.mjs` (generateIdeas usa applyFormatDistribution + force format en records)
+- Archivo modificado: `agents/social_media/theme_bank_loader.mjs` (agregada `WEEKLY_FORMAT_MIX` + `[REDACTED_AIRTABLE_BASE_ID]bution`)
+- Archivo modificado: `agents/social_media/social_media.mjs` (generateIdeas usa [REDACTED_AIRTABLE_BASE_ID]bution + force format en records)
 - Archivo nuevo: `agents/social_media/test/format_distribution.test.mjs` (9 tests)
 - Resultado: cada batch_weekly ahora genera EXACTAMENTE 42 Posts + 28 Reels + 8 Videos (= 78). Slot inventory matched.
 
@@ -2682,7 +2682,7 @@ La regla aplica desde YA (2026-05-08) y aplica retroactivamente a A12 + A14 que 
 
 ### Sprint A12+A14+A13 — Track 1 maquina Reels/Videos AL 100% (2026-05-08 cierre)
 **A12 SM Manager force format mix 42/28/8** (138 tests passing):
-- agents/social_media/theme_bank_loader.mjs: WEEKLY_FORMAT_MIX + applyFormatDistribution
+- agents/social_media/theme_bank_loader.mjs: WEEKLY_FORMAT_MIX + [REDACTED_AIRTABLE_BASE_ID]bution
 - agents/social_media/social_media.mjs: integracion en generateIdeas + force format en records
 - agents/social_media/test/format_distribution.test.mjs: tests
 - Cada batch_weekly genera 42 Posts + 28 Reels + 8 Videos exacto

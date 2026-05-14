@@ -528,7 +528,7 @@ Ya analicé todo, cuando Jorge elija las 3 respuestas ejecuto en ~30 min (Camino
 | Archivo | Rol |
 |---|---|
 | `agents/tenants/_template.json` | Template tenant config R8 (copiás → llenás para cada cliente nuevo, NO código change) |
-| `agents/tenants/pinnacle.json` | Tenant zero: Pinnacle Holdings. `website`, `brand`, `competitors` (3 cash-buyers WI), `schedules` (cada 3 días + semanal), `airtable.base_id=appU9s3kGkVpdrJkw`, `alert_thresholds` (crit 50 / warn 70) |
+| `agents/tenants/pinnacle.json` | Tenant zero: Pinnacle Holdings. `website`, `brand`, `competitors` (3 cash-buyers WI), `schedules` (cada 3 días + semanal), `airtable.base_id=[REDACTED_AIRTABLE_BASE_ID]`, `alert_thresholds` (crit 50 / warn 70) |
 | `agents/mercader/SKILL.md` | Anthropic skill-creator format: frontmatter + workflow. Identity + 3 modes (quick_health / deep_audit / on_demand) + Airtable schema + security rules |
 | `agents/mercader/mercader.mjs` | Node orchestrator (ejecutable, chmod +x). Lee tenant JSON → spawns `claude --print` subprocess → parsea output (score, issues, wins, recs) → escribe Airtable → envía Telegram. Soporta `--dry-run` para preview sin tokens |
 | `agents/mercader/README.md` | Deploy guide + known limitation (nested Claude CLI) + adding-new-tenant recipe |
@@ -540,7 +540,7 @@ Ya analicé todo, cuando Jorge elija las 3 respuestas ejecuto en ~30 min (Camino
 - ✅ Zero npm deps (Node 22 fetch + JSON native)
 
 **3 approvals pendientes de Jorge antes de pasar a producción:**
-1. **Airtable table:** crear `Marketing_Audits` en base `appU9s3kGkVpdrJkw` con el schema descrito en `SKILL.md` (run_id, tenant_id, audit_type, status, score, top_issues, top_wins, recommendations, summary_md, report_url, tokens_used, etc.). Pegar `table_id` en `pinnacle.json.airtable.table_id`.
+1. **Airtable table:** crear `Marketing_Audits` en base `[REDACTED_AIRTABLE_BASE_ID]` con el schema descrito en `SKILL.md` (run_id, tenant_id, audit_type, status, score, top_issues, top_wins, recommendations, summary_md, report_url, tokens_used, etc.). Pegar `table_id` en `pinnacle.json.airtable.table_id`.
 2. **Host del cron:** Hostinger PHP cron wrapper (simple, mismo patrón que `fer_seguimiento`) OR VPS service (más control). Pendiente decisión arquitectural.
 3. **Auth `claude` CLI** en el host elegido (`claude login`). Sin auth el subprocess falla igual que El Oráculo.
 
@@ -586,7 +586,7 @@ Ya analicé todo, cuando Jorge elija las 3 respuestas ejecuto en ~30 min (Camino
 **Airtable separation R8:** tenant JSON ahora soporta `table_id` (Mercader), `seo_table_id` (Posicionador), `ads_table_id` (Cazador future), `oracle_table_id` (Oraculo future). Cada sub-agente escribe a su tabla dedicada. Si falta, fallback al `table_id` genérico.
 
 **3 approvals pendientes para producción (mismo set que Mercader):**
-1. Crear tabla `SEO_Audits` en Airtable base `appU9s3kGkVpdrJkw` → pegar `table_id` en `pinnacle.json.airtable.seo_table_id`
+1. Crear tabla `SEO_Audits` en Airtable base `[REDACTED_AIRTABLE_BASE_ID]` → pegar `table_id` en `pinnacle.json.airtable.seo_table_id`
 2. Host del cron (Hostinger PHP o VPS) — compartido con Mercader
 3. `claude login` en el host
 
@@ -714,28 +714,28 @@ El Posicionador identifica QUÉ falta. El Escriba escribe QUÉ llena el hueco.
 - Conclusión: para El Cartógrafo, Jorge sí necesita completar el Google Cloud OAuth setup. El key de Places no sirve.
 - Para El Posicionador `maps_deep` (read-only): puede usar skills `/seo maps` que internamente van vía scraping/SERP APIs, no vía GBP API directo, entonces no necesita OAuth.
 
-**5 tablas Airtable creadas en base Pinnacle CRM `appfQbDA750Oihy9J`:**
+**5 tablas Airtable creadas en base Pinnacle CRM `[REDACTED_AIRTABLE_BASE_ID]`:**
 | Tabla | Table ID | Para qué agente |
 |---|---|---|
-| `Marketing_Audits` | `tbl5vSf886N1WnHU7` | El Mercader |
-| `SEO_Audits` | `tblobZ4d7skx8kPHK` | El Posicionador (incluye maps_deep) |
-| `Content_Queue` | `tblmIlIvmBvX5mLrx` | El Escriba |
-| `GMB_Queue` | `tbl8OWFFT5X9x8A0E` | El Cartógrafo (queue pending approvals) |
-| `GMB_Audit_Log` | `tbl0lzGZbD71rfBzA` | El Cartógrafo (forensic audit trail) |
+| `Marketing_Audits` | `[REDACTED_AIRTABLE_TABLE_ID]` | El Mercader |
+| `SEO_Audits` | `[REDACTED_AIRTABLE_TABLE_ID]` | El Posicionador (incluye maps_deep) |
+| `Content_Queue` | `[REDACTED_AIRTABLE_TABLE_ID]` | El Escriba |
+| `GMB_Queue` | `[REDACTED_AIRTABLE_TABLE_ID]` | El Cartógrafo (queue pending approvals) |
+| `GMB_Audit_Log` | `[REDACTED_AIRTABLE_TABLE_ID]` | El Cartógrafo (forensic audit trail) |
 
 **Script provisión:** `agents/_setup/create_tables.py` (idempotente — safe to re-run).
 
-**pinnacle.json actualizado** con los 5 table_ids reales + `base_id` cambiado a `appfQbDA750Oihy9J` (Pinnacle CRM es donde viven los audits ahora, junto a Contacts/Leads/Deals).
+**pinnacle.json actualizado** con los 5 table_ids reales + `base_id` cambiado a `[REDACTED_AIRTABLE_BASE_ID]` (Pinnacle CRM es donde viven los audits ahora, junto a Contacts/Leads/Deals).
 
 **Smoke test end-to-end:** escribí y borré record de prueba en `Marketing_Audits` con el AIRTABLE_TOKEN → confirmado que el token tiene read + write + schema.bases:write scopes. Todo conectado.
 
 **Scope token Airtable confirmado:**
-- ✅ list bases (ve solo `appfQbDA750Oihy9J` Pinnacle CRM)
+- ✅ list bases (ve solo `[REDACTED_AIRTABLE_BASE_ID]` Pinnacle CRM)
 - ✅ meta.bases.tables.create (puede provisionar tablas)
 - ✅ read records, write records, patch, delete (todas las ops normales)
-- ❌ No tiene acceso a base `appU9s3kGkVpdrJkw` (Social Media Pinnacle) — si algún día necesitamos wiring cross-base, Jorge expande el token
+- ❌ No tiene acceso a base `[REDACTED_AIRTABLE_BASE_ID]` (Social Media Pinnacle) — si algún día necesitamos wiring cross-base, Jorge expande el token
 
-**Nota operativa:** quedó un test table leftover `_test_delete_me` (tblSYqybnImkJGsDQ) en Pinnacle CRM de la sonda inicial — Airtable Meta API no expone DELETE de tablas completas, Jorge puede borrarla manual desde UI si le molesta (es safe).
+**Nota operativa:** quedó un test table leftover `_test_delete_me` ([REDACTED_AIRTABLE_TABLE_ID]) en Pinnacle CRM de la sonda inicial — Airtable Meta API no expone DELETE de tablas completas, Jorge puede borrarla manual desde UI si le molesta (es safe).
 
 **Estado Cartógrafo post-test:** scaffold completo, env vars pendientes de OAuth JSON. Cuando Jorge pase el JSON, cableo las HTTP calls reales de los 10 tools (estimado: 30 min).
 
@@ -754,10 +754,10 @@ OAuth callback PHP shipped y live (`https://pinnaclegroupwi.com/agents/oauth_gbp
 **4 tablas Airtable creadas** en Pinnacle CRM (script `agents/_setup/create_email_tables.py`, idempotente):
 | Table | ID |
 |---|---|
-| `Email_Subscribers` | `tblEiB0fBeGxxq7if` |
-| `Email_Templates` | `tbljcO5b5i2SZs3ze` |
-| `Email_Campaigns` | `tblBJAtH3k1IVhqqc` |
-| `Email_Events` | `tblTNKwwXZTBXymOD` |
+| `Email_Subscribers` | `[REDACTED_AIRTABLE_TABLE_ID]` |
+| `Email_Templates` | `[REDACTED_AIRTABLE_TABLE_ID]` |
+| `Email_Campaigns` | `[REDACTED_AIRTABLE_TABLE_ID]` |
+| `Email_Events` | `[REDACTED_AIRTABLE_TABLE_ID]` |
 
 **`hostinger/agents/pinnacle_mail.php`** — endpoint público en Hostinger con 4 actions:
 - `send_campaign` (privileged, X-Alex-Secret): pulls 1 campaign status=Scheduled + scheduled_at<=now → resuelve audience filter → manda vía PHP mail() con multipart text+HTML + List-Unsubscribe-Post header → logs Email_Events
@@ -831,7 +831,7 @@ Archivos:
 - `agents/cazador/SKILL.md` — Anthropic frontmatter + 3 modes + Ad_Performance schema + alert rules + data levels (1/2/3)
 - `agents/cazador/cazador.mjs` — Node orchestrator (chmod +x), 3 modes: `ads_health` (cada 3 días), `ads_deep` (lunes semanal, wraps `/ads audit` 250+ checks 7 platforms), `on_demand` (con `--platform` + `--data` opcional)
 - `agents/cazador/README.md` — deploy guide + data levels + alert thresholds
-- `agents/_setup/create_ad_tables.py` — creó `Ad_Performance` table `tblxkMmNmwlrNnkmX`
+- `agents/_setup/create_ad_tables.py` — creó `Ad_Performance` table `[REDACTED_AIRTABLE_TABLE_ID]`
 - `pinnacle.json` actualizado con `ads_table_id`
 
 **Budget waste sentinel** hard-coded: si `spend_last_7d` > $100 + `conversions_7d` == 0 → Telegram 🚨 `CRITICAL` inmediato con "pause recommended".
@@ -868,7 +868,7 @@ Archivos:
 5. **Popup → Email_Subscribers:** el edit ya está pusheado, se deploya en próxima SCP. **Smoke test recomendado:** suscribir un email de prueba en el popup + verificar que aparezca en Email_Subscribers table con status=Active
 6. **Seed templates:** una vez deliverability lista, correr `node agents/remitente/remitente.mjs --tenant pinnacle --mode seed_templates` para crear los 4 templates base en Email_Templates
 
-**Cleanup opcional:** `_test_delete_me` (tblSYqybnImkJGsDQ) sigue en Pinnacle CRM como leftover del primer probe — Jorge puede borrar desde Airtable UI.
+**Cleanup opcional:** `_test_delete_me` ([REDACTED_AIRTABLE_TABLE_ID]) sigue en Pinnacle CRM como leftover del primer probe — Jorge puede borrar desde Airtable UI.
 
 
 <!-- section S049 | lines 2538-2604 | tags: InvestorOS | conf:high -->
@@ -953,10 +953,10 @@ Jorge revisó los 5 GAP candidates propuestos + confirmó 4 para construir + dif
 **Tablas Airtable creadas** (script `agents/_setup/create_sprint2_tables.py`):
 | Tabla | ID | Propósito |
 |---|---|---|
-| `Lead_Scores` | `tbl9JjYf4v8Yy9fPm` | Clasificador — 1 row per lead per scoring + overall_score + urgency/distress/property/timeline/motivation + heat + suggested_action/owner |
-| `Weekly_Dashboards` | `tblIt71QqU7iZCKpT` | Analista — 1 row per ISO week + pipeline metrics + marketing rollup + headline wins/concerns/actions + exec summary |
-| `Competitor_Intel` | `tblMSWcdvKtP62hBR` | Espía — 1 row per competitor per scan + snapshot + diff vs prior + change_severity 0-10 + recommended_action |
-| `Compliance_Audits` | `tblZjJIHQm7LmudA6` | Auditor — 1 row per sweep + scores per regulación (WI wholesaler + TCPA + CAN-SPAM + Fair Housing + GDPR + ADA) + critical issues + evidence snippets |
+| `Lead_Scores` | `[REDACTED_AIRTABLE_TABLE_ID]` | Clasificador — 1 row per lead per scoring + overall_score + urgency/distress/property/timeline/motivation + heat + suggested_action/owner |
+| `Weekly_Dashboards` | `[REDACTED_AIRTABLE_TABLE_ID]` | Analista — 1 row per ISO week + pipeline metrics + marketing rollup + headline wins/concerns/actions + exec summary |
+| `Competitor_Intel` | `[REDACTED_AIRTABLE_TABLE_ID]` | Espía — 1 row per competitor per scan + snapshot + diff vs prior + change_severity 0-10 + recommended_action |
+| `Compliance_Audits` | `[REDACTED_AIRTABLE_TABLE_ID]` | Auditor — 1 row per sweep + scores per regulación (WI wholesaler + TCPA + CAN-SPAM + Fair Housing + GDPR + ADA) + critical issues + evidence snippets |
 
 **Wired en `pinnacle.json.airtable`:** `lead_scores_table_id`, `weekly_dashboards_table_id`, `competitor_intel_table_id`, `compliance_audits_table_id` + también se añadieron `leads_table_id`, `contacts_table_id`, `deals_table_id`, `notes_table_id` para cross-table queries.
 
@@ -1012,8 +1012,8 @@ Jorge revisó los 5 GAP candidates propuestos + confirmó 4 para construir + dif
 **Construido:** `agents/supervisor/` — 10mo agente R9, meta-watchdog.
 
 **Tablas Airtable:**
-- `Ops_Health` `tbltZWa4PiYPdnyKl` — 1 row per run (heartbeat/deep/evolve)
-- `Ops_Insights` `tblPfJba7iPJBTrw6` — knowledge base de patrones aprendidos + fix proposals
+- `Ops_Health` `[REDACTED_AIRTABLE_TABLE_ID]` — 1 row per run (heartbeat/deep/evolve)
+- `Ops_Insights` `[REDACTED_AIRTABLE_TABLE_ID]` — knowledge base de patrones aprendidos + fix proposals
 
 **4 modos:**
 | Mode | Cadencia | Qué hace |
@@ -1248,7 +1248,7 @@ Jorge pidió "gistak" = **gstack** (typo de autocorrect). Confirmado + instalado
 1. `agents/creativo_runner/themes.mjs` — 184 líneas con 5 temas T1-T5 ya construidos: `slideHook()`, `slidePoint()`, `slideCTA()`, `buildCarousel()`. Logo Pinnacle integrado, fonts Montserrat, viewport 1080×1350 IG 4:5.
 2. **Puppeteer/Playwright** en GHA runner (npm `puppeteer` o `playwright-chromium`) → render BODY HTML → screenshot PNG.
 3. **Cloudinary** signed upload → URL persistente para FB/IG.
-4. **Airtable SM Base** (`appU9s3kGkVpdrJkw`, 3 tablas: `Posts` / `Reels` / `Videos` — ver `agents/_shared/sm_tables.mjs`) → estado + `visual_url` + `Status="Visual Listo"`.
+4. **Airtable SM Base** (`[REDACTED_AIRTABLE_BASE_ID]`, 3 tablas: `Posts` / `Reels` / `Videos` — ver `agents/_shared/sm_tables.mjs`) → estado + `visual_url` + `Status="Visual Listo"`.
 
 **Stack APROBADO para El Director (videos/Reels):**
 - HeyGen avatar de Jorge para Reels personalizados (cuando se active)
@@ -1339,7 +1339,7 @@ Todo lo que se construya para Pinnacle debe diseñarse desde el día 1 como **pr
 10. **Mobile-first (R7) + SaaS-ready (R8) se complementan** — el producto vendible TIENE que verse bien en móvil. Es lo primero que ven los clientes cuando les demostramos.
 
 **Ejemplos:**
-- ❌ `const AIRTABLE_BASE = "appfQbDA750Oihy9J"` — hardcoded Pinnacle
+- ❌ `const AIRTABLE_BASE = "[REDACTED_AIRTABLE_BASE_ID]"` — hardcoded Pinnacle
 - ✅ `const AIRTABLE_BASE = tenant.airtable.base_id`
 - ❌ `const LOGO = "https://pinnaclegroupwi.com/..."` — hardcoded URL
 - ✅ `const LOGO = tenant.brand.logo_url`
@@ -1397,7 +1397,7 @@ Todo lo que se construya para Pinnacle debe diseñarse desde el día 1 como **pr
 
 **Implementado en esta sesión (Fase 1 completa):**
 
-1. **Tabla `Lessons_Learned` en Airtable** (id `tbloCtdxSukBI3R3j`, base appfQbDA750Oihy9J).
+1. **Tabla `Lessons_Learned` en Airtable** (id `[REDACTED_AIRTABLE_TABLE_ID]`, base [REDACTED_AIRTABLE_BASE_ID]).
    Campos: lesson_id, tenant_id, symptom_normalized, symptom_raw, category {infra/pipeline/code/data/unknown}, severity {critical/warning/info}, first_seen_at, last_seen_at, occurrence_count, root_cause, attempted_fixes, last_outcome {resolved/no_effect/worsened/pending}, confidence_score (0-1), recommended_action, requires_human, last_run_id, notes.
 
 2. **Módulo Learning en `agents/supervisor/supervisor.mjs`:**
@@ -1417,7 +1417,7 @@ Todo lo que se construya para Pinnacle debe diseñarse desde el día 1 como **pr
    - Las observaciones se registran ANTES de la decisión de alerta — la tabla siempre tiene la verdad aunque Telegram esté silenciado por dedup.
    - Failure-tolerant: si Lessons_Learned no existe o Airtable falla, el supervisor completa su run normal.
 
-4. **Config:** `agents/tenants/pinnacle.json` ahora tiene `lessons_learned_table_id: "tbloCtdxSukBI3R3j"`.
+4. **Config:** `agents/tenants/pinnacle.json` ahora tiene `lessons_learned_table_id: "[REDACTED_AIRTABLE_TABLE_ID]"`.
 
 5. **Validación end-to-end realizada:**
    - Syntax check: ✓
@@ -1681,7 +1681,7 @@ Todo lo que se construya para Pinnacle debe diseñarse desde el día 1 como **pr
   - Threshold adjust válido → PASS
   - Classifier extension válida → PASS
 
-**4. Apply + validate (`applyPatchAndValidate`):**
+**4. Apply + validate (`[REDACTED_AIRTABLE_BASE_ID]date`):**
 - Verifica que `search` aparece exactamente UNA vez en el archivo (sin ambigüedad).
 - Aplica el reemplazo + escribe.
 - Para `.mjs`: corre `node --check`. Si falla → revierte automáticamente.
@@ -1771,9 +1771,9 @@ Borrado vía UI (API no soporta DELETE de field, solo CREATE/UPDATE):
 - `Blotato_Template_ID` (46% pop, no usado por nuevo Creativo Puppeteer)
 
 Re-creado vía Meta API después (director_v2 los necesita):
-- `video_duration` (number precision 1) — `fldgWpORIRHdXMMW4`
-- `video_cost_cents` (number precision 0) — `fld63klplj0o6O85q`
-- `Error_Reason` (multilineText) — `fldiyHueGHFfmeb1h`
+- `video_duration` (number precision 1) — `[REDACTED_AIRTABLE_FIELD_ID]`
+- `video_cost_cents` (number precision 0) — `[REDACTED_AIRTABLE_FIELD_ID]`
+- `Error_Reason` (multilineText) — `[REDACTED_AIRTABLE_FIELD_ID]`
 
 **Estado final**: 22 → 18 → 21 fields (neto: -1).
 
@@ -2069,7 +2069,7 @@ Anti-regression: cualquier sesion futura de ALEX que no encuentre tokens de GitH
 ### Sprint F2 Pinnacle parcial — done 2026-05-08
 **F2.1** scraping_config.json multi-tenant: 9 endpoints en 3 categorias (legal_records: WI Circuit Court foreclosure + probate + Milwaukee/Brown tax delinquent; fsbo_listings: Craigslist WI + Reddit; allies_directory: WI State Bar probate/divorce/bankruptcy attorneys). Compliance: respect robots.txt, rate limit 10s, blocked Zillow/Redfin/Realtor (ToS).
 
-**F2.3** Airtable table `Scraping_Results` creada en Pinnacle CRM base: id `tbl29yeJ1KC1OGGi9`, 18 fields (Source_ID, Category, Tenant_ID, Title, URL_Scraped, Raw_Data, Contact_*, Property_*, Situation, Status, Scraped_At, Sent_to_Fer_At, Notes).
+**F2.3** Airtable table `Scraping_Results` creada en Pinnacle CRM base: id `[REDACTED_AIRTABLE_TABLE_ID]`, 18 fields (Source_ID, Category, Tenant_ID, Title, URL_Scraped, Raw_Data, Contact_*, Property_*, Situation, Status, Scraped_At, Sent_to_Fer_At, Notes).
 
 **F2.2 (base)** El Rastreador agent estructura creada en `agents/rastreador/`:
 - `src/config_loader.mjs` (load + validate scraping_config + getActiveEndpoints filtra blocked sources)
@@ -2131,9 +2131,9 @@ Anti-regression: cualquier sesion futura de ALEX que no encuentre tokens de GitH
 ## 2026-05-09 — CREDENCIALES INVESTOROS (CONFIDENCIAL — NO IMPRIMIR EN OUTPUTS)
 
 ### Supabase InvestorOS
-- Project URL: https://kyatblshmtwawtwxdjmv.supabase.co
+- Project URL: https://kya[REDACTED_AIRTABLE_TABLE_ID].supabase.co
 - Publishable Key: sb_publishable_s2ibgr0hxtv-prkfR3feeA_FAz75Gja
-- Database URL: postgresql://postgres:Claudecode2026@db.kyatblshmtwawtwxdjmv.supabase.co:5432/postgres
+- Database URL: postgresql://postgres:Claudecode2026@db.kya[REDACTED_AIRTABLE_TABLE_ID].supabase.co:5432/postgres
 
 ### Google OAuth InvestorOS
 - Client ID: 26650922402-fo09go130k5akoknd5vkluii49uv8tvk.apps.googleusercontent.com
@@ -2142,11 +2142,11 @@ Anti-regression: cualquier sesion futura de ALEX que no encuentre tokens de GitH
 - Project: pinnacle-alex-bot
 
 ### GitHub
-- GH_SUPER_TOKEN: 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
+- GH_SUPER_TOKEN: [REDACTED_GITHUB_FINE_PAT]
 - Repo InvestorOS: geocarp24/investor
 
 ### Doppler
-- Access Token: dp.st.dev_personal.h35wlNDdOYhUDLhXPW8S8uZWp9KjFzzZ6H3uvlslO7U
+- Access Token: [REDACTED_DOPPLER_TOKEN]
 - Project: pinnacle-social-publisher / config: dev_personal
 
 ### Meta / Facebook
@@ -2167,7 +2167,7 @@ Anti-regression: cualquier sesion futura de ALEX que no encuentre tokens de GitH
 - Token Secret: as-kPz0NLEDonwmynOE6boh9i
 
 ### HuggingFace
-- Token: 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
+- Token: [REDACTED_HF_TOKEN]
 
 ### Repo InvestorOS
 - github.com/geocarp24/investor (privado, vacío — setup en progreso 2026-05-09)
@@ -2179,9 +2179,9 @@ Anti-regression: cualquier sesion futura de ALEX que no encuentre tokens de GitH
 ## 2026-05-09 — CREDENCIALES INVESTOROS COMPLETAS (CONFIDENCIAL — NO IMPRIMIR EN OUTPUTS)
 
 ### Supabase InvestorOS
-- Project URL: https://kyatblshmtwawtwxdjmv.supabase.co
+- Project URL: https://kya[REDACTED_AIRTABLE_TABLE_ID].supabase.co
 - Publishable Key: sb_publishable_s2ibgr0hxtv-prkfR3feeA_FAz75Gja
-- Database URL: postgresql://postgres:Claudecode2026@db.kyatblshmtwawtwxdjmv.supabase.co:5432/postgres
+- Database URL: postgresql://postgres:Claudecode2026@db.kya[REDACTED_AIRTABLE_TABLE_ID].supabase.co:5432/postgres
 
 ### Google OAuth InvestorOS
 - Client ID: 26650922402-fo09go130k5akoknd5vkluii49uv8tvk.apps.googleusercontent.com
@@ -2190,11 +2190,11 @@ Anti-regression: cualquier sesion futura de ALEX que no encuentre tokens de GitH
 - Project: pinnacle-alex-bot
 
 ### GitHub
-- GH_SUPER_TOKEN: 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
+- GH_SUPER_TOKEN: [REDACTED_GITHUB_FINE_PAT]
 - Repo InvestorOS: geocarp24/investor (privado, vacío — setup en progreso 2026-05-09)
 
 ### Doppler
-- Access Token: dp.st.dev_personal.h35wlNDdOYhUDLhXPW8S8uZWp9KjFzzZ6H3uvlslO7U
+- Access Token: [REDACTED_DOPPLER_TOKEN]
 - Project: pinnacle-social-publisher / config: dev_personal
 
 ### Meta / Facebook
@@ -2215,7 +2215,7 @@ Anti-regression: cualquier sesion futura de ALEX que no encuentre tokens de GitH
 - Token Secret: as-kPz0NLEDonwmynOE6boh9i
 
 ### HuggingFace
-- Token: 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
+- Token: [REDACTED_HF_TOKEN]
 
 ### Stack InvestorOS confirmado
 - Next.js 15 + App Router + TypeScript
@@ -2232,9 +2232,9 @@ Anti-regression: cualquier sesion futura de ALEX que no encuentre tokens de GitH
 ## 2026-05-09 — CREDENCIALES INVESTOROS COMPLETAS (CONFIDENCIAL — NO IMPRIMIR EN OUTPUTS)
 
 ### Supabase InvestorOS
-- Project URL: https://kyatblshmtwawtwxdjmv.supabase.co
+- Project URL: https://kya[REDACTED_AIRTABLE_TABLE_ID].supabase.co
 - Publishable Key: sb_publishable_s2ibgr0hxtv-prkfR3feeA_FAz75Gja
-- Database URL: postgresql://postgres:Claudecode2026@db.kyatblshmtwawtwxdjmv.supabase.co:5432/postgres
+- Database URL: postgresql://postgres:Claudecode2026@db.kya[REDACTED_AIRTABLE_TABLE_ID].supabase.co:5432/postgres
 
 ### Google OAuth InvestorOS
 - Client ID: 26650922402-fo09go130k5akoknd5vkluii49uv8tvk.apps.googleusercontent.com
@@ -2243,11 +2243,11 @@ Anti-regression: cualquier sesion futura de ALEX que no encuentre tokens de GitH
 - Project: pinnacle-alex-bot
 
 ### GitHub
-- GH_SUPER_TOKEN: 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
+- GH_SUPER_TOKEN: [REDACTED_GITHUB_FINE_PAT]
 - Repo InvestorOS: geocarp24/investor (privado, vacío — setup en progreso 2026-05-09)
 
 ### Doppler
-- Access Token: dp.st.dev_personal.h35wlNDdOYhUDLhXPW8S8uZWp9KjFzzZ6H3uvlslO7U
+- Access Token: [REDACTED_DOPPLER_TOKEN]
 - Project: pinnacle-social-publisher / config: dev_personal
 
 ### Meta / Facebook
@@ -2268,7 +2268,7 @@ Anti-regression: cualquier sesion futura de ALEX que no encuentre tokens de GitH
 - Token Secret: as-kPz0NLEDonwmynOE6boh9i
 
 ### HuggingFace
-- Token: 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
+- Token: [REDACTED_HF_TOKEN]
 
 ### Stack InvestorOS confirmado
 - Next.js 15 + App Router + TypeScript

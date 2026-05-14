@@ -47,10 +47,10 @@ Si ninguno de la tabla aplica pero hay un skill cuya descripción matchea la tar
 ### 1h. SOCIAL MEDIA — 3 TABLAS + BILINGÜE SEPARADO (orden directa Jorge 2026-05-07)
 **REGLA NO NEGOCIABLE — Arquitectura SM Manager production:**
 
-**3 tablas Airtable separadas** (base `appU9s3kGkVpdrJkw`):
-- `Posts` (`tblE3lz6XNcBNgpg5`) — single-frame IG/FB feed posts
-- `Reels` (`tblhbg4JSm2iND3Cs`) — vertical 8-10s, 5 slides × 2s explícitos (`Slide_1_Hook`, `Slide_2_Text`+`Slide_2_Visual`, `Slide_3_*`, `Slide_4_*`, `Slide_5_CTA`)
-- `Videos` (`tblbjYosR1tpnjRV0`) — long-form 30-60s con `Hook` + `Main_Message` + `Script_Outline` + timecodes
+**3 tablas Airtable separadas** (base `[REDACTED_AIRTABLE_BASE_ID]`):
+- `Posts` (`[REDACTED_AIRTABLE_TABLE_ID]`) — single-frame IG/FB feed posts
+- `Reels` (`[REDACTED_AIRTABLE_TABLE_ID]`) — vertical 8-10s, 5 slides × 2s explícitos (`Slide_1_Hook`, `Slide_2_Text`+`Slide_2_Visual`, `Slide_3_*`, `Slide_4_*`, `Slide_5_CTA`)
+- `Videos` (`[REDACTED_AIRTABLE_TABLE_ID]`) — long-form 30-60s con `Hook` + `Main_Message` + `Script_Outline` + timecodes
 
 **Bilingüe = records separados**: cada idea genera **2 records** (1 ES + 1 EN) linked por `Source_Idea_ID` UUID. NO mezclar ES + EN en el mismo record/render. Cada record es mono-idioma.
 
@@ -318,7 +318,7 @@ Flujo recomendado:
 
 **Template único para carruseles:** `53cfec04-2500-41cf-8cc1-ba670d2c341a` (AI Slide Generator)
 **5 temas de color disponibles:** T1 Dark Premium (default) | T2 White Clean | T3 Gold & Black | T4 Soft Cream | T5 Vibrant Blue
-**Credenciales Social Media Airtable:** Base `appU9s3kGkVpdrJkw` | Token en `agents/social_media.md`
+**Credenciales Social Media Airtable:** Base `[REDACTED_AIRTABLE_BASE_ID]` | Token en `agents/social_media.md`
 **Cuentas Blotato:** FB accountId=25638 pageId=965320503341457 | IG accountId=39285
 
 ---
@@ -329,45 +329,45 @@ Tienes acceso completo de lectura y escritura a las tablas de Airtable del Jefe.
 
 **CREDENCIALES (usar siempre estas):**
 ```
-AIRTABLE_TOKEN:   patQXGBEGdmbhGRfi.81e226fee4638f95bba27a57003465dd930d9e977d8b4dc7ac372c1b60dd087b
-AIRTABLE_BASE_ID: appfQbDA750Oihy9J
-BASE_URL:         https://api.airtable.com/v0/appfQbDA750Oihy9J
+AIRTABLE_TOKEN:   [REDACTED_AIRTABLE_PAT]
+AIRTABLE_BASE_ID: [REDACTED_AIRTABLE_BASE_ID]
+BASE_URL:         https://api.airtable.com/v0/[REDACTED_AIRTABLE_BASE_ID]
 ```
 
 Header de autenticación en TODOS los requests:
 ```
--H "Authorization: Bearer patQXGBEGdmbhGRfi.81e226fee4638f95bba27a57003465dd930d9e977d8b4dc7ac372c1b60dd087b"
+-H "Authorization: Bearer [REDACTED_AIRTABLE_PAT]"
 -H "Content-Type: application/json"
 ```
 
 **TABLAS DISPONIBLES:**
 | Tabla | Table ID |
 |-------|----------|
-| Contacts | `tblacvw0Ss770x8l5` |
-| Leads | `tblxZz2EWIglOLnEd` |
-| Deals | `tbliaEKxBHKBx7ZK2` |
-| Notes & Activity | `tbleOBXJl7sDhwj5w` |
+| Contacts | `[REDACTED_AIRTABLE_TABLE_ID]` |
+| Leads | `[REDACTED_AIRTABLE_TABLE_ID]` |
+| Deals | `[REDACTED_AIRTABLE_TABLE_ID]` |
+| Notes & Activity | `[REDACTED_AIRTABLE_TABLE_ID]` |
 
 **OPERACIONES — usar Bash con curl:**
 
 ```bash
 # LEER todos los registros de una tabla
-curl -s "https://api.airtable.com/v0/appfQbDA750Oihy9J/{TABLE_ID}" \
-  -H "Authorization: Bearer patQXGBEGdmbhGRfi.81e226fee4638f95bba27a57003465dd930d9e977d8b4dc7ac372c1b60dd087b"
+curl -s "https://api.airtable.com/v0/[REDACTED_AIRTABLE_BASE_ID]/{TABLE_ID}" \
+  -H "Authorization: Bearer [REDACTED_AIRTABLE_PAT]"
 
 # FILTRAR registros
-curl -s "https://api.airtable.com/v0/appfQbDA750Oihy9J/{TABLE_ID}?filterByFormula={Stage}='New Lead'" \
-  -H "Authorization: Bearer patQXGBEGdmbhGRfi.81e226fee4638f95bba27a57003465dd930d9e977d8b4dc7ac372c1b60dd087b"
+curl -s "https://api.airtable.com/v0/[REDACTED_AIRTABLE_BASE_ID]/{TABLE_ID}?filterByFormula={Stage}='New Lead'" \
+  -H "Authorization: Bearer [REDACTED_AIRTABLE_PAT]"
 
 # CREAR un registro nuevo
-curl -s -X POST "https://api.airtable.com/v0/appfQbDA750Oihy9J/{TABLE_ID}" \
-  -H "Authorization: Bearer patQXGBEGdmbhGRfi.81e226fee4638f95bba27a57003465dd930d9e977d8b4dc7ac372c1b60dd087b" \
+curl -s -X POST "https://api.airtable.com/v0/[REDACTED_AIRTABLE_BASE_ID]/{TABLE_ID}" \
+  -H "Authorization: Bearer [REDACTED_AIRTABLE_PAT]" \
   -H "Content-Type: application/json" \
   -d '{"fields": {"Campo": "valor"}}'
 
 # ACTUALIZAR un registro existente
-curl -s -X PATCH "https://api.airtable.com/v0/appfQbDA750Oihy9J/{TABLE_ID}/{RECORD_ID}" \
-  -H "Authorization: Bearer patQXGBEGdmbhGRfi.81e226fee4638f95bba27a57003465dd930d9e977d8b4dc7ac372c1b60dd087b" \
+curl -s -X PATCH "https://api.airtable.com/v0/[REDACTED_AIRTABLE_BASE_ID]/{TABLE_ID}/{RECORD_ID}" \
+  -H "Authorization: Bearer [REDACTED_AIRTABLE_PAT]" \
   -H "Content-Type: application/json" \
   -d '{"fields": {"Campo": "nuevo_valor"}}'
 ```
