@@ -82,7 +82,8 @@
       "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('Name:', d.get\\('name'\\)\\); print\\('Description:', d.get\\('description'\\)\\); print\\('URL:', d.get\\('url'\\)\\); print\\('Namespaces:', d.get\\('namespaces', []\\)[:5]\\)\")",
       "Bash(python -m json.tool)",
       "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(f\\\\\"  {b['id']:25s} | {b['name']:40s} | {b['permissionLevel']}\\\\\"\\) for b in d.get\\('bases',[]\\)]\")",
-      "Bash(mkdir -p \"C:/Users/Admin/OneDrive/Documents/Geo-Carpentry-Repo/automation/airtable\" \"C:/Users/Admin/OneDrive/Documents/Geo-Carpentry-Repo/automation/templates\" 2>&1; echo \"Folders created\")"
+      "Bash(mkdir -p \"C:/Users/Admin/OneDrive/Documents/Geo-Carpentry-Repo/automation/airtable\" \"C:/Users/Admin/OneDrive/Documents/Geo-Carpentry-Repo/automation/templates\" 2>&1; echo \"Folders created\")",
+      "Bash(AIRTABLE_TOKEN='patwG8l0VzYEf3kkr.247abaf696c600702e49a29557ece1839c28cee5f91012dba6566908718fd82f' PYTHONIOENCODING=utf-8 python automation/airtable/populate_base.py --base-id appAQpveuAec077jF --rename-table1)"
     ],
     "additionalDirectories": [
       "C:\\Users\\Admin\\OneDrive\\Documents\\Geo-Carpentry-Repo\\automation"
