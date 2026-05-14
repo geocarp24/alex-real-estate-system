@@ -83,7 +83,17 @@
       "Bash(python -m json.tool)",
       "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(f\\\\\"  {b['id']:25s} | {b['name']:40s} | {b['permissionLevel']}\\\\\"\\) for b in d.get\\('bases',[]\\)]\")",
       "Bash(mkdir -p \"C:/Users/Admin/OneDrive/Documents/Geo-Carpentry-Repo/automation/airtable\" \"C:/Users/Admin/OneDrive/Documents/Geo-Carpentry-Repo/automation/templates\" 2>&1; echo \"Folders created\")",
-      "Bash(AIRTABLE_TOKEN='patwG8l0VzYEf3kkr.247abaf696c600702e49a29557ece1839c28cee5f91012dba6566908718fd82f' PYTHONIOENCODING=utf-8 python automation/airtable/populate_base.py --base-id appAQpveuAec077jF --rename-table1)"
+      "Bash(AIRTABLE_TOKEN='patwG8l0VzYEf3kkr.247abaf696c600702e49a29557ece1839c28cee5f91012dba6566908718fd82f' PYTHONIOENCODING=utf-8 python automation/airtable/populate_base.py --base-id appAQpveuAec077jF --rename-table1)",
+      "Bash(sshpass -p 'Claudecode2026##' ssh -o StrictHostKeyChecking=no -p 65002 u433637438@156.67.74.243 \"cd domains/geocarpentry.com/public_html && php wp-cli.phar post list --post_type=page --fields=ID,post_title,post_name,post_status --allow-root 2>&1 | head -40\")",
+      "PowerShell(Get-Command plink, ssh, sshpass -ErrorAction SilentlyContinue)",
+      "PowerShell($cmds = @\\('plink','ssh','sshpass'\\); foreach \\($c in $cmds\\) { try { $g = Get-Command $c -ErrorAction Stop; Write-Output \"$c -> $\\($g.Source\\)\" } catch { Write-Output \"$c -> not found\" } })",
+      "PowerShell(foreach \\($r in '8.8.8.8','1.1.1.1','9.9.9.9'\\) { Write-Output \"=== Resolver $r ===\"; try { Resolve-DnsName -Name geocarpentry.com -Server $r -Type A -ErrorAction Stop | Select-Object Name, IPAddress, TTL | Format-Table -AutoSize | Out-String } catch { Write-Output \"no answer: $_\" } })",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri 'https://geocarpentry.com' -Method Head -MaximumRedirection 0 -TimeoutSec 10 -ErrorAction Stop; Write-Output \"STATUS: $\\($r.StatusCode\\) | Server: $\\($r.Headers.Server\\)\" } catch { Write-Output \"ERROR: $\\($_.Exception.Message\\)\" })",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri 'http://geocarpentry.com' -Method Get -MaximumRedirection 5 -TimeoutSec 15 -ErrorAction Stop; Write-Output \"STATUS: $\\($r.StatusCode\\) | Final URL: $\\($r.BaseResponse.ResponseUri\\) | Server: $\\($r.Headers.Server\\)\" } catch { Write-Output \"ERROR: $\\($_.Exception.Message\\)\" })",
+      "PowerShell(try { Install-Module -Name Posh-SSH -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop; Write-Output \"Posh-SSH installed OK\" } catch { Write-Output \"Install failed: $\\($_.Exception.Message\\)\" })",
+      "PowerShell(try { Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction SilentlyContinue; Install-Module -Name Posh-SSH -Scope CurrentUser -Force -AllowClobber -SkipPublisherCheck -ErrorAction Stop -Confirm:$false; Write-Output \"Posh-SSH installed OK\" } catch { Write-Output \"Install failed: $\\($_.Exception.Message\\)\" })",
+      "PowerShell($tools = @\\('expect','wsl','curl','choco','winget','python','python3'\\); foreach \\($t in $tools\\) { try { $g = Get-Command $t -ErrorAction Stop; Write-Output \"$t -> $\\($g.Source\\)\" } catch { Write-Output \"$t -> not found\" } })",
+      "PowerShell(python -c \"import paramiko; print\\('paramiko version:', paramiko.__version__\\)\" 2>&1)"
     ],
     "additionalDirectories": [
       "C:\\Users\\Admin\\OneDrive\\Documents\\Geo-Carpentry-Repo\\automation"
