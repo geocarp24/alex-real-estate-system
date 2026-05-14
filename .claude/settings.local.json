@@ -66,7 +66,11 @@
       "Bash(gh auth *)",
       "Bash(python -c \"import json,sys; repos=json.load\\(sys.stdin\\); [print\\(f\\\\\"  {r['name']:30s} [{r['visibility']:7s}]  pushed {r['pushedAt'][:10]}\\\\\"\\) for r in repos]\")",
       "Bash(Get-ChildItem -Recurse -Filter \"*.md\")",
-      "Bash(Select-Object FullName)"
+      "Bash(Select-Object FullName)",
+      "Bash(Get-ChildItem -Force)",
+      "Bash(Select-Object Mode, Name)",
+      "Bash(Format-Table -AutoSize)",
+      "Bash(awk '{print $NF}')"
     ]
   },
   "hooks": {
