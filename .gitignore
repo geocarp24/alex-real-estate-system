@@ -38,3 +38,6 @@ ALEX_PROJECT_CONTEXT.md
 # OAuth tokens (regenerated at runtime, NEVER version)
 **/google_token.json
 **/oauth_tokens/**
+node_modules/
+Cirle PDF/
+backups/
