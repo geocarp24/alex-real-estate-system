@@ -62,7 +62,9 @@
       "Bash(sed -n '260,270p' .github/workflows/agents-cron.yml)",
       "Bash(sed -n '73,80p' .github/workflows/deploy-vps-bot.yml)",
       "Bash(gh workflow *)",
-      "Bash(sed -n /^on:/,/^[a-z]/p C:/Users/Admin/OneDrive/Documents/InvestorOS/.github/workflows/__TRACKED_VAR__.yml)"
+      "Bash(sed -n /^on:/,/^[a-z]/p C:/Users/Admin/OneDrive/Documents/InvestorOS/.github/workflows/__TRACKED_VAR__.yml)",
+      "Bash(gh auth *)",
+      "Bash(python -c \"import json,sys; repos=json.load\\(sys.stdin\\); [print\\(f\\\\\"  {r['name']:30s} [{r['visibility']:7s}]  pushed {r['pushedAt'][:10]}\\\\\"\\) for r in repos]\")"
     ]
   },
   "hooks": {
