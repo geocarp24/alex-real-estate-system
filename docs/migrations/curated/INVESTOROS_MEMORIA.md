@@ -1681,7 +1681,7 @@ Todo lo que se construya para Pinnacle debe diseñarse desde el día 1 como **pr
   - Threshold adjust válido → PASS
   - Classifier extension válida → PASS
 
-**4. Apply + validate (`[REDACTED_AIRTABLE_BASE_ID]date`):**
+**4. Apply + validate (`applyPatchAndValidate`):**
 - Verifica que `search` aparece exactamente UNA vez en el archivo (sin ambigüedad).
 - Aplica el reemplazo + escribe.
 - Para `.mjs`: corre `node --check`. Si falla → revierte automáticamente.
@@ -2131,13 +2131,13 @@ Anti-regression: cualquier sesion futura de ALEX que no encuentre tokens de GitH
 ## 2026-05-09 — CREDENCIALES INVESTOROS (CONFIDENCIAL — NO IMPRIMIR EN OUTPUTS)
 
 ### Supabase InvestorOS
-- Project URL: https://kya[REDACTED_AIRTABLE_TABLE_ID].supabase.co
-- Publishable Key: sb_publishable_s2ibgr0hxtv-prkfR3feeA_FAz75Gja
-- Database URL: postgresql://postgres:Claudecode2026@db.kya[REDACTED_AIRTABLE_TABLE_ID].supabase.co:5432/postgres
+- Project URL: [REDACTED_SUPABASE_URL]
+- Publishable Key: [REDACTED_SUPABASE_PUBLISHABLE_KEY]
+- Database URL: postgresql://[REDACTED_USER]:[REDACTED_PASS]@[REDACTED_HOST]/[REDACTED_DB]
 
 ### Google OAuth InvestorOS
-- Client ID: 26650922402-fo09go130k5akoknd5vkluii49uv8tvk.apps.googleusercontent.com
-- Client Secret: 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
+- Client ID: [REDACTED_GOOGLE_OAUTH_CLIENT_ID]
+- Client Secret: [REDACTED_GOOGLE_OAUTH_CLIENT_SECRET]
 - Redirect URI: https://investoros.tech/api/auth/callback/google
 - Project: pinnacle-alex-bot
 
@@ -2179,13 +2179,13 @@ Anti-regression: cualquier sesion futura de ALEX que no encuentre tokens de GitH
 ## 2026-05-09 — CREDENCIALES INVESTOROS COMPLETAS (CONFIDENCIAL — NO IMPRIMIR EN OUTPUTS)
 
 ### Supabase InvestorOS
-- Project URL: https://kya[REDACTED_AIRTABLE_TABLE_ID].supabase.co
-- Publishable Key: sb_publishable_s2ibgr0hxtv-prkfR3feeA_FAz75Gja
-- Database URL: postgresql://postgres:Claudecode2026@db.kya[REDACTED_AIRTABLE_TABLE_ID].supabase.co:5432/postgres
+- Project URL: [REDACTED_SUPABASE_URL]
+- Publishable Key: [REDACTED_SUPABASE_PUBLISHABLE_KEY]
+- Database URL: postgresql://[REDACTED_USER]:[REDACTED_PASS]@[REDACTED_HOST]/[REDACTED_DB]
 
 ### Google OAuth InvestorOS
-- Client ID: 26650922402-fo09go130k5akoknd5vkluii49uv8tvk.apps.googleusercontent.com
-- Client Secret: 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
+- Client ID: [REDACTED_GOOGLE_OAUTH_CLIENT_ID]
+- Client Secret: [REDACTED_GOOGLE_OAUTH_CLIENT_SECRET]
 - Redirect URI: https://investoros.tech/api/auth/callback/google
 - Project: pinnacle-alex-bot
 
@@ -2232,13 +2232,13 @@ Anti-regression: cualquier sesion futura de ALEX que no encuentre tokens de GitH
 ## 2026-05-09 — CREDENCIALES INVESTOROS COMPLETAS (CONFIDENCIAL — NO IMPRIMIR EN OUTPUTS)
 
 ### Supabase InvestorOS
-- Project URL: https://kya[REDACTED_AIRTABLE_TABLE_ID].supabase.co
-- Publishable Key: sb_publishable_s2ibgr0hxtv-prkfR3feeA_FAz75Gja
-- Database URL: postgresql://postgres:Claudecode2026@db.kya[REDACTED_AIRTABLE_TABLE_ID].supabase.co:5432/postgres
+- Project URL: [REDACTED_SUPABASE_URL]
+- Publishable Key: [REDACTED_SUPABASE_PUBLISHABLE_KEY]
+- Database URL: postgresql://[REDACTED_USER]:[REDACTED_PASS]@[REDACTED_HOST]/[REDACTED_DB]
 
 ### Google OAuth InvestorOS
-- Client ID: 26650922402-fo09go130k5akoknd5vkluii49uv8tvk.apps.googleusercontent.com
-- Client Secret: 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
+- Client ID: [REDACTED_GOOGLE_OAUTH_CLIENT_ID]
+- Client Secret: [REDACTED_GOOGLE_OAUTH_CLIENT_SECRET]
 - Redirect URI: https://investoros.tech/api/auth/callback/google
 - Project: pinnacle-alex-bot
 

@@ -150,7 +150,7 @@ Jorge 2026-05-07 PM: "check this video ID for futures reference to create a vide
 
 **Intención**: cuando Director v2 genere Reels en el futuro, debe inspirarse en el estilo de este video — eye-catching, diferente del look "normal", para destacar el feed Pinnacle. Es referencia de estética/dinámica de cámara/transiciones, NO de contenido.
 
-**Acción siguiente**: cuando Jorge aclare la plataforma, fetch metadata del video, analizar y documentar atributos (motion style, transitions, color grading, hook timing) para inyectar como template hint en `agents/director_v2/director_v2.mjs::[REDACTED_AIRTABLE_BASE_ID]oRouting()` o como nuevo template arsenal #6.
+**Acción siguiente**: cuando Jorge aclare la plataforma, fetch metadata del video, analizar y documentar atributos (motion style, transitions, color grading, hook timing) para inyectar como template hint en `agents/director_v2/director_v2.mjs::applyTipoContenidoRouting()` o como nuevo template arsenal #6.
 
 ---
 
@@ -409,7 +409,7 @@ Aplica a **TODOS los templates #1-#5** — `buildAssSubtitle` + `buildCombinedAs
    - Polling shared: `GET /v1/video_status.get?video_id=...`
    - **Defaults importantes**: `expressiveness` y `motion_prompt` SIN default (only-if-set) — HeyGen rechaza estos params en `digital_twin` avatars; solo válidos en `photo_avatar`. Pasar `undefined` los excluye del payload.
 
-2. **`director_v2.mjs` `[REDACTED_AIRTABLE_BASE_ID]oRouting` mejorada — Hybrid Personal**:
+2. **`director_v2.mjs` `applyTipoContenidoRouting` mejorada — Hybrid Personal**:
    - Antes: `Tipo=Personal` → todas las scenes vía heygen_avatar (caro y redundante)
    - Ahora: `Tipo=Personal` HYBRID:
      - scenes `layoutType: 'hook'` + `'cta'` → heygen_avatar (Jorge habla)
@@ -736,7 +736,7 @@ Aplica a **TODOS los templates #1-#5** — `buildAssSubtitle` + `buildCombinedAs
 - **Google libs:** ✅ Instaladas en venv (`google-auth`, `google-auth-oauthlib`, `google-api-python-client`)
 - **Comandos Telegram:** `/agenda`, `/agenda semana`, `/cita <fecha> <hora> <nombre> <motivo>`
 - **Estado OAuth — 2026-04-06:** ✅ credentials.json instalado en `secretario/google_creds/credentials.json`
-  - Client ID: `26650922402-186bhh0gb01uho45va1boita1rkulpil.apps.googleusercontent.com`
+  - Client ID: `[REDACTED_GOOGLE_OAUTH_CLIENT_ID]`
   - Proyecto Google Cloud: `pinnacle-alex`
   - `.env` actualizado con `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CREDS_PATH`, `GOOGLE_TOKEN_PATH`
   - Script de autorización: `secretario/auth_google.py`
@@ -2663,8 +2663,8 @@ La regla aplica desde YA (2026-05-08) y aplica retroactivamente a A12 + A14 que 
 
 ### Sprint A12 + A14 — cierre 2026-05-08
 **Sprint A12 — SM Manager force format mix** (143 tests passing):
-- Archivo modificado: `agents/social_media/theme_bank_loader.mjs` (agregada `WEEKLY_FORMAT_MIX` + `[REDACTED_AIRTABLE_BASE_ID]bution`)
-- Archivo modificado: `agents/social_media/social_media.mjs` (generateIdeas usa [REDACTED_AIRTABLE_BASE_ID]bution + force format en records)
+- Archivo modificado: `agents/social_media/theme_bank_loader.mjs` (agregada `WEEKLY_FORMAT_MIX` + `applyFormatDistribution`)
+- Archivo modificado: `agents/social_media/social_media.mjs` (generateIdeas usa applyFormatDistribution + force format en records)
 - Archivo nuevo: `agents/social_media/test/format_distribution.test.mjs` (9 tests)
 - Resultado: cada batch_weekly ahora genera EXACTAMENTE 42 Posts + 28 Reels + 8 Videos (= 78). Slot inventory matched.
 
@@ -2682,7 +2682,7 @@ La regla aplica desde YA (2026-05-08) y aplica retroactivamente a A12 + A14 que 
 
 ### Sprint A12+A14+A13 — Track 1 maquina Reels/Videos AL 100% (2026-05-08 cierre)
 **A12 SM Manager force format mix 42/28/8** (138 tests passing):
-- agents/social_media/theme_bank_loader.mjs: WEEKLY_FORMAT_MIX + [REDACTED_AIRTABLE_BASE_ID]bution
+- agents/social_media/theme_bank_loader.mjs: WEEKLY_FORMAT_MIX + applyFormatDistribution
 - agents/social_media/social_media.mjs: integracion en generateIdeas + force format en records
 - agents/social_media/test/format_distribution.test.mjs: tests
 - Cada batch_weekly genera 42 Posts + 28 Reels + 8 Videos exacto

@@ -97,6 +97,12 @@ PATTERNS: list[tuple[str, str, str]] = [
     (r'\bu[0-9]{9}@[a-z0-9.-]+\.com\b', '[REDACTED_SSH_ACCOUNT]', 'SSH account'),
     # Generic "PASSWORD: foo" / "TOKEN: foo" not caught by named (after named pattern so it doesn't over-shadow)
     (r'\b(SECRET|PASSWORD|TOKEN|API_KEY)\s*[:=]\s*["\']?([A-Za-z0-9._-]{12,})["\']?', r'\1=[REDACTED]', 'generic SECRET/PASSWORD/TOKEN'),
+    # UUID values that appear after credential keywords (handles markdown bold/code formatting)
+    (r'(?i)(api[\W_]*key|access[\W_]*token|auth(?:orization)?[\W_]*token|secret[\W_]*key|client[\W_]*secret|webhook[\W_]*token|token|secret|password)[\s:=*_`<>"\']+([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b', r'\1: [REDACTED_UUID_CREDENTIAL]', 'UUID after credential keyword'),
+    # "Authorization: Token <uuid>" — explicit header
+    (r'Authorization:\s*Token\s+[0-9a-f-]+', 'Authorization: Token [REDACTED]', 'Authorization Token header'),
+    # Bare passwords in URL-like patterns user:password@host
+    (r'://([^:/\s]+):([A-Za-z0-9._@!#$%^&*-]{6,})@', '://[REDACTED_USER]:[REDACTED_PASS]@', 'URL-style user:password'),
 ]
 
 

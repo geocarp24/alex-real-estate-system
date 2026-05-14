@@ -172,7 +172,7 @@ Detalle completo en `memoria_ALex.md` raíz.
 - `detectImprovementOpportunities()` — class A: unknown ≥3 occurrences. Class B: no_effect ≥5 occurrences.
 - `proposeSelfPatch()` — Sonnet 4.6 propone JSON `{file, change_type, search, replace, rationale, test_plan}`.
 - `validatePatch()` — file whitelist + change_type whitelist + forbidden patterns regex + diff size cap.
-- `[REDACTED_AIRTABLE_BASE_ID]date()` — auto-revert si syntax falla (`node --check` + `JSON.parse`).
+- `applyPatchAndValidate()` — auto-revert si syntax falla (`node --check` + `JSON.parse`).
 - `gitCommitAndPushBranch()` + `createDraftPR()` via GitHub REST API.
 - Hard caps: max 3 open auto-PRs total → freeze. Max 1/run. Max 50 diff lines. Solo evolve mode.
 - Telegram alert con PR link.
