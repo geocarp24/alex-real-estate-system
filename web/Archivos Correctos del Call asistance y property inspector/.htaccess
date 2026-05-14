@@ -1,0 +1,21 @@
+# ============================================================
+#  PINNACLE — Seguridad de la carpeta Tools
+#  Protege config.php de acceso directo desde el navegador
+# ============================================================
+
+# Bloquear acceso directo a config.php
+<Files "config.php">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+# Bloquear acceso a archivos de sesiones si se generan aquí
+<Files "*.json">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+# Opcional: forzar HTTPS (descomenta si quieres activarlo)
+# RewriteEngine On
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]

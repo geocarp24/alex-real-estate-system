@@ -1,0 +1,6 @@
+# Credenciales — NUNCA subir
+config.php
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pinnacle — Airtable Uploader v2</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0a1628; color: #e2e8f0; min-height: 100vh; padding: 20px; }
+  .header { text-align: center; padding: 24px 20px 16px; }
+  .logo { font-size: 24px; font-weight: 800; color: #10b981; }
+  .subtitle { color: #64748b; margin-top: 4px; font-size: 13px; }
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; margin: 12px 0; }
+  .card-title { font-size: 14px; font-weight: 700; color: #10b981; margin-bottom: 12px; }
+  .btn { padding: 12px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; width: 100%; margin: 8px 0; }
+  .btn-green { background: #10b981; color: white; }
+  .btn-green:hover { background: #059669; }
+  .btn-green:disabled { background: #374151; cursor: not-allowed; }
+  .btn-blue { background: #3b82f6; color: white; }
+  .btn-blue:hover { background: #2563eb; }
+  .btn-red { background: #ef4444; color: white; font-size: 12px; padding: 8px 16px; width: auto; }
+  .log { background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 12px; max-height: 250px; overflow-y: auto; font-family: monospace; font-size: 12px; margin: 8px 0; }
+  .log p { padding: 3px 0; border-bottom: 1px solid #1e293b; }
+  .ok { color: #10b981; }
+  .err { color: #ef4444; }
+  .info { color: #60a5fa; }
+  .warn { color: #f59e0b; }
+  .progress-bar { background: #0f172a; border-radius: 8px; height: 8px; overflow: hidden; margin: 8px 0; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #10b981, #34d399); transition: width 0.3s; border-radius: 8px; }
+  .fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; }
+  .field-tag { background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 6px 10px; font-size: 11px; color: #94a3b8; }
+  .field-tag.found { border-color: #10b981; color: #10b981; }
+  .field-tag.missing { border-color: #ef4444; color: #ef4444; }
+  .status-row { display: flex; justify-content: space-between; align-items: center; margin: 4px 0; font-size: 13px; }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+  .badge-ok { background: #064e3b; color: #10b981; }
+  .badge-err { background: #450a0a; color: #ef4444; }
+  .badge-wait { background: #1e293b; color: #64748b; }
+  input, select { background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 8px 12px; color: #e2e8f0; font-size: 13px; width: 100%; margin: 4px 0; }
+  label { font-size: 12px; color: #64748b; margin-top: 8px; display: block; }
+  .section { margin: 16px 0; }
+  .divider { border: none; border-top: 1px solid #1e293b; margin: 16px 0; }
+  .alert-box { background: #1c1917; border-left: 3px solid #f59e0b; border-radius: 6px; padding: 12px; font-size: 12px; color: #d97706; margin: 8px 0; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">🏠 PINNACLE HOLDINGS GROUP</div>
+  <div class="subtitle">Airtable Content Uploader v2 — Con detección automática de campos</div>
+</div>
+
+<!-- PASO 1: Verificar conexión -->
+<div class="card">
+  <div class="card-title">📡 PASO 1 — Verificar Conexión con Airtable</div>
+  <div class="status-row">
+    <span>Token de Airtable</span>
+    <span class="badge badge-ok">✅ Configurado</span>
+  </div>
+  <div class="status-row">
+    <span>Base ID</span>
+    <span class="badge badge-ok">✅ [REDACTED_AIRTABLE_BASE_ID]</span>
+  </div>
+  <div class="status-row">
+    <span>Tabla destino</span>
+    <span class="badge badge-wait" id="table-status">⏳ Por verificar</span>
+  </div>
+  <button class="btn btn-blue" onclick="verificarConexion()">🔍 Verificar Conexión y Ver Campos Reales</button>
+  <div class="log" id="log-conexion" style="display:none;"></div>
+</div>
+
+<!-- PASO 2: Campos detectados -->
+<div class="card" id="step2" style="display:none;">
+  <div class="card-title">🗂️ PASO 2 — Campos Detectados en tu Tabla</div>
+  <div class="alert-box" id="campos-alert"></div>
+  <div class="fields-grid" id="campos-grid"></div>
+  <hr class="divider">
+  <div class="card-title" style="margin-top:8px;">⚙️ Ajustar nombre de la tabla si es necesario</div>
+  <label>Nombre exacto de tu tabla en Airtable:</label>
+  <input type="text" id="table-name-input" value="Ideas de Contenido" />
+  <button class="btn btn-blue" onclick="verificarConexion()" style="margin-top:8px;">🔄 Reintentar con este nombre</button>
+</div>
+
+<!-- PASO 3: Subir ideas -->
+<div class="card" id="step3" style="display:none;">
+  <div class="card-title">🚀 PASO 3 — Subir las 12 Ideas a Airtable</div>
+  <div class="status-row">
+    <span id="upload-counter">0 de 12 ideas subidas</span>
+    <span id="upload-badge" class="badge badge-wait">⏳ Pendiente</span>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  <button class="btn btn-green" id="upload-btn" onclick="subirTodo()">🚀 Subir Todas las Ideas Ahora</button>
+  <div class="log" id="log-upload" style="display:none;"></div>
+</div>
+
+<!-- PASO 4: Resultado -->
+<div class="card" id="step4" style="display:none;">
+  <div class="card-title">✅ Resultado Final</div>
+  <div id="resultado-texto" style="font-size:14px; line-height:1.8;"></div>
+</div>
+
+<script>
+const TOKEN = "[REDACTED_AIRTABLE_PAT]";
+const BASE_ID = "[REDACTED_AIRTABLE_BASE_ID]";
+let camposReales = [];
+let tableName = "Ideas de Contenido";
+
+function addLog(logId, msg, type = 'info') {
+  const log = document.getElementById(logId);
+  log.style.display = 'block';
+  const p = document.createElement('p');
+  p.className = type;
+  p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  log.appendChild(p);
+  log.scrollTop = log.scrollHeight;
+}
+
+async function verificarConexion() {
+  tableName = document.getElementById('table-name-input')?.value || "Ideas de Contenido";
+  const logId = 'log-conexion';
+  document.getElementById('log-conexion').innerHTML = '';
+  addLog(logId, `Conectando con Airtable...`, 'info');
+  addLog(logId, `Buscando tabla: "${tableName}"`, 'info');
+
+  try {
+    // Get schema
+    const res = await fetch(`https://api.airtable.com/v0/meta/bases/${BASE_ID}/tables`, {
+      headers: { 'Authorization': `Bearer ${TOKEN}` }
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      addLog(logId, `❌ Error de autenticación: ${data.error?.message || JSON.stringify(data)}`, 'err');
+      return;
+    }
+
+    addLog(logId, `✅ Conexión exitosa. Bases encontradas: ${data.tables.length} tablas.`, 'ok');
+
+    const allTables = data.tables.map(t => t.name);
+    addLog(logId, `📋 Tablas disponibles: ${allTables.join(' | ')}`, 'info');
+
+    // Find matching table (case insensitive)
+    const tabla = data.tables.find(t => 
+      t.name.toLowerCase() === tableName.toLowerCase() ||
+      t.name.toLowerCase().includes('idea') ||
+      t.name.toLowerCase().includes('content')
+    );
+
+    if (!tabla) {
+      addLog(logId, `⚠️ No encontré tabla "${tableName}". Tablas disponibles: ${allTables.join(', ')}`, 'warn');
+      addLog(logId, `👆 Corrige el nombre de la tabla arriba y presiona Reintentar.`, 'warn');
+      document.getElementById('table-status').textContent = '❌ Tabla no encontrada';
+      document.getElementById('table-status').className = 'badge badge-err';
+      document.getElementById('step2').style.display = 'block';
+      document.getElementById('campos-alert').textContent = `Tabla "${tableName}" no encontrada. Tablas disponibles: ${allTables.join(', ')}`;
+      document.getElementById('table-name-input').value = allTables[0] || '';
+      return;
+    }
+
+    addLog(logId, `✅ Tabla encontrada: "${tabla.name}"`, 'ok');
+    tableName = tabla.name;
+    document.getElementById('table-name-input').value = tableName;
+    document.getElementById('table-status').textContent = `✅ ${tabla.name}`;
+    document.getElementById('table-status').className = 'badge badge-ok';
+
+    camposReales = tabla.fields.map(f => f.name);
+    addLog(logId, `📊 Campos en la tabla (${camposReales.length}): ${camposReales.join(', ')}`, 'ok');
+
+    // Show detected fields
+    mostrarCampos();
+    document.getElementById('step2').style.display = 'block';
+    document.getElementById('step3').style.display = 'block';
+
+  } catch (err) {
+    addLog(logId, `❌ Error de red: ${err.message}`, 'err');
+    addLog(logId, `ℹ️ Verifica tu conexión a internet.`, 'warn');
+  }
+}
+
+function mostrarCampos() {
+  const missCampos = ['Título de Idea','Hook','Mensaje Principal','CTA','Caption EN','Caption ES','Hashtags','Formato','Plataforma','Tipo','Status','Semana #'];
+  const grid = document.getElementById('campos-grid');
+  grid.innerHTML = '';
+
+  missCampos.forEach(campo => {
+    const found = camposReales.some(c => c.toLowerCase() === campo.toLowerCase());
+    const div = document.createElement('div');
+    div.className = `field-tag ${found ? 'found' : 'missing'}`;
+    div.textContent = `${found ? '✅' : '❌'} ${campo}`;
+    grid.appendChild(div);
+  });
+
+  const missing = missCampos.filter(c => !camposReales.some(r => r.toLowerCase() === c.toLowerCase()));
+  if (missing.length > 0) {
+    document.getElementById('campos-alert').textContent = `⚠️ ${missing.length} campos no encontrados: ${missing.join(', ')}. Se subirán solo los campos que existen.`;
+  } else {
+    document.getElementById('campos-alert').textContent = `✅ Todos los campos coinciden perfectamente.`;
+    document.getElementById('campos-alert').style.borderColor = '#10b981';
+    document.getElementById('campos-alert').style.color = '#10b981';
+  }
+}
+
+// Build fields object matching only real fields
+function buildFields(idea) {
+  const mapping = {
+    'título de idea': idea.titulo,
+    'titulo de idea': idea.titulo,
+    'título': idea.titulo,
+    'nombre': idea.titulo,
+    'hook': idea.hook,
+    'mensaje principal': idea.mensaje,
+    'mensaje': idea.mensaje,
+    'cta': idea.cta,
+    'caption en': idea.caption_en,
+    'caption es': idea.caption_es,
+    'caption español': idea.caption_es,
+    'hashtags': idea.hashtags,
+    'formato': idea.formato,
+    'plataforma': idea.plataforma,
+    'tipo': idea.tipo,
+    'status': 'Nueva',
+    'estado': 'Nueva',
+    'semana #': idea.semana,
+    'semana': idea.semana,
+    'semana num': idea.semana,
+  };
+
+  const fields = {};
+  camposReales.forEach(campo => {
+    const key = campo.toLowerCase();
+    if (mapping[key] !== undefined) {
+      fields[campo] = mapping[key];
+    }
+  });
+  return fields;
+}
+
+const ideas = [
+  { titulo: "S1 - Lanzamiento: ¿Quién es Jorge Cruz?", hook: "🏠 ¿Buscas vender tu casa rápido en Wisconsin? Hay algo que necesitas saber...", mensaje: "Soy Jorge Cruz, dueño de Pinnacle Holdings Group LLC. Compramos casas en efectivo en cualquier condición — sin reparaciones, sin comisiones, cierre en 7-14 días. Hablamos español.", cta: "📞 Llama o escribe: (920) 777-9886", caption_en: "🏠 Meet Jorge Cruz — Green Bay's local cash home buyer.\n\nI buy houses for cash throughout Wisconsin. Any condition, any situation.\n✅ No repairs needed\n✅ No realtor commissions\n✅ Close in 7-14 days\n🇲🇽 Hablamos Español\n\n📞 (920) 777-9886 | pinnaclegroupwi.com", caption_es: "🏠 Conoce a Jorge Cruz — comprador de casas en efectivo en Green Bay.\n\nCompro casas en todo Wisconsin. Cualquier condición.\n✅ Sin reparaciones\n✅ Sin comisiones\n✅ Cierre en 7-14 días\n\n📞 (920) 777-9886 | pinnaclegroupwi.com", hashtags: "#CashHomeBuyer #GreenBayWI #WeBuyHouses #SellMyHouse #PinnacleHoldingsGroup", formato: "Post", plataforma: "Ambas", tipo: "Educativo", semana: 1 },
+  { titulo: "S1 - Proceso: Cómo funciona en 5 pasos", hook: "❓ ¿Sabías que puedes vender tu casa en 5 pasos simples sin usar un realtor?", mensaje: "Paso 1: Llamas a Jorge. Paso 2: Visitamos gratis. Paso 3: Oferta en 24hrs. Paso 4: Eliges fecha de cierre. Paso 5: Recibes tu dinero. Sin stress.", cta: "📞 Empieza hoy: (920) 777-9886", caption_en: "❓ How does selling your house for cash work?\n\n1️⃣ Call Jorge: (920) 777-9886\n2️⃣ Free property visit\n3️⃣ Cash offer in 24 hours\n4️⃣ You pick the closing date\n5️⃣ You get paid ✅\n\nNo repairs. No stress.\n🌐 pinnaclegroupwi.com", caption_es: "❓ ¿Cómo vender tu casa en efectivo?\n\n1️⃣ Llama a Jorge: (920) 777-9886\n2️⃣ Visita gratis\n3️⃣ Oferta en 24 horas\n4️⃣ Tú eliges la fecha\n5️⃣ Recibes tu dinero ✅\n\n🌐 pinnaclegroupwi.com", hashtags: "#HowToSellMyHouse #CashOffer #GreenBayRealEstate #NoRealtor #PinnacleHoldings", formato: "Carrusel", plataforma: "Ambas", tipo: "Educativo", semana: 1 },
+  { titulo: "S1 - Reel Viernes: Presentación Jorge", hook: "🎬 30 segundos que pueden cambiar cómo ves la venta de tu casa...", mensaje: "Video corto de Jorge presentándose, explicando el servicio. Tono amigable, directo, profesional.", cta: "📞 (920) 777-9886 — Sin presión, ever.", caption_en: "Hi, I'm Jorge with Pinnacle Holdings Group 🏠\nI buy houses for cash in Green Bay — any condition, any situation.\nLet's talk. No pressure.\n📞 (920) 777-9886", caption_es: "Hola, soy Jorge de Pinnacle Holdings Group 🏠\nCompro casas en efectivo en Green Bay — cualquier condición.\nHablemos. Sin presión.\n📞 (920) 777-9886", hashtags: "#CashHomeBuyer #GreenBayWI #CompramosCasas #WisconsinRealEstate #PinnacleHoldings", formato: "Reel", plataforma: "Ambas", tipo: "Personal", semana: 1 },
+  { titulo: "S2 - Cash Buyer vs Realtor: 3 razones", hook: "💰 ¿Por qué vender a un cash buyer es mejor que usar un realtor?", mensaje: "1. No pagas comisión (6% de ahorro). 2. Cierras en 7-14 días, no 3-6 meses. 3. Sin reparaciones — compramos tal como está.", cta: "¿Listo? Llama a Jorge: (920) 777-9886", caption_en: "3 reasons selling to a cash buyer beats a realtor:\n\n1. 💰 Save the 6% commission\n2. ⚡ Close in 7-14 days, not months\n3. 🔨 Zero repairs — we buy as-is\n\n📞 (920) 777-9886 | pinnaclegroupwi.com", caption_es: "3 razones para vender a un cash buyer:\n\n1. 💰 Ahorras el 6% de comisión\n2. ⚡ Cierras en 7-14 días\n3. 🔨 Cero reparaciones\n\n📞 (920) 777-9886", hashtags: "#SinRealtor #CashOffer #GreenBayWI #VenderCasa #PinnacleHoldingsGroup", formato: "Post", plataforma: "Ambas", tipo: "Educativo", semana: 2 },
+  { titulo: "S2 - Foreclosure: Tienes opciones", hook: "🚨 ¿Enfrentando ejecución hipotecaria en Wisconsin? Tienes más opciones de lo que crees.", mensaje: "Vender en efectivo ANTES del foreclosure puede detener el proceso, proteger tu crédito y darte efectivo para empezar de nuevo.", cta: "Consulta gratis: (920) 777-9886. Hablamos Español.", caption_en: "🚨 Facing foreclosure in Wisconsin?\n\nSelling for cash BEFORE the date can:\n✅ Stop the bank\n✅ Protect your credit\n✅ Give you cash to start fresh\n\n📞 (920) 777-9886 | Free consultation\n🇲🇽 Hablamos Español", caption_es: "🚨 ¿Ejecución hipotecaria en Wisconsin?\n\nVender en efectivo ANTES puede:\n✅ Detener al banco\n✅ Proteger tu crédito\n✅ Darte efectivo para empezar\n\n📞 (920) 777-9886 | Consulta gratis", hashtags: "#ForeclosureHelp #WisconsinHomes #CashBuyer #GreenBayWI #PinnacleHoldings", formato: "Post", plataforma: "Ambas", tipo: "Educativo", semana: 2 },
+  { titulo: "S2 - Cualquier Condición: Lo decimos en serio", hook: "🏚️ ¿Tu casa tiene daños? Compramos de todas formas.", mensaje: "Daño por fuego, agua, moho, inquilinos difíciles, violaciones de código — no importa. Compramos en cualquier condición.", cta: "Llámanos: (920) 777-9886", caption_en: "🏠 We buy houses in ANY condition.\n\nFire ✅ | Water damage ✅ | Mold ✅\nBad tenants ✅ | Code violations ✅\n\nNo judgment. Fair cash offer.\n📞 (920) 777-9886 | pinnaclegroupwi.com", caption_es: "🏠 Compramos en CUALQUIER condición.\n\nFuego ✅ | Agua ✅ | Moho ✅\nInquilinos difíciles ✅ | Violaciones ✅\n\nSin juicios. Oferta justa en efectivo.\n📞 (920) 777-9886", hashtags: "#AnyCondition #CualquierCondicion #GreenBayWI #CompramosCasas #CashHomeBuyer", formato: "Post", plataforma: "Ambas", tipo: "Educativo", semana: 2 },
+  { titulo: "S3 - Herencia: ¿Heredaste una propiedad?", hook: "🏛️ ¿Heredaste una propiedad en Wisconsin y no sabes qué hacer?", mensaje: "Heredar puede ser complicado — impuestos, mantenimiento, disputas familiares. Ofrecemos solución rápida y justa en efectivo.", cta: "Hablemos sin compromiso: (920) 777-9886", caption_en: "🏛️ Did you inherit a property in Wisconsin?\n\n❌ Property taxes keep coming\n❌ Maintenance costs pile up\n❌ Family disagreements happen\n\nWe offer a simple solution — fair cash, fast closing.\n📞 (920) 777-9886 | pinnaclegroupwi.com", caption_es: "🏛️ ¿Heredaste una propiedad en Wisconsin?\n\n❌ Los impuestos siguen llegando\n❌ Los costos se acumulan\n❌ Las discusiones surgen\n\nSolución simple — efectivo rápido.\n📞 (920) 777-9886", hashtags: "#InheritedProperty #HeredastedUnaCasa #GreenBayWI #CashBuyer #PinnacleHoldings", formato: "Carrusel", plataforma: "Ambas", tipo: "Educativo", semana: 3 },
+  { titulo: "S3 - Divorcio: Soluciones para propiedades", hook: "💔 El divorcio es difícil. Vender la casa no tiene que serlo.", mensaje: "Una venta en efectivo rápida permite a ambas partes cerrar este capítulo. Sin esperas, sin exposición pública, con discreción.", cta: "Solución discreta: (920) 777-9886", caption_en: "💔 Going through a divorce in Wisconsin?\n\nA fast cash sale means:\n✅ Quick resolution for both parties\n✅ No public listings\n✅ Close in 7 days\n\n📞 (920) 777-9886 | pinnaclegroupwi.com", caption_es: "💔 ¿Atravesando un divorcio en Wisconsin?\n\nVenta rápida en efectivo:\n✅ Resolución rápida para ambos\n✅ Sin listados públicos\n✅ Cierre en 7 días\n\n📞 (920) 777-9886", hashtags: "#DivorceProperty #GreenBayWI #CashHomeBuyer #FastClosing #PinnacleHoldings", formato: "Post", plataforma: "Ambas", tipo: "Educativo", semana: 3 },
+  { titulo: "S3 - Reel: Jorge visita propiedad", hook: "🎬 Así es un día normal en Pinnacle Holdings...", mensaje: "Video mostrando el proceso de visitar y evaluar una propiedad. Contenido educativo + personal que genera confianza.", cta: "¿Tu casa podría ser la próxima? (920) 777-9886", caption_en: "A day at Pinnacle Holdings 🏠\n\nHonest, quick, respectful evaluation — every time.\n\n📞 (920) 777-9886 | pinnaclegroupwi.com", caption_es: "Un día en Pinnacle Holdings 🏠\n\nEvaluación honesta, rápida y respetuosa — siempre.\n\n📞 (920) 777-9886", hashtags: "#BehindTheScenes #GreenBayRealEstate #CashBuyer #RealEstateWI #PinnacleHoldings", formato: "Reel", plataforma: "Ambas", tipo: "Personal", semana: 3 },
+  { titulo: "S4 - Lead Magnet: ¿Cuánto vale tu casa?", hook: "💡 ¿Cuánto vale REALMENTE tu casa en Wisconsin ahora mismo?", mensaje: "Los valores han cambiado. Muchos propietarios no conocen el valor real hoy. Evaluación gratuita, sin compromiso.", cta: "Evaluación gratis: (920) 777-9886", caption_en: "💡 Is your house worth MORE than you think?\n\nGet a FREE cash offer and find out what your home is really worth today.\n\n📞 (920) 777-9886 | pinnaclegroupwi.com\n🇲🇽 Hablamos Español", caption_es: "💡 ¿Tu casa vale MÁS de lo que crees?\n\nOferta gratuita y sin compromiso.\n\n📞 (920) 777-9886 | pinnaclegroupwi.com", hashtags: "#CuantoValetuCasa #HomeValue #GreenBayWI #FreeOffer #PinnacleHoldingsGroup", formato: "Post", plataforma: "Ambas", tipo: "Promocional", semana: 4 },
+  { titulo: "S4 - FAQ Carrusel: Preguntas frecuentes", hook: "❓ Las 5 preguntas que más nos hacen — respondidas honestamente.", mensaje: "1) ¿Oferta obligatoria? No. 2) ¿Reparo algo? No. 3) ¿Cuánto tarda? 7-14 días. 4) ¿Cobran comisión? No. 5) ¿Todo Wisconsin? Sí.", cta: "¿Más preguntas? (920) 777-9886", caption_en: "Your top 5 questions answered:\n\n1️⃣ Is the offer obligatory? NO\n2️⃣ Repairs needed? NO\n3️⃣ How long? 7-14 days\n4️⃣ Commissions? NO\n5️⃣ All Wisconsin? YES\n\n📞 (920) 777-9886", caption_es: "Las 5 preguntas más frecuentes:\n\n1️⃣ ¿La oferta es obligatoria? NO\n2️⃣ ¿Reparaciones? NO\n3️⃣ ¿Cuánto tiempo? 7-14 días\n4️⃣ ¿Comisión? NO\n5️⃣ ¿Todo Wisconsin? SÍ\n\n📞 (920) 777-9886", hashtags: "#FAQ #CashHomeBuyer #GreenBayRealEstate #SellMyHouse #PinnacleHoldings", formato: "Carrusel", plataforma: "Ambas", tipo: "Educativo", semana: 4 },
+  { titulo: "S4 - Urgencia: Comprando en Green Bay AHORA", hook: "🔥 Aviso: Pinnacle Holdings está comprando activamente en Green Bay ahora mismo.", mensaje: "Tenemos capital disponible y podemos cerrar esta semana. Si has pensado en vender, este es el momento.", cta: "🏠 Llama HOY: (920) 777-9886", caption_en: "🔥 We're actively buying in Green Bay RIGHT NOW.\n\n✅ Cash ready to close this week\n✅ Any condition\n✅ No fees. No repairs.\n\n📞 (920) 777-9886 | pinnaclegroupwi.com", caption_es: "🔥 Comprando casas en Green Bay AHORA MISMO.\n\n✅ Efectivo listo esta semana\n✅ Cualquier condición\n✅ Sin comisiones\n\n📞 (920) 777-9886", hashtags: "#WeAreBuying #GreenBayHomes #CashBuyer #SellNow #PinnacleHoldingsGroup", formato: "Post", plataforma: "Ambas", tipo: "Promocional", semana: 4 }
+];
+
+let subidas = 0, errores = 0;
+
+async function subirTodo() {
+  if (camposReales.length === 0) {
+    alert('Primero verifica la conexión con Airtable (Paso 1)');
+    return;
+  }
+
+  const btn = document.getElementById('upload-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Subiendo...';
+  document.getElementById('log-upload').style.display = 'block';
+  subidas = 0; errores = 0;
+
+  addLog('log-upload', `🚀 Iniciando subida de ${ideas.length} ideas a "${tableName}"...`, 'info');
+
+  for (let i = 0; i < ideas.length; i++) {
+    const idea = ideas[i];
+    const fields = buildFields(idea);
+    addLog('log-upload', `[${i+1}/${ideas.length}] Subiendo: ${idea.titulo}...`, 'info');
+
+    try {
+      const res = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(tableName)}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ fields })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        const errMsg = data.error?.message || data.error?.type || JSON.stringify(data);
+        addLog('log-upload', `❌ Error: ${errMsg}`, 'err');
+        errores++;
+      } else {
+        addLog('log-upload', `✅ OK — ID: ${data.id}`, 'ok');
+        subidas++;
+      }
+    } catch (err) {
+      addLog('log-upload', `❌ Error de red: ${err.message}`, 'err');
+      errores++;
+    }
+
+    const pct = Math.round(((i + 1) / ideas.length) * 100);
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('upload-counter').textContent = `${i+1} de ${ideas.length} procesadas`;
+    await new Promise(r => setTimeout(r, 300));
+  }
+
+  document.getElementById('step4').style.display = 'block';
+  document.getElementById('upload-badge').textContent = errores === 0 ? '✅ Completado' : `⚠️ ${errores} errores`;
+  document.getElementById('upload-badge').className = `badge ${errores === 0 ? 'badge-ok' : 'badge-err'}`;
+  document.getElementById('resultado-texto').innerHTML = `
+    <p>✅ <strong style="color:#10b981">${subidas} ideas subidas exitosamente</strong></p>
+    ${errores > 0 ? `<p>❌ <strong style="color:#ef4444">${errores} ideas con error</strong> — revisa el log arriba</p>` : ''}
+    <br>
+    <p style="color:#64748b; font-size:12px;">Revisa tu Airtable en la tabla "${tableName}" para confirmar.</p>
+  `;
+  btn.textContent = `✅ ${subidas} subidas, ${errores} errores`;
+}
+</script>
+</body>
+</html>
