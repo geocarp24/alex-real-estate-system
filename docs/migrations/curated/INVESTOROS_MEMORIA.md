@@ -155,11 +155,11 @@ NIVEL 3 — Opus/Claude Code (más caro):
 
 <!-- section S032 | lines 1505-1513 | tags: InvestorOS;Pinnacle | conf:high -->
 ## 2026 — Make.com API Key (CONFIDENCIAL)
-- **API Key:** `0d1609f7-8242-4ca2-8e05-706d18152cda`
+- **API Key: [REDACTED_UUID_CREDENTIAL]`
 - **Organization ID:** `6716517`
 - **Team ID:** `1932270`
 - **Base URL:** `https://us2.make.com/api/v2`
-- **Header:** `Authorization: Token 0d1609f7-8242-4ca2-8e05-706d18152cda`
+- **Header:** `Authorization: Token: [REDACTED_UUID_CREDENTIAL]`
 - **Nota:** NUNCA imprimir en outputs públicos. Solo uso interno del sistema ALEX.
 
 
