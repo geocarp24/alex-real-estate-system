@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Pinnacle Call Assistant</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#f5f5f0;color:#2c2c2a;font-size:14px}
+/* LOGIN */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f5f5f0}
+.login-card{background:#fff;border-radius:14px;border:1px solid #d3d1c7;padding:40px;width:400px;text-align:center}
+.login-logo{width:56px;height:56px;background:#085041;border-radius:12px;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:26px}
+.login-card h1{font-size:20px;color:#085041;margin-bottom:4px;font-weight:bold}
+.login-sub{color:#888780;font-size:12px;margin-bottom:20px}
+.login-field{margin-bottom:12px;text-align:left}
+.login-field label{display:block;font-size:11px;font-weight:bold;color:#444441;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.04em}
+.login-field input{width:100%;padding:11px 14px;border:1px solid #d3d1c7;border-radius:8px;font-size:14px;outline:none;color:#2c2c2a;background:#fff}
+.login-field input:focus{border-color:#1D9E75}
+.login-btn{width:100%;padding:13px;background:#085041;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:bold;cursor:pointer;margin-top:6px}
+.login-btn:disabled{background:#b4b2a9;cursor:not-allowed}
+.login-error{background:#fcebeb;border:1px solid #f7c1c1;border-radius:8px;padding:9px 14px;font-size:13px;color:#A32D2D;margin-top:12px;display:none}
+.login-note{font-size:11px;color:#b4b2a9;margin-top:14px}
+.test-badge{background:#faeeda;border:1px solid #BA7517;border-radius:6px;padding:6px 12px;font-size:11px;color:#633806;margin-bottom:16px}
+/* APP SHELL */
+#app{display:none;height:100vh;flex-direction:column}
+.topbar{background:#085041;color:#fff;padding:9px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.topbar h1{font-size:13px;font-weight:bold}
+.t-right{display:flex;align-items:center;gap:10px}
+.t-user{font-size:11px;background:rgba(255,255,255,0.15);padding:2px 10px;border-radius:20px}
+.t-logout{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;padding:3px 10px;border-radius:5px;font-size:11px;cursor:pointer}
+.searchbar{background:#fff;border-bottom:1px solid #d3d1c7;padding:8px 20px;display:flex;gap:8px;flex-shrink:0}
+.searchbar input{flex:1;padding:7px 12px;border:1px solid #d3d1c7;border-radius:8px;font-size:13px;outline:none}
+.searchbar input:focus{border-color:#1D9E75}
+.btn-g{padding:7px 16px;background:#1D9E75;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold}
+.btn-x{padding:7px 12px;background:#f1efe8;color:#444441;border:1px solid #d3d1c7;border-radius:8px;cursor:pointer;font-size:13px}
+#cdd{background:#fff;border-bottom:1px solid #d3d1c7;max-height:160px;overflow-y:auto;display:none;flex-shrink:0}
+.ci{padding:8px 20px;cursor:pointer;border-bottom:1px solid #f1efe8;display:flex;justify-content:space-between;align-items:center}
+.ci:hover{background:#e1f5ee}
+.cn{font-weight:bold;font-size:13px}.cm{font-size:11px;color:#888780}
+.stg{font-size:11px;padding:2px 7px;border-radius:99px;background:#e1f5ee;color:#085041;font-weight:bold}
+/* BODY GRID */
+.body-grid{display:grid;grid-template-columns:260px 1fr;flex:1;overflow:hidden}
+/* LEFT PANEL */
+.left{background:#fff;border-right:1px solid #d3d1c7;overflow-y:auto;padding:12px}
+.pt{font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:0.08em;color:#888780;margin-bottom:8px}
+.ib{margin-bottom:12px}
+.ib h3{font-size:10px;font-weight:bold;color:#085041;text-transform:uppercase;letter-spacing:0.04em;border-bottom:2px solid #e1f5ee;padding-bottom:3px;margin-bottom:6px}
+.ir{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #f5f5f0;font-size:11px}
+.il{color:#888780;flex-shrink:0;padding-right:6px}
+.iv{font-weight:bold;text-align:right;word-break:break-word}
+.iv.g{color:#085041}.iv.r{color:#A32D2D}.iv.b{color:#185FA5}
+.em{text-align:center;padding:30px 10px;color:#b4b2a9;font-size:12px;font-style:italic}
+/* RIGHT PANEL — STEP VIEW */
+.right{overflow:hidden;display:flex;flex-direction:column;background:#f5f5f0}
+/* STEP TABS BAR */
+.steps-bar{background:#fff;border-bottom:1px solid #d3d1c7;padding:8px 16px;display:flex;gap:6px;overflow-x:auto;flex-shrink:0}
+.steps-bar::-webkit-scrollbar{height:3px}
+.steps-bar::-webkit-scrollbar-thumb{background:#d3d1c7;border-radius:99px}
+.step-tab{padding:4px 10px;border-radius:99px;font-size:11px;font-weight:bold;cursor:pointer;white-space:nowrap;border:1px solid transparent;flex-shrink:0}
+.step-tab.done{background:#e1f5ee;color:#085041;border-color:#085041}
+.step-tab.active{background:#085041;color:#fff}
+.step-tab.pending{background:#f1efe8;color:#888780;border-color:#d3d1c7}
+.step-tab.internal{background:#faeeda;color:#633806;border-color:#BA7517}
+/* STEP CONTENT AREA */
+.step-content{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:14px}
+/* SCRIPT BUBBLE */
+.script-bubble{background:#e1f5ee;border-left:3px solid #1D9E75;border-radius:0 8px 8px 0;padding:10px 14px;font-size:13px;line-height:1.65}
+.script-bubble.p{background:#fcebeb;border-left-color:#A32D2D}
+.script-bubble.d{background:#e6f1fb;border-left-color:#185FA5}
+.note-bubble{background:#faeeda;border-left:3px solid #BA7517;border-radius:0 8px 8px 0;padding:7px 12px;font-size:12px;color:#633806;line-height:1.5}
+.internal-badge{background:#faeeda;border:1px solid #BA7517;border-radius:6px;padding:5px 12px;font-size:11px;color:#633806;font-weight:bold;text-align:center}
+/* INPUT CARD */
+.input-card{background:#fff;border-radius:12px;border:1px solid #d3d1c7;padding:16px 18px}
+.input-card label{display:block;font-size:12px;font-weight:bold;color:#444441;margin-bottom:10px}
+.choices{display:flex;flex-wrap:wrap;gap:8px}
+.choice-btn{padding:9px 18px;border:1.5px solid #d3d1c7;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;font-weight:500;color:#444441;transition:all 0.15s}
+.choice-btn:hover{border-color:#1D9E75;background:#e1f5ee;color:#085041}
+.choice-btn.yes{border-color:#1D9E75}.choice-btn.danger{border-color:#A32D2D}
+.rating-row{display:flex;gap:6px;flex-wrap:wrap}
+.rb{width:40px;height:40px;border:1.5px solid #d3d1c7;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;font-weight:bold;color:#444441}
+.rb:hover{background:#e1f5ee;border-color:#1D9E75}
+.rb.sel{background:#085041;color:#fff;border-color:#085041}
+.flow-input{width:100%;padding:10px 13px;border:1.5px solid #d3d1c7;border-radius:8px;font-size:14px;font-family:Arial;outline:none;background:#fff;color:#2c2c2a}
+.flow-input:focus{border-color:#1D9E75}
+.input-row{display:flex;gap:8px;align-items:center}
+.input-row .flow-input{flex:1}
+.btn-next{padding:10px 20px;background:#085041;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:bold;cursor:pointer;white-space:nowrap}
+.btn-skip{padding:10px 14px;background:transparent;color:#888780;border:1px solid #d3d1c7;border-radius:8px;font-size:12px;cursor:pointer}
+.btn-back{padding:10px 14px;background:transparent;color:#444441;border:1px solid #d3d1c7;border-radius:8px;font-size:12px;cursor:pointer}
+/* CONFIRM VALUE */
+.confirm-val-card{background:#f5f5f0;border-radius:8px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.cv-val{font-size:16px;font-weight:bold;color:#085041}
+.cv-actions{display:flex;gap:6px}
+.cbtn{padding:7px 14px;border-radius:6px;font-size:12px;font-weight:bold;cursor:pointer;border:none}
+.cbtn.yes{background:#1D9E75;color:#fff}.cbtn.no{background:#f1efe8;color:#444441;border:1px solid #d3d1c7}
+/* NAV ROW */
+.nav-row{display:flex;gap:8px;align-items:center;justify-content:space-between}
+/* REALTOR CALC */
+.calc-card{background:#f5f5f0;border-radius:10px;padding:14px 16px}
+.calc-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #d3d1c7;font-size:13px}
+.calc-row.total{border-bottom:none;border-top:2px solid #085041;margin-top:4px;padding-top:8px;font-weight:bold;font-size:15px}
+.calc-row .lbl{color:#888780}.calc-row.total .lbl{color:#2c2c2a}
+.calc-row .val.r{color:#A32D2D}.calc-row.total .val{color:#085041}
+/* SAVE */
+.save-card{background:#fff;border-radius:12px;border:2px solid #085041;padding:18px}
+.save-card h3{font-size:14px;font-weight:bold;color:#085041;margin-bottom:14px}
+.save-summary{background:#f5f5f0;border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;line-height:1.9;color:#444441}
+.save-field{margin-bottom:10px}
+.save-field label{display:block;font-size:12px;font-weight:bold;color:#444441;margin-bottom:4px}
+.save-field select,.save-field textarea{width:100%;padding:8px 12px;border:1px solid #d3d1c7;border-radius:8px;font-size:13px;font-family:Arial;outline:none;background:#fff}
+.save-field textarea{min-height:65px;resize:vertical}
+.btn-save{width:100%;padding:13px;background:#085041;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:bold;cursor:pointer;margin-top:4px}
+.btn-save:hover{background:#0F6E56}
+.btn-save:disabled{background:#b4b2a9;cursor:not-allowed}
+/* RESUME */
+.resume-card{background:#fff;border-radius:12px;border:2px solid #BA7517;padding:24px;text-align:center;max-width:440px;margin:40px auto}
+.resume-card h3{font-size:15px;font-weight:bold;color:#633806;margin-bottom:8px}
+.resume-card p{font-size:13px;color:#444441;margin-bottom:18px}
+.resume-btns{display:flex;gap:10px;justify-content:center}
+.btn-resume{padding:11px 24px;background:#085041;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer}
+.btn-restart-sm{padding:11px 24px;background:#f1efe8;color:#444441;border:1px solid #d3d1c7;border-radius:8px;font-size:14px;cursor:pointer}
+/* STYPE GRID */
+.stype-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.stype-card{border:2px solid #d3d1c7;border-radius:10px;padding:16px 12px;text-align:center;cursor:pointer;transition:all 0.15s}
+.stype-card:hover{border-color:#1D9E75}
+.stype-card.sel-m{border-color:#085041;background:#e1f5ee}
+.stype-card.sel-p{border-color:#A32D2D;background:#fcebeb}
+.stype-card.sel-d{border-color:#185FA5;background:#e6f1fb}
+.stype-icon{font-size:24px;margin-bottom:6px}
+.stype-name{font-size:13px;font-weight:bold;color:#2c2c2a}
+.stype-desc{font-size:11px;color:#888780;margin-top:3px}
+/* DATETIME */
+.datetime-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.dt-lbl{font-size:11px;color:#888780;margin-bottom:4px}
+/* TOAST */
+.toast{position:fixed;bottom:18px;right:18px;background:#085041;color:#fff;padding:11px 16px;border-radius:8px;font-size:13px;font-weight:bold;display:none;z-index:9999;max-width:300px}
+.toast.e{background:#A32D2D}
+/* LINKS */
+.ql a{font-size:11px;padding:2px 7px;border-radius:4px;background:#e6f1fb;color:#185FA5;text-decoration:none;margin-right:4px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">🏢</div>
+    <h1>Pinnacle Holdings Group</h1>
+    <p class="login-sub">Call Assistant — Acceso seguro</p>
+    <div id="mode-server">
+      <div class="login-field"><label>Email</label>
+        <input type="email" id="login-email" placeholder="tu@email.com" onkeydown="if(event.key==='Enter')doLogin()"/>
+      </div>
+      <div class="login-field"><label>Password</label>
+        <input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
+      </div>
+    </div>
+    <div id="mode-local" style="display:none">
+      <div class="test-badge">⚗️ <strong>Modo prueba local</strong></div>
+      <div class="login-field"><label>Airtable Token</label>
+        <input type="password" id="login-tok" placeholder="pat_..." onkeydown="if(event.key==='Enter')doLogin()"/>
+      </div>
+    </div>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">Entrar →</button>
+    <div class="login-error" id="login-error"></div>
+    <p class="login-note">Sesión activa por 12 horas. Acceso desde cualquier dispositivo.</p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <h1>PINNACLE HOLDINGS GROUP — Call Assistant</h1>
+    <div class="t-right">
+      <span id="clk" style="font-size:11px;opacity:0.8"></span>
+      <span class="t-user" id="u-name"></span>
+      <button class="t-logout" onclick="doLogout()">Salir</button>
+    </div>
+  </div>
+  <div class="searchbar">
+    <input type="text" id="srch" placeholder="Search seller by name..." oninput="doSearch()"/>
+    <button class="btn-g" onclick="doSearch()">Search</button>
+    <button class="btn-x" onclick="clearAll()">Clear</button>
+  </div>
+  <div id="cdd"></div>
+  <div class="body-grid">
+    <div class="left">
+      <div class="pt">Seller & Property Info</div>
+      <div id="ip"><div class="em">Search for a seller to begin.</div></div>
+    </div>
+    <div class="right">
+      <div class="steps-bar" id="steps-bar" style="display:none"></div>
+      <div class="step-content" id="rp">
+        <div class="em" style="margin-top:80px">Select a seller to start the call flow.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="tst"></div>
+
+<script>
+const BASE = 'appfQbDA750Oihy9J';
+const AUTH_URL = 'auth.php';
+const IS_LOCAL = location.protocol === 'file:';
+let TOK='', contacts=[], cur=null, leadF=null, leadRecId=null;
+let stype='', stepIdx=0, answers={}, stepHistory=[];
+let steps=[], currentUser='';
+
+// ── LOGIN ─────────────────────────────────────────────────────
+window.onload = async () => {
+  if (IS_LOCAL) {
+    document.getElementById('mode-server').style.display='none';
+    document.getElementById('mode-local').style.display='block';
+    return;
+  }
+  const s = sessionStorage.getItem('pnk_session');
+  if (s) {
+    try {
+      const r = await fetch(AUTH_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'verify',token:s})});
+      const d = await r.json();
+      if (d.valid){TOK=d.at;currentUser=d.name;boot();return;}
+    } catch(e){}
+    sessionStorage.clear();
+  }
+};
+
+async function doLogin(){
+  const btn=document.getElementById('login-btn'),err=document.getElementById('login-error');
+  err.style.display='none'; btn.disabled=true; btn.textContent='Verificando...';
+  if(IS_LOCAL){
+    const tok=document.getElementById('login-tok').value.trim();
+    if(!tok){showLoginError('Ingresa tu Airtable Token.');btn.disabled=false;btn.textContent='Entrar →';return;}
+    TOK=tok;currentUser='Jorge (local)';boot();return;
+  }
+  const email=document.getElementById('login-email').value.trim();
+  const pass=document.getElementById('login-pass').value;
+  if(!email||!pass){showLoginError('Ingresa email y password.');btn.disabled=false;btn.textContent='Entrar →';return;}
+  try{
+    const r=await fetch(AUTH_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'login',email,password:pass})});
+    const d=await r.json();
+    if(!r.ok||!d.success)throw new Error(d.error||'Credenciales incorrectas');
+    TOK=d.at;currentUser=d.name;sessionStorage.setItem('pnk_session',d.sessionToken);boot();
+  }catch(e){showLoginError(e.message);btn.disabled=false;btn.textContent='Entrar →';}
+}
+
+function showLoginError(msg){const e=document.getElementById('login-error');e.textContent=msg;e.style.display='block';}
+
+async function doLogout(){
+  if(!IS_LOCAL){try{await fetch(AUTH_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'logout',token:sessionStorage.getItem('pnk_session')})});}catch(e){}}
+  sessionStorage.clear();location.reload();
+}
+
+function boot(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  document.getElementById('u-name').textContent='👤 '+currentUser;
+  loadC();
+  setInterval(()=>{
+    const n=new Date();
+    document.getElementById('clk').textContent=n.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})+' '+n.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  },1000);
+}
+
+// ── API ───────────────────────────────────────────────────────
+async function req(path,method='GET',body=null){
+  const o={headers:{'Authorization':`Bearer ${TOK}`,'Content-Type':'application/json'}};
+  if(method!=='GET'){o.method=method;if(body)o.body=JSON.stringify(body);}
+  const r=await fetch(`https://api.airtable.com/v0/${BASE}/${path}`,o);
+  if(!r.ok)throw new Error(await r.text());
+  return r.json();
+}
+
+async function loadC(){
+  try{
+    let all=[],off='';
+    do{const d=await req('Contacts'+(off?`?offset=${off}`:''));all=all.concat(d.records);off=d.offset||'';}while(off);
+    contacts=all;
+    toast(`✓ ${contacts.length} contacts loaded`);
+  }catch(e){toast('Error: '+e.message,true);}
+}
+
+// ── HELPERS ───────────────────────────────────────────────────
+function sf(v){
+  if(v===null||v===undefined||v==='')return '<span style="color:#b4b2a9">—</span>';
+  if(Array.isArray(v))return v.join(', ');
+  if(typeof v==='boolean')return v?'Yes':'No';
+  return String(v);
+}
+function sc(v){return v?'$'+Number(v).toLocaleString():'<span style="color:#b4b2a9">—</span>';}
+function ga(f,k){const v=f[k];return Array.isArray(v)?v.join(', '):(v||'');}
+function fullAddr(l){
+  if(!l)return'';
+  const p=[l['Address'],l['City'],l['Estate']].filter(Boolean);
+  return p.join(', ');
+}
+
+// ── SESSION MEMORY ────────────────────────────────────────────
+function saveSession(){
+  if(!cur||!steps.length)return;
+  const data={contactId:cur.id,name:cur.fields['Full Name'],stype,stepId:steps[stepIdx]?.id,answers,stepHistory};
+  localStorage.setItem(`pnk_call_${cur.id}`,JSON.stringify(data));
+}
+function loadSaved(id){try{const s=localStorage.getItem(`pnk_call_${id}`);return s?JSON.parse(s):null;}catch(e){return null;}}
+function clearSaved(id){localStorage.removeItem(`pnk_call_${id}`);}
+
+// ── SEARCH & PICK ─────────────────────────────────────────────
+function doSearch(){
+  const q=(document.getElementById('srch').value||'').toLowerCase().trim();
+  const dd=document.getElementById('cdd');
+  if(!q){dd.style.display='none';return;}
+  const res=contacts.filter(r=>String(r.fields['Full Name']||'').toLowerCase().includes(q)).slice(0,8);
+  dd.innerHTML=res.length?res.map(r=>`<div class="ci" onclick="pick('${r.id}')"><div><div class="cn">${r.fields['Full Name']||'Unknown'}</div><div class="cm">${r.fields['Phone1']||'—'} | ${r.fields['Stage']||'New'}</div></div><span class="stg">${r.fields['Stage']||'New'}</span></div>`).join(''):'<div class="ci"><div class="cm">No results</div></div>';
+  dd.style.display='block';
+}
+
+async function pick(id){
+  document.getElementById('cdd').style.display='none';
+  cur=contacts.find(r=>r.id===id);if(!cur)return;
+  leadF=null;leadRecId=null;
+  try{
+    const lnk=cur.fields['Property Address'];
+    if(lnk&&lnk.length){leadRecId=lnk[0];const d=await req(`Leads/${leadRecId}`);leadF=d.fields;}
+  }catch(e){}
+  renderLeft();
+  const saved=loadSaved(cur.id);
+  if(saved&&saved.stepId&&saved.stepId!=='final_save'){showResumePrompt(saved);}
+  else{startFlow();}
+}
+
+function clearAll(){
+  cur=null;leadF=null;leadRecId=null;stype='';steps=[];stepIdx=0;answers={};stepHistory=[];
+  document.getElementById('srch').value='';
+  document.getElementById('cdd').style.display='none';
+  document.getElementById('ip').innerHTML='<div class="em">Search for a seller to begin.</div>';
+  document.getElementById('steps-bar').style.display='none';
+  document.getElementById('rp').innerHTML='<div class="em" style="margin-top:80px">Select a seller to start the call flow.</div>';
+}
+
+// ── RESUME ────────────────────────────────────────────────────
+function showResumePrompt(saved){
+  document.getElementById('steps-bar').style.display='none';
+  document.getElementById('rp').innerHTML=`
+    <div class="resume-card">
+      <h3>📞 Call In Progress</h3>
+      <p>You have a saved call with <strong>${saved.name}</strong>.<br>Resume where you left off?</p>
+      <div class="resume-btns">
+        <button class="btn-resume" onclick="resumeSession()">▶ Resume Call</button>
+        <button class="btn-restart-sm" onclick="startFlow()">↺ Start Over</button>
+      </div>
+    </div>`;
+}
+
+function resumeSession(){
+  const saved=loadSaved(cur.id);if(!saved)return startFlow();
+  stype=saved.stype||'';answers=saved.answers||{};stepHistory=saved.stepHistory||[];
+  buildSteps();
+  const idx=steps._map[saved.stepId];
+  if(idx!==undefined){stepIdx=idx;renderStep();}else startFlow();
+}
+
+// ── LEFT PANEL ────────────────────────────────────────────────
+function renderLeft(){
+  const c=cur.fields,l=leadF||{};
+  const addr=fullAddr(l)||ga(c,'Property Address (from Property Address)')||'';
+  const zillow=l['Zillow Url']||'';
+  const redfin=l['Redfin Url']||'';
+  document.getElementById('ip').innerHTML=`
+    <div class="ib"><h3>Contact</h3>
+      <div class="ir"><span class="il">Name</span><span class="iv b">${sf(c['Full Name'])}</span></div>
+      <div class="ir"><span class="il">Phone 1</span><span class="iv">${sf(c['Phone1'])}</span></div>
+      <div class="ir"><span class="il">Phone 2</span><span class="iv">${sf(c['Phone2'])}</span></div>
+      <div class="ir"><span class="il">Email 1</span><span class="iv">${sf(c['Email1']||l['Seller Email'])}</span></div>
+      <div class="ir"><span class="il">Email 2</span><span class="iv">${sf(c['Email2'])}</span></div>
+      <div class="ir"><span class="il">Stage</span><span class="iv"><span class="stg">${sf(c['Stage'])}</span></span></div>
+      <div class="ir"><span class="il">Language</span><span class="iv">${sf(c['Lenguage'])}</span></div>
+      <div class="ir"><span class="il">Last contact</span><span class="iv">${sf(c['Last contact date'])}</span></div>
+    </div>
+    <div class="ib"><h3>Property</h3>
+      <div class="ir"><span class="il">Address</span><span class="iv b" style="font-size:10px">${addr||'<span style="color:#A32D2D">⚠ Not found</span>'}</span></div>
+      <div class="ir"><span class="il">Beds</span><span class="iv">${sf(l['Bedrooms'])}</span></div>
+      <div class="ir"><span class="il">Baths</span><span class="iv">${sf(l['Bathroom'])}</span></div>
+      <div class="ir"><span class="il">Sq Ft</span><span class="iv">${sf(l['SF Footage'])}</span></div>
+      <div class="ir"><span class="il">Year Built</span><span class="iv">${sf(l['Year Build'])}</span></div>
+      <div class="ir"><span class="il">Type</span><span class="iv">${sf(l['Property Type'])}</span></div>
+      <div class="ir"><span class="il">Foreclosure</span><span class="iv r">${sf(l['Foreclosure Stage'])}</span></div>
+    </div>
+    <div class="ib"><h3>Financial</h3>
+      <div class="ir"><span class="il">ARV</span><span class="iv g">${sc(l['ARV'])}</span></div>
+      <div class="ir"><span class="il">Max Offer</span><span class="iv g">${sc(l['Max Offer'])}</span></div>
+      <div class="ir"><span class="il">Est. Repairs</span><span class="iv r">${sc(l['Repair stimate'])}</span></div>
+      <div class="ir"><span class="il">Assessed</span><span class="iv">${sc(l['Assessed Value'])}</span></div>
+      <div class="ir"><span class="il">Tax Delinq.</span><span class="iv r">${sc(l['Tax Delinquency...'])}</span></div>
+    </div>
+    ${zillow||redfin?`<div class="ib"><h3>Links</h3><div class="ql">${zillow?`<a href="${zillow}" target="_blank">Zillow</a>`:''} ${redfin?`<a href="${redfin}" target="_blank">Redfin</a>`:''}</div></div>`:''}
+    ${c['Negotiation notes']?`<div class="ib"><h3>Previous Notes</h3><div style="font-size:10px;line-height:1.5;color:#444441">${String(c['Negotiation notes']).substring(0,280)}...</div></div>`:''}`;
+}
+
+// ── FLOW ──────────────────────────────────────────────────────
+function startFlow(){
+  clearSaved(cur?.id);
+  answers={};stepHistory=[];stepIdx=0;stype='';
+  const fs=(leadF?.['Foreclosure Stage']||cur?.fields?.['Foreclosure Stage']||'').toLowerCase();
+  if(fs.includes('pre')||fs.includes('foreclosure'))stype='p';
+  renderScriptTypeSelect();
+}
+
+function renderScriptTypeSelect(){
+  document.getElementById('steps-bar').style.display='none';
+  document.getElementById('rp').innerHTML=`
+    <div class="input-card">
+      <div style="font-size:10px;font-weight:bold;text-transform:uppercase;color:#085041;margin-bottom:8px;letter-spacing:0.06em">Before calling</div>
+      <div style="font-size:13px;color:#444441;margin-bottom:16px">Select the call type. Pull up the property online as a reference before dialing.</div>
+      <label>What type of call is this?</label>
+      <div class="stype-grid">
+        <div class="stype-card ${stype==='m'?'sel-m':''}" onclick="selectStype('m')"><div class="stype-icon">📋</div><div class="stype-name">Marketing List</div><div class="stype-desc">Lead from data list</div></div>
+        <div class="stype-card ${stype==='p'?'sel-p':''}" onclick="selectStype('p')"><div class="stype-icon">⚠️</div><div class="stype-name">Pre-foreclosure</div><div class="stype-desc">Foreclosure at risk</div></div>
+        <div class="stype-card ${stype==='d'?'sel-d':''}" onclick="selectStype('d')"><div class="stype-icon">🚗</div><div class="stype-name">Driving for Dollars</div><div class="stype-desc">Found while driving</div></div>
+      </div>
+      ${stype?`<div style="margin-top:16px;text-align:center"><button class="btn-next" onclick="buildSteps();renderStep()">Start Call →</button></div>`:''}
+    </div>`;
+}
+
+function selectStype(t){stype=t;renderScriptTypeSelect();}
+
+// ── BUILD STEPS ───────────────────────────────────────────────
+function buildSteps(){
+  const c=cur.fields,l=leadF||{};
+  const fname=String(c['Full Name']||'there').split(' ')[0];
+  const city=l['City']||'your area';
+  const estate=l['Estate']||'';
+  const cityState=estate?`${city}, ${estate}`:city;
+  const addr=fullAddr(l)||ga(c,'Property Address (from Property Address)')||'[address]';
+  const street=addr.split(',')[0];
+  const cl=stype==='p'?'p':stype==='d'?'d':'';
+
+  let openScript='';
+  if(stype==='m'){
+    openScript=`<div class="script-bubble">Hi ${fname}, this is Jorge. How are you doing today?<br><br>Well, the reason for my call is I am a local home buyer right here in ${cityState}, and I was reaching out to see if you might be interested in hearing an offer from me on your home?</div>
+    <div class="note-bubble">⚡ Wait for response — are they interested?</div>`;
+  }else if(stype==='p'){
+    openScript=`<div class="script-bubble p">Hi ${fname}, this is Jorge. How are you doing today?<br><br>Well the reason I'm reaching out is I received your name from a list that leads me to believe that you may need to sell your property.</div>
+    <div class="note-bubble">⚡ They usually ask "what list?" — continue below.</div>
+    <div class="script-bubble p">I did notice that your property at ${addr} is in a pre-foreclosure status, and I specialize in helping people just like you avoid foreclosure by purchasing their home prior to them losing it back to the bank. In a lot of cases we are actually able to buy the property AND put some money in your pocket so that you are able to move on with your life in a better position.<br><br>So, can I come out there and meet with you, take a look at the property and see how I could best work with you on this?</div>`;
+  }else{
+    openScript=`<div class="script-bubble d">${fname}, hey, this is Jorge. How are you doing today?<br><br>Well the reason for my call is I was driving down ${street} and I saw this property that I believe you own at ${addr}. You see, I buy, fix and sell homes, and I also buy and rent them out. When I saw yours I just knew I needed to give you a call — it is exactly what I am looking for!<br><br>I was wondering if there was any way that I could make you an offer for it?</div>`;
+  }
+
+  steps=[
+    // OPENING
+    {id:'opening',label:'Opening',script:openScript,question:'Are they interested in talking?',type:'choices',
+      choices:[
+        {label:'Yes — interested',value:'yes',next:'verify_address',cls:'yes'},
+        {label:'Bad time — call back',value:'callback',next:'callback_time',cls:''},
+        {label:'Not interested',value:'no',next:'not_interested',cls:'danger'},
+    ]},
+    {id:'not_interested',label:'Not Interested',
+      script:`<div class="script-bubble ${cl}">No problem at all — would it be okay if I checked back with you in a few months?</div>`,
+      question:'Did they agree to a callback?',type:'choices',
+      choices:[
+        {label:'Yes — schedule callback',value:'yes',next:'callback_time',cls:'yes'},
+        {label:'No — dead lead',value:'no',next:'final_save',cls:'danger'},
+    ]},
+    {id:'callback_time',label:'Callback',
+      script:`<div class="script-bubble ${cl}">When would be the best time for me to call you back?</div>`,
+      question:'Best time to call back',type:'text',placeholder:'e.g. Mornings before 10am, weekdays...',key:'Best time to call',next:'final_save'},
+    // VERIFY ADDRESS
+    {id:'verify_address',label:'Address',
+      script:`<div class="script-bubble ${cl}">Okay perfect! Well I do need to verify a little bit of information from you.<br><br>So your address is <strong>${addr}</strong>, correct?</div>`,
+      question:'Is this address correct?',type:'confirm_or_edit',value:addr,key:'address_confirmed',next:'confirm_phone1'},
+    // CONTACT VERIFICATION
+    {id:'confirm_phone1',label:'Phone 1',
+      script:`<div class="script-bubble ${cl}">So just to verify your information — is <strong>${c['Phone1']||'your number on file'}</strong> the best number to reach you?</div>`,
+      question:'Is Phone 1 correct?',type:'confirm_value',
+      systemValue:c['Phone1'],fieldLabel:'Phone 1',key:'Phone1',leadField:null,next:'confirm_phone2',isContact:true},
+    {id:'confirm_phone2',label:'Phone 2',
+      script:`<div class="script-bubble ${cl}">` + (c['Phone2'] ? `And I also have <strong>${c['Phone2']}</strong> on file — is that still a good number?` : 'Do you have a second phone number where I can reach you?') + `</div>`,
+      question:c['Phone2']?'Is Phone 2 correct?':'Add Phone 2?',type:'confirm_value',
+      systemValue:c['Phone2'],fieldLabel:'Phone 2',key:'Phone2',leadField:null,next:'confirm_email',isContact:true,optional:true},
+    {id:'confirm_email',label:'Email 1',
+      script:`<div class="script-bubble ${cl}">And what's the best email address where I can reach you? ` + (c['Email1'] ? `I have <strong>${c['Email1']}</strong> — is that still correct?` : 'We would love to have your email on file.') + `<br><br><em style="font-size:12px;color:#888780">Don't worry — we never sell your information, it's just to keep it on file.</em></div>`,
+      question:'Email 1 confirmed?',type:'confirm_value',
+      systemValue:c['Email1'],fieldLabel:'Email 1',key:'Email1',leadField:null,next:'confirm_email2',isContact:true},
+    {id:'confirm_email2',label:'Email 2',
+      script:`<div class="script-bubble ${cl}">Do you have a second email address where we can reach you?</div>`,
+      question:'Email 2 (optional)',type:'confirm_value',
+      systemValue:c['Email2'],fieldLabel:'Email 2',key:'Email2',leadField:null,next:'preferred_contact',isContact:true,optional:true},
+    {id:'preferred_contact',label:'Preferred Contact',
+      script:`<div class="script-bubble ${cl}">And what is your preferred way to be contacted?</div>`,
+      question:'Preferred contact method',type:'choices',key:'Preferred contact method',
+      choices:[
+        {label:'📞 Phone',value:'Phone',next:'best_time',cls:''},
+        {label:'📧 Email',value:'Email',next:'best_time',cls:''},
+        {label:'💬 Text',value:'Text',next:'best_time',cls:''},
+        {label:'💚 WhatsApp',value:'WhatsApp',next:'best_time',cls:''},
+    ]},
+    {id:'best_time',label:'Best Time',
+      script:`<div class="script-bubble ${cl}">What time of day is most convenient for you to talk?</div>`,
+      question:'Best time to call',type:'choices',key:'Best time to call',
+      choices:[
+        {label:'🌅 Morning',value:'Morning',next:'language',cls:''},
+        {label:'☀️ Afternoon',value:'Afternoon',next:'language',cls:''},
+        {label:'🌙 Evening',value:'Evening',next:'language',cls:''},
+        {label:'🕐 Anytime',value:'Anytime',next:'language',cls:''},
+        {label:'📅 Weekends Only',value:'Weekends Only',next:'language',cls:''},
+    ]},
+    {id:'language',label:'Language',internal:true,
+      script:`<div class="internal-badge">🔒 Internal only — Do NOT read to client</div>`,
+      question:'Client language preference',type:'choices',key:'Lenguage',
+      choices:[
+        {label:'🇺🇸 English',value:'English',next:'verify_beds',cls:''},
+        {label:'🇲🇽 Spanish',value:'Spanish',next:'verify_beds',cls:''},
+    ]},
+    // VERIFY PROPERTY
+    {id:'verify_beds',label:'Bedrooms',
+      script:`<div class="script-bubble ${cl}">And your home has <strong>${l['Bedrooms']||'?'} bedrooms</strong>, correct?</div>`,
+      question:'Bedrooms confirmed?',type:'confirm_value',
+      systemValue:l['Bedrooms'],fieldLabel:'Bedrooms',key:'Bedrooms',leadField:'Bedrooms',next:'verify_baths'},
+    {id:'verify_baths',label:'Bathrooms',
+      script:`<div class="script-bubble ${cl}">And <strong>${l['Bathroom']||'?'} bathrooms</strong>?</div>`,
+      question:'Bathrooms confirmed?',type:'confirm_value',
+      systemValue:l['Bathroom'],fieldLabel:'Bathrooms',key:'Bathroom',leadField:'Bathroom',next:'verify_sqft'},
+    {id:'verify_sqft',label:'Sq Ft',
+      script:`<div class="script-bubble ${cl}">Around <strong>${l['SF Footage']||'?'} square feet</strong>?</div>`,
+      question:'Sq footage confirmed?',type:'confirm_value',
+      systemValue:l['SF Footage'],fieldLabel:'Sq. Footage',key:'SF Footage',leadField:'SF Footage',next:'verify_year'},
+    {id:'verify_year',label:'Year Built',
+      script:`<div class="script-bubble ${cl}">And it was built around <strong>${l['Year Build']||'?'}</strong>?</div>`,
+      question:'Year built confirmed?',type:'confirm_value',
+      systemValue:l['Year Build'],fieldLabel:'Year Built',key:'Year Build',leadField:'Year Build',next:'foundation'},
+    // CONDITION
+    {id:'foundation',label:'Foundation',
+      script:`<div class="script-bubble ${cl}">Is your home on a basement, crawlspace, or a slab?</div>`,
+      question:'Foundation type',type:'choices',key:'Foundation',
+      choices:[
+        {label:'Basement',value:'Basement',next:'roof',cls:''},
+        {label:'Crawl Space',value:'Crawl Space',next:'roof',cls:''},
+        {label:'Slab',value:'Slab',next:'roof',cls:''},
+    ]},
+    {id:'roof',label:'Roof',
+      script:`<div class="script-bubble ${cl}">Is the roof older than 15 years or younger?</div>`,
+      question:'Roof status',type:'choices',key:'Roof Status',
+      choices:[
+        {label:'Under 15 years',value:'Under 15 years',next:'hvac_central',cls:'yes'},
+        {label:'Over 15 years',value:'Over 15 years',next:'hvac_central',cls:'danger'},
+        {label:'Unknown',value:'Unknown',next:'hvac_central',cls:''},
+    ]},
+    {id:'hvac_central',label:'Central AC',
+      script:`<div class="script-bubble ${cl}">Does the property have central air conditioning?</div>`,
+      question:'Has central air?',type:'choices',key:'hvac_central',
+      choices:[
+        {label:'Yes — Central AC',value:'Yes',next:'hvac_age',cls:'yes'},
+        {label:'No — Window units / None',value:'No',next:'hvac_age',cls:''},
+    ]},
+    {id:'hvac_age',label:'HVAC Age',
+      script:`<div class="script-bubble ${cl}">How about the HVAC system — is it older than 15 years or younger?</div>`,
+      question:'HVAC age',type:'choices',key:'HVAC Status',
+      choices:[
+        {label:'Under 15 years',value:'Under 15 years',next:'furnace_age',cls:'yes'},
+        {label:'Over 15 years',value:'Over 15 years',next:'furnace_age',cls:'danger'},
+        {label:'Unknown',value:'Unknown',next:'furnace_age',cls:''},
+    ]},
+    {id:'furnace_age',label:'Furnace',
+      script:`<div class="script-bubble ${cl}">How old is the furnace?</div>`,
+      question:'Furnace age',type:'text',placeholder:'e.g. 5 years, replaced in 2020...',key:'furnace_age',next:'water_heater_age',skippable:true},
+    {id:'water_heater_age',label:'Water Heater',
+      script:`<div class="script-bubble ${cl}">And the water heater — how old is it?</div>`,
+      question:'Water heater age',type:'text',placeholder:'e.g. 3 years, 10 years old...',key:'water_heater_age',next:'condition',skippable:true},
+    {id:'condition',label:'Condition',
+      script:`<div class="script-bubble ${cl}">On a scale from 1 to 10 — where 10 is move-in ready, you could eat off the floor and nothing needs to be done; 1 means it has no floors; and 5 means it has floors and walls but needs a complete remodel — what number would you give your home?</div>`,
+      question:'Condition rating (1-10)',type:'rating',key:'Condition Rating',next:'repair_estimate'},
+    {id:'repair_estimate',label:'Repairs',
+      script:`<div class="script-bubble ${cl}">If I needed to hire a licensed contractor to bring your property from the <strong>{RATING}/10</strong> you gave it all the way up to a 10 — how much do you think I would need to invest out of my pocket to get it there?</div>`,
+      question:'Repair estimate ($)',type:'number',placeholder:'e.g. 25000',key:'repair_estimate',next:'occupied',skippable:true},
+    // OCCUPIED
+    {id:'occupied',label:'Occupied',
+      script:`<div class="script-bubble ${cl}">Is the property empty, occupied by you, or is it rented out?</div>`,
+      question:'Occupied status',type:'choices',key:'Occupied Status',
+      choices:[
+        {label:'Empty / Vacant',value:'Empty',next:'amount_owed',cls:''},
+        {label:'Owner Occupied',value:'Owner Ocupied',next:'amount_owed',cls:''},
+        {label:'Rented',value:'Rented',next:'rent_amount',cls:''},
+    ]},
+    {id:'rent_amount',label:'Rent',
+      script:`<div class="script-bubble ${cl}">How much are you getting a month in rent?</div>`,
+      question:'Monthly rent ($)',type:'number',placeholder:'e.g. 1200',key:'Monthly Rent',next:'lease_type'},
+    {id:'lease_type',label:'Lease',
+      script:`<div class="script-bubble ${cl}">Is this property on a yearly lease or month to month?</div>`,
+      question:'Lease type',type:'choices',key:'Lease Type',
+      choices:[
+        {label:'Month to Month',value:'Month to Month',next:'lease_exp',cls:''},
+        {label:'Yearly',value:'Yearly',next:'lease_exp',cls:''},
+    ]},
+    {id:'lease_exp',label:'Lease Exp.',
+      script:`<div class="script-bubble ${cl}">When does the lease expire?</div>`,
+      question:'Lease expiry',type:'text',placeholder:'e.g. December 2025...',key:'lease_exp_notes',next:'amount_owed'},
+    // FINANCIAL
+    {id:'amount_owed',label:'Amount Owed',
+      script:`<div class="script-bubble ${cl}">How much do you owe on the property?</div>
+      <div class="note-bubble">⚡ We don't need exact numbers — approximately what do you owe?</div>`,
+      question:'Amount owed ($)',type:'number',placeholder:'e.g. 45000',key:'amount_owed',next:'asking_price',skippable:true},
+    {id:'asking_price',label:'Asking Price',
+      script:`<div class="script-bubble ${cl}">How much are you looking to get for your house?</div>
+      <div class="note-bubble">⚡ Wait for their answer — don't suggest a number. If they don't respond, use the follow-up button below.</div>`,
+      question:'Asking price ($)',type:'asking_price_input',key:'asking_price',next:'lowest_price'},
+    {id:'asking_followup',label:'Asking Follow-up',
+      script:`<div class="script-bubble ${cl}">I mean, ballpark — I'm not going to hold you to it, but how much would you be looking to get for the property? Just give me a range so I can see what we can do for you.</div>`,
+      question:'Asking price ($)',type:'number',placeholder:'e.g. 120000',key:'asking_price',next:'lowest_price'},
+    // NEGOTIATION
+    {id:'lowest_price',label:'Lowest Price',
+      script:`<div class="script-bubble ${cl}">Ok ${fname}, you would like to get <strong>{ASKING_PRICE}</strong>, right? What would be your lowest price?</div>`,
+      question:'Lowest price ($)',type:'number',placeholder:'e.g. 110000',key:'lowest_price',next:'realtor_math',skippable:true},
+    {id:'realtor_math',label:'Realtor Math',script:'',type:'realtor_calc',key:'realtor_math_response',next:'win_win'},
+    {id:'win_win',label:'Win-Win',
+      script:`<div class="script-bubble ${cl}">I mean, I really want to make this a win-win for your family and for me — so if we close fast and we take care of all the repairs needed so you don't have to stress about anything at all... can you do better than <strong>{LAST_PRICE}</strong>?</div>`,
+      question:'Final price after win-win ($)',type:'number',placeholder:'e.g. 95000',key:'final_price',next:'reason_selling',skippable:true},
+    // CLOSING
+    {id:'reason_selling',label:'Reason',
+      script:`<div class="script-bubble ${cl}">Can you tell me a little about why you're thinking about selling?</div>`,
+      question:'Reason for selling',type:'choices',key:'Reason for Selling',
+      choices:[
+        {label:'Foreclosure',value:'Foreclosure',next:'timeline',cls:'danger'},
+        {label:'Pre-foreclosure',value:'Pre-foreclosure',next:'timeline',cls:'danger'},
+        {label:'Tax delinquent',value:'Tax delinquent',next:'timeline',cls:'danger'},
+        {label:'Divorce',value:'Divorce',next:'timeline',cls:''},
+        {label:'Inherited',value:'Inherited property',next:'timeline',cls:''},
+        {label:'Tired landlord',value:'Tired landlord',next:'timeline',cls:''},
+        {label:'Relocation',value:'Relocation',next:'timeline',cls:''},
+        {label:'Financial pressure',value:'Financial pressure',next:'timeline',cls:''},
+        {label:'Empty nester',value:'Empty nester',next:'timeline',cls:''},
+        {label:'Other',value:'Other',next:'timeline',cls:''},
+    ]},
+    {id:'timeline',label:'Timeline',
+      script:`<div class="script-bubble ${cl}">If everything worked out perfectly, when would you ideally want to close? Is there any kind of deadline — a court date, a foreclosure date?</div>
+      <div class="note-bubble">⚡ If there's urgency — HOT lead! "I can move fast — let me get back to you within 24 hours."</div>`,
+      question:'Timeline / Deadline',type:'text',placeholder:'e.g. Court date 03/25, wants to close in 30 days...',key:'Legal Situation',next:'schedule_appointment'},
+    {id:'schedule_appointment',label:'Appointment',
+      script:`<div class="script-bubble ${cl}">So I think that we have a good faith on this — my next step is I need to come out there and meet with you at the property to take a look at it. I think you and I are in the ballpark, we've agreed on something.<br><br>Can I come out tomorrow at 6pm, or the next day at the same time?</div>`,
+      question:'Schedule appointment',type:'appointment_calendar',key:'appointment',next:'final_save'},
+    {id:'final_save',label:'Save',script:'',question:'save',type:'save'}
+  ];
+
+  steps._map={};
+  steps.forEach((s,i)=>steps._map[s.id]=i);
+  stepIdx=steps._map['opening'];
+  if(!stepHistory.length)stepHistory=['opening'];
+}
+
+// ── STEPS BAR ─────────────────────────────────────────────────
+function renderStepsBar(){
+  const bar=document.getElementById('steps-bar');
+  if(!steps.length){bar.style.display='none';return;}
+  bar.style.display='flex';
+  const mainSteps=steps.filter(s=>!['not_interested','callback_time','asking_followup'].includes(s.id));
+  bar.innerHTML=mainSteps.map((s,i)=>{
+    const globalIdx=steps._map[s.id];
+    let cls='pending';
+    if(globalIdx===stepIdx)cls='active';
+    else if(stepHistory.includes(s.id))cls='done';
+    if(s.internal)cls+=' internal';
+    const label=s.label+(answers[s.key]!==undefined&&globalIdx!==stepIdx?` ✓`:'');
+    return `<div class="step-tab ${cls}" onclick="jumpToStep('${s.id}')" title="${s.label}">${label}</div>`;
+  }).join('');
+  // Scroll active tab into view
+  setTimeout(()=>{const active=bar.querySelector('.step-tab.active');if(active)active.scrollIntoView({inline:'center',behavior:'smooth'});},100);
+}
+
+function jumpToStep(id){
+  if(stepHistory.includes(id)){
+    const idx=steps._map[id];
+    if(idx!==undefined){stepIdx=idx;renderStep();}
+  }
+}
+
+// ── RENDER STEP ───────────────────────────────────────────────
+function renderStep(){
+  const step=steps[stepIdx];
+  if(!step)return;
+  saveSession();
+  renderStepsBar();
+
+  let scriptHtml=step.script||'';
+  scriptHtml=scriptHtml.replace(/{RATING}/g,answers['Condition Rating']||'?');
+  const _ap=answers['asking_price']; scriptHtml=scriptHtml.replace(/{ASKING_PRICE}/g,(_ap!==undefined&&_ap!=='')?'$'+Number(_ap).toLocaleString():'[amount not yet captured]');
+  const _lp=answers['realtor_math_response']||answers['lowest_price']||answers['asking_price'];
+  scriptHtml=scriptHtml.replace(/{LAST_PRICE}/g,_lp?'$'+Number(_lp).toLocaleString():'[last price]');
+
+  const rp=document.getElementById('rp');
+  rp.innerHTML=''; // Clear — only show current step
+
+  // Build current step HTML
+  let html='';
+  if(scriptHtml) html+=scriptHtml;
+
+  // Input section
+  html+=`<div class="input-card">`;
+  if(step.type!=='save'&&step.type!=='realtor_calc') html+=`<label>${step.question}</label>`;
+
+  if(step.type==='choices'){
+    html+=`<div class="choices">${step.choices.map(c=>`<button class="choice-btn ${c.cls}" onclick="answerChoice('${c.value}','${c.next||step.next||'final_save'}','${step.question}','${step.key||''}')">${c.label}</button>`).join('')}</div>`;
+
+  }else if(step.type==='confirm_or_edit'){
+    html+=`<div class="confirm-val-card"><span class="cv-val">${step.value||'[address]'}</span>
+      <div class="cv-actions"><button class="cbtn yes" onclick="answerConfirm(true,'${step.next}','${step.question}','${step.key}')">Correct ✓</button>
+      <button class="cbtn no" onclick="document.getElementById('addr-edit').style.display='block'">Correct it</button></div></div>
+      <div id="addr-edit" style="display:none"><div class="input-row"><input type="text" class="flow-input" id="addr-input" placeholder="Enter correct address..."/>
+      <button class="btn-next" onclick="answerAddressEdit('${step.next}','${step.question}','${step.key}')">Save →</button></div></div>`;
+
+  }else if(step.type==='confirm_value'){
+    const val=step.systemValue;
+    const displayVal=val||'Not on file';
+    const encVal=encodeURIComponent(val||'');
+    html+=`<div class="confirm-val-card"><span class="cv-val">${displayVal}</span>
+      <div class="cv-actions"><button class="cbtn yes" onclick="answerConfirmValueEnc('${step.next}','${step.question}','${step.key}','${encVal}',true,${!!step.isContact})">✓ Correct</button>
+      <button class="cbtn no" onclick="document.getElementById('cv-edit').style.display='block'">✗ Update</button></div></div>
+      <div id="cv-edit" style="display:none"><div style="font-size:11px;color:#888780;margin-bottom:6px">Enter the correct value:</div>
+      <div class="input-row"><input type="text" class="flow-input" id="cv-input" placeholder="Enter correct value..."/>
+      <button class="btn-next" onclick="answerConfirmValueEnc('${step.next}','${step.question}','${step.key}','${encVal}',false,${!!step.isContact})">Save →</button></div></div>`;
+    if(step.optional) html+=`<div style="margin-top:8px"><button class="btn-skip" onclick="skipStep('${step.next}','${step.question}')">Skip</button></div>`;
+
+  }else if(step.type==='rating'){
+    html+=`<div class="rating-row">${[1,2,3,4,5,6,7,8,9,10].map(n=>`<button class="rb" onclick="answerRating(${n},'${step.next||'repair_estimate'}','${step.question}','${step.key}')">${n}</button>`).join('')}</div>`;
+
+  }else if(step.type==='number'){
+    html+=`<div class="input-row"><input type="number" class="flow-input" id="flow-inp" placeholder="${step.placeholder||''}" onkeydown="if(event.key==='Enter')answerText('${step.next||'final_save'}','${step.question}','${step.key||''}',true)"/>
+      <button class="btn-next" onclick="answerText('${step.next||'final_save'}','${step.question}','${step.key||''}',true)">Next →</button>
+      ${step.skippable?`<button class="btn-skip" onclick="skipStep('${step.next||'final_save'}','${step.question}')">Skip</button>`:''}
+    </div>`;
+
+  }else if(step.type==='text'){
+    html+=`<div class="input-row"><input type="text" class="flow-input" id="flow-inp" placeholder="${step.placeholder||''}" onkeydown="if(event.key==='Enter')answerText('${step.next||'final_save'}','${step.question}','${step.key||''}')"/>
+      <button class="btn-next" onclick="answerText('${step.next||'final_save'}','${step.question}','${step.key||''}')">Next →</button>
+      ${step.skippable?`<button class="btn-skip" onclick="skipStep('${step.next||'final_save'}','${step.question}')">Skip</button>`:''}
+    </div>`;
+
+  }else if(step.type==='asking_price_input'){
+    html+=`<div class="input-row"><input type="number" class="flow-input" id="flow-inp" placeholder="e.g. 120000" onkeydown="if(event.key==='Enter')answerText('${step.next}','Asking price','${step.key}',true)"/>
+      <button class="btn-next" onclick="answerText('${step.next}','Asking price','${step.key}',true)">Next →</button>
+    </div>
+    <div style="margin-top:10px"><button class="btn-skip" onclick="goToStep('asking_followup')">They didn't answer →</button></div>`;
+
+  }else if(step.type==='realtor_calc'){
+    const lp=Number(answers['lowest_price']||answers['asking_price']||0);
+    const fee=Math.round(lp*0.06);
+    const cc=10000;
+    const total=fee+cc;
+    const net=lp-total;
+    html+=`<div class="calc-card">
+      <div class="calc-row"><span class="lbl">Their price</span><span class="val">$${lp.toLocaleString()}</span></div>
+      <div class="calc-row"><span class="lbl">Realtor commission (6%)</span><span class="val r">-$${fee.toLocaleString()}</span></div>
+      <div class="calc-row"><span class="lbl">Closing costs (min.)</span><span class="val r">-$${cc.toLocaleString()}</span></div>
+      <div class="calc-row total"><span class="lbl">They would actually walk away with</span><span class="val">$${net.toLocaleString()}</span></div>
+    </div>
+    <div class="script-bubble" style="margin-top:10px">Ok ${cur.fields['Full Name'].split(' ')[0]}, if you go with the normal process — with a realtor — you would have to pay 6% over your $${lp.toLocaleString()}, that's <strong>$${fee.toLocaleString()}</strong>. PLUS all closing costs, that's another minimum $10,000. So that's <strong>$${total.toLocaleString()}</strong> gone — over 12% of your money. Is that really what you want?<br><br>With me, I'm an investor — that means <strong>NO realtor fees</strong>. PLUS I have a bunch of cash buyers, which means I'll cover <strong>ALL closing costs</strong>!<br><br>With all that being said... how much would you actually take?</div>
+    <label style="margin-top:12px;display:block">Their response after the math ($)</label>
+    <div class="input-row"><input type="number" class="flow-input" id="flow-inp" placeholder="Their answer..."/>
+      <button class="btn-next" onclick="answerText('win_win','Realtor math response','realtor_math_response',true)">Next →</button>
+      <button class="btn-skip" onclick="skipStep('win_win','Realtor math response')">Skip</button>
+    </div>`;
+
+  }else if(step.type==='appointment_calendar'){
+    html+=`
+      <div id="cal-events-wrap" style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:bold;color:#085041;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em">📅 Tu agenda — próximos 7 días</div>
+        <div id="cal-events" style="background:#f5f5f0;border-radius:8px;padding:10px 14px;font-size:12px;color:#444441;min-height:40px">
+          <span style="color:#b4b2a9;font-style:italic">Cargando calendario...</span>
+        </div>
+      </div>
+      <label>Selecciona fecha y hora para la cita:</label>
+      <div class="datetime-row">
+        <div><div class="dt-lbl">Fecha</div><input type="date" class="flow-input" id="appt-date"/></div>
+        <div><div class="dt-lbl">Hora</div><input type="time" class="flow-input" id="appt-time" value="18:00"/></div>
+      </div>
+      <button class="btn-next" style="width:100%;margin-bottom:8px" onclick="answerAppointment()">Confirm Appointment & Add to Calendar →</button>
+      <button class="btn-skip" style="width:100%" onclick="skipStep('final_save','Appointment')">Skip — no appointment</button>`;
+    // Load calendar events after render
+    setTimeout(()=>{
+      if(!IS_LOCAL){
+        fetch('calendar_events.php?days=7')
+          .then(r=>r.json())
+          .then(d=>{
+            const el=document.getElementById('cal-events');
+            if(!el)return;
+            if(d.error){el.innerHTML=`<span style="color:#A32D2D">⚠ ${d.error}</span>`;return;}
+            if(!d.events||d.events.length===0){el.innerHTML='<span style="color:#085041">✓ Sin citas programadas — agenda libre</span>';return;}
+            el.innerHTML=d.events.map(e=>`<div style="padding:4px 0;border-bottom:1px solid #e8e6df"><span style="color:#A32D2D">●</span> <strong>${e.startFormatted}</strong> — ${e.title}</div>`).join('');
+          }).catch(()=>{
+            const el=document.getElementById('cal-events');
+            if(el)el.innerHTML='<span style="color:#b4b2a9">No se pudo cargar el calendario</span>';
+          });
+      }else{
+        const el=document.getElementById('cal-events');
+        if(el)el.innerHTML='<span style="color:#b4b2a9;font-style:italic">Modo local — calendario disponible en el servidor</span>';
+      }
+    },200);
+
+  }else if(step.type==='save'){
+    html+=renderSaveForm();
+  }
+
+  html+=`</div>`;
+
+  // Back button
+  const showBack=stepHistory.length>1&&step.id!=='opening'&&step.id!=='final_save';
+  if(showBack) html=`<div><button class="btn-back" onclick="goBack()">← Go Back</button></div>`+html;
+
+  rp.innerHTML=html;
+  setTimeout(()=>{const inp=document.getElementById('flow-inp');if(inp)inp.focus();},100);
+}
+
+function renderSaveForm(){
+  const a=answers;
+  const lines=[];
+  if(a['Phone1'])lines.push(`📞 Phone 1: ${a['Phone1']}`);
+  if(a['Email1'])lines.push(`📧 Email 1: ${a['Email1']}`);
+  if(a['Email2'])lines.push(`📧 Email 2: ${a['Email2']}`);
+  if(a['Preferred contact method'])lines.push(`Contact via: ${a['Preferred contact method']}`);
+  if(a['Best time to call'])lines.push(`Best time: ${a['Best time to call']}`);
+  if(a['Foundation'])lines.push(`Foundation: ${a['Foundation']}`);
+  if(a['Roof Status'])lines.push(`Roof: ${a['Roof Status']}`);
+  if(a['hvac_central'])lines.push(`Central AC: ${a['hvac_central']}`);
+  if(a['HVAC Status'])lines.push(`HVAC: ${a['HVAC Status']}`);
+  if(a['Condition Rating'])lines.push(`Condition: ${a['Condition Rating']}/10`);
+  if(a['repair_estimate'])lines.push(`Est. Repairs: $${Number(a['repair_estimate']).toLocaleString()}`);
+  if(a['Occupied Status'])lines.push(`Occupied: ${a['Occupied Status']}`);
+  if(a['amount_owed'])lines.push(`Owed: $${Number(a['amount_owed']).toLocaleString()}`);
+  if(a['asking_price'])lines.push(`Asking: $${Number(a['asking_price']).toLocaleString()}`);
+  if(a['lowest_price'])lines.push(`Lowest: $${Number(a['lowest_price']).toLocaleString()}`);
+  if(a['final_price'])lines.push(`Final: $${Number(a['final_price']).toLocaleString()}`);
+  if(a['Reason for Selling'])lines.push(`Reason: ${a['Reason for Selling']}`);
+  if(a['appointment_display'])lines.push(`📅 Appt: ${a['appointment_display']}`);
+  return `<h3>💾 Save Call to Airtable</h3>
+    ${lines.length?`<div class="save-summary">${lines.join('<br>')}</div>`:''}
+    <div class="save-field"><label>Update Stage to</label>
+      <select id="sv-stage"><option value="">— Don't change —</option><option>Contacted</option><option>Analized</option><option>Offer Sent</option><option>Dead</option><option>To Be Contacted</option></select>
+    </div>
+    <div class="save-field"><label>Additional notes</label><textarea id="sv-notes" placeholder="Any extra notes from the call..."></textarea></div>
+    <button class="btn-save" id="svbtn" onclick="saveAll()">Save Call to Airtable</button>`;
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────
+function goToStep(id){
+  const idx=steps._map[id];
+  if(idx!==undefined){
+    stepIdx=idx;
+    if(!stepHistory.includes(id))stepHistory.push(id);
+    saveSession();renderStep();
+  }
+}
+
+function goBack(){
+  if(stepHistory.length<2)return;
+  stepHistory.pop();
+  const prevId=stepHistory[stepHistory.length-1];
+  const idx=steps._map[prevId];
+  if(idx!==undefined){stepIdx=idx;renderStep();}
+}
+
+// ── ANSWER FUNCTIONS ──────────────────────────────────────────
+function answerChoice(value,nextId,question,key){
+  if(key)answers[key]=value;
+  goToStep(nextId);
+}
+
+function answerText(nextId,question,key,isNumber=false){
+  const inp=document.getElementById('flow-inp');
+  const val=inp?inp.value.trim():'';
+  if(!val){inp&&inp.focus();return;}
+  if(key)answers[key]=isNumber?Number(val):val;
+  goToStep(nextId);
+}
+
+function skipStep(nextId,question){goToStep(nextId);}
+
+function answerRating(n,nextId,question,key){
+  if(key)answers[key]=n;
+  goToStep(nextId);
+}
+
+function answerConfirm(correct,nextId,question,key){
+  if(correct){answers[key]=true;goToStep(nextId);}
+}
+
+function answerConfirmValueEnc(nextId,question,key,encodedVal,isCorrect,isContact){
+  const originalValue=decodeURIComponent(encodedVal);
+  answerConfirmValue(nextId,question,key,originalValue,isCorrect,isContact);
+}
+
+function answerConfirmValue(nextId,question,key,originalValue,isCorrect,isContact){
+  if(isCorrect){
+    answers[key]=originalValue;
+  }else{
+    const inp=document.getElementById('cv-input');
+    const val=inp?inp.value.trim():'';
+    if(!val){inp&&inp.focus();return;}
+    answers[key]=isNaN(Number(val))?val:Number(val);
+    if(!answers['_corrections'])answers['_corrections']=[];
+    answers['_corrections'].push({field:key,original:originalValue,corrected:answers[key],isContact});
+  }
+  goToStep(nextId);
+}
+
+function answerAddressEdit(nextId,question,key){
+  const val=document.getElementById('addr-input').value.trim();
+  if(!val)return;
+  answers[key]=val;
+  goToStep(nextId);
+}
+
+function answerAppointment(){
+  const date=document.getElementById('appt-date').value;
+  const time=document.getElementById('appt-time').value||'18:00';
+  if(!date){toast('Select a date for the appointment',true);return;}
+  const dateObj=new Date(date+'T'+time);
+  const display=dateObj.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})+' at '+dateObj.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  answers['appointment_date']=date;
+  answers['appointment_time']=time;
+  answers['appointment_display']=display;
+
+  const sellerName=cur.fields['Full Name'];
+  const sellerPhone=answers['Phone1']||cur.fields['Phone1']||'';
+  const sellerEmail=answers['Email1']||cur.fields['Email1']||'';
+  const loc=leadF?fullAddr(leadF):'';
+
+  // 1. Google Calendar — create event directly via API (server) or URL (local)
+  const start=date+'T'+time+':00';
+  const endHour=String((parseInt(time.split(':')[0])+1)).padStart(2,'0');
+  const endTime=date+'T'+endHour+':'+time.split(':')[1]+':00';
+  const title=`Property Visit — ${sellerName}`;
+  const desc=`Property visit scheduled by Pinnacle Holdings Group.\nContact: Jorge | (920) 777-9886 | deals@pinnaclegroupwi.com`;
+
+  if (!IS_LOCAL) {
+    // Server mode: create event via calendar.php (Google Calendar API)
+    fetch('calendar.php', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        title, location: loc, description: desc,
+        start, end: endTime,
+        timezone: 'America/Chicago',
+        attendeeEmail: sellerEmail || null,
+        reminders: [1440, 120] // 24h + 2h in minutes
+      })
+    }).then(r=>r.json()).then(d=>{
+      if(d.success) toast('📅 Event created in Google Calendar!');
+      else toast('Calendar: '+d.error, true);
+    }).catch(()=>toast('Calendar error', true));
+  } else {
+    // Local mode: open Google Calendar URL as fallback
+    const gcalUrl=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${date.replace(/-/g,'')}T${time.replace(':','')}00/${date.replace(/-/g,'')}T${endHour}${time.split(':')[1]}00&location=${encodeURIComponent(loc)}&details=${encodeURIComponent(desc)}`;
+    toast('📅 Opening Google Calendar...');
+    setTimeout(()=>window.open(gcalUrl,'_blank'),400);
+  }
+
+  // SMS confirmación manejada por Make.com
+
+  // 3. Email confirmation to seller (from deals@pinnaclegroupwi.com)
+  if(!IS_LOCAL && sellerEmail){
+    fetch('send_notification.php',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        type:'email',
+        to:sellerEmail,
+        subject:`Appointment Confirmation — Pinnacle Holdings Group`,
+        body:`Hi ${sellerName.split(' ')[0]},\n\nThis is Jorge with Pinnacle Holdings Group. I wanted to confirm our upcoming appointment:\n\n📍 Property: ${loc}\n📅 Date & Time: ${display}\n\nI look forward to meeting you and discussing how I can help. If you need to reschedule or have any questions, please don't hesitate to reach out.\n\n📞 (920) 777-9886\n📧 deals@pinnaclegroupwi.com\n\nBest regards,\nJorge\nPinnacle Holdings Group`
+      })
+    }).then(()=>toast('📧 Email sent to seller')).catch(()=>{});
+  }
+
+  if(!IS_LOCAL) fetch('https://hook.us2.make.com/6yvqdj9wgalsvrxsigytmvb5sg5ummdr',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:cur.id,name:sellerName,phone:String(answers['Phone1']||cur.fields['Phone1']||''),address:loc,appointment:display})}).catch(()=>{});
+  if(IS_LOCAL) toast('✓ Appointment saved! (SMS & email will send on server)');
+  goToStep('final_save');
+}
+
+function buildSummary(){
+  const a=answers;
+  const l=[];
+  l.push('=== PINNACLE CALL SUMMARY ===');
+  if(a['Condition Rating'])l.push(`Condition: ${a['Condition Rating']}/10`);
+  if(a['repair_estimate'])l.push(`Est. Repairs: $${Number(a['repair_estimate']).toLocaleString()}`);
+  if(a['Occupied Status'])l.push(`Occupied: ${a['Occupied Status']}`);
+  if(a['amount_owed'])l.push(`Owed: $${Number(a['amount_owed']).toLocaleString()}`);
+  if(a['asking_price'])l.push(`Asking: $${Number(a['asking_price']).toLocaleString()}`);
+  if(a['lowest_price'])l.push(`Lowest: $${Number(a['lowest_price']).toLocaleString()}`);
+  if(a['final_price'])l.push(`Final: $${Number(a['final_price']).toLocaleString()}`);
+  if(a['Reason for Selling'])l.push(`Reason: ${a['Reason for Selling']}`);
+  if(a['Legal Situation'])l.push(`Timeline: ${a['Legal Situation']}`);
+  l.push('Reminders: 24h before + 2h before');
+  return l.join('\n');
+}
+
+// ── SAVE ──────────────────────────────────────────────────────
+async function saveAll(){
+  if(!cur)return toast('No seller selected.',true);
+  const btn=document.getElementById('svbtn');
+  btn.disabled=true;btn.textContent='Saving...';
+  try{
+    const today=new Date().toISOString().split('T')[0];
+    const a=answers;
+
+    // 1. Contact fields
+    const cf={'Last contact date':today};
+    const fmap={
+      'Foundation':'Foundation','Roof Status':'Roof Status','HVAC Status':'HVAC Status',
+      'Occupied Status':'Occupied Status','Condition Rating':'Condition Rating',
+      'Monthly Rent':'Monthly Rent','Lease Type':'Lease Type',
+      'Best time to call':'Best time to call','Lenguage':'Lenguage',
+      'Preferred contact method':'Preferred contact method',
+    };
+    Object.keys(fmap).forEach(k=>{if(a[k]!==undefined)cf[fmap[k]]=a[k];});
+    if(a['appointment_date'])cf['Next follow up date']=a['appointment_date'];
+    if(a['lease_exp_notes']){const ld=new Date(a['lease_exp_notes']);if(!isNaN(ld.getTime()))cf['Lease Exp Date']=ld.toISOString().split('T')[0];}
+
+    // Apply contact corrections
+    if(a['_corrections']){
+      a['_corrections'].filter(c=>c.isContact).forEach(c=>{cf[c.field]=c.corrected;});
+    }
+    // Direct contact field updates — Phone must be Number (Airtable Number field + Make.com workflow)
+    if(a['Phone1']&&a['Phone1']!==cur.fields['Phone1'])cf['Phone1']=Number(String(a['Phone1']).replace(/\D/g,''));
+    if(a['Phone2']&&a['Phone2']!==cur.fields['Phone2'])cf['Phone2']=Number(String(a['Phone2']).replace(/\D/g,''));
+    if(a['Email1']&&a['Email1']!==cur.fields['Email1'])cf['Email1']=a['Email1'];
+    if(a['Email2']&&a['Email2']!==cur.fields['Email2'])cf['Email2']=a['Email2'];
+
+    const stage=document.getElementById('sv-stage')?.value;
+    const autoStage=stage||(a['appointment_date']?'Contacted':'Contacted');
+    if(autoStage)cf['Stage']=autoStage;
+
+    // Email Sent flag
+    if(a['appointment_date']&&(answers['Email1']||cur.fields['Email1']))cf['Email Sent']=true;
+
+    // Build notes
+    const nl=[];
+    nl.push(`[${today}] Call Summary:`);
+    if(a['Foundation'])nl.push(`Foundation: ${a['Foundation']}`);
+    if(a['Roof Status'])nl.push(`Roof: ${a['Roof Status']}`);
+    if(a['hvac_central'])nl.push(`Central AC: ${a['hvac_central']}`);
+    if(a['HVAC Status'])nl.push(`HVAC: ${a['HVAC Status']}`);
+    if(a['furnace_age'])nl.push(`Furnace: ${a['furnace_age']}`);
+    if(a['water_heater_age'])nl.push(`Water heater: ${a['water_heater_age']}`);
+    if(a['Condition Rating'])nl.push(`Condition: ${a['Condition Rating']}/10`);
+    if(a['repair_estimate'])nl.push(`Repair est: $${Number(a['repair_estimate']).toLocaleString()}`);
+    if(a['Occupied Status'])nl.push(`Occupied: ${a['Occupied Status']}`);
+    if(a['Monthly Rent'])nl.push(`Rent: $${Number(a['Monthly Rent']).toLocaleString()}/mo`);
+    if(a['amount_owed'])nl.push(`Owed: $${Number(a['amount_owed']).toLocaleString()}`);
+    if(a['asking_price'])nl.push(`Asking: $${Number(a['asking_price']).toLocaleString()}`);
+    if(a['lowest_price'])nl.push(`Lowest: $${Number(a['lowest_price']).toLocaleString()}`);
+    if(a['realtor_math_response'])nl.push(`After realtor math: $${Number(a['realtor_math_response']).toLocaleString()}`);
+    if(a['final_price'])nl.push(`Final/bottom line: $${Number(a['final_price']).toLocaleString()}`);
+    if(a['Reason for Selling'])nl.push(`Reason: ${a['Reason for Selling']}`);
+    if(a['Legal Situation'])nl.push(`Timeline: ${a['Legal Situation']}`);
+    if(a['appointment_display'])nl.push(`Appointment: ${a['appointment_display']}`);
+    if(a['_corrections']?.length)nl.push(`Updates: ${a['_corrections'].map(c=>`${c.field}: ${c.original}→${c.corrected}`).join(', ')}`);
+    const extra=document.getElementById('sv-notes')?.value;
+    if(extra)nl.push(`Notes: ${extra}`);
+    const prev=String(cur.fields['Negotiation notes']||'');
+    cf['Negotiation notes']=nl.join('\n')+'\n\n'+prev;
+
+    // 1. Save Contacts
+    try {
+      await req(`Contacts/${cur.id}`,'PATCH',{fields:cf});
+      console.log('✓ Contacts saved');
+    } catch(e) {
+      toast('❌ Contacts error: '+e.message, true);
+      console.error('Contacts error:', e.message);
+      btn.disabled=false; btn.textContent='Save Call to Airtable'; return;
+    }
+
+    // 2. Update Leads
+    if(leadRecId){
+      const lf={};
+      lf['Stage']=a['appointment_date']?'Appointment Set':'Contacted';
+      lf['Lead Source']='Pinnacle Call Assistant';
+      lf['Last Contact Date']=today;
+      if(a['asking_price'])lf['Asking Price']=Number(a['asking_price']);
+      if(a['repair_estimate'])lf['Repair stimate']=Number(a['repair_estimate']);
+      if(a['_corrections']){
+        a['_corrections'].filter(c=>!c.isContact).forEach(c=>{
+          lf[c.field]=isNaN(Number(c.corrected))?c.corrected:Number(c.corrected);
+        });
+      }
+      try {
+        await req(`Leads/${leadRecId}`,'PATCH',{fields:lf});
+        console.log('✓ Leads saved');
+      } catch(e) {
+        console.error('Leads error:', e.message);
+        // Try without Last Contact Date
+        try {
+          delete lf['Last Contact Date'];
+          await req(`Leads/${leadRecId}`,'PATCH',{fields:lf});
+          toast('⚠ Leads: saved without Last Contact Date');
+          console.log('✓ Leads saved (without date)');
+        } catch(e2) {
+          toast('⚠ Leads error: '+e2.message, true);
+          console.error('Leads retry error:', e2.message);
+        }
+      }
+    }
+
+    // 3. Create Note
+    const notOutcome = a['appointment_date'] ? 'Appointment Scheduled' : 
+                       (a['callback'] ? 'Callback' : 'Contacted');
+    const notStage = a['appointment_date'] ? 'Appointment Set' : 'Contacted';
+    try {
+      await req('Notes & Activity','POST',{fields:{
+        'Note Title': `Call — ${cur.fields['Full Name']} — ${today}`,
+        'Date': today,
+        'Contact Name': [cur.id],
+        'Stage': notStage,
+        'Seller Motivation': a['Reason for Selling']||'',
+        'Outcome': notOutcome,
+        'Next action': a['appointment_display'] ? `Property visit: ${a['appointment_display']}` : 'Follow up call',
+        'Follow up required': !!a['appointment_date'],
+        'Call Logs': nl.join('\n'),
+      }});
+      console.log('✓ Note saved');
+    } catch(e) {
+      toast('⚠ Note error: '+e.message, true);
+      console.error('Note error:', e.message);
+    }
+
+    clearSaved(cur.id);
+    await loadC();
+    toast('✓ Saved to Airtable!');
+    btn.textContent='Saved ✓';
+    setTimeout(()=>{btn.disabled=false;btn.textContent='Save Call to Airtable';},2500);
+  }catch(e){
+    toast('Error: '+e.message,true);
+    btn.disabled=false;btn.textContent='Save Call to Airtable';
+  }
+}
+
+function toast(msg,err=false){
+  const t=document.getElementById('tst');
+  t.textContent=msg;t.className='toast'+(err?' e':'');
+  t.style.display='block';
+  setTimeout(()=>t.style.display='none',3500);
+}
+</script>
+</body>
+</html>

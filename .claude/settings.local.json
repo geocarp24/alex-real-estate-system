@@ -47,7 +47,22 @@
       "Bash(awk '{printf \"   %d. %d líneas — %s \\(L%s\\)\\\\n\", NR, $1, $3, $4}')",
       "Bash(python scripts/curate_by_tag_map.py --source memoria_ALex.md --tag-map docs/migrations/TAG_MAP_memoria_ALex.csv --output-dir docs/migrations/curated/ --prefix MEMORIA --companies Pinnacle,InvestorOS,GeoCarpentry)",
       "Bash(PYTHONIOENCODING=utf-8 python scripts/curate_by_tag_map.py --source memoria_ALex.md --tag-map docs/migrations/TAG_MAP_memoria_ALex.csv --output-dir docs/migrations/curated/ --prefix MEMORIA --companies Pinnacle,InvestorOS,GeoCarpentry)",
-      "Bash(grep -nB1 -A3 \"Project URL: https://\" memoria_ALex.md)"
+      "Bash(grep -nB1 -A3 \"Project URL: https://\" memoria_ALex.md)",
+      "Bash(gh pr *)",
+      "Read(//tmp/**)",
+      "Bash(tar -tf /tmp/saas-bundle.tar)",
+      "Bash(tar -xf /tmp/saas-bundle.tar)",
+      "Bash(find apps *)",
+      "Bash(gh variable *)",
+      "Bash(grep -rEho '\\\\${{\\\\s*secrets\\\\.[A-Z_0-9]+\\\\s*\\\\}}' .github/workflows/)",
+      "Bash(\"C:/Users/Admin/OneDrive/Documents/InvestorOS/bin/doppler\" --version)",
+      "Bash(\"C:/Users/Admin/OneDrive/Documents/InvestorOS/bin/doppler\" me *)",
+      "Bash(\"C:/Users/Admin/OneDrive/Documents/InvestorOS/bin/doppler\" projects *)",
+      "Bash(grep -Eho '\\\\${{\\\\s*secrets\\\\.[A-Z_0-9]+\\\\s*\\\\}}' .github/workflows/__TRACKED_VAR__)",
+      "Bash(sed -n '260,270p' .github/workflows/agents-cron.yml)",
+      "Bash(sed -n '73,80p' .github/workflows/deploy-vps-bot.yml)",
+      "Bash(gh workflow *)",
+      "Bash(sed -n /^on:/,/^[a-z]/p C:/Users/Admin/OneDrive/Documents/InvestorOS/.github/workflows/__TRACKED_VAR__.yml)"
     ]
   },
   "hooks": {

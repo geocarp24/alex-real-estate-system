@@ -1,0 +1,1819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#0a0e1a">
+<title>Property Inspector — PHG</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════
+   VARIABLES & RESET
+══════════════════════════════════════════ */
+:root {
+  --bg:         #0a0e1a;
+  --surface:    #111827;
+  --surface-2:  #1c2333;
+  --surface-3:  #252d3d;
+  --border:     #2d3748;
+  --border-2:   #4a5568;
+  --text:       #f0f4f8;
+  --text-muted: #94a3b8;
+  --text-dim:   #64748b;
+  --blue:       #3b82f6;
+  --pink:       #ec4899;
+  --gold:       #f59e0b;
+  --green:      #10b981;
+  --red:        #ef4444;
+  --gradient:   linear-gradient(135deg, #3b82f6 0%, #ec4899 55%, #f59e0b 100%);
+  --tab-h:      64px;
+  --header-h:   80px;
+  --radius:     12px;
+  --radius-sm:  8px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { height: 100%; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100%;
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ══════════════════════════════════════════
+   HEADER
+══════════════════════════════════════════ */
+#header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: var(--header-h);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 12px;
+  z-index: 100;
+  backdrop-filter: blur(12px);
+}
+
+.header-logo {
+  width: 38px;
+  height: 38px;
+  background: var(--gradient);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: white;
+  flex-shrink: 0;
+}
+
+.header-info { flex: 1; min-width: 0; }
+.header-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.header-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-badge {
+  background: var(--gradient);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════
+   LOADING / ERROR STATE
+══════════════════════════════════════════ */
+#loading-screen {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 999;
+}
+
+.loader {
+  width: 44px;
+  height: 44px;
+  border: 3px solid var(--border);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-text {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 16px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+
+/* ══════════════════════════════════════════
+   MAIN CONTENT
+══════════════════════════════════════════ */
+#app {
+  display: none;
+  padding-top: var(--header-h);
+  padding-bottom: calc(var(--tab-h) + 16px);
+  min-height: 100vh;
+}
+
+/* ══════════════════════════════════════════
+   TAB BAR (BOTTOM)
+══════════════════════════════════════════ */
+#tab-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: var(--tab-h);
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.tab-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-dim);
+  transition: color 0.2s;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+.tab-btn.active { color: var(--blue); }
+.tab-btn.active::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 20%; right: 20%;
+  height: 3px;
+  background: var(--gradient);
+  border-radius: 0 0 3px 3px;
+}
+
+.tab-icon { font-size: 22px; line-height: 1; }
+.tab-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  font-family: 'Barlow Condensed', sans-serif;
+}
+
+.tab-badge {
+  position: absolute;
+  top: 8px;
+  right: calc(50% - 16px);
+  background: var(--pink);
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ══════════════════════════════════════════
+   TAB PANELS
+══════════════════════════════════════════ */
+.tab-panel { display: none; padding: 16px; }
+.tab-panel.active { display: block; }
+
+/* ══════════════════════════════════════════
+   SECTION CARDS (Accordion for Photos/Audio)
+══════════════════════════════════════════ */
+.section-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 10px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.section-card.has-content { border-color: var(--blue); }
+.section-card.has-content .section-header { border-left: 3px solid var(--blue); }
+
+.section-header {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  cursor: pointer;
+  gap: 10px;
+  -webkit-tap-highlight-color: transparent;
+  border-left: 3px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.section-name {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  flex: 1;
+}
+
+.section-count {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.section-count.ready { color: var(--green); font-weight: 600; }
+.section-count.warn  { color: var(--gold); font-weight: 600; }
+
+.chevron {
+  color: var(--text-dim);
+  font-size: 14px;
+  transition: transform 0.2s;
+}
+.section-card.open .chevron { transform: rotate(180deg); }
+
+.section-body {
+  display: none;
+  padding: 0 16px 16px;
+  border-top: 1px solid var(--border);
+}
+.section-card.open .section-body { display: block; }
+
+/* ══════════════════════════════════════════
+   PHOTO GRID
+══════════════════════════════════════════ */
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.photo-thumb {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--surface-2);
+  position: relative;
+}
+
+.photo-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.photo-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.photo-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  background: rgba(0,0,0,0.75);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.photo-add-btn {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  border: 2px dashed var(--border-2);
+  background: var(--surface-2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  transition: border-color 0.2s, background 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.photo-add-btn:active { background: var(--surface-3); border-color: var(--blue); }
+.photo-add-btn-icon { font-size: 24px; }
+
+.photo-limit-note {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+  margin-top: 4px;
+}
+
+/* ══════════════════════════════════════════
+   AUDIO SECTION
+══════════════════════════════════════════ */
+.audio-controls {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0 8px;
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  border: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-record {
+  background: var(--red);
+  color: white;
+  flex: 1;
+}
+.btn-record.recording {
+  background: var(--surface-3);
+  border: 2px solid var(--red);
+  color: var(--red);
+  animation: pulse-border 1.2s ease-in-out infinite;
+}
+@keyframes pulse-border {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
+  50%       { box-shadow: 0 0 0 6px rgba(239,68,68,0); }
+}
+
+.btn-upload {
+  background: var(--surface-3);
+  color: var(--text);
+  border: 1px solid var(--border-2);
+  flex: 1;
+}
+
+.btn-primary {
+  background: var(--blue);
+  color: white;
+}
+
+.btn-success {
+  background: var(--green);
+  color: white;
+}
+
+.btn-gradient {
+  background: var(--gradient);
+  color: white;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-2);
+}
+
+.btn-lg {
+  padding: 14px 20px;
+  font-size: 16px;
+  border-radius: var(--radius);
+  width: 100%;
+}
+
+.btn-full { width: 100%; }
+
+.rec-dot {
+  width: 10px;
+  height: 10px;
+  background: var(--red);
+  border-radius: 50%;
+  animation: blink 1s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+.audio-status {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-bottom: 6px;
+  min-height: 18px;
+}
+.audio-status.recording { color: var(--red); font-weight: 600; }
+.audio-status.processing { color: var(--gold); }
+.audio-status.done { color: var(--green); font-weight: 600; }
+
+.transcript-box {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 60px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.transcript-box.empty { color: var(--text-dim); font-style: italic; }
+
+.transcript-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.transcript-note {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+/* ══════════════════════════════════════════
+   ESTIMATE TAB
+══════════════════════════════════════════ */
+.estimate-summary {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.estimate-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.transcripts-preview {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  max-height: 120px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+.transcripts-preview.empty { color: var(--text-dim); font-style: italic; }
+
+.estimate-result {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 16px;
+  display: none;
+}
+.estimate-result.visible { display: block; }
+
+.estimate-total {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 42px;
+  font-weight: 700;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+  margin: 8px 0;
+}
+
+.estimate-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+}
+.estimate-line:last-child { border-bottom: none; }
+
+.estimate-item-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+}
+.estimate-item-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.estimate-item-cost {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--gold);
+  flex-shrink: 0;
+}
+
+.notes-input {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  resize: vertical;
+  min-height: 80px;
+  margin-bottom: 16px;
+}
+.notes-input:focus { outline: none; border-color: var(--blue); }
+.notes-input::placeholder { color: var(--text-dim); }
+
+/* ══════════════════════════════════════════
+   SAVE SECTION
+══════════════════════════════════════════ */
+.save-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.save-status {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: 12px;
+}
+.save-status.success {
+  display: flex;
+  background: rgba(16,185,129,0.1);
+  border: 1px solid var(--green);
+  color: var(--green);
+}
+.save-status.error {
+  display: flex;
+  background: rgba(239,68,68,0.1);
+  border: 1px solid var(--red);
+  color: var(--red);
+}
+
+/* ══════════════════════════════════════════
+   TOAST NOTIFICATION
+══════════════════════════════════════════ */
+#toast {
+  position: fixed;
+  bottom: calc(var(--tab-h) + 16px);
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 12px 20px;
+  border-radius: 100px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s, transform 0.25s;
+  white-space: nowrap;
+  max-width: calc(100vw - 32px);
+  text-align: center;
+}
+#toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+#toast.success { background: rgba(16,185,129,0.9); border-color: var(--green); color: white; }
+#toast.error   { background: rgba(239,68,68,0.9);  border-color: var(--red);   color: white; }
+
+/* ══════════════════════════════════════════
+   PROGRESS BAR
+══════════════════════════════════════════ */
+.upload-progress {
+  display: none;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  margin-top: 12px;
+  overflow: hidden;
+}
+.upload-progress.visible { display: block; }
+.upload-progress-bar {
+  height: 100%;
+  background: var(--gradient);
+  border-radius: 3px;
+  width: 0%;
+  transition: width 0.4s ease;
+}
+
+/* ══════════════════════════════════════════
+   SECTION DIVIDER
+══════════════════════════════════════════ */
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 12px 0;
+}
+
+.section-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.section-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  flex: 1;
+}
+.section-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+/* hidden file inputs */
+input[type="file"] { display: none; }
+</style>
+</head>
+<body>
+
+<!-- Loading Screen -->
+<div id="loading-screen">
+  <div class="loader"></div>
+  <div class="loading-text">LOADING PROPERTY</div>
+</div>
+
+<!-- Header -->
+<div id="header">
+  <div class="header-logo">PHG</div>
+  <div class="header-info">
+    <div class="header-title" id="header-title">Property Inspector</div>
+    <div class="header-sub"  id="header-sub">Loading...</div>
+  </div>
+  <div class="header-badge" id="header-badge">VISIT</div>
+  <button id="btn-invite" onclick="sendClientInvite()" style="display:none;background:var(--gradient);color:white;border:none;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">
+    📱 Invite
+  </button>
+</div>
+
+<!-- Main App -->
+<div id="app">
+
+  <!-- ══ PHOTOS TAB ══ -->
+  <div id="tab-photos" class="tab-panel active">
+    <div class="section-title-row">
+      <div class="section-title">📸 PHOTOS</div>
+    </div>
+    <p class="section-subtitle">Min 4 · Max 10 photos per section. Tap a section to expand.</p>
+    <div id="photos-accordion"></div>
+    <!-- Client save button at bottom of photos -->
+    <div id="client-save-bar" style="display:none;margin-top:16px;">
+      <button class="btn btn-success btn-lg" onclick="clientSave()">💾 Save & Close</button>
+    </div>
+  </div>
+
+  <!-- ══ AUDIO TAB ══ -->
+  <div id="tab-audio" class="tab-panel">
+    <div class="section-title-row">
+      <div class="section-title">🎙️ VOICE NOTES</div>
+    </div>
+    <p class="section-subtitle">Record or upload audio per section. Auto-transcribed via AI.</p>
+    <div id="audio-accordion"></div>
+    <!-- Client save button at bottom of audio -->
+    <div id="client-save-bar-audio" style="display:none;margin-top:16px;">
+      <button class="btn btn-success btn-lg" onclick="clientSave()">💾 Save & Close</button>
+    </div>
+  </div>
+
+  <!-- ══ ESTIMATE TAB ══ -->
+  <div id="tab-estimate" class="tab-panel">
+    <div class="section-title-row">
+      <div class="section-title">🔧 REPAIR ESTIMATE</div>
+    </div>
+
+    <!-- Transcripts Summary -->
+    <div class="estimate-summary">
+      <div class="estimate-label">Voice Notes Summary</div>
+      <div class="transcripts-preview empty" id="transcripts-preview">No voice notes yet. Record audio in the Audio tab first.</div>
+    </div>
+
+    <!-- Generate Button -->
+    <button class="btn btn-gradient btn-lg" id="btn-generate" style="margin-bottom:16px;" onclick="generateEstimate()">
+      ✨ Generate AI Estimate
+    </button>
+
+    <!-- Estimate Result -->
+    <div class="estimate-result" id="estimate-result">
+      <div class="estimate-label">Total Repair Estimate</div>
+      <div class="estimate-total" id="estimate-total">$0</div>
+      <div class="divider"></div>
+      <div id="estimate-items"></div>
+    </div>
+
+    <!-- Notes -->
+    <div class="estimate-label" style="margin-bottom:6px;">Additional Notes</div>
+    <textarea class="notes-input" id="visit-notes" placeholder="Any additional observations about the property..."></textarea>
+
+    <!-- Save All -->
+    <div class="save-section">
+      <div class="estimate-label" style="margin-bottom:12px;">Save Inspection</div>
+
+      <div class="upload-progress" id="upload-progress">
+        <div class="upload-progress-bar" id="upload-progress-bar"></div>
+      </div>
+
+      <button class="btn btn-success btn-lg" id="btn-save" onclick="saveAll()">
+        💾 Save Inspection to Airtable
+      </button>
+
+      <!-- Close button shown after successful save -->
+      <button class="btn btn-ghost btn-lg" id="btn-close" style="display:none;margin-top:10px;" onclick="closeApp()">
+        ✕ Close
+      </button>
+
+      <div class="save-status" id="save-status"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Tab Bar -->
+<div id="tab-bar">
+  <button class="tab-btn active" id="tabBtn-photos" onclick="switchTab('photos')">
+    <span class="tab-icon">📸</span>
+    <span class="tab-label">PHOTOS</span>
+    <span class="tab-badge" id="badge-photos" style="display:none">0</span>
+  </button>
+  <button class="tab-btn" id="tabBtn-audio" onclick="switchTab('audio')">
+    <span class="tab-icon">🎙️</span>
+    <span class="tab-label">AUDIO</span>
+    <span class="tab-badge" id="badge-audio" style="display:none">0</span>
+  </button>
+  <button class="tab-btn" id="tabBtn-estimate" onclick="switchTab('estimate')">
+    <span class="tab-icon">🔧</span>
+    <span class="tab-label">ESTIMATE</span>
+  </button>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Hidden file inputs -->
+<input type="file" id="photo-input" accept="image/*" multiple>
+<input type="file" id="audio-input" accept="audio/*">
+
+<script>
+/* ══════════════════════════════════════════
+   CONFIGURATION
+══════════════════════════════════════════ */
+const PROXY = 'property_inspector_proxy.php';
+const IS_CLIENT = new URLSearchParams(location.search).get('mode') === 'client';
+
+// SECTIONS built dynamically after loading property data
+let SECTIONS = [];
+
+const PHOTO_MIN = 4;
+const PHOTO_MAX = 10;
+
+// Garage state
+const GARAGE = { hasGarage: null, vehicles: null, type: null }; // type: 'Attached'|'Detached'
+
+function buildSections(bedrooms, bathrooms, foundation) {
+  const secs = ['Exterior Front', 'Exterior Back'];
+  secs.push('Living Room', 'Kitchen');
+  const beds  = Math.max(1, Math.min(parseInt(bedrooms)  || 1, 10));
+  const baths = Math.max(1, Math.min(parseInt(bathrooms) || 1, 5));
+  for (let i = 1; i <= beds;  i++) secs.push('Bedroom '  + i);
+  for (let i = 1; i <= baths; i++) secs.push('Bathroom ' + i);
+  if (foundation === 'Basement') secs.push('Basement');
+  secs.push('Roof', 'HVAC', 'Additional');
+  return secs;
+}
+
+/* ══════════════════════════════════════════
+   STATE
+══════════════════════════════════════════ */
+const S = {
+  contactId: new URLSearchParams(location.search).get('cid') || '',
+  contactName: '',
+  propertyAddress: '',
+  phone1: '',
+  email1: '',
+  bedrooms: 1,
+  bathrooms: 1,
+  foundation: '',
+  zipCode: '',
+  city: '',
+  estate: '',
+  photos: {},
+  photoUrls: {},
+  audio: {},
+  estimate: null,
+  recorder: null,
+  recordingSection: null,
+  audioChunks: [],
+};
+
+function initState() {
+  S.photos = Object.fromEntries(SECTIONS.map(s => [s, []]));
+  S.audio  = Object.fromEntries(SECTIONS.map(s => [s, {status:'idle', transcript:'', blob:null}]));
+}
+
+/* ══════════════════════════════════════════
+   INIT
+══════════════════════════════════════════ */
+async function init() {
+  if (!S.contactId) {
+    showError('No property ID provided. Please access this page via the Airtable button.');
+    return;
+  }
+
+  try {
+    // 1. Load Contact
+    const res  = await fetch(`${PROXY}?action=get_contact&id=${encodeURIComponent(S.contactId)}`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    const f = data.fields || {};
+    S.contactName = f['Full Name'] || 'Unknown';
+    // Phone1 is a Number field in Airtable — may arrive as float (19207843792.0)
+    S.phone1      = f['Phone1']    ? (typeof f['Phone1'] === 'number' ? Math.floor(f['Phone1']) : f['Phone1']) : '';
+    S.email1      = f['Email1']    || '';
+
+    const pa = f['Property Address'];
+    S.propertyAddress = Array.isArray(pa) ? (pa[0] || f['Owner Address'] || '') : (pa || f['Owner Address'] || '');
+
+    // 2. Get Bedrooms & Bathrooms from Leads via Property Address link
+    const linkedLeads = f['Property Address'] || [];
+    const leadId = Array.isArray(linkedLeads) ? linkedLeads[0] : null;
+    if (leadId && typeof leadId === 'string' && leadId.startsWith('rec')) {
+      try {
+        const dr = await fetch(`${PROXY}?action=get_lead&id=${encodeURIComponent(leadId)}`);
+        const dd = await dr.json();
+        if (dd.fields) {
+          S.bedrooms  = parseInt(dd.fields['Bedrooms']) || 1;
+          S.bathrooms = parseInt(dd.fields['Bathroom']) || 1;
+          S.zipCode   = String(dd.fields['Zip Code']   || '').trim();
+          S.city      = dd.fields['City']              || '';
+          S.estate    = dd.fields['Estate']            || '';
+        }
+      } catch(e) { /* use defaults */ }
+    }
+
+    // 3. Foundation from Contacts — determines if Basement section shows
+    S.foundation = f['Foundation'] || '';
+
+    document.getElementById('header-title').textContent = S.contactName;
+    document.getElementById('header-sub').textContent   = S.propertyAddress || 'Address not found';
+
+    // 3. Build dynamic sections
+    SECTIONS = buildSections(S.bedrooms, S.bathrooms, S.foundation);
+    initState();
+
+    buildAccordions();
+    setupClientMode();
+    await loadExistingVisit(); // load previous data if exists
+
+    // Show invite button only for Jorge (not client)
+    if (!IS_CLIENT) {
+      document.getElementById('btn-invite').style.display = 'block';
+    }
+
+    document.getElementById('loading-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+
+  } catch (err) {
+    showError('Could not load contact: ' + err.message);
+  }
+}
+
+function showError(msg) {
+  document.getElementById('loading-screen').innerHTML = `
+    <div style="text-align:center;padding:32px;max-width:300px;">
+      <div style="font-size:48px;margin-bottom:16px;">⚠️</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;color:#ef4444;margin-bottom:8px;">ERROR</div>
+      <div style="font-size:14px;color:#94a3b8;line-height:1.5;">${msg}</div>
+    </div>`;
+}
+
+/* ══════════════════════════════════════════
+   CLIENT MODE
+══════════════════════════════════════════ */
+function setupClientMode() {
+  if (IS_CLIENT) {
+    // Hide Estimate tab for client
+    document.getElementById('tabBtn-estimate').style.display = 'none';
+    document.getElementById('tab-estimate').style.display    = 'none';
+    document.getElementById('header-badge').textContent      = 'CLIENT';
+    document.getElementById('header-badge').style.background = 'linear-gradient(135deg,#10b981,#3b82f6)';
+  }
+
+  // Save & Close bar visible for BOTH modes in photos and audio tabs
+  document.getElementById('client-save-bar').style.display       = 'block';
+  document.getElementById('client-save-bar-audio').style.display = 'block';
+}
+
+/* ══════════════════════════════════════════
+   LOAD EXISTING VISIT
+══════════════════════════════════════════ */
+async function loadExistingVisit() {
+  try {
+    const res  = await fetch(`${PROXY}?action=get_existing_visit&contact_id=${encodeURIComponent(S.contactId)}`);
+    const data = await res.json();
+
+    if (!data.exists) return;
+
+    toast('📂 Previous visit found — loading...', '');
+
+    const fields = data.fields || {};
+
+    // ── Load photo URLs as previews (shown as remote images) ──
+    const photoSections = ['Exterior Front','Exterior Back','Garage','Living Room','Kitchen',
+      ...Array.from({length:10},(_,i)=>'Bedroom '+(i+1)),
+      ...Array.from({length:5}, (_,i)=>'Bathroom '+(i+1)),
+      'Basement','Roof','HVAC','Additional'];
+
+    photoSections.forEach(sec => {
+      const attachments = fields[sec];
+      if (!attachments || !Array.isArray(attachments)) return;
+      if (!S.photos[sec]) S.photos[sec] = [];
+
+      attachments.forEach(att => {
+        const url = att.url || att.thumbnails?.large?.url || '';
+        if (!url) return;
+        // Add as remote preview (no file object — already uploaded)
+        S.photos[sec].push({file: null, preview: url, remote: true, airtableUrl: url});
+      });
+
+      const sid = sec.replace(/\s+/g,'_');
+      if (S.photos[sec].length > 0) renderPhotoGrid(sid, sec);
+    });
+
+    // ── Load transcript ──
+    if (data.transcript) {
+      // Parse sections from transcript
+      const sections = data.transcript.split('\n\n---\n\n');
+      sections.forEach(block => {
+        const match = block.match(/^\[(.+?)\]\n([\s\S]+)$/);
+        if (!match) return;
+        const sec = match[1].trim();
+        const txt = match[2].trim();
+        if (!S.audio[sec]) S.audio[sec] = {status:'idle', transcript:'', blob:null};
+        S.audio[sec].transcript = txt;
+        S.audio[sec].status = 'done';
+
+        // Update UI
+        const sid = sec.replace(/\s+/g,'_');
+        const tBox = document.getElementById('transcript-' + sid);
+        if (tBox) { tBox.textContent = txt; tBox.classList.remove('empty'); }
+        const countEl = document.getElementById('audio-count-' + sid);
+        if (countEl) { countEl.textContent = '✓ Transcribed'; countEl.className = 'section-count ready'; }
+        const card = document.getElementById('audio-card-' + sid);
+        if (card) card.classList.add('has-content');
+      });
+      updateAudioBadge();
+    }
+
+    updatePhotoBadge();
+    toast('✅ Previous visit loaded', 'success');
+
+  } catch(err) {
+    // Silent fail — start fresh if can't load
+    console.log('No existing visit or error:', err.message);
+  }
+}
+
+function closeApp() {
+  // Try to close tab, or redirect back to Airtable
+  if (window.history.length > 1) {
+    window.history.back();
+  } else {
+    window.close();
+  }
+}
+
+async function clientSave() {
+  const btn = document.querySelector('#client-save-bar button, #client-save-bar-audio button');
+  toast('Saving...', '');
+  await saveAll(true); // pass flag = client mode
+}
+
+
+/* ══════════════════════════════════════════
+   BUILD ACCORDIONS
+══════════════════════════════════════════ */
+function buildAccordions() {
+  const pa = document.getElementById('photos-accordion');
+  const aa = document.getElementById('audio-accordion');
+  pa.innerHTML = '';
+  aa.innerHTML = '';
+
+  // ── Garage card (special — with questions) ──
+  buildGarageCard(pa, aa);
+
+  // ── Regular sections ──
+  SECTIONS.forEach(sec => buildSectionCard(pa, aa, sec));
+}
+
+function buildGarageCard(pa, aa) {
+  // Photos garage card
+  const pc = document.createElement('div');
+  pc.className = 'section-card';
+  pc.id = 'photo-card-Garage';
+  pc.innerHTML = `
+    <div class="section-header" onclick="toggleSection('photo-card-Garage')">
+      <span class="section-name">Garage</span>
+      <span class="section-count" id="photo-count-Garage">Optional</span>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div id="garage-questions-photo">
+        <div class="transcript-label" style="margin-bottom:8px;">Does this property have a garage?</div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <button class="btn btn-ghost" style="flex:1;" id="garage-yes-btn" onclick="setGarage(true)">✅ Yes</button>
+          <button class="btn btn-ghost" style="flex:1;" id="garage-no-btn"  onclick="setGarage(false)">❌ No</button>
+        </div>
+      </div>
+      <div id="garage-details" style="display:none;">
+        <div class="transcript-label" style="margin-bottom:8px;">How many vehicles?</div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <button class="btn btn-ghost" style="flex:1;" onclick="setGarageVehicles(1)">🚗 1</button>
+          <button class="btn btn-ghost" style="flex:1;" onclick="setGarageVehicles(2)">🚗 2</button>
+          <button class="btn btn-ghost" style="flex:1;" onclick="setGarageVehicles(3)">🚗 3</button>
+        </div>
+        <div class="transcript-label" style="margin-bottom:8px;">Garage type?</div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <button class="btn btn-ghost" style="flex:1;" onclick="setGarageType('Attached')">🏠 Attached</button>
+          <button class="btn btn-ghost" style="flex:1;" onclick="setGarageType('Detached')">🏚️ Detached</button>
+        </div>
+        <div id="garage-summary" class="transcript-box empty" style="margin-bottom:12px;">Fill in the questions above</div>
+        <div class="photo-grid" id="photo-grid-Garage">
+          <div class="photo-add-btn" onclick="triggerPhotoInput('Garage')">
+            <span class="photo-add-btn-icon">＋</span>
+            <span>Add Photos</span>
+          </div>
+        </div>
+        <div class="photo-limit-note">Min ${PHOTO_MIN} · Max ${PHOTO_MAX} photos</div>
+      </div>
+    </div>`;
+  pa.appendChild(pc);
+
+  // Audio garage card
+  const ac = document.createElement('div');
+  ac.className = 'section-card';
+  ac.id = 'audio-card-Garage';
+  ac.innerHTML = `
+    <div class="section-header" onclick="toggleSection('audio-card-Garage')">
+      <span class="section-name">Garage</span>
+      <span class="section-count" id="audio-count-Garage">Optional</span>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div id="garage-audio-locked" style="text-align:center;padding:16px;color:var(--text-dim);font-size:13px;">
+        Answer the Garage questions in the Photos tab first
+      </div>
+      <div id="garage-audio-content" style="display:none;">
+        <div class="audio-controls">
+          <button class="btn btn-record" id="rec-btn-Garage" onclick="toggleRecording('Garage','Garage')">🎙️ Record</button>
+          <button class="btn btn-upload" onclick="triggerAudioInput('Garage','Garage')">📁 Upload</button>
+        </div>
+        <div class="audio-status" id="audio-status-Garage">Tap Record or upload a file</div>
+        <div class="transcript-label">Transcript</div>
+        <div class="transcript-box empty" id="transcript-Garage">No audio yet</div>
+        <div class="transcript-note">💡 You can add multiple recordings</div>
+      </div>
+    </div>`;
+  aa.appendChild(ac);
+
+  // Init garage state
+  S.photos['Garage'] = [];
+  S.audio['Garage']  = {status:'idle', transcript:'', blob:null};
+}
+
+function setGarage(hasGarage) {
+  GARAGE.hasGarage = hasGarage;
+  const yesBtn = document.getElementById('garage-yes-btn');
+  const noBtn  = document.getElementById('garage-no-btn');
+
+  if (hasGarage) {
+    yesBtn.className = 'btn btn-success';
+    noBtn.className  = 'btn btn-ghost';
+    document.getElementById('garage-details').style.display = 'block';
+    document.getElementById('garage-audio-locked').style.display  = 'none';
+    document.getElementById('garage-audio-content').style.display = 'block';
+    document.getElementById('photo-count-Garage').textContent = 'Has Garage';
+    document.getElementById('photo-count-Garage').className   = 'section-count ready';
+    document.getElementById('audio-count-Garage').textContent = 'Has Garage';
+    document.getElementById('audio-count-Garage').className   = 'section-count ready';
+  } else {
+    noBtn.className  = 'btn btn-record';
+    yesBtn.className = 'btn btn-ghost';
+    document.getElementById('garage-details').style.display = 'none';
+    document.getElementById('garage-audio-locked').style.display  = 'block';
+    document.getElementById('garage-audio-content').style.display = 'none';
+    document.getElementById('photo-count-Garage').textContent = 'No Garage';
+    document.getElementById('photo-count-Garage').className   = 'section-count';
+    document.getElementById('audio-count-Garage').textContent = 'No Garage';
+    GARAGE.vehicles = null;
+    GARAGE.type     = null;
+    updateGarageSummary();
+  }
+}
+
+function setGarageVehicles(n) {
+  GARAGE.vehicles = n;
+  document.querySelectorAll('#garage-details .btn').forEach(b => {
+    if (b.textContent.includes(n + '')) b.className = 'btn btn-primary';
+  });
+  updateGarageSummary();
+}
+
+function setGarageType(type) {
+  GARAGE.type = type;
+  document.querySelectorAll('#garage-details .btn').forEach(b => {
+    if (b.textContent.includes('Attached') || b.textContent.includes('Detached')) {
+      b.className = b.textContent.includes(type) ? 'btn btn-primary' : 'btn btn-ghost';
+    }
+  });
+  updateGarageSummary();
+}
+
+function updateGarageSummary() {
+  const el = document.getElementById('garage-summary');
+  if (!el) return;
+  if (GARAGE.hasGarage === false) {
+    el.textContent = 'No Garage';
+    el.classList.remove('empty');
+    return;
+  }
+  if (GARAGE.vehicles && GARAGE.type) {
+    const summary = `Garage: Yes | ${GARAGE.vehicles} vehicle(s) | ${GARAGE.type}`;
+    el.textContent = summary;
+    el.classList.remove('empty');
+    // Auto-append to notes
+    const notes = document.getElementById('visit-notes');
+    if (notes && !notes.value.includes('Garage:')) {
+      notes.value = (notes.value ? notes.value + '\n' : '') + summary;
+    }
+  } else {
+    el.textContent = 'Fill in the questions above';
+    el.classList.add('empty');
+  }
+}
+
+function buildSectionCard(pa, aa, sec) {
+  const sid = sec.replace(/\s+/g, '_');
+
+  // Photos card
+  const pc = document.createElement('div');
+  pc.className = 'section-card';
+  pc.id = 'photo-card-' + sid;
+  pc.innerHTML = `
+    <div class="section-header" onclick="toggleSection('photo-card-${sid}')">
+      <span class="section-name">${sec}</span>
+      <span class="section-count" id="photo-count-${sid}">0 photos</span>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="photo-grid" id="photo-grid-${sid}">
+        <div class="photo-add-btn" onclick="triggerPhotoInput('${sid}')">
+          <span class="photo-add-btn-icon">＋</span>
+          <span>Add Photos</span>
+        </div>
+      </div>
+      <div class="photo-limit-note">Min ${PHOTO_MIN} · Max ${PHOTO_MAX} photos</div>
+    </div>`;
+  pa.appendChild(pc);
+
+  // Audio card
+  const ac = document.createElement('div');
+  ac.className = 'section-card';
+  ac.id = 'audio-card-' + sid;
+  ac.innerHTML = `
+    <div class="section-header" onclick="toggleSection('audio-card-${sid}')">
+      <span class="section-name">${sec}</span>
+      <span class="section-count" id="audio-count-${sid}">—</span>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="audio-controls">
+        <button class="btn btn-record" id="rec-btn-${sid}" onclick="toggleRecording('${sid}','${sec}')">
+          🎙️ Record
+        </button>
+        <button class="btn btn-upload" onclick="triggerAudioInput('${sid}','${sec}')">
+          📁 Upload
+        </button>
+      </div>
+      <div class="audio-status" id="audio-status-${sid}">Tap Record or upload a file</div>
+      <div class="transcript-label">Transcript</div>
+      <div class="transcript-box empty" id="transcript-${sid}">No audio yet</div>
+      <div class="transcript-note">💡 You can add multiple recordings — each appends to transcript</div>
+    </div>`;
+  aa.appendChild(ac);
+}
+
+/* ══════════════════════════════════════════
+   TAB SWITCHING
+══════════════════════════════════════════ */
+function switchTab(name) {
+  ['photos','audio','estimate'].forEach(t => {
+    document.getElementById('tab-' + t).classList.toggle('active', t === name);
+    document.getElementById('tabBtn-' + t).classList.toggle('active', t === name);
+  });
+  if (name === 'estimate') updateEstimateTab();
+}
+
+/* ══════════════════════════════════════════
+   ACCORDION
+══════════════════════════════════════════ */
+function toggleSection(cardId) {
+  const card = document.getElementById(cardId);
+  card.classList.toggle('open');
+}
+
+/* ══════════════════════════════════════════
+   PHOTOS
+══════════════════════════════════════════ */
+let currentPhotoSection = null;
+
+function triggerPhotoInput(sid) {
+  currentPhotoSection = sid;
+  const input = document.getElementById('photo-input');
+  input.value = '';
+  input.click();
+}
+
+document.getElementById('photo-input').addEventListener('change', function() {
+  if (!currentPhotoSection) return;
+  const sid = currentPhotoSection;
+  const sec = sidToSection(sid);
+  const current = S.photos[sec].length;
+  const remaining = PHOTO_MAX - current;
+
+  if (remaining <= 0) {
+    toast('Max ' + PHOTO_MAX + ' photos per section', 'error');
+    return;
+  }
+
+  const files = Array.from(this.files).slice(0, remaining);
+  files.forEach(file => {
+    const preview = URL.createObjectURL(file);
+    S.photos[sec].push({file, preview});
+  });
+
+  if (this.files.length > remaining) {
+    toast(`Only ${remaining} more photos allowed (max ${PHOTO_MAX})`, 'error');
+  }
+
+  renderPhotoGrid(sid, sec);
+  updatePhotoBadge();
+});
+
+function renderPhotoGrid(sid, sec) {
+  const grid  = document.getElementById('photo-grid-' + sid);
+  const count = S.photos[sec].length;
+  const countEl = document.getElementById('photo-count-' + sid);
+  const card    = document.getElementById('photo-card-' + sid);
+
+  // Update counter
+  countEl.textContent = count + ' photo' + (count !== 1 ? 's' : '');
+  if (count >= PHOTO_MIN) {
+    countEl.className = 'section-count ready';
+    card.classList.add('has-content');
+  } else if (count > 0) {
+    countEl.className = 'section-count warn';
+    card.classList.add('has-content');
+  } else {
+    countEl.className = 'section-count';
+    card.classList.remove('has-content');
+  }
+
+  // Rebuild grid
+  grid.innerHTML = '';
+  S.photos[sec].forEach((p, i) => {
+    const item = document.createElement('div');
+    item.className = 'photo-item';
+    item.innerHTML = `
+      <img src="${p.preview}" alt="photo">
+      <button class="photo-remove" onclick="removePhoto('${sid}','${sec}',${i})">✕</button>`;
+    grid.appendChild(item);
+  });
+
+  // Add button if under max
+  if (count < PHOTO_MAX) {
+    const addBtn = document.createElement('div');
+    addBtn.className = 'photo-add-btn';
+    addBtn.onclick = () => triggerPhotoInput(sid);
+    addBtn.innerHTML = `<span class="photo-add-btn-icon">＋</span><span>Add</span>`;
+    grid.appendChild(addBtn);
+  }
+}
+
+function removePhoto(sid, sec, index) {
+  S.photos[sec].splice(index, 1);
+  renderPhotoGrid(sid, sec);
+  updatePhotoBadge();
+}
+
+function updatePhotoBadge() {
+  const total = SECTIONS.reduce((acc, s) => acc + S.photos[s].length, 0);
+  const badge = document.getElementById('badge-photos');
+  badge.textContent = total;
+  badge.style.display = total > 0 ? 'flex' : 'none';
+}
+
+/* ══════════════════════════════════════════
+   AUDIO — RECORDING
+══════════════════════════════════════════ */
+let currentAudioSection = null;
+let currentAudioSec     = null;
+
+function triggerAudioInput(sid, sec) {
+  currentAudioSection = sid;
+  currentAudioSec     = sec;
+  const input = document.getElementById('audio-input');
+  input.value = '';
+  input.click();
+}
+
+document.getElementById('audio-input').addEventListener('change', async function() {
+  if (!currentAudioSection) return;
+  const file = this.files[0];
+  if (!file) return;
+  await transcribeBlob(currentAudioSection, currentAudioSec, file, file.name);
+});
+
+async function toggleRecording(sid, sec) {
+  if (S.recorder && S.recorder.state === 'recording') {
+    // Stop recording
+    S.recorder.stop();
+    return;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    S.audioChunks = [];
+
+    // Determine supported mime type
+    const mimes = ['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg'];
+    const mime   = mimes.find(m => MediaRecorder.isTypeSupported(m)) || '';
+
+    S.recorder = new MediaRecorder(stream, mime ? {mimeType: mime} : {});
+    S.recordingSection = sid;
+
+    S.recorder.ondataavailable = e => { if (e.data.size > 0) S.audioChunks.push(e.data); };
+
+    S.recorder.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      const blob = new Blob(S.audioChunks, {type: S.recorder.mimeType || 'audio/webm'});
+      const ext  = (S.recorder.mimeType || '').includes('mp4') ? 'mp4' : 'webm';
+      await transcribeBlob(sid, sec, blob, 'recording.' + ext);
+
+      // Reset record button
+      setRecordBtn(sid, false);
+      S.recorder = null;
+      S.recordingSection = null;
+    };
+
+    S.recorder.start();
+    setRecordBtn(sid, true);
+    setAudioStatus(sid, 'recording', '🔴 Recording... Tap to stop');
+
+  } catch (err) {
+    toast('Microphone access denied: ' + err.message, 'error');
+  }
+}
+
+function setRecordBtn(sid, recording) {
+  const btn = document.getElementById('rec-btn-' + sid);
+  if (recording) {
+    btn.className = 'btn btn-record recording';
+    btn.innerHTML = '<span class="rec-dot"></span> Stop';
+  } else {
+    btn.className = 'btn btn-record';
+    btn.innerHTML = '🎙️ Record';
+  }
+}
+
+/* ══════════════════════════════════════════
+   AUDIO — TRANSCRIPTION
+══════════════════════════════════════════ */
+async function transcribeBlob(sid, sec, blob, filename) {
+  setAudioStatus(sid, 'processing', '⏳ Transcribing...');
+
+  const formData = new FormData();
+  formData.append('audio', blob, filename);
+
+  try {
+    const res  = await fetch(`${PROXY}?action=transcribe`, {method:'POST', body: formData});
+    const data = await res.json();
+
+    if (data.error) throw new Error(data.error);
+
+    // Append to existing transcript
+    const existing = S.audio[sec].transcript;
+    const newText  = data.transcript || '';
+    S.audio[sec].transcript = existing ? (existing + '\n\n' + newText) : newText;
+    S.audio[sec].status = 'done';
+
+    // Update UI
+    const tBox = document.getElementById('transcript-' + sid);
+    tBox.textContent = S.audio[sec].transcript;
+    tBox.classList.remove('empty');
+
+    const card = document.getElementById('audio-card-' + sid);
+    card.classList.add('has-content');
+    document.getElementById('audio-count-' + sid).textContent = '✓ Transcribed';
+    document.getElementById('audio-count-' + sid).className   = 'section-count ready';
+
+    setAudioStatus(sid, 'done', '✅ Done — tap Record to add more');
+    updateAudioBadge();
+    toast('Transcribed: ' + sec, 'success');
+
+  } catch (err) {
+    setAudioStatus(sid, 'idle', '❌ Error: ' + err.message);
+    toast('Transcription failed', 'error');
+  }
+}
+
+function setAudioStatus(sid, status, msg) {
+  const el = document.getElementById('audio-status-' + sid);
+  el.textContent = msg;
+  el.className = 'audio-status ' + status;
+}
+
+function updateAudioBadge() {
+  const total = SECTIONS.filter(s => S.audio[s].transcript).length;
+  const badge = document.getElementById('badge-audio');
+  badge.textContent = total;
+  badge.style.display = total > 0 ? 'flex' : 'none';
+}
+
+/* ══════════════════════════════════════════
+   ESTIMATE TAB
+══════════════════════════════════════════ */
+function updateEstimateTab() {
+  const allTranscripts = compileTranscripts();
+  const preview = document.getElementById('transcripts-preview');
+  if (allTranscripts.trim()) {
+    preview.textContent = allTranscripts;
+    preview.classList.remove('empty');
+  } else {
+    preview.textContent = 'No voice notes yet. Record audio in the Audio tab first.';
+    preview.classList.add('empty');
+  }
+}
+
+function compileTranscripts() {
+  return SECTIONS
+    .filter(s => S.audio[s].transcript)
+    .map(s => `[${s}]\n${S.audio[s].transcript}`)
+    .join('\n\n---\n\n');
+}
+
+let lastEstimateTime = 0;
+
+async function generateEstimate() {
+  const now = Date.now();
+  const cooldown = 30000; // 30 seconds
+  if (now - lastEstimateTime < cooldown) {
+    const remaining = Math.ceil((cooldown - (now - lastEstimateTime)) / 1000);
+    toast(`Please wait ${remaining}s before regenerating`, 'error');
+    return;
+  }
+
+  const transcripts = compileTranscripts();
+  if (!transcripts.trim()) {
+    toast('No voice notes to analyze. Record audio first.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('btn-generate');
+  btn.disabled = true;
+  btn.textContent = '⏳ Generating...';
+  lastEstimateTime = now;
+
+  try {
+    const res  = await fetch(`${PROXY}?action=generate_estimate`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        transcripts,
+        zip_code: S.zipCode,
+        city:     S.city,
+        estate:   S.estate
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    S.estimate = data.estimate;
+    renderEstimate(data.estimate);
+    toast('Estimate generated!', 'success');
+
+  } catch (err) {
+    lastEstimateTime = 0; // reset cooldown on error
+    toast('Estimate failed: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✨ Regenerate Estimate';
+  }
+}
+
+function renderEstimate(est) {
+  const result = document.getElementById('estimate-result');
+  result.classList.add('visible');
+
+  const total = est.total_estimate || 0;
+  document.getElementById('estimate-total').textContent = '$' + Number(total).toLocaleString();
+
+  // Location note
+  const locationNote = est.location_note || '';
+  let locationEl = document.getElementById('estimate-location-note');
+  if (!locationEl) {
+    locationEl = document.createElement('div');
+    locationEl.id = 'estimate-location-note';
+    locationEl.style.cssText = 'font-size:11px;color:var(--text-dim);margin-bottom:8px;';
+    result.insertBefore(locationEl, result.querySelector('.divider'));
+  }
+  locationEl.textContent = locationNote ? '📍 ' + locationNote : '';
+
+  const items = document.getElementById('estimate-items');
+  items.innerHTML = '';
+
+  (est.repair_list || []).forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'estimate-line';
+    row.innerHTML = `
+      <div>
+        <div class="estimate-item-name">${item.item || ''}</div>
+        <div class="estimate-item-desc">${item.description || ''}</div>
+      </div>
+      <div class="estimate-item-cost">$${Number(item.cost || 0).toLocaleString()}</div>`;
+    items.appendChild(row);
+  });
+
+  // Disclaimer
+  let disc = document.getElementById('estimate-disclaimer');
+  if (!disc) {
+    disc = document.createElement('div');
+    disc.id = 'estimate-disclaimer';
+    disc.style.cssText = 'font-size:11px;color:var(--text-dim);margin-top:12px;padding-top:12px;border-top:1px solid var(--border);line-height:1.5;';
+    disc.textContent = '⚠️ This estimate is AI-generated based on local area averages. Always verify with a licensed contractor before making purchasing decisions.';
+    result.appendChild(disc);
+  }
+}
+
+/* ══════════════════════════════════════════
+   SAVE ALL
+══════════════════════════════════════════ */
+async function saveAll(isClient = false) {
+  const btn    = document.getElementById('btn-save');
+  const status = document.getElementById('save-status');
+  const prog   = document.getElementById('upload-progress');
+  const bar    = document.getElementById('upload-progress-bar');
+
+  if (btn) btn.disabled = true;
+  if (btn) btn.textContent = '⏳ Uploading photos...';
+  if (status) { status.className = 'save-status'; }
+  prog.classList.add('visible');
+  bar.style.width = '5%';
+
+  try {
+    // ── Step 1: Upload photos ──
+    const photoUrls = {};
+    const sectionsWithPhotos = [...SECTIONS, 'Garage'].filter(s => S.photos[s] && S.photos[s].length > 0);
+    const totalSections = sectionsWithPhotos.length;
+
+    for (let i = 0; i < sectionsWithPhotos.length; i++) {
+      const sec = sectionsWithPhotos[i];
+      if (btn) btn.textContent = `⏳ Uploading ${sec}...`;
+      bar.style.width = (5 + ((i / Math.max(totalSections,1)) * 55)) + '%';
+
+      // Skip sections with only remote photos (already uploaded)
+      const newPhotos = S.photos[sec].filter(p => !p.remote && p.file);
+      const remoteUrls = S.photos[sec].filter(p => p.remote).map(p => p.airtableUrl);
+
+      if (newPhotos.length > 0) {
+        const formData = new FormData();
+        formData.append('contact_id', S.contactId);
+        formData.append('section', sec);
+        newPhotos.forEach((p, idx) => formData.append('photos[]', p.file, `photo_${idx}.jpg`));
+
+        const res  = await fetch(`${PROXY}?action=upload_photos`, {method:'POST', body: formData});
+        const data = await res.json();
+        if (data.success && data.urls?.length) {
+          photoUrls[sec] = [...remoteUrls, ...data.urls];
+        } else {
+          photoUrls[sec] = remoteUrls;
+        }
+      } else if (remoteUrls.length > 0) {
+        photoUrls[sec] = remoteUrls;
+      }
+    }
+
+    bar.style.width = '65%';
+    if (btn) btn.textContent = '⏳ Saving to Airtable...';
+
+    // ── Step 2: Build visit name ──
+    const visitName = `${S.contactName} — ${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`;
+    const notes     = document.getElementById('visit-notes')?.value || '';
+
+    // Add garage info to notes if applicable
+    let allNotes = notes;
+    if (GARAGE.hasGarage === false) {
+      allNotes = (allNotes ? allNotes + '\n' : '') + 'Garage: No';
+    } else if (GARAGE.hasGarage && GARAGE.vehicles && GARAGE.type) {
+      const gNote = `Garage: Yes | ${GARAGE.vehicles} vehicle(s) | ${GARAGE.type}`;
+      if (!allNotes.includes('Garage:')) allNotes = (allNotes ? allNotes + '\n' : '') + gNote;
+    }
+
+    const payload = {
+      contact_id:      S.contactId,
+      visit_name:      visitName,
+      notes:           allNotes,
+      photo_urls:      photoUrls,
+      all_transcripts: compileTranscripts(),
+      estimate:        S.estimate || {},
+      is_client:       isClient
+    };
+
+    const res  = await fetch(`${PROXY}?action=save_records`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    bar.style.width = '100%';
+
+    if (!data.success) throw new Error(JSON.stringify(data.results));
+
+    if (isClient) {
+      toast('✅ Saved! Thank you!', 'success');
+      setTimeout(() => closeApp(), 2500);
+    } else {
+      if (status) {
+        status.className = 'save-status success';
+        status.innerHTML = '✅ Inspection saved to Airtable successfully!';
+      }
+      if (btn) btn.textContent = '✅ Saved!';
+      document.getElementById('btn-close').style.display = 'block';
+      toast('Inspection saved!', 'success');
+    }
+
+  } catch (err) {
+    bar.style.width = '0%';
+    if (status) {
+      status.className = 'save-status error';
+      status.innerHTML = '❌ Save failed: ' + err.message;
+    }
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Retry Save'; }
+    toast('Save failed', 'error');
+  }
+}
+
+/* ══════════════════════════════════════════
+   HELPERS
+══════════════════════════════════════════ */
+function sidToSection(sid) {
+  if (sid === 'Garage') return 'Garage';
+  return SECTIONS.find(s => s.replace(/\s+/g, '_') === sid) || sid.replace(/_/g, ' ');
+}
+
+let toastTimer;
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className   = 'toast show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = 'toast'; }, 3000);
+}
+
+/* ══════════════════════════════════════════
+   SEND CLIENT INVITE
+══════════════════════════════════════════ */
+async function sendClientInvite() {
+  const btn = document.getElementById('btn-invite');
+
+  // Verify we have contact data — handle Phone1 as Number (may have decimals)
+  let rawPhone = S.phone1;
+  if (rawPhone && typeof rawPhone === 'number') rawPhone = Math.floor(rawPhone);
+  const phone = rawPhone ? String(rawPhone).replace(/\D/g,'') : '';
+  const email = S.email1 || '';
+
+  if (!phone && !email) {
+    toast('⚠️ No phone or email found for this contact', 'error');
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Sending...'; }
+
+  try {
+    const payload = {
+      contact_id:   S.contactId,
+      contact_name: S.contactName.split(' ')[0],
+      phone:        phone,
+      email:        email,
+      address:      S.propertyAddress
+    };
+
+    const res  = await fetch(`${PROXY}?action=send_client_invite`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      const parts = [];
+      if (data.results?.sms?.success)   parts.push('SMS (' + (data.results.sms.sent_to || phone) + ')');
+      if (data.results?.email?.success) parts.push('Email (' + email + ')');
+      toast('✅ Invite sent via ' + parts.join(' & '), 'success');
+    } else {
+      // Show detailed debug info
+      const smsInfo = data.results?.sms;
+      const emailInfo = data.results?.email;
+      const debugParts = [];
+      if (smsInfo) debugParts.push(`SMS[${smsInfo.code||'N/A'}→${smsInfo.sent_to||'none'}]`);
+      if (emailInfo) debugParts.push(`Email[${emailInfo.success?'ok':'fail'}→${emailInfo.sent_to||'none'}]`);
+      if (!smsInfo && !emailInfo) debugParts.push('No phone/email sent');
+      toast('⚠️ ' + debugParts.join(' | '), 'error');
+      console.log('Invite debug:', JSON.stringify(data, null, 2));
+    }
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '📱 Invite'; }
+  }
+}
+
+/* ══════════════════════════════════════════
+   START
+══════════════════════════════════════════ */
+init();
+</script>
+</body>
+</html>

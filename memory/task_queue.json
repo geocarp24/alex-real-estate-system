@@ -1,0 +1,26 @@
+[
+  {
+    "task_id": "29d63e02-a364-4774-a8fc-0668dd211467",
+    "task": "Responde EXACTAMENTE esto: MONITOR GITHUB ACTIVO - Sistema de monitoreo 24/7 funcionando. Detecté esta tarea desde task_queue.json en GitHub.",
+    "chat_id": "8402370952",
+    "source": "test_e2e",
+    "status": "completado",
+    "created_at": "2026-04-05T17:19:29.230776",
+    "updated_at": "2026-04-05T17:19:49.475826",
+    "started_at": "2026-04-05T17:19:42.172482",
+    "completed_at": "2026-04-05T17:19:49.475826",
+    "result": "MONITOR GITHUB ACTIVO - Sistema de monitoreo 24/7 funcionando. Detecté esta tarea desde task_queue.json en GitHub."
+  },
+  {
+    "task_id": "596a888e-01c3-489a-ae17-0e4d5fd92dca",
+    "task": "- Tareas escritas en memoria_ALex.md con `**Status:** ⏳ PENDIENTE EJECUCIÓN` se migran automáticamente a task_queue.json\n- Claude Code las ejecuta y devuelve resultado a Telegram sin intervención de Jorge\n- Blotato configurado: FB (Pinnacle) + IG (@pinnacle.groupwi) listos para publicar",
+    "chat_id": "8402370952",
+    "source": "memoria_alex",
+    "status": "error",
+    "created_at": "2026-04-05T17:27:27.557289",
+    "updated_at": "2026-04-05T17:27:31.868829",
+    "started_at": "2026-04-05T17:27:29.441597",
+    "completed_at": "2026-04-05T17:27:31.868829",
+    "error": "Error 1: error: unknown option '- Tareas escritas en memoria_ALex.md con `**Status:** ⏳ PENDIENTE EJECUCIÓN` se migran automáticamente a task_queue.json\n- Claude Code las ejecuta y devuelve resultado a Telegram sin intervención de Jorge\n- Blotato configurado: FB (Pinnacle) + IG (@pinnacle.groupwi) listos para publicar'"
+  }
+]
