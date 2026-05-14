@@ -52,7 +52,15 @@
       "Read(//tmp/**)",
       "Bash(tar -tf /tmp/saas-bundle.tar)",
       "Bash(tar -xf /tmp/saas-bundle.tar)",
-      "Bash(find apps *)"
+      "Bash(find apps *)",
+      "Bash(gh variable *)",
+      "Bash(grep -rEho '\\\\${{\\\\s*secrets\\\\.[A-Z_0-9]+\\\\s*\\\\}}' .github/workflows/)",
+      "Bash(\"C:/Users/Admin/OneDrive/Documents/InvestorOS/bin/doppler\" --version)",
+      "Bash(\"C:/Users/Admin/OneDrive/Documents/InvestorOS/bin/doppler\" me *)",
+      "Bash(\"C:/Users/Admin/OneDrive/Documents/InvestorOS/bin/doppler\" projects *)",
+      "Bash(grep -Eho '\\\\${{\\\\s*secrets\\\\.[A-Z_0-9]+\\\\s*\\\\}}' .github/workflows/__TRACKED_VAR__)",
+      "Bash(sed -n '260,270p' .github/workflows/agents-cron.yml)",
+      "Bash(sed -n '73,80p' .github/workflows/deploy-vps-bot.yml)"
     ]
   },
   "hooks": {
