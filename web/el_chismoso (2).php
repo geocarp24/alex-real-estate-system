@@ -14,7 +14,7 @@ require_once 'config.php';
 header('Content-Type: application/json');
 
 define('CHISMOSO_TOKEN', 'pinnacle2026');
-define('BASE_ID',        'appfQbDA750Oihy9J');
+define('BASE_ID',        '[REDACTED_AIRTABLE_BASE_ID]');
 define('TABLE_TRACY',    'Tracy');
 define('TABLE_CONTACTS', 'Contacts');
 

@@ -60,7 +60,9 @@
       "Bash(\"C:/Users/Admin/OneDrive/Documents/InvestorOS/bin/doppler\" projects *)",
       "Bash(grep -Eho '\\\\${{\\\\s*secrets\\\\.[A-Z_0-9]+\\\\s*\\\\}}' .github/workflows/__TRACKED_VAR__)",
       "Bash(sed -n '260,270p' .github/workflows/agents-cron.yml)",
-      "Bash(sed -n '73,80p' .github/workflows/deploy-vps-bot.yml)"
+      "Bash(sed -n '73,80p' .github/workflows/deploy-vps-bot.yml)",
+      "Bash(gh workflow *)",
+      "Bash(sed -n /^on:/,/^[a-z]/p C:/Users/Admin/OneDrive/Documents/InvestorOS/.github/workflows/__TRACKED_VAR__.yml)"
     ]
   },
   "hooks": {

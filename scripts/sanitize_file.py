@@ -76,6 +76,10 @@ PATTERNS: list[tuple[str, str, str]] = [
     (r'https://[a-z0-9]+\.supabase\.(co|in)', '[REDACTED_SUPABASE_URL]', 'Supabase URL'),
     # JWT (Supabase anon/service, Tracerfy, generic)
     (r'\beyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+', '[REDACTED_JWT]', 'JWT'),
+    # Google OAuth access tokens (ya29.)
+    (r'\bya29\.[A-Za-z0-9_-]{50,}', '[REDACTED_GOOGLE_ACCESS_TOKEN]', 'Google OAuth access token'),
+    # Google OAuth refresh tokens (start with 1// followed by base64-ish chars, 80+ long)
+    (r'\b1//0[A-Za-z0-9_-]{40,}', '[REDACTED_GOOGLE_REFRESH_TOKEN]', 'Google OAuth refresh token'),
     # Bearer
     (r'Bearer\s+[A-Za-z0-9._-]{30,}', 'Bearer [REDACTED_TOKEN]', 'Bearer header'),
     # Cloudinary

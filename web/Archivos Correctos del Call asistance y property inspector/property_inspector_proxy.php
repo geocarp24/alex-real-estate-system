@@ -199,7 +199,7 @@ function getExistingVisit() {
     // NOTE: ARRAYJOIN({Contact}) returns display names, NOT record IDs.
     // So we fetch recent records and filter in PHP by checking the Contact linked field,
     // which the API returns as an array of record IDs.
-    $url = 'https://api.airtable.com/v0/appfQbDA750Oihy9J/Property%20Docs'
+    $url = 'https://api.airtable.com/v0/[REDACTED_AIRTABLE_BASE_ID]/Property%20Docs'
          . '?sort[0][field]=Visit%20Date&sort[0][direction]=desc&maxRecords=50';
 
     $ch = curl_init($url);
@@ -273,7 +273,7 @@ function getExistingVisit() {
     }
 
     // Also load transcript from Visit Repair Estimate (same approach — filter in PHP)
-    $tUrl = 'https://api.airtable.com/v0/appfQbDA750Oihy9J/Visit%20Repair%20Estimate'
+    $tUrl = 'https://api.airtable.com/v0/[REDACTED_AIRTABLE_BASE_ID]/Visit%20Repair%20Estimate'
           . '?sort[0][field]=Visit%20Date&sort[0][direction]=desc&maxRecords=50';
 
     $ch2 = curl_init($tUrl);
@@ -315,7 +315,7 @@ function getLead() {
 
     // Property Address links to Leads table
     foreach (['Leads', 'Deals'] as $table) {
-        $url = 'https://api.airtable.com/v0/appfQbDA750Oihy9J/' . rawurlencode($table) . '/' . urlencode($recordId);
+        $url = 'https://api.airtable.com/v0/[REDACTED_AIRTABLE_BASE_ID]/' . rawurlencode($table) . '/' . urlencode($recordId);
         $ch  = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
@@ -334,7 +334,7 @@ function getContact() {
     $recordId = $_GET['id'] ?? '';
     if (!$recordId) { echo json_encode(['error' => 'No record ID provided']); return; }
 
-    $url = 'https://api.airtable.com/v0/appfQbDA750Oihy9J/Contacts/' . urlencode($recordId);
+    $url = 'https://api.airtable.com/v0/[REDACTED_AIRTABLE_BASE_ID]/Contacts/' . urlencode($recordId);
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
@@ -581,7 +581,7 @@ function saveRecords() {
 // Returns record ID if found, null if not
 // ─────────────────────────────────────────────
 function findExistingRecord($table, $contactId) {
-    $url = 'https://api.airtable.com/v0/appfQbDA750Oihy9J/' . rawurlencode($table)
+    $url = 'https://api.airtable.com/v0/[REDACTED_AIRTABLE_BASE_ID]/' . rawurlencode($table)
          . '?sort[0][field]=Visit%20Date&sort[0][direction]=desc&maxRecords=50';
 
     $ch = curl_init($url);
@@ -607,7 +607,7 @@ function findExistingRecord($table, $contactId) {
 // HELPER: POST to Airtable (CREATE new record)
 // ─────────────────────────────────────────────
 function airtableCreate($table, $fields) {
-    $url     = 'https://api.airtable.com/v0/appfQbDA750Oihy9J/' . rawurlencode($table);
+    $url     = 'https://api.airtable.com/v0/[REDACTED_AIRTABLE_BASE_ID]/' . rawurlencode($table);
     $payload = json_encode(['fields' => $fields]);
 
     $ch = curl_init($url);
@@ -629,7 +629,7 @@ function airtableCreate($table, $fields) {
 // HELPER: PATCH to Airtable (UPDATE existing record)
 // ─────────────────────────────────────────────
 function airtableUpdate($table, $recordId, $fields) {
-    $url     = 'https://api.airtable.com/v0/appfQbDA750Oihy9J/' . rawurlencode($table) . '/' . $recordId;
+    $url     = 'https://api.airtable.com/v0/[REDACTED_AIRTABLE_BASE_ID]/' . rawurlencode($table) . '/' . $recordId;
     $payload = json_encode(['fields' => $fields]);
 
     $ch = curl_init($url);
