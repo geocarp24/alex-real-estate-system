@@ -32,7 +32,9 @@ def main():
     cli = paramiko.SSHClient()
     cli.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     cli.connect(HOST, port=PORT, username=USER, password=pw, timeout=20, look_for_keys=False, allow_agent=False)
-    _, out, err = cli.exec_command(cmd, timeout=60)
+    # Per-command timeout from $env:SSH_CMD_TIMEOUT (seconds), default 120s.
+    cmd_timeout = int(os.environ.get("SSH_CMD_TIMEOUT", "120"))
+    _, out, err = cli.exec_command(cmd, timeout=cmd_timeout)
     so = out.read().decode("utf-8", errors="replace")
     se = err.read().decode("utf-8", errors="replace")
     if so:
