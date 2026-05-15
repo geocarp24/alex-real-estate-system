@@ -9,6 +9,13 @@ import os
 import sys
 import paramiko
 
+# Force UTF-8 stdout so emojis in remote command output don't crash on Windows cp1252.
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 HOST = "156.67.74.243"
 PORT = 65002
 USER = "u433637438"

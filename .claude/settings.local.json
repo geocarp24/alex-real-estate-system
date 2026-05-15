@@ -126,7 +126,8 @@
       "PowerShell($env:SSH_PASSWORD = 'Claudecode2026##'; python \"c:\\\\Users\\\\Admin\\\\OneDrive\\\\Documents\\\\Claude for real estate\\\\.tools\\\\ssh_hostinger.py\" \"ls domains/geocarpentry.com/public_html/wp-content/plugins/sureforms/src/blocks/ 2>&1\")",
       "PowerShell($env:SSH_PASSWORD = 'Claudecode2026##'; python \"c:\\\\Users\\\\Admin\\\\OneDrive\\\\Documents\\\\Claude for real estate\\\\.tools\\\\ssh_hostinger.py\" \"cat domains/geocarpentry.com/public_html/wp-content/plugins/sureforms/inc/blocks/dropdown/block.json 2>&1 | head -80\")",
       "PowerShell($env:SSH_PASSWORD = 'Claudecode2026##'; python \"c:\\\\Users\\\\Admin\\\\OneDrive\\\\Documents\\\\Claude for real estate\\\\.tools\\\\sftp_upload.py\" \"$env:TEMP\\\\create_quote_form.php\" \"domains/geocarpentry.com/public_html/create_quote_form.php\")",
-      "PowerShell($env:SSH_PASSWORD = 'Claudecode2026##'; python \"c:\\\\Users\\\\Admin\\\\OneDrive\\\\Documents\\\\Claude for real estate\\\\.tools\\\\ssh_hostinger.py\" \"wp --path=domains/geocarpentry.com/public_html eval-file domains/geocarpentry.com/public_html/create_quote_form.php 2>&1; rm -f domains/geocarpentry.com/public_html/create_quote_form.php\")"
+      "PowerShell($env:SSH_PASSWORD = 'Claudecode2026##'; python \"c:\\\\Users\\\\Admin\\\\OneDrive\\\\Documents\\\\Claude for real estate\\\\.tools\\\\ssh_hostinger.py\" \"wp --path=domains/geocarpentry.com/public_html eval-file domains/geocarpentry.com/public_html/create_quote_form.php 2>&1; rm -f domains/geocarpentry.com/public_html/create_quote_form.php\")",
+      "PowerShell($env:SSH_PASSWORD = 'Claudecode2026##'; python \"c:\\\\Users\\\\Admin\\\\OneDrive\\\\Documents\\\\Claude for real estate\\\\.tools\\\\ssh_hostinger.py\" \"wp --path=domains/geocarpentry.com/public_html post get 2286 --field=post_content 2>&1 | head -60\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\Admin\\OneDrive\\Documents\\Geo-Carpentry-Repo\\automation"
