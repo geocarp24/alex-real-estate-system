@@ -138,7 +138,8 @@
       "PowerShell($env:SSH_PASSWORD = 'Claudecode2026##'; $env:PYTHONIOENCODING='utf-8'; python \"c:\\\\Users\\\\Admin\\\\OneDrive\\\\Documents\\\\Claude for real estate\\\\.tools\\\\ssh_hostinger.py\" \"rm -f ~/posicionador_baseline_2026-05-15.log; nohup bash ~/bin/run_posicionador.sh --tenant geo-carpentry --mode seo_health > ~/posicionador_baseline_2026-05-15.log 2>&1 & echo `$! > ~/posicionador.pid; sleep 2; echo '=== launched PID ==='; cat ~/posicionador.pid; echo '=== first lines ==='; cat ~/posicionador_baseline_2026-05-15.log; echo '=== ps ==='; ps -p `$\\(cat ~/posicionador.pid\\) -o pid,etime,cmd 2>/dev/null\")",
       "PowerShell($env:SSH_PASSWORD = 'Claudecode2026##'; $env:PYTHONIOENCODING='utf-8'; python \"c:\\\\Users\\\\Admin\\\\OneDrive\\\\Documents\\\\Claude for real estate\\\\.tools\\\\ssh_hostinger.py\" \"bash ~/delete_footer_widgets.sh 2>&1; rm -f ~/delete_footer_widgets.sh\")",
       "WebFetch(domain:geocarpentry.com)",
-      "WebFetch(domain:websitedemos.net)"
+      "WebFetch(domain:websitedemos.net)",
+      "WebFetch(domain:wpastra.com)"
     ],
     "additionalDirectories": [
       "C:\\Users\\Admin\\OneDrive\\Documents\\Geo-Carpentry-Repo\\automation"
